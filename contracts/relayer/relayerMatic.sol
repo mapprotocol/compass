@@ -1,33 +1,38 @@
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.0;
 
 // SPDX-License-Identifier: UNLICENSED
 
 import "./interface/IData.sol";
 
+library SafeMath {
+    /**
+     * @dev Adds two unsigned integers, reverts on overflow.
+     */
+    function add(uint256 a, uint256 b) internal pure returns (uint256) {
+        uint256 c = a + b;
+        require(c >= a);
+
+        return c;
+    }
+}
+
 
 contract relayer {
+    using SafeMath for uint256;
     IData data ;
+
 
     mapping(address => bool) private manager;
     // event
     event votedEvent(uint indexed_candidateId);
 
-    struct Record{
-        uint256 time;
-    }
 
 
     // 最后一次签到时间
     mapping(address=>uint256) lasted;
-    mapping(address =>Record[]) records;
 
-    // data manager
-    mapping(address => userInfo) private userInfos;
-    //data user
-    struct userInfo {
-        uint256 amount;
-        uint256 daySign;
-    }
+
+
     modifier onlyManager() {
         require(manager[msg.sender],"onlyManager");
         _;
@@ -38,21 +43,18 @@ contract relayer {
         require(_daycount <=_daySign,"sign is not end");
         _;
     }
-
-
     constructor(IData _data) {
         data = _data;
         manager[msg.sender] = true;
     }
 
-
-    function staking(uint256 _amount,uint256 _daySign, address _sender) public onlyManager {
-        //Amount and number of terms
-        userInfo memory u = userInfos[_sender];
-        u.amount = _amount;
-        u.daySign = _daySign;
-        userInfos[_sender] = u;
-
+    function staking(uint256 _amount,uint256 _daySign) public onlyManager {
+        (uint256 amount,uint256 daysign,) = data.getUserInfo(msg.sender);
+        if (amount > 0 && daysign > 0 ){
+            data.setUserInfo(0,_daySign.add(daysign),_amount.add(amount),msg.sender);
+        }else{
+            data.setUserInfo(0,_daySign,_amount,msg.sender);
+        }
     }
 
     function sign() public{
@@ -60,9 +62,8 @@ contract relayer {
         if (last!=0){
             require(last+1 days < block.timestamp,"checked in within 24 hours");
         }
-        Record memory record = Record({time:block.timestamp});
-        records[msg.sender].push(record);
-        dayCout++;
-        (uint256 amount, uint256 dayCout, uint256 daySign)  = data.getUserInfo(msg.sender);
+        (uint256 daysign) = data.sign(msg.sender);
+        (uint256 amount, uint256 dayCount, uint256 daySign)  = data.getUserInfo(msg.sender);
+        return;
     }
 }
