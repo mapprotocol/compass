@@ -1,59 +1,63 @@
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.0;
 
 // SPDX-License-Identifier: UNLICENSED
 
-
-contract relayerData{
-    //address count 
-    uint256 addressCount = 0;
+contract EthData{
     address master;
-    
     // data manager
     mapping(address => bool) private manager;
     mapping(address => userInfo) private userInfos;
     //bind address
-    mapping(address => address) private bindAddresss;
-    
+    mapping(address => address) private bindAddress;
+
+    uint256 stakingAmount;
+
     //data userinfo
     struct userInfo {
         //0 staking 1  1 can withDraw 2 withDraw done
         uint256 stakingStatus;
         uint256 dayCount;
-        uint256 daySign;
         uint256 amount;
     }
-    
+
     modifier onlyManager() {
         require(manager[msg.sender],"onlyManager");
         _;
     }
-    
+
     constructor() {
-        manager[msg.sender] = true;    
+        manager[msg.sender] = true;
         master = msg.sender;
     }
-    
-    function setUserInfo(uint256 _dayCount,uint256 _daySign,uint256 _amount, address _sender) public onlyManager{
+
+    function setUserInfo(uint256 _dayCount,uint256 _amount, address _sender) public onlyManager{
         userInfo memory u = userInfos[_sender];
         u.amount = _amount;
         u.dayCount = _dayCount;
-        u.daySign = _daySign;
         userInfos[_sender] = u;
     }
-    
-    function getUserInfo(address _sender) public view returns(uint256, uint256,uint256){
+
+    function getUserInfo(address _sender) public view
+    returns(uint256 amount, uint256 dayCount, uint256 stakingStatus){
         userInfo memory u = userInfos[_sender];
-        return (u.amount,u.dayCount,u.daySign);
+        return (u.amount,u.dayCount,u.stakingStatus);
     }
-    
-    
+
     function setBindAddress(address _source,address _bind) public onlyManager{
-        bindAddresss[_source] = _bind;
+        bindAddress[_source] = _bind;
     }
-    
+
     function getBindAddress(address _source) public view returns(address){
-        return bindAddresss[_source];
+        return bindAddress[_source];
     }
     
+    function setCanWithdraw(address _source) public onlyManager{
+        userInfo storage u = userInfos[_source];
+        u.stakingStatus = 1;
+    }
     
+    function getStakingStatus(address _source) public view returns (uint256){
+         userInfo memory u = userInfos[_source];
+         return u.stakingStatus;
+    }
 }
