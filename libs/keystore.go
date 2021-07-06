@@ -14,6 +14,17 @@ func GetKey(password string) *ecdsa.PrivateKey {
 		return privatekeyInKeystore
 	}
 	path := "keystore"
+	//Compatible for development
+	//You only need to deploy one keystore file at project root when you take the test
+	if fileExist("../" + path) {
+		path = "../" + path
+	}
+	if fileExist("../../" + path) {
+		path = "../../" + path
+	}
+	if fileExist("../../../" + path) {
+		path = "../../../" + path
+	}
 	for {
 		if !fileExist(path) {
 			print(path + "The default file does not exist, please enter the keystore address: ")
