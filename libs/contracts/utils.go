@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"math/big"
-	"signmap/libs"
 )
 
 func PackInput(AbiStaking abi.ABI, abiMethod string, params ...interface{}) []byte {
@@ -45,7 +44,7 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 	tx := types.NewTx(&types.LegacyTx{
 		Nonce:    nonce,
 		Value:    value,
-		To:       &libs.ToAddress,
+		To:       &toAddress,
 		Gas:      gasLimit,
 		GasPrice: gasPrice,
 		Data:     input,
