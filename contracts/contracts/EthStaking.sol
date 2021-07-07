@@ -3,15 +3,15 @@ pragma solidity ^0.8.0;
 // SPDX-License-Identifier: UNLICENSED
 
 
-import "./interface/IDataEth.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./EthData.sol";
 
 
 contract EthStaking {
     using SafeMath for uint256;
     
-    IDataEth data ;
+    EthData data ;
     mapping(address => bool) private manager;
     IERC20 mapCoin ;
 
@@ -31,7 +31,7 @@ contract EthStaking {
     }
     
     
-    constructor(IDataEth _data,address map) {
+    constructor(EthData _data,address map) {
         data = _data;
         mapCoin = IERC20(map);
         manager[msg.sender] = true;

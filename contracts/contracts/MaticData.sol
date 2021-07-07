@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 contract MaticData{
     //address count 
-    uint256 addressCount = 0;
+    uint256 addressCount =0;
     uint256 stakingAmount = 0;
     dayHourSign[24] dayHourSigns;
 
@@ -45,6 +45,7 @@ contract MaticData{
         u.amount = _amount;
         u.dayCount = _dayCount;
         u.daySign = _daySign;
+        u.stakingStatus = 0;
     }
 
     function setUserWithdraw(address _sender, uint status) public onlyManager{
@@ -52,21 +53,13 @@ contract MaticData{
         u.stakingStatus = status;
     }
 
-    function setStakingAmount(uint amount) public onlyManager{
-        stakingAmount = amount;
-    }
-
-    function setAddressCount(uint count) public onlyManager{
-        addressCount = count;
-    }
-
-    function sign(address _sender, uint256 day, uint256 hour, uint256 times) public onlyManager returns(uint256){
+    function sign(address _sender, uint256 day, uint256 hour) public onlyManager returns(uint256){
         userInfo storage u = userInfos[_sender];
         u.signTm.push(block.timestamp);
         u.daySign ++;
         dayHourSign storage ds = dayHourSigns[hour];
         ds.day = day;
-        ds.times = times;
+        ds.times ++;
         return u.daySign;
     }
     
@@ -91,5 +84,21 @@ contract MaticData{
     
     function getBindAddress(address _source) public view returns(address){
         return bindAddress[_source];
+    }
+
+    function getAddressCount() public view returns(uint256){
+        return addressCount;
+    }
+
+    function setAddressCount(uint count) public onlyManager{
+        addressCount = count;
+    }
+
+    function getStakingAmount() public view returns(uint256){
+        return stakingAmount;
+    }
+
+    function setStakingAmount(uint amount) public onlyManager{
+        stakingAmount = amount;
     }
 }
