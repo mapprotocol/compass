@@ -47,6 +47,19 @@ contract MaticData{
         u.daySign = _daySign;
     }
 
+    function setUserWithdraw(address _sender, uint status) public onlyManager{
+        userInfo storage u = userInfos[_sender];
+        u.stakingStatus = status;
+    }
+
+    function setStakingAmount(uint amount) public onlyManager{
+        stakingAmount = amount;
+    }
+
+    function setAddressCount(uint count) public onlyManager{
+        addressCount = count;
+    }
+
     function sign(address _sender, uint256 day, uint256 hour, uint256 times) public onlyManager returns(uint256){
         userInfo storage u = userInfos[_sender];
         u.signTm.push(block.timestamp);
@@ -61,6 +74,10 @@ contract MaticData{
         returns(uint256 amount, uint256 dayCount,uint256 daySign, uint256 stakingStatus,uint256[] memory signTm){
         userInfo memory u = userInfos[_sender];
         return (u.amount,u.dayCount,u.daySign,u.stakingStatus,u.signTm);
+    }
+
+    function getUserInfos(address _sender) public view returns(userInfo memory u){
+        return userInfos[_sender];
     }
 
     function getLastSign(address _sender) public view returns(uint256){
