@@ -15,7 +15,7 @@ contract EthStaking {
     mapping(address => bool) private manager;
     IERC20 mapCoin ;
 
-    event stakingE(address sender, uint256 amount);
+    event stakingE(address sender, uint256 amount, uint256 dayCount);
     event withdrawE(address sender, uint256 amount);
     event bindingE(address sender, address bindAddress);
     
@@ -44,7 +44,7 @@ contract EthStaking {
         require(_dayCount == dayCount, "only choose first dayCount");
         amount = amount + _amount;
         data.setUserInfo(_dayCount,amount,msg.sender);
-        emit stakingE(msg.sender,amount);
+        emit stakingE(msg.sender,amount,dayCount);
     } 
     
     function withdraw() public checkEnd(msg.sender){
@@ -61,6 +61,6 @@ contract EthStaking {
 
     function bindingWorker(address worker) public{
         data.setBindAddress(msg.sender,worker);
-        emit bindingE(msg.sender,worker);
+        emit bindingE(worker,msg.sender);
     }
 }
