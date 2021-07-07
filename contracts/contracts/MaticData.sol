@@ -35,6 +35,10 @@ contract MaticData{
         _;
     }
     
+    function addManager(address _address) public{
+        manager[_address] = true;
+    }
+    
     constructor() {
         manager[msg.sender] = true;    
         master = msg.sender;
@@ -100,5 +104,13 @@ contract MaticData{
 
     function setStakingAmount(uint amount) public onlyManager{
         stakingAmount = amount;
+    }
+
+    function get24HourSign() public view returns(uint){
+        uint256 count = 0;
+        for (int i = 0;i<24 ;i++){
+            count = count.add(dayHourSigns[i].times);
+        }
+        return count;
     }
 }

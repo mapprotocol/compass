@@ -24,6 +24,10 @@ contract EthStaking {
         _;
     }
     
+    function addManager(address _address) public{
+        manager[_address] = true;
+    }
+    
     modifier checkEnd(address _address){
         (,,uint256 _status)=data.getUserInfo(_address);
         require(_status > 0,"sign is not end");
