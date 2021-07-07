@@ -2,10 +2,9 @@ pragma solidity ^0.8.0;
 
 // SPDX-License-Identifier: UNLICENSED
 
-contract EthData{
-    address master;
-    // data manager
-    mapping(address => bool) private manager;
+import "./utils/Managers.sol";
+
+contract EthData is Managers{
     mapping(address => userInfo) private userInfos;
     //bind address
     mapping(address => address) private bindAddress;
@@ -19,20 +18,12 @@ contract EthData{
         uint256 dayCount;
         uint256 amount;
     }
-
-    modifier onlyManager() {
-        require(manager[msg.sender],"onlyManager");
-        _;
-    }
-
+    
     constructor() {
         manager[msg.sender] = true;
         master = msg.sender;
     }
     
-    function addManager(address _address) public{
-        manager[_address] = true;
-    }
 
     function setUserInfo(uint256 _dayCount,uint256 _amount, address _sender) public onlyManager{
         userInfo memory u = userInfos[_sender];

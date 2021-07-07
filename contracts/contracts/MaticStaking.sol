@@ -4,27 +4,18 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./MaticData.sol";
+import "./utils/Managers.sol";
 
 
-contract MaticStaking {
+
+contract MaticStaking is Managers{
     using SafeMath for uint256;
     MaticData data ;
-    
-    mapping(address => bool) private manager;
 
     event signE(address sender, uint256 dayCount, uint256 daySign);
     event stakingE(address sender, uint256 amount, uint256 dayCount);
     event withdrawE(address sender);
     event bindingE(address sender, address bindAddress);
-
-    modifier onlyManager() {
-        require(manager[msg.sender],"onlyManager");
-        _;
-    }
-    
-    function addManager(address _address) public{
-        manager[_address] = true;
-    }
     
     constructor(MaticData _data) {
         data = _data;
@@ -75,6 +66,8 @@ contract MaticStaking {
 
     function sign() public{
         address sender = getSender(msg.sender);
+        (uint256 amount,,,uint256 status,) = data.getUserInfo(sender);
+        require(amount > 0 && status == 1, "address is not staking or status is error");
         uint256 last = data.getLastSign(sender);
         (uint256 lastDay,) = getTmDayHour(last);
         (uint256 day,uint256 hour) = getTmDayHour(block.timestamp);

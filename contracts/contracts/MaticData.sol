@@ -2,16 +2,19 @@ pragma solidity ^0.8.0;
 
 // SPDX-License-Identifier: UNLICENSED
 
-contract MaticData{
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./utils/Managers.sol";
+
+
+
+contract MaticData is Managers{
+    using SafeMath for uint256;
     //address count 
     uint256 addressCount =0;
     uint256 stakingAmount = 0;
     dayHourSign[24] dayHourSigns;
-
-    address master;
-    
-    // data manager
-    mapping(address => bool) private manager;
+    uint256 rate = 2600;
+ 
     mapping(address => userInfo) private userInfos;
     //bind address
     mapping(address => address) private bindAddress;
@@ -28,15 +31,6 @@ contract MaticData{
     struct dayHourSign{
         uint256 times;
         uint256 day;
-    }
-    
-    modifier onlyManager() {
-        require(manager[msg.sender],"onlyManager");
-        _;
-    }
-    
-    function addManager(address _address) public{
-        manager[_address] = true;
     }
     
     constructor() {
@@ -108,7 +102,7 @@ contract MaticData{
 
     function get24HourSign() public view returns(uint){
         uint256 count = 0;
-        for (int i = 0;i<24 ;i++){
+        for (uint i = 0;i<24 ;i++){
             count = count.add(dayHourSigns[i].times);
         }
         return count;
