@@ -1,4 +1,4 @@
-package erc20
+package MaticStaking
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -8,13 +8,12 @@ import (
 	"strings"
 )
 
-func TrueDO() {
+func DO() {
 	client := libs.GetClient()
 
 	privateKey := libs.GetKey("")
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
-	input := contracts.PackInput(abiStaking, "transfer", libs.ToAddress, libs.SendTransactionValue)
-
+	input := contracts.PackInput(abiStaking, "sign")
 	contracts.SendContractTransaction(client, fromAddress, libs.ContractAddress, nil, privateKey, input)
 }
