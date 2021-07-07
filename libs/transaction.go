@@ -34,9 +34,9 @@ func SendTransaction() {
 
 	tx := types.NewTx(&types.LegacyTx{
 		Nonce:    nonce,
-		Value:    SendTransationValue,
+		Value:    SendTransactionValue,
 		To:       &ToAddress,
-		Gas:      SendTransationGasLimit,
+		Gas:      SendTransactionGasLimit,
 		GasPrice: gasPrice,
 		Data:     data,
 	})
