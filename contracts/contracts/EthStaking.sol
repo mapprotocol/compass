@@ -6,27 +6,19 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./EthData.sol";
+import "./utils/Managers.sol";
 
 
-contract EthStaking {
+contract EthStaking is Managers{
     using SafeMath for uint256;
     
     EthData data ;
-    mapping(address => bool) private manager;
     IERC20 mapCoin ;
 
+    uint256 rate = 2600;
     event stakingE(address sender, uint256 amount, uint256 dayCount);
     event withdrawE(address sender, uint256 amount);
     event bindingE(address sender, address bindAddress);
-    
-    modifier onlyManager() {
-        require(manager[msg.sender],"onlyManager");
-        _;
-    }
-    
-    function addManager(address _address) public{
-        manager[_address] = true;
-    }
     
     modifier checkEnd(address _address){
         (,,uint256 _status)=data.getUserInfo(_address);
@@ -43,11 +35,13 @@ contract EthStaking {
     
     
     function staking(uint256 _amount,uint256 _dayCount) public {
-        mapCoin.transferFrom(msg.sender,address(this),_amount);
         (uint256 amount,uint256 dayCount,) = data.getUserInfo(msg.sender);
-        require(_dayCount == dayCount, "only choose first dayCount");
+        if(amount > 0){
+            require(_dayCount == dayCount, "only choose first dayCount");
+        }
         amount = amount + _amount;
         data.setUserInfo(_dayCount,amount,msg.sender);
+        mapCoin.transferFrom(msg.sender,address(this),_amount);
         emit stakingE(msg.sender,amount,dayCount);
     } 
     
