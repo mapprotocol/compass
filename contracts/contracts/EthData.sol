@@ -29,6 +29,10 @@ contract EthData{
         manager[msg.sender] = true;
         master = msg.sender;
     }
+    
+    function addManager(address _address) public{
+        manager[_address] = true;
+    }
 
     function setUserInfo(uint256 _dayCount,uint256 _amount, address _sender) public onlyManager{
         userInfo memory u = userInfos[_sender];

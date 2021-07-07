@@ -22,6 +22,10 @@ contract MaticStaking {
         _;
     }
     
+    function addManager(address _address) public{
+        manager[_address] = true;
+    }
+    
     constructor(MaticData _data) {
         data = _data;
         manager[msg.sender] = true;
@@ -38,13 +42,12 @@ contract MaticStaking {
     function staking(uint256 _dayCount, uint256 _amount, address _sender) public onlyManager {
         (uint256 amount,,,,) = data.getUserInfo(_sender);
         data.setUserInfo(_dayCount,0,amount.add(_amount),_sender);
-        emit stakingE(msg.sender,amount.add(_amount),_dayCount);
-
         if (amount == 0){
             data.setAddressCount(data.getAddressCount().add(1));
         }
-
         data.setStakingAmount(data.getStakingAmount().add(_amount));
+        emit stakingE(msg.sender,amount.add(_amount),_dayCount);
+
     }
     
     function binding(address _sender, address _binding) public onlyManager{
@@ -55,11 +58,11 @@ contract MaticStaking {
     function withdraw(address _sender) public onlyManager{
         (uint256 amount,,,uint256 stakingStatus,) = data.getUserInfo(_sender);
         require(stakingStatus != 2,"user is withdraw");
-        emit withdrawE(_sender);
         if (amount == 0){
             data.setAddressCount(data.getAddressCount().sub(1));
         }
         data.setStakingAmount(data.getStakingAmount().sub(amount));
+        emit withdrawE(_sender);
     }
 
     function getTmDayHour(uint256 tm) public pure returns(uint256 day,uint256 hour){
