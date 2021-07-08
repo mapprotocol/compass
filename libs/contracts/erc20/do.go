@@ -16,5 +16,5 @@ func TrueDO() {
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
 	input := contracts.PackInput(abiStaking, "transfer", libs.ToAddress, libs.SendTransactionValue)
 
-	contracts.SendContractTransaction(client, fromAddress, libs.ContractAddress, nil, privateKey, input)
+	contracts.SendContractTransaction(client, fromAddress, libs.MaticStakingContractAddress, nil, privateKey, input)
 }

@@ -12,3 +12,7 @@ func NowTimeForTest() (int, string) {
 	now := time.Now()
 	return now.Minute(), now.Format("2006010215")
 }
+func NowTimeForTestEveryNMinute(n int) (int, string) {
+	now := time.Now()
+	return now.Minute() % n, now.Format("2006010215") + string(now.Minute()/n)
+}
