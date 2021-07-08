@@ -19,7 +19,6 @@ contract MaticStaking is Managers{
     
     constructor(MaticData _data) {
         data = _data;
-        manager[msg.sender] = true;
     } 
 
     function getSender(address _worker) public view returns (address){
@@ -67,11 +66,13 @@ contract MaticStaking is Managers{
     function sign() public{
         address sender = getSender(msg.sender);
         (uint256 amount,,,uint256 status,) = data.getUserInfo(sender);
-        require(amount > 0 && status == 1, "address is not staking or status is error");
+        require(amount > 0 && status == 0, "address is not staking or status is error");
         uint256 last = data.getLastSign(sender);
         (uint256 lastDay,) = getTmDayHour(last);
         (uint256 day,uint256 hour) = getTmDayHour(block.timestamp);
         require(day > lastDay,"today is sign");
         data.sign(sender,day,hour);
+        (,uint256 dayCount,uint256 daySign,,) = data.getUserInfo(sender);
+        emit signE(sender, dayCount,daySign);
     }
 }

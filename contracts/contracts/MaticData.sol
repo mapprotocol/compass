@@ -17,7 +17,9 @@ contract MaticData is Managers{
  
     mapping(address => userInfo) private userInfos;
     //bind address
-    mapping(address => address) private bindAddress;
+    mapping(address => address) public bindAddress;
+    //address bind 
+    mapping(address => address) public addressBind;
 
     //data userinfo
     struct userInfo {
@@ -73,11 +75,13 @@ contract MaticData is Managers{
 
     function getLastSign(address _sender) public view returns(uint256){
         userInfo memory u = userInfos[_sender];
+        if(u.signTm.length == 0) return 0;
         return u.signTm[u.signTm.length];
     }
     
     function setBindAddress(address _source,address _bind) public onlyManager{
-        bindAddress[_source] = _bind;
+        bindAddress[_bind] = _source;
+        addressBind[_source] = _bind;
     }
     
     function getBindAddress(address _source) public view returns(address){
@@ -106,5 +110,13 @@ contract MaticData is Managers{
             count = count.add(dayHourSigns[i].times);
         }
         return count;
+    }
+    
+    function getAwar(address _sender) public view returns(uint){
+        userInfo memory u = userInfos[_sender];
+        if (u.daySign > 0){
+            return u.amount.mul(u.daySign).mul(rate).div(365).div(10000);
+        }
+        return 0;
     }
 }
