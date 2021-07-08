@@ -6,7 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"signmap/libs"
-	erc202 "signmap/libs/contracts/erc20"
+	"signmap/libs/contracts/MaticStaking"
 	"strings"
 	"time"
 )
@@ -20,17 +20,17 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	//signUnit := rand.Intn(24 * 60) //for production
 	libs.WriteLog("starting success!")
-
-	signUnit := rand.Intn(60) //for test
+	var everyNMinute = 60               // require 60 % everyNMinute == 0 //for test
+	signUnit := rand.Intn(everyNMinute) //for test
 	log.Println("signUnit = ", signUnit)
 
 	for {
 		go func() {
 			//nowTime,date := libs.NowTime()         // for production
-			nowUnit, date := libs.NowTimeForTest() //for test
+			nowUnit, date := libs.NowTimeForTestEveryNMinute(everyNMinute) //for test
 			if nowUnit == 0 {
 				//signUnit = rand.Intn(24 * 60) //for production
-				signUnit = rand.Intn(60) //for test
+				signUnit = rand.Intn(everyNMinute) //for test
 				log.Println("signUnit = ", signUnit)
 			}
 
@@ -39,7 +39,7 @@ func main() {
 				// Determine if you have signed it today
 				libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 				//libs.SendTransaction()
-				erc202.TrueDO()
+				MaticStaking.DO()
 			}
 		}()
 
