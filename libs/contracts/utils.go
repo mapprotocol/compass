@@ -20,18 +20,18 @@ func PackInput(AbiStaking abi.ABI, abiMethod string, params ...interface{}) []by
 	}
 	return input
 }
-func SendContractTransaction(client *ethclient.Client, from, toAddress common.Address, value *big.Int, privateKey *ecdsa.PrivateKey, input []byte) {
+func SendContractTransaction(client *ethclient.Client, from, toAddress common.Address, value *big.Int, privateKey *ecdsa.PrivateKey, input []byte) *types.Transaction {
 
 	nonce, err := client.PendingNonceAt(context.Background(), from)
 	if err != nil {
 		log.Println(err)
-		return
+		return nil
 	}
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Println(err)
-		return
+		return nil
 	}
 
 	var gasLimit uint64
@@ -39,7 +39,7 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 	gasLimit, err = client.EstimateGas(context.Background(), msg)
 	if err != nil {
 		log.Println("Contract exec failed", err)
-		return
+		return nil
 	}
 	tx := types.NewTx(&types.LegacyTx{
 		Nonce:    nonce,
@@ -58,14 +58,15 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
 		log.Println(err)
-		return
+		return nil
 	}
 
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		log.Println(err)
-		return
+		return nil
 	}
 
 	log.Println(signedTx.Hash())
+	return signedTx
 }
