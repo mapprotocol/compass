@@ -42,7 +42,7 @@ contract EthStaking is Managers{
         amount = amount + _amount;
         data.setUserInfo(_dayCount,amount,msg.sender);
         mapCoin.transferFrom(msg.sender,address(this),_amount);
-        emit stakingE(msg.sender,amount,dayCount);
+        emit stakingE(msg.sender,amount,_dayCount);
     } 
     
     function withdraw() public checkEnd(msg.sender){
