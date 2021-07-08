@@ -6,7 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"signmap/libs"
-	erc202 "signmap/libs/contracts/erc20"
+	"signmap/libs/contracts/MaticStaking"
 	"strings"
 	"time"
 )
@@ -39,7 +39,7 @@ func main() {
 				// Determine if you have signed it today
 				libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 				//libs.SendTransaction()
-				erc202.TrueDO()
+				MaticStaking.DO()
 			}
 		}()
 
