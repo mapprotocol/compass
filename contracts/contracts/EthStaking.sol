@@ -39,10 +39,10 @@ contract EthStaking is Managers{
         if(amount > 0){
             require(_dayCount == dayCount, "only choose first dayCount");
         }
-        amount = amount + _amount;
+        amount = amount.add(_amount);
         data.setUserInfo(_dayCount,amount,msg.sender);
         mapCoin.transferFrom(msg.sender,address(this),_amount);
-        emit stakingE(msg.sender,amount,_dayCount);
+        emit stakingE(msg.sender,_amount,_dayCount);
     } 
     
     function withdraw() public checkEnd(msg.sender){
