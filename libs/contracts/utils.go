@@ -55,7 +55,7 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 	}
 	fmt.Println("TX data nonce ", nonce, " transfer value ", value, " gasLimit ", gasLimit, " gasPrice ", gasPrice, " chainID ", chainID)
 
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP2930Signer(chainID), privateKey)
 	if err != nil {
 		log.Println(err)
 		return nil
@@ -69,4 +69,24 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 
 	log.Println(signedTx.Hash())
 	return signedTx
+}
+func CallContract(client *ethclient.Client, from, toAddress common.Address, input []byte) []byte {
+	var ret []byte
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Println(err)
+		return ret
+	}
+	msg := ethereum.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Data: input}
+
+	header, err := client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		log.Println("Get blockNumber error: ", err)
+	}
+	ret, err = client.CallContract(context.Background(), msg, header.Number)
+	if err != nil {
+		log.Println("method CallContract error: ", err)
+	}
+	return ret
 }
