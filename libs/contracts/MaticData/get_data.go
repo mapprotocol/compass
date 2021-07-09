@@ -5,8 +5,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
 	"log"
-
-	//"log"
 	"math/big"
 	"signmap/libs"
 	"signmap/libs/contracts"
@@ -36,8 +34,7 @@ func GetData() {
 		return
 	}
 	//println(args.Amount)
-	fmt.Printf("It has been signed in for %s days, ", userInfo.DaySign)
-	fmt.Printf("You need to sign in for %s day.", userInfo.DayCount)
+	fmt.Printf("It has been signed in for %s/%s days.", userInfo.DaySign, userInfo.DayCount)
 	println()
 	fmt.Printf("%s was pledged, ", userInfo.Amount)
 
