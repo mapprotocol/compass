@@ -6,21 +6,21 @@ import (
 	"log"
 	"math/rand"
 	"signmap/libs"
+	"signmap/libs/contracts/MaticData"
 	"signmap/libs/contracts/MaticStaking"
 	"strings"
 	"time"
 )
 
 func main() {
-	p := flag.String("password", "", "Enter the password on the command line ")
+	p := flag.String("password", "", "Enter the password on the command line. not recommend. ")
 	flag.Parse()
-
 	libs.GetKey(*p)
 
 	rand.Seed(time.Now().UnixNano())
-	//signUnit := rand.Intn(24 * 60) //for production
 	libs.WriteLog("starting success!")
-	var everyNMinute = 60               // require 60 % everyNMinute == 0 //for test
+	//signUnit := rand.Intn(24 * 60) //for production
+	var everyNMinute = 5                // require 60 % everyNMinute == 0 //for test
 	signUnit := rand.Intn(everyNMinute) //for test
 	log.Println("signUnit = ", signUnit)
 
@@ -40,6 +40,7 @@ func main() {
 				libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 				//libs.SendTransaction()
 				MaticStaking.DO()
+				MaticData.GetData()
 			}
 		}()
 

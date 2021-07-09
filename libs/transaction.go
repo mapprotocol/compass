@@ -47,7 +47,7 @@ func SendTransaction() {
 		log.Println(err)
 	}
 
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP2930Signer(chainID), privateKey)
 	if err != nil {
 		log.Println(err)
 	}

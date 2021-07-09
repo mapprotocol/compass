@@ -1,6 +1,7 @@
 package libs
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -14,5 +15,5 @@ func NowTimeForTest() (int, string) {
 }
 func NowTimeForTestEveryNMinute(n int) (int, string) {
 	now := time.Now()
-	return now.Minute() % n, now.Format("2006010215") + string(now.Minute()/n)
+	return now.Minute() % n, now.Format("2006010215") + fmt.Sprint(now.Minute()/n)
 }
