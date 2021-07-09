@@ -1,4 +1,4 @@
 sign.log
 .idea
 keystore
-./target
+target
