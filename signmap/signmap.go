@@ -20,7 +20,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	libs.WriteLog("starting success!")
 	//signUnit := rand.Intn(24 * 60) //for production
-	var everyNMinute = 5                // require 60 % everyNMinute == 0 //for test
+	var everyNMinute = 1                // require 60 % everyNMinute == 0 //for test
 	signUnit := rand.Intn(everyNMinute) //for test
 	log.Println("signUnit = ", signUnit)
 
