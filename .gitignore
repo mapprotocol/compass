@@ -2,3 +2,4 @@ sign.log
 .idea
 keystore
 target
+/contracts/node_modules/

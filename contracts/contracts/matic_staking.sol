@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 // SPDX-License-Identifier: UNLICENSED
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./MaticData.sol";
-import "./utils/Managers.sol";
+import "./matic_data.sol";
+import "./utils/managers.sol";
 
 
 
@@ -63,16 +63,24 @@ contract MaticStaking is Managers{
         hour = tm.sub(day.mul(3600*24)).div(3600);
     }
 
+
     function sign() public{
         address sender = getSender(msg.sender);
-        (uint256 amount,,,uint256 status,) = data.getUserInfo(sender);
+        (uint256 amount,uint256 dayCount,uint256 daySign,uint256 status,) = data.getUserInfo(sender);
         require(amount > 0 && status == 0, "address is not staking or status is error");
+        
         uint256 last = data.getLastSign(sender);
         (uint256 lastDay,) = getTmDayHour(last);
         (uint256 day,uint256 hour) = getTmDayHour(block.timestamp);
         require(day > lastDay,"today is sign");
-        data.sign(sender,day,hour);
-        (,uint256 dayCount,uint256 daySign,,) = data.getUserInfo(sender);
+    
+        (uint256 daySave, uint256 times) = data.getDayHourSign(hour);
+        if (day != daySave){
+            times = 1;
+        }else{
+            times = times.add(1);
+        }
+        data.sign(sender,day,hour,times);
         emit signE(sender, dayCount,daySign);
     }
 }
