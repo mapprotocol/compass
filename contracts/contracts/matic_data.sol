@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 // SPDX-License-Identifier: UNLICENSED
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./utils/Managers.sol";
+import "./utils/managers.sol";
 
 
 
@@ -13,7 +13,7 @@ contract MaticData is Managers{
     uint256 addressCount =0;
     uint256 stakingAmount = 0;
     dayHourSign[24] dayHourSigns;
-    uint256 rate = 2600;
+    uint256 rate  = 2600;
  
     mapping(address => userInfo) private userInfos;
     //bind address
@@ -53,13 +53,13 @@ contract MaticData is Managers{
         u.stakingStatus = status;
     }
 
-    function sign(address _sender, uint256 day, uint256 hour) public onlyManager returns(uint256){
+    function sign(address _sender, uint256 day, uint256 hour,uint256 times) public onlyManager returns(uint256){
         userInfo storage u = userInfos[_sender];
         u.signTm.push(block.timestamp);
-        u.daySign ++;
+        u.daySign = u.daySign.add(1);
         dayHourSign storage ds = dayHourSigns[hour];
         ds.day = day;
-        ds.times ++;
+        ds.times = times;
         return u.daySign;
     }
     
@@ -112,11 +112,24 @@ contract MaticData is Managers{
         return count;
     }
     
-    function getAwar(address _sender) public view returns(uint){
+    function getAward(address _sender) public view returns(uint){
         userInfo memory u = userInfos[_sender];
         if (u.daySign > 0){
             return u.amount.mul(u.daySign).mul(rate).div(365).div(10000);
         }
         return 0;
+    }
+
+    function setRate(uint256 _rate) public{
+        rate = _rate;
+    }
+    
+    function getRate() public view returns (uint256){
+        return rate;
+    }
+
+    function getDayHourSign(uint256 hour) public view returns(uint256 day, uint256 times){
+        dayHourSign memory dhs = dayHourSigns[hour];
+        return (dhs.day,dhs.times);
     }
 }
