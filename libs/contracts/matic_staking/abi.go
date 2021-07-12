@@ -1,11 +1,11 @@
-package MaticStaking
+package matic_staking
 
 var curAbi = `
  [
 		{
 			"inputs": [
 				{
-					"internalType": "contract MaticData",
+					"internalType": "contract matic_data",
 					"name": "_data",
 					"type": "address"
 				}

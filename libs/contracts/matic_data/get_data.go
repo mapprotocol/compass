@@ -1,4 +1,4 @@
-package MaticData
+package matic_data
 
 import (
 	"fmt"

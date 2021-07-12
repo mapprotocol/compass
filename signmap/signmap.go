@@ -6,8 +6,8 @@ import (
 	"log"
 	"math/rand"
 	"signmap/libs"
-	"signmap/libs/contracts/MaticData"
-	"signmap/libs/contracts/MaticStaking"
+	"signmap/libs/contracts/matic_data"
+	"signmap/libs/contracts/matic_staking"
 	"strings"
 	"time"
 )
@@ -39,8 +39,8 @@ func main() {
 				// Determine if you have signed it today
 				libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 				//libs.SendTransaction()
-				MaticStaking.DO()
-				MaticData.GetData()
+				matic_staking.DO()
+				matic_data.GetData()
 			}
 		}()
 

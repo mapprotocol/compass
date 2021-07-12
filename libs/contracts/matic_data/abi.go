@@ -1,4 +1,4 @@
-package MaticData
+package matic_data
 
 var curAbi = `
 [
@@ -212,7 +212,7 @@ var curAbi = `
       "type": "uint256[]"
      }
     ],
-    "internalType": "struct MaticData.userInfo",
+    "internalType": "struct matic_data.userInfo",
     "name": "u",
     "type": "tuple"
    }

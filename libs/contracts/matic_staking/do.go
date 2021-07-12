@@ -1,4 +1,4 @@
-package MaticStaking
+package matic_staking
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
