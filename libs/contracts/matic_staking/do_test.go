@@ -1,11 +1,11 @@
-package MaticData
+package matic_staking
 
 import (
 	"signmap/libs"
 	"testing"
 )
 
-func TestGetData(t *testing.T) {
+func TestDO(t *testing.T) {
 	libs.GetKey("123456")
-	GetData()
+	DO()
 }
