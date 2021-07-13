@@ -40,12 +40,12 @@ contract MaticData is Managers{
         master = msg.sender;
     }
     
-    function setUserInfo(uint256 _dayCount,uint256 _daySign,uint256 _amount, address _sender) public onlyManager{
+    function setUserInfo(uint256 _dayCount,uint256 _daySign,uint256 _amount, uint256 status ,address _sender) public onlyManager{
         userInfo storage u = userInfos[_sender];
         u.amount = _amount;
         u.dayCount = _dayCount;
         u.daySign = _daySign;
-        u.stakingStatus = 0;
+        u.stakingStatus = status;
     }
 
     function setUserWithdraw(address _sender, uint status) public onlyManager{

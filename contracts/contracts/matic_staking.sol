@@ -31,7 +31,7 @@ contract MaticStaking is Managers{
 
     function staking(uint256 _dayCount, uint256 _amount, address _sender) public onlyManager {
         (uint256 amount,,,,) = data.getUserInfo(_sender);
-        data.setUserInfo(_dayCount,0,amount.add(_amount),_sender);
+        data.setUserInfo(_dayCount,0,amount.add(_amount),0,_sender);
         if (amount == 0){
             data.setAddressCount(data.getAddressCount().add(1));
         }
@@ -48,10 +48,9 @@ contract MaticStaking is Managers{
     function withdraw(address _sender) public onlyManager{
         (uint256 amount,,,uint256 stakingStatus,) = data.getUserInfo(_sender);
         require(stakingStatus != 2,"user is withdraw");
-        if (amount == 0){
-            data.setAddressCount(data.getAddressCount().sub(1));
-        }
+        data.setAddressCount(data.getAddressCount().sub(1));
         data.setStakingAmount(data.getStakingAmount().sub(amount));
+        data.setUserInfo(0,0,0,2,_sender);
         emit withdrawE(_sender);
     }
 
@@ -80,7 +79,7 @@ contract MaticStaking is Managers{
         }else{
             times = times.add(1);
         }
-        data.sign(sender,day,hour,times);
+        daySign = data.sign(sender,day,hour,times);
         emit signE(sender, dayCount,daySign);
     }
 }
