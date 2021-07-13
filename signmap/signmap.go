@@ -20,12 +20,13 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	libs.WriteLog("starting success!")
 	//signUnit := rand.Intn(24 * 60) //for production
-	var everyNMinute = 1                // require 60 % everyNMinute == 0 //for test
-	signUnit := rand.Intn(everyNMinute) //for test
-	log.Println("signUnit = ", signUnit)
-
-	for {
-		go func() {
+	var everyNMinute = 1                 // require 60 % everyNMinute == 0 //for test
+	signUnit := rand.Intn(everyNMinute)  //for test
+	log.Println("signUnit = ", signUnit) // for test , production environment does not print
+	c := make(chan bool)
+	go func(cc chan bool) {
+		for {
+			_ = <-cc
 			//nowTime,date := libs.NowTime()         // for production
 			nowUnit, date := libs.NowTimeForTestEveryNMinute(everyNMinute) //for test
 			if nowUnit == 0 {
@@ -42,8 +43,10 @@ func main() {
 				matic_staking.DO()
 				matic_data.GetData()
 			}
-		}()
-
+		}
+	}(c)
+	for {
+		c <- true
 		time.Sleep(time.Minute)
 	}
 }
