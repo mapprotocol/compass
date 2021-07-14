@@ -40,8 +40,9 @@ func main() {
 				// Determine if you have signed it today
 				libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 				//libs.SendTransaction()
-				matic_staking.DO()
-				matic_data.GetData()
+				if matic_staking.DO() {
+					matic_data.GetData()
+				}
 			}
 		}
 	}(c)
