@@ -34,7 +34,7 @@ func DO() bool {
 		receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 		if err != nil {
 			log.Println("Get receipt error: ", err)
-			time.Sleep(time.Second * 2)
+			time.Sleep(time.Second * 5)
 			continue
 		}
 		switch receipt.Status {
@@ -45,7 +45,7 @@ func DO() bool {
 			log.Println("Transaction not completed，unconfirmed.")
 			return false
 		default:
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 5)
 			continue
 		}
 	}
