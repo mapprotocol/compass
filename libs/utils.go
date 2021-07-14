@@ -3,8 +3,10 @@ package libs
 import (
 	"bufio"
 	"fmt"
+	"github.com/ethereum/go-ethereum/params"
 	"io"
 	"log"
+	"math/big"
 	"os"
 )
 
@@ -79,4 +81,7 @@ func GetLastLineWithSeek() string {
 	}
 
 	return line
+}
+func WeiToEther(wei *big.Int) *big.Float {
+	return new(big.Float).Quo(new(big.Float).SetInt(wei), big.NewFloat(params.Ether))
 }

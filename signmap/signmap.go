@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"log"
 	"math/rand"
+	"os"
 	"signmap/libs"
 	"signmap/libs/contracts/matic_data"
 	"signmap/libs/contracts/matic_staking"
@@ -16,7 +19,11 @@ func main() {
 	p := flag.String("password", "", "Enter the password on the command line. not recommend. ")
 	flag.Parse()
 	libs.GetKey(*p)
-
+	if bytes.Compare(matic_data.BindAddress().Bytes(), common.Address{}.Bytes()) == 0 {
+		println("Worker not set！ please set a worker.")
+		os.Exit(1)
+	}
+	matic_data.GetData()
 	rand.Seed(time.Now().UnixNano())
 	libs.WriteLog("starting success!")
 	//signUnit := rand.Intn(24 * 60) //for production

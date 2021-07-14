@@ -36,19 +36,17 @@ func GetData() {
 	//println(args.Amount)
 	fmt.Printf("It has been signed in for %s/%s days.", userInfo.DaySign, userInfo.DayCount)
 	println()
-	fmt.Printf("%s was pledged, ", userInfo.Amount)
+	fmt.Printf("%f was pledged, ", libs.WeiToEther(userInfo.Amount))
 
-	//input = contracts.PackInput(abiStaking, "getAwar")
-	//ret = contracts.CallContract(client, fromAddress, libs.MaticDataContractAddress,  input)
-	//
-	//var award = struct {
-	//	uint
-	//}{}
-	//err = abiStaking.UnpackIntoInterface( &award,"getAwar", ret)
-	//if err != nil {
-	//	log.Println("abi error", err)
-	//	return
-	//}
-	//fmt.Printf("%d of interest",award)
+	input = contracts.PackInput(abiStaking, "getAward", fromAddress)
+	ret = contracts.CallContract(client, fromAddress, libs.MaticDataContractAddress, input)
+
+	var award *big.Int
+	err = abiStaking.UnpackIntoInterface(&award, "getAward", ret)
+	if err != nil {
+		log.Println("abi error", err)
+		return
+	}
+	fmt.Printf("%f of interest", libs.WeiToEther(award))
 	println()
 }
