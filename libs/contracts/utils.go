@@ -67,7 +67,7 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 		return nil
 	}
 
-	log.Println(signedTx.Hash())
+	log.Println("Transaction Hash: ", signedTx.Hash())
 	return signedTx
 }
 func CallContract(client *ethclient.Client, from, toAddress common.Address, input []byte) []byte {

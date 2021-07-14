@@ -30,6 +30,7 @@ func DO() bool {
 		}
 		switch receipt.Status {
 		case types.ReceiptStatusSuccessful:
+			println("Sign in successfully.")
 			return true
 		case types.ReceiptStatusFailed:
 			log.Println("Transaction not completed，unconfirmed.")
