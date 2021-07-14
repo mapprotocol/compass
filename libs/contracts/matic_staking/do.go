@@ -9,6 +9,7 @@ import (
 	"signmap/libs"
 	"signmap/libs/contracts"
 	"strings"
+	"time"
 )
 
 func DO() bool {
@@ -22,11 +23,19 @@ func DO() bool {
 	if tx == nil {
 		return false
 	}
+	i := -1
+	tryTimes := 5
 	for {
+		i += 1
+		if i >= tryTimes {
+			log.Println("Attempts to get the receipt ", tryTimes, " times，Attempts to get the receipt")
+			return false
+		}
 		receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 		if err != nil {
-			log.Println(err)
-			return false
+			log.Println("Get receipt error: ", err)
+			time.Sleep(time.Second * 2)
+			continue
 		}
 		switch receipt.Status {
 		case types.ReceiptStatusSuccessful:
@@ -36,6 +45,7 @@ func DO() bool {
 			log.Println("Transaction not completed，unconfirmed.")
 			return false
 		default:
+			time.Sleep(time.Second)
 			continue
 		}
 	}

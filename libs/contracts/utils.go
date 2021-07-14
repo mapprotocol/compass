@@ -38,7 +38,7 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 	msg := ethereum.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Value: value, Data: input}
 	gasLimit, err = client.EstimateGas(context.Background(), msg)
 	if err != nil {
-		log.Println("Contract exec failed", err)
+		log.Println("EstimateGas error: ", err)
 		return nil
 	}
 	tx := types.NewTx(&types.LegacyTx{
@@ -51,7 +51,7 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 	})
 	chainID, err := client.ChainID(context.Background())
 	if err != nil {
-		log.Println(err)
+		log.Println("Get ChainID error:", err)
 	}
 	fmt.Println("TX data nonce ", nonce, " transfer value ", value, " gasLimit ", gasLimit, " gasPrice ", gasPrice, " chainID ", chainID)
 
@@ -63,7 +63,7 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Println(err)
+		log.Println("SendTransaction error: ", err)
 		return nil
 	}
 
@@ -75,7 +75,7 @@ func CallContract(client *ethclient.Client, from, toAddress common.Address, inpu
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Println(err)
+		log.Println("Get SuggestGasPrice  error: ", err)
 		return ret
 	}
 	msg := ethereum.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Data: input}
