@@ -16,7 +16,6 @@ func BindAddress() common.Address {
 	privateKey := libs.GetKey("")
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
-	fromAddress = common.HexToAddress("0x81A1bA6D9d24fB89751Ab074Aab2D9653cf18e82")
 	input := contracts.PackInput(abiStaking, "bindAddress", fromAddress)
 	ret := contracts.CallContract(client, fromAddress, libs.MaticDataContractAddress, input)
 
