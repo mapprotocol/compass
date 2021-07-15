@@ -14,9 +14,9 @@ func GetKey(password string) *ecdsa.PrivateKey {
 	if privatekeyInKeystore != nil {
 		return privatekeyInKeystore
 	}
-	path := "keystore"
+	path := "keystore.json"
 	//Compatible for development
-	//You only need to deploy one keystore file at project root when you take the test
+	//You only need to deploy one keystore.json file at project root when you take the test
 	if fileExist("../" + path) {
 		path = "../" + path
 	}
@@ -28,7 +28,7 @@ func GetKey(password string) *ecdsa.PrivateKey {
 	}
 	for {
 		if !fileExist(path) {
-			print(path + "The default file does not exist, please enter the keystore address: ")
+			print(path + " does not exist, please enter the keystore path: ")
 			path = readString()
 		} else {
 			break
@@ -44,7 +44,7 @@ func GetKey(password string) *ecdsa.PrivateKey {
 	if len(password) != 0 {
 		key, err1 = keystore.DecryptKey(keyJson, password)
 		if err1 != nil {
-			log.Fatal("Password mistake!")
+			log.Fatal("Incorrect password!")
 		}
 	} else {
 		for {
