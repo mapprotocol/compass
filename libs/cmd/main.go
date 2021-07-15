@@ -8,7 +8,7 @@ import (
 func Run() {
 	setDefaultCommandIfNonePresent()
 	var rootCmd = &cobra.Command{Use: "signmap"}
-	rootCmd.AddCommand(cmdDeemon)
+	rootCmd.AddCommand(cmdDaemon)
 	rootCmd.Execute()
 }
 func setDefaultCommandIfNonePresent() {

@@ -33,14 +33,15 @@ func GetData() {
 		log.Println("abi error", err)
 		return
 	}
-	//println(args.Amount)
 	fmt.Printf("It has been signed in for %s/%s days.", userInfo.DaySign, userInfo.DayCount)
 	println()
 	fmt.Printf("%f was pledged, ", libs.WeiToEther(userInfo.Amount))
 
 	input = contracts.PackInput(abiStaking, "getAward", fromAddress)
 	ret = contracts.CallContract(client, fromAddress, libs.MaticDataContractAddress, input)
-
+	if len(ret) == 0 {
+		return
+	}
 	var award *big.Int
 	err = abiStaking.UnpackIntoInterface(&award, "getAward", ret)
 	if err != nil {
