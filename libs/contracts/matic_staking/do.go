@@ -8,6 +8,7 @@ import (
 	"log"
 	"signmap/libs"
 	"signmap/libs/contracts"
+	"signmap/libs/contracts/matic_data"
 	"strings"
 	"time"
 )
@@ -25,16 +26,21 @@ func DO() bool {
 	}
 	i := -1
 	tryTimes := 5
+	sleepSecond := 5 * time.Second
 	for {
 		i += 1
 		if i >= tryTimes {
-			log.Println("Attempts to get the receipt ", tryTimes, " times，Attempts to get the receipt")
+			if libs.Unix2Time(*matic_data.GetLastSign()).Format("20060102") == time.Now().Format("20060102") {
+				println("Sign in successfully.")
+				return true
+			}
+			log.Println("Attempts to get the receipt ", tryTimes, " times，unsuccessful.")
 			return false
 		}
 		receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 		if err != nil {
 			log.Println("Get receipt error: ", err)
-			time.Sleep(time.Second * 5)
+			time.Sleep(sleepSecond)
 			continue
 		}
 		switch receipt.Status {
@@ -45,7 +51,9 @@ func DO() bool {
 			log.Println("Transaction not completed，unconfirmed.")
 			return false
 		default:
-			time.Sleep(time.Second * 5)
+			//should unreachable
+			log.Println("Unknown receipt status: ", receipt.Status)
+			time.Sleep(sleepSecond / 2)
 			continue
 		}
 	}
