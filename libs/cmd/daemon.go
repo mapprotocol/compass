@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cobra"
@@ -16,14 +15,12 @@ import (
 	"time"
 )
 
-var cmdDeemon = &cobra.Command{
+var cmdDaemon = &cobra.Command{
 	Use:   "daemon ",
-	Short: "Run signmap deemon",
+	Short: "Run signmap daemon",
 	Args:  cobra.MinimumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		p := flag.String("password", "", "Enter the password on the command line. not recommend. ")
-		flag.Parse()
-		libs.GetKey(*p)
+		libs.GetKey("")
 		if bytes.Compare(matic_data.BindAddress().Bytes(), common.Address{}.Bytes()) == 0 {
 			println("Worker not set！ please set a worker.")
 			os.Exit(1)

@@ -8,6 +8,8 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"strconv"
+	"time"
 )
 
 func fileExist(path string) bool {
@@ -84,4 +86,12 @@ func GetLastLineWithSeek() string {
 }
 func WeiToEther(wei *big.Int) *big.Float {
 	return new(big.Float).Quo(new(big.Float).SetInt(wei), big.NewFloat(params.Ether))
+}
+
+func Unix2Time(timestamp big.Int) time.Time {
+	i, err := strconv.ParseInt(timestamp.String(), 10, 64)
+	if err != nil {
+		return time.Unix(0, 0)
+	}
+	return time.Unix(i, 0)
 }
