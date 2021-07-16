@@ -12,7 +12,8 @@ func Run() {
 	rootCmd.AddCommand(cmdDaemon)
 	rootCmd.AddCommand(cmdInfo)
 	rootCmd.AddCommand(cmdLog)
-	rootCmd.AddCommand(cmdConfig())
+	rootCmd.AddCommand(cmdConfigFunc())
+	rootCmd.AddCommand(cmdChainFunc())
 	err := os.MkdirAll(libs.RuntimeDirectory, 0700)
 	if err != nil {
 		return

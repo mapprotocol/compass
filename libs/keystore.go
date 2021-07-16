@@ -29,7 +29,7 @@ func GetKey(password string) *ecdsa.PrivateKey {
 	for {
 		if !fileExist(path) {
 			print(path + " does not exist, please enter the keystore path: ")
-			path = readString()
+			path = ReadString()
 		} else {
 			break
 		}
