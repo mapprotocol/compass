@@ -9,6 +9,7 @@ func Run() {
 	setDefaultCommandIfNonePresent()
 	var rootCmd = &cobra.Command{Use: "signmap"}
 	rootCmd.AddCommand(cmdDaemon)
+	rootCmd.AddCommand(cmdInfo)
 	rootCmd.Execute()
 }
 func setDefaultCommandIfNonePresent() {
