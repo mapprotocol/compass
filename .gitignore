@@ -3,3 +3,4 @@ sign.log
 keystore.json
 target
 /contracts/node_modules/
+runtime
