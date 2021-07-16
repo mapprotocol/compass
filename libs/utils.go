@@ -39,7 +39,7 @@ func WriteLog(s string) {
 	}
 }
 func GetLastLineWithSeek() string {
-	fileHandle, err := os.Open(filepath)
+	fileHandle, err := os.Open(LogFile)
 
 	if err != nil {
 		panic("Cannot open file")

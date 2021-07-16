@@ -27,7 +27,7 @@ var cmdDaemon = &cobra.Command{
 		}
 		matic_data.GetData()
 		rand.Seed(time.Now().UnixNano())
-		libs.WriteLog("starting success!")
+		libs.WriteLog(time.Now().Format("20060102 15:04:05") + ". starting success!")
 		//signUnit := rand.Intn(24 * 60) //for production
 		var everyNMinute = 1                 // require 60 % everyNMinute == 0 //for test
 		signUnit := rand.Intn(everyNMinute)  //for test
@@ -47,9 +47,9 @@ var cmdDaemon = &cobra.Command{
 				if nowUnit == signUnit && !strings.HasPrefix(libs.GetLastLineWithSeek(), date) {
 					log.Println(date)
 					// Determine if you have signed it today
-					libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 					//libs.SendTransaction()
 					if matic_staking.DO() {
+						libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 						matic_data.GetData()
 					}
 				}

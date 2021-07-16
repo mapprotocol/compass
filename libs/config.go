@@ -8,10 +8,6 @@ import (
 	filepath2 "path/filepath"
 )
 
-const (
-	filepath = "sign.log"
-)
-
 var (
 	SendTransactionValue   = big.NewInt(1000000000000000000)
 	RpcUrl                 = BlockChainMap[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].RpcUrl
@@ -20,9 +16,10 @@ var (
 
 	SendTransactionGasLimit = uint64(21000)
 	ToAddress               = common.HexToAddress("0x799E24dC6B48549BbD1Fc9fcCa4d72880d8c7a15")
-	SignLogFile, _          = os.OpenFile(filepath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	SignLogFile, _          = os.OpenFile(LogFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0700)
 	RuntimeDirectory        = "runtime"
 	ConfigDirectory         = filepath2.Join(RuntimeDirectory, "config")
+	LogFile                 = filepath2.Join(RuntimeDirectory, "sign.log")
 	DiskCache               = diskv.New(diskv.Options{
 		BasePath:     ConfigDirectory,
 		CacheSizeMax: 1024 * 1024,
