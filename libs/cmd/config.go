@@ -10,7 +10,7 @@ var (
 	configurable = map[string]bool{"keystore": true}
 	cmdConfig    = &cobra.Command{
 		Use:   "config ",
-		Short: "Configure the application. ",
+		Short: "Configure the application.",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
@@ -18,7 +18,7 @@ var (
 	}
 	configGet = &cobra.Command{
 		Use:   "get ",
-		Short: "Read the application configuration",
+		Short: "Read the application configuration.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			for k := range configurable {
@@ -28,12 +28,12 @@ var (
 	}
 	configSet = &cobra.Command{
 		Use:   "set ",
-		Short: "Write the application configuration",
+		Short: "Write the application configuration.",
 
 		Args: cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 2 {
-				fmt.Println("Error: requires at least 2 arg(s), only received 0")
+				fmt.Println("Error: requires at least 2 args, only received ", len(args), ".")
 				fmt.Println("Usage: ")
 				fmt.Println("    signmap config set [key] [value]")
 				return

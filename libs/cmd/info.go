@@ -7,7 +7,7 @@ import (
 
 var cmdInfo = &cobra.Command{
 	Use:   "info ",
-	Short: "get user information",
+	Short: "Get user information",
 	Args:  cobra.MinimumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		matic_data.GetData()
