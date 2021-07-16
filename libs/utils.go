@@ -17,7 +17,7 @@ func fileExist(path string) bool {
 	return !os.IsNotExist(err)
 }
 
-func readString() string {
+func ReadString() string {
 	var input string
 	_, err := fmt.Scanln(&input)
 	if err != nil {
@@ -117,7 +117,8 @@ func ReadConfig(key string, defaultValue string) string {
 }
 func ReadConfigWithCondition(key string, defaultValue string, f func(string) bool) string {
 	b, err := DiskCache.Read(key)
-	if err == nil && f(key) {
+
+	if err == nil && f(string(b)) {
 		return string(b)
 	} else {
 		return defaultValue

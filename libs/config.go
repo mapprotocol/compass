@@ -1,6 +1,7 @@
 package libs
 
 import (
+	"encoding/json"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/peterbourgon/diskv"
 	"math/big"
@@ -10,9 +11,9 @@ import (
 
 var (
 	SendTransactionValue   = big.NewInt(1000000000000000000)
-	RpcUrl                 = BlockChainMap[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].RpcUrl
-	StakingContractAddress = BlockChainMap[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].StakingContractAddress
-	DataContractAddress    = BlockChainMap[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].DataContractAddress
+	RpcUrl                 = GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].RpcUrl
+	StakingContractAddress = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].StakingContractAddress)
+	DataContractAddress    = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].DataContractAddress)
 
 	SendTransactionGasLimit = uint64(21000)
 	ToAddress               = common.HexToAddress("0x799E24dC6B48549BbD1Fc9fcCa4d72880d8c7a15")
@@ -24,20 +25,49 @@ var (
 		BasePath:     ConfigDirectory,
 		CacheSizeMax: 1024 * 1024,
 	})
-	BlockChainMap = map[string]Chain{"1": {
+	blockChainMap         map[string]Chain
+	ExternalBlockChainMap map[string]Chain
+	internalBlockChainMap = map[string]Chain{"1": {
 		"https://rpc-mumbai.maticvigil.com/",
-		common.HexToAddress("0x821dD65Dbeb1a9F4846ce5E0d74A22869Ef5755d"),
-		common.HexToAddress("0x17c6b58499dF2E70882C2a2A8D22F2Decc6e8F98"),
+		"0x821dD65Dbeb1a9F4846ce5E0d74A22869Ef5755d",
+		"0x17c6b58499dF2E70882C2a2A8D22F2Decc6e8F98",
 	}}
+	ExternalBlockChainKey = "externalBlockChain"
 )
 
+func GetBlockChainMap() map[string]Chain {
+	if blockChainMap != nil {
+		return blockChainMap
+	}
+	blockChainMap = make(map[string]Chain)
+	for k, v := range internalBlockChainMap {
+		blockChainMap[k] = v
+	}
+
+	for k, v := range GetExternalBlockChainMap() {
+		blockChainMap[k] = v
+	}
+
+	return blockChainMap
+}
+func GetExternalBlockChainMap() map[string]Chain {
+	if ExternalBlockChainMap != nil {
+		return ExternalBlockChainMap
+	}
+	ExternalBlockChainMap = make(map[string]Chain)
+	err := json.Unmarshal([]byte(ReadConfig(ExternalBlockChainKey, "[]")), &ExternalBlockChainMap)
+	if err != nil {
+		return nil
+	}
+	return ExternalBlockChainMap
+}
 func keyInBlockChainMap(key string) bool {
-	_, ok := BlockChainMap[key]
+	_, ok := GetBlockChainMap()[key]
 	return ok
 }
 
 type Chain struct {
 	RpcUrl                 string
-	StakingContractAddress common.Address
-	DataContractAddress    common.Address
+	StakingContractAddress string
+	DataContractAddress    string
 }

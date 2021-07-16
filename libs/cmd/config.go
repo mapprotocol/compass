@@ -6,10 +6,9 @@ import (
 	"signmap/libs"
 )
 
-var configurable = map[string]bool{"keystore": true}
-
-func cmdConfig() *cobra.Command {
-	cmdConfig := &cobra.Command{
+var (
+	configurable = map[string]bool{"keystore": true}
+	cmdConfig    = &cobra.Command{
 		Use:   "config ",
 		Short: "Configure the application. ",
 		Args:  cobra.MinimumNArgs(1),
@@ -17,7 +16,7 @@ func cmdConfig() *cobra.Command {
 
 		},
 	}
-	configGet := &cobra.Command{
+	configGet = &cobra.Command{
 		Use:   "get ",
 		Short: "Read the application configuration",
 		Args:  cobra.MinimumNArgs(0),
@@ -27,7 +26,7 @@ func cmdConfig() *cobra.Command {
 			}
 		},
 	}
-	configSet := &cobra.Command{
+	configSet = &cobra.Command{
 		Use:   "set ",
 		Short: "Write the application configuration",
 
@@ -51,7 +50,7 @@ func cmdConfig() *cobra.Command {
 			}
 		},
 	}
-	configErase := &cobra.Command{
+	configErase = &cobra.Command{
 		Use:   "erase ",
 		Short: "Erase the application configuration key ",
 		Args:  cobra.MinimumNArgs(1),
@@ -67,7 +66,7 @@ func cmdConfig() *cobra.Command {
 			}
 		},
 	}
-	configrReset := &cobra.Command{
+	configReset = &cobra.Command{
 		Use:   "reset ",
 		Short: "Reset the application configuration to default ",
 		Args:  cobra.MinimumNArgs(0),
@@ -78,6 +77,10 @@ func cmdConfig() *cobra.Command {
 			}
 		},
 	}
-	cmdConfig.AddCommand(configGet, configSet, configErase, configrReset)
+)
+
+func cmdConfigFunc() *cobra.Command {
+
+	cmdConfig.AddCommand(configGet, configSet, configErase, configReset)
 	return cmdConfig
 }
