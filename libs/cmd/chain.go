@@ -13,7 +13,7 @@ var (
 		Short: "Configure the application chain. ",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-
+			cmd.Help()
 		},
 	}
 	cmdChainLs = &cobra.Command{

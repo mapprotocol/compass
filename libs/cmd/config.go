@@ -13,7 +13,7 @@ var (
 		Short: "Configure the application. ",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-
+			cmd.Help()
 		},
 	}
 	configGet = &cobra.Command{
