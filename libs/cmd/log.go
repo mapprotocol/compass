@@ -6,14 +6,17 @@ import (
 	"signmap/libs"
 )
 
-var logInfo = &cobra.Command{
+var cmdLog = &cobra.Command{
 	Use:   "log ",
 	Short: "cat log",
 	Args:  cobra.MinimumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		bt, err := os.ReadFile(libs.LogFile)
 		if err == nil {
-			os.Stdout.Write(bt)
+			_, err := os.Stdout.Write(bt)
+			if err != nil {
+				return
+			}
 		} else {
 			println("Read log file error: ", err.Error())
 		}
