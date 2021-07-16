@@ -95,7 +95,12 @@ func Unix2Time(timestamp big.Int) time.Time {
 	}
 	return time.Unix(i, 0)
 }
-
+func WriteConfig(key string, value string) {
+	err := DiskCache.Write(key, []byte(value))
+	if err != nil {
+		return
+	}
+}
 func ReadConfig(key string, defaultValue string) string {
 	b, err := DiskCache.Read(key)
 	if err == nil {
