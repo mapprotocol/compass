@@ -17,7 +17,7 @@ func BindAddress() common.Address {
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
 	input := contracts.PackInput(abiStaking, "bindAddress", fromAddress)
-	ret := contracts.CallContract(client, fromAddress, libs.MaticDataContractAddress, input)
+	ret := contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
 
 	var res = common.Address{}
 	if len(ret) == 0 {

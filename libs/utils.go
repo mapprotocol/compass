@@ -104,3 +104,11 @@ func ReadConfig(key string, defaultValue string) string {
 		return defaultValue
 	}
 }
+func ReadConfigWithCondition(key string, defaultValue string, f func(string) bool) string {
+	b, err := DiskCache.Read(key)
+	if err == nil && f(key) {
+		return string(b)
+	} else {
+		return defaultValue
+	}
+}
