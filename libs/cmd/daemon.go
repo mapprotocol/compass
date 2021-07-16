@@ -17,7 +17,7 @@ import (
 
 var cmdDaemon = &cobra.Command{
 	Use:   "daemon ",
-	Short: "Run signmap daemon",
+	Short: "(Default) Run signmap daemon .",
 	Args:  cobra.MinimumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		libs.GetKey("")

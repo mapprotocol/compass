@@ -29,12 +29,12 @@ func WriteLog(s string) {
 	w := bufio.NewWriter(SignLogFile)
 	_, err := fmt.Fprintln(w, s)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Write log error", err)
 		return
 	}
 	err = w.Flush()
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Write log error", err)
 		return
 	}
 }
