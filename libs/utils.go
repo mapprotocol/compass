@@ -101,6 +101,12 @@ func WriteConfig(key string, value string) {
 		return
 	}
 }
+func EraseConfig(key string) {
+	err := DiskCache.Erase(key)
+	if err != nil {
+		return
+	}
+}
 func ReadConfig(key string, defaultValue string) string {
 	b, err := DiskCache.Read(key)
 	if err == nil {

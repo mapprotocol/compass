@@ -51,6 +51,33 @@ func cmdConfig() *cobra.Command {
 			}
 		},
 	}
-	cmdConfig.AddCommand(configGet, configSet)
+	configErase := &cobra.Command{
+		Use:   "erase ",
+		Short: "Erase the application configuration key ",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			if _, ok := configurable[args[0]]; ok {
+				libs.EraseConfig(args[0])
+			} else {
+				print("Only option (")
+				for k := range configurable {
+					print(k, ",")
+				}
+				println(") can be erased.")
+			}
+		},
+	}
+	configrReset := &cobra.Command{
+		Use:   "reset ",
+		Short: "Reset the application configuration to default ",
+		Args:  cobra.MinimumNArgs(0),
+		Run: func(cmd *cobra.Command, args []string) {
+			for k := range configurable {
+				libs.EraseConfig(k)
+
+			}
+		},
+	}
+	cmdConfig.AddCommand(configGet, configSet, configErase, configrReset)
 	return cmdConfig
 }

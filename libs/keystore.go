@@ -14,7 +14,7 @@ func GetKey(password string) *ecdsa.PrivateKey {
 	if privatekeyInKeystore != nil {
 		return privatekeyInKeystore
 	}
-	path := "keystore.json"
+	path := ReadConfig("keystore", "keystore.json")
 	//Compatible for development
 	//You only need to deploy one keystore.json file at project root when you take the test
 	if fileExist("../" + path) {
