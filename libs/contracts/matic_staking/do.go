@@ -20,7 +20,7 @@ func DO() bool {
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
 	input := contracts.PackInput(abiStaking, "sign")
-	tx := contracts.SendContractTransaction(client, fromAddress, libs.MaticStakingContractAddress, nil, privateKey, input)
+	tx := contracts.SendContractTransaction(client, fromAddress, libs.StakingContractAddress, nil, privateKey, input)
 	if tx == nil {
 		return false
 	}

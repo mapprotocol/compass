@@ -18,7 +18,7 @@ func GetData() {
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
 	input := contracts.PackInput(abiStaking, "getUserInfo", fromAddress)
-	ret := contracts.CallContract(client, fromAddress, libs.MaticDataContractAddress, input)
+	ret := contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
 
 	userInfo := struct {
 		Amount        *big.Int
@@ -38,7 +38,7 @@ func GetData() {
 	fmt.Printf("%f was pledged, ", libs.WeiToEther(userInfo.Amount))
 
 	input = contracts.PackInput(abiStaking, "getAward", fromAddress)
-	ret = contracts.CallContract(client, fromAddress, libs.MaticDataContractAddress, input)
+	ret = contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
 	if len(ret) == 0 {
 		return
 	}

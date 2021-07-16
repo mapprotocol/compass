@@ -17,7 +17,7 @@ func GetLastSign() *big.Int {
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
 	input := contracts.PackInput(abiStaking, "getLastSign", fromAddress)
-	ret := contracts.CallContract(client, fromAddress, libs.MaticDataContractAddress, input)
+	ret := contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
 	var res = big.NewInt(0)
 	if len(ret) == 0 {
 		return res
