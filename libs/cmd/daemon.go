@@ -28,26 +28,25 @@ var cmdDaemon = &cobra.Command{
 		matic_data.GetData()
 		rand.Seed(time.Now().UnixNano())
 		libs.WriteLog(time.Now().Format("20060102 15:04:05") + ". starting success!")
-		//signUnit := rand.Intn(24 * 60) //for production
-		var everyNMinute = 1                 // require 60 % everyNMinute == 0 //for test
-		signUnit := rand.Intn(everyNMinute)  //for test
-		log.Println("signUnit = ", signUnit) // for test , production environment does not print
+		signUnit := rand.Intn(24 * 60) //for production
+		//var everyNMinute = 1                 // require 60 % everyNMinute == 0 //for test
+		//signUnit := rand.Intn(everyNMinute)  //for test
+		//log.Println("signUnit = ", signUnit) // for test , production environment does not print
 		c := make(chan bool)
 		go func(cc chan bool) {
 			for {
 				_ = <-cc
-				//nowTime,date := libs.NowTime()         // for production
-				nowUnit, date := libs.NowTimeForTestEveryNMinute(everyNMinute) //for test
+				nowUnit, date := libs.NowTime() // for production
+				//nowUnit, date := libs.NowTimeForTestEveryNMinute(everyNMinute) //for test
 				if nowUnit == 0 {
-					//signUnit = rand.Intn(24 * 60) //for production
-					signUnit = rand.Intn(everyNMinute) //for test
+					signUnit = rand.Intn(24 * 60) //for production
+					//signUnit = rand.Intn(everyNMinute) //for test
 					log.Println("signUnit = ", signUnit)
 				}
 
 				if nowUnit == signUnit && !strings.HasPrefix(libs.GetLastLineWithSeek(), date) {
 					log.Println(date)
 					// Determine if you have signed it today
-					//libs.SendTransaction()
 					if matic_staking.DO() {
 						libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 						matic_data.GetData()
