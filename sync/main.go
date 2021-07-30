@@ -22,14 +22,16 @@ import (
 )
 
 var (
-	srcClient   *ethclient.Client
-	dstClient   *ethclient.Client
-	db          *sql.DB
-	lastSyncNum uint64 = 0
-	dstChainId  *big.Int
-	privateKey  *ecdsa.PrivateKey
-	fromAddress common.Address
-	gasPrice    *big.Int
+	srcClient          *ethclient.Client
+	dstClient          *ethclient.Client
+	db                 *sql.DB
+	lastSyncNum        uint64 = 0
+	dstChainId         *big.Int
+	privateKey         *ecdsa.PrivateKey
+	fromAddress        common.Address
+	gasPrice           *big.Int
+	waitReceiptPerTime = 3 * time.Second
+	waitReceiptTimes   = 100
 )
 
 func main() {
@@ -97,40 +99,47 @@ func synBlock(num uint64) {
 		log.Println(err)
 	}
 	fmt.Printf("tx sent: %s", signedTx.Hash().Hex())
+	println()
+	stmt, _ := db.Prepare("insert into block (id,hash,tx_hash,info) values (?,?,?,?)")
+	stmt.Exec(num, block.Hash().Hex(), signedTx.Hash().Hex(), "")
 	go func() {
+		time.Sleep(waitReceiptPerTime)
 		var i = 0
 		for {
-			receipt, err := dstClient.TransactionReceipt(context.Background(), tx.Hash())
-			if err != nil && i < 100 {
-				time.Sleep(time.Minute)
+			receipt, err := dstClient.TransactionReceipt(context.Background(), signedTx.Hash())
+			if err != nil && i < waitReceiptTimes {
+				time.Sleep(waitReceiptPerTime)
 				i += 1
 				continue
 			}
-			stmt, _ := db.Prepare("insert into block (id,hash,info) values (?,?,?)")
-			if err == nil || i == 100 {
-				_, err := stmt.Exec(num, block.Hash().Hex(), "error")
+
+			if err == nil || i == waitReceiptTimes {
+				stmt, _ = db.Prepare("update block set info = ? where id = ?")
+				_, err := stmt.Exec("error", num)
 				if err != nil {
-					println(err)
+					log.Println(err)
 				}
 				return
 			} else {
 				switch receipt.Status {
 				case types.ReceiptStatusSuccessful:
-					_, err := stmt.Exec(num, block.Hash().Hex(), "ok")
+					stmt, _ = db.Prepare("update block set info = ? where id = ?")
+					_, err := stmt.Exec("ok", num)
 					if err != nil {
-						println(err)
+						log.Println(err)
 					}
 					return
 				case types.ReceiptStatusFailed:
-					_, err := stmt.Exec(num, block.Hash().Hex(), "error")
+					stmt, _ = db.Prepare("update block set info = ? where id = ?")
+					_, err := stmt.Exec("error", num)
 					if err != nil {
-						println(err)
+						log.Println(err)
 					}
 					return
 				default:
 					//should unreachable
 					log.Println("Unknown receipt status: ", receipt.Status)
-					time.Sleep(time.Minute)
+					time.Sleep(waitReceiptPerTime)
 					i += 1
 					continue
 				}
@@ -156,12 +165,8 @@ func GetKey() {
 	}
 	privateKey = key.PrivateKey
 	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		log.Println("error casting public key to ECDSA")
-	}
+	publicKeyECDSA, _ := publicKey.(*ecdsa.PublicKey)
 	fromAddress = crypto.PubkeyToAddress(*publicKeyECDSA)
-	println(fromAddress.Hex())
 }
 
 func init() {
@@ -171,8 +176,14 @@ func init() {
 	}
 	srcRpcUrl := os.Getenv("src_rpc_url")
 	srcClient = libs.GetClientByUrl(srcRpcUrl)
+	if srcClient == nil {
+		log.Fatal("Source blockchain can not connect, config at .env file")
+	}
 	dstRpcUrl := os.Getenv("dst_rpc_url")
 	dstClient = libs.GetClientByUrl(dstRpcUrl)
+	if dstClient == nil {
+		log.Fatal("Destination blockchain can not connect, config at .env file")
+	}
 	dstChainId, _ = dstClient.NetworkID(context.Background())
 	GetKey()
 	initDb()
@@ -190,10 +201,8 @@ func initDb() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		db.Exec("create table block (id bigint,hash text,info text)")
+		db.Exec("create table block (id bigint,hash text,tx_hash text, info text)")
 	}
-	err = db.QueryRow("select id from block order by id desc limit 1").Scan(&lastSyncNum)
-	if err != nil {
-		log.Println(err)
-	}
+	db.QueryRow("select id from block order by id desc limit 1").Scan(&lastSyncNum)
+
 }
