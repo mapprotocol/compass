@@ -4,3 +4,5 @@ keystore.json
 target
 /contracts/node_modules/
 runtime
+.env
+sqlite.db
