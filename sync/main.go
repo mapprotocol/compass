@@ -18,20 +18,22 @@ import (
 	"math/big"
 	"os"
 	"signmap/libs"
+	"strconv"
 	"time"
 )
 
 var (
-	srcClient          *ethclient.Client
-	dstClient          *ethclient.Client
-	db                 *sql.DB
-	lastSyncNum        uint64 = 0
-	dstChainId         *big.Int
-	privateKey         *ecdsa.PrivateKey
-	fromAddress        common.Address
-	gasPrice           *big.Int
-	waitReceiptPerTime = 3 * time.Second
-	waitReceiptTimes   = 100
+	srcClient                   *ethclient.Client
+	dstClient                   *ethclient.Client
+	db                          *sql.DB
+	lastSyncNum                 uint64 = 0
+	dstChainId                  *big.Int
+	privateKey                  *ecdsa.PrivateKey
+	fromAddress                 common.Address
+	gasPrice                    *big.Int
+	waitReceiptPerTime          = 3 * time.Second
+	waitReceiptTimes            = 100
+	syncBlockAfterMinuteInChain uint64
 )
 
 func main() {
@@ -58,15 +60,24 @@ func main() {
 			}
 			continue
 		}
-		lastSyncNum += 1
-		synBlock(lastSyncNum)
+		if !syncBlock(lastSyncNum) {
+			time.Sleep(time.Minute)
+		} else {
+			lastSyncNum += 1
+		}
 	}
 }
-func synBlock(num uint64) {
+func syncBlock(num uint64) bool {
 	block, err := srcClient.BlockByNumber(context.Background(), big.NewInt(int64(num)))
 	if err != nil {
-		return
+		return false
 	}
+	if block.Time()+syncBlockAfterMinuteInChain*60 > uint64(time.Now().Unix()) {
+		fmt.Printf("Current under consideration block %d , it can be  synchronized after %d seconds ", num, block.Time()+syncBlockAfterMinuteInChain*60-uint64(time.Now().Unix()))
+		println()
+		return false
+	}
+
 	data, _ := block.Header().MarshalJSON()
 	//todo Cut out the data
 
@@ -146,6 +157,7 @@ func synBlock(num uint64) {
 			}
 		}
 	}()
+	return true
 }
 
 func GetKey() {
@@ -180,6 +192,11 @@ func init() {
 		log.Fatal("Source blockchain can not connect, config at .env file")
 	}
 	dstRpcUrl := os.Getenv("dst_rpc_url")
+	if syncBlockAfterMinuteInChainValue, err := strconv.Atoi(os.Getenv("sync_block_after_minute_in_chain")); err != nil {
+		syncBlockAfterMinuteInChain = 10
+	} else {
+		syncBlockAfterMinuteInChain = uint64(syncBlockAfterMinuteInChainValue)
+	}
 	dstClient = libs.GetClientByUrl(dstRpcUrl)
 	if dstClient == nil {
 		log.Fatal("Destination blockchain can not connect, config at .env file")
@@ -204,5 +221,5 @@ func initDb() {
 		db.Exec("create table block (id bigint,hash text,tx_hash text, info text)")
 	}
 	db.QueryRow("select id from block order by id desc limit 1").Scan(&lastSyncNum)
-
+	lastSyncNum += 1
 }
