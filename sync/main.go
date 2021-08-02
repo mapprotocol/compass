@@ -23,17 +23,17 @@ import (
 )
 
 var (
-	srcClient                   *ethclient.Client
-	dstClient                   *ethclient.Client
-	db                          *sql.DB
-	lastSyncNum                 uint64 = 0
-	dstChainId                  *big.Int
-	privateKey                  *ecdsa.PrivateKey
-	fromAddress                 common.Address
-	gasPrice                    *big.Int
-	waitReceiptPerTime          = 3 * time.Second
-	waitReceiptTimes            = 100
-	syncBlockAfterMinuteInChain uint64
+	srcClient                        *ethclient.Client
+	dstClient                        *ethclient.Client
+	db                               *sql.DB
+	currentlyUnderConsiderationBlock uint64 = 0
+	dstChainId                       *big.Int
+	privateKey                       *ecdsa.PrivateKey
+	fromAddress                      common.Address
+	gasPrice                         *big.Int
+	waitReceiptPerTime               = 3 * time.Second
+	waitReceiptTimes                 = 100
+	syncBlockAfterMinuteInChain      uint64
 )
 
 func main() {
@@ -52,7 +52,7 @@ func main() {
 		time.Sleep(time.Minute)
 	}()
 	for {
-		if num <= lastSyncNum {
+		if num < currentlyUnderConsiderationBlock {
 			time.Sleep(time.Minute)
 			num, err = srcClient.BlockNumber(context.Background())
 			if err != nil {
@@ -60,10 +60,10 @@ func main() {
 			}
 			continue
 		}
-		if !syncBlock(lastSyncNum) {
+		if !syncBlock(currentlyUnderConsiderationBlock) {
 			time.Sleep(time.Minute)
 		} else {
-			lastSyncNum += 1
+			currentlyUnderConsiderationBlock += 1
 		}
 	}
 }
@@ -124,7 +124,7 @@ func syncBlock(num uint64) bool {
 				continue
 			}
 
-			if err == nil || i == waitReceiptTimes {
+			if err != nil {
 				stmt, _ = db.Prepare("update block set info = ? where id = ?")
 				_, err := stmt.Exec("error", num)
 				if err != nil {
@@ -220,6 +220,6 @@ func initDb() {
 		}
 		db.Exec("create table block (id bigint,hash text,tx_hash text, info text)")
 	}
-	db.QueryRow("select id from block order by id desc limit 1").Scan(&lastSyncNum)
-	lastSyncNum += 1
+	db.QueryRow("select id from block order by id desc limit 1").Scan(&currentlyUnderConsiderationBlock)
+	currentlyUnderConsiderationBlock += 1
 }
