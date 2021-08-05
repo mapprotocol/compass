@@ -3,9 +3,15 @@ package chain_structs
 import (
 	"context"
 	"crypto/ecdsa"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"golang.org/x/crypto/ssh/terminal"
+	"io/ioutil"
+	"log"
 	"math/big"
+	"os"
 	"signmap/libs"
 )
 
@@ -41,8 +47,35 @@ func (t *TypeEther) GetAddress() string {
 	return t.addressString
 }
 
-func (t *TypeEther) SetTarget() {
-	//todo
+func (t *TypeEther) SetTarget(keystoreStr string, password string) {
+	keyJson, _ := ioutil.ReadFile(keystoreStr)
+	var err error
+	var key *keystore.Key
+	if len(password) != 0 {
+		key, err = keystore.DecryptKey(keyJson, password)
+		if err != nil {
+			println("Incorrect password! Modify the content in the .env file. It can be empty,but it can't be wrong.")
+			os.Exit(1)
+		}
+	} else {
+		for {
+			print("Please enter your password: ")
+			passwordByte, err := terminal.ReadPassword(0)
+			if err != nil {
+				log.Println("Password typed: " + string(password))
+			}
+			password = string(passwordByte)
+			key, err = keystore.DecryptKey(keyJson, password)
+			if err != nil {
+				println("Incorrect password!")
+			} else {
+				println()
+				break
+			}
+		}
+	}
+	t.PrivateKey = key.PrivateKey
+	t.addressString = crypto.PubkeyToAddress(key.PrivateKey.PublicKey).String()
 
 }
 

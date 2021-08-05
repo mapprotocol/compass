@@ -21,6 +21,7 @@ func initClient() {
 	srcChainIdStr := os.Getenv("src_chain_enum")
 	dstChainIdStr := os.Getenv("dst_chain_enum")
 	keystore := os.Getenv("keystore")
+	password := os.Getenv("password")
 	var chainEnumInt int
 	var ok bool
 	if srcChainIdStr == "" {
@@ -50,5 +51,5 @@ func initClient() {
 		println("keystore be set correctly at .env, file not exists.")
 		os.Exit(1)
 	}
-	dstInstance.SetTarget()
+	dstInstance.SetTarget(keystore, password)
 }
