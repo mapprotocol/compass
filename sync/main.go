@@ -18,6 +18,7 @@ import (
 	"math/big"
 	"os"
 	"signmap/libs"
+	"signmap/libs/sync_cmd"
 	"strconv"
 	"time"
 )
@@ -37,6 +38,8 @@ var (
 )
 
 func main() {
+	sync_cmd.Run()
+	return
 	defer func(db *sql.DB) {
 		err := db.Close()
 		if err != nil {
@@ -181,7 +184,7 @@ func GetKey() {
 	fromAddress = crypto.PubkeyToAddress(*publicKeyECDSA)
 }
 
-func init() {
+func init1() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
