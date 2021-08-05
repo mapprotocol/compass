@@ -9,6 +9,7 @@ import (
 )
 
 type TypeEther struct {
+	name                       string
 	chainId                    ChainId
 	rpcUrl                     string
 	client                     *ethclient.Client
@@ -17,9 +18,10 @@ type TypeEther struct {
 	headerStoreContractAddress common.Address
 }
 
-func NewEthChain(chainId ChainId, rpcUrl string, stableBlockBeforeHeader int,
+func NewEthChain(name string, chainId ChainId, rpcUrl string, stableBlockBeforeHeader int,
 	relayerContractAddressStr string, headerStoreContractAddressStr string) *TypeEther {
 	return &TypeEther{
+		name:                       name,
 		chainId:                    chainId,
 		rpcUrl:                     rpcUrl,
 		client:                     libs.GetClientByUrl(rpcUrl),
@@ -27,6 +29,9 @@ func NewEthChain(chainId ChainId, rpcUrl string, stableBlockBeforeHeader int,
 		relayerContractAddress:     common.HexToAddress(relayerContractAddressStr),
 		headerStoreContractAddress: common.HexToAddress(headerStoreContractAddressStr),
 	}
+}
+func (t *TypeEther) GetName() string {
+	return t.name
 }
 
 func (t *TypeEther) GetRpcUrl() string {
