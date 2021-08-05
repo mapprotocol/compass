@@ -43,7 +43,7 @@ func (t *TypeEther) GetAddress() string {
 
 func (t *TypeEther) SetTarget() {
 	//todo
-	panic("implement me")
+
 }
 
 func (t *TypeEther) GetName() string {

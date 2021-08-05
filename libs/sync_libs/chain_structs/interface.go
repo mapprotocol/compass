@@ -7,7 +7,7 @@ const (
 	EthId ChainEnum = 2
 )
 
-type mapChain interface {
+type MapChain interface {
 	GetName() string
 	GetChainEnum() ChainEnum
 	GetChainId() int
@@ -18,7 +18,7 @@ type mapChain interface {
 	SetTarget()
 }
 
-var ChainId2Instance = map[ChainEnum]mapChain{
+var ChainEnum2Instance = map[ChainEnum]MapChain{
 	MapId: NewEthChain("map chain", 1133, MapId, "http://127.0.0.1:7545", 10,
 		"0x0", "0x0"),
 	EthId: NewEthChain("Ethereum main net", 1, MapId, "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", 10,
