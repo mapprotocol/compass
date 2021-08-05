@@ -15,7 +15,7 @@ type MapChain interface {
 	GetRpcUrl() string
 	GetBlockHeader(num uint64) []byte
 	GetAddress() string
-	SetTarget()
+	SetTarget(keystoreStr string, password string)
 }
 
 var ChainEnum2Instance = map[ChainEnum]MapChain{
