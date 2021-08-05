@@ -1,23 +1,26 @@
 package chain_structs
 
-type ChainId int
+type ChainEnum int
 
 const (
-	MapId ChainId = 1
-	EthId ChainId = 2
+	MapId ChainEnum = 1
+	EthId ChainEnum = 2
 )
 
 type mapChain interface {
 	GetName() string
-	GetChainId() ChainId
+	GetChainEnum() ChainEnum
+	GetChainId() int
 	GetBlockNumber() uint64
 	GetRpcUrl() string
 	GetBlockHeader(num uint64) []byte
+	GetAddress() string
+	SetTarget()
 }
 
-var ChainId2Instance = map[ChainId]mapChain{
-	MapId: NewEthChain("map chain", MapId, "http://127.0.0.1:7545", 10,
+var ChainId2Instance = map[ChainEnum]mapChain{
+	MapId: NewEthChain("map chain", 1133, MapId, "http://127.0.0.1:7545", 10,
 		"0x0", "0x0"),
-	EthId: NewEthChain("Ethereum main net", MapId, "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", 10,
+	EthId: NewEthChain("Ethereum main net", 1, MapId, "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", 10,
 		"0x0", "0x0"),
 }

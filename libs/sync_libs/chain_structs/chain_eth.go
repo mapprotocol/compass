@@ -2,6 +2,7 @@ package chain_structs
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
@@ -10,26 +11,41 @@ import (
 
 type TypeEther struct {
 	name                       string
-	chainId                    ChainId
+	chainEnum                  ChainEnum
+	chainId                    int
 	rpcUrl                     string
 	client                     *ethclient.Client
 	stableBlockBeforeHeader    int
+	addressString              string            //if SetTarget is not called ,it's empty
+	PrivateKey                 *ecdsa.PrivateKey //if SetTarget is not called ,it's nil
 	relayerContractAddress     common.Address
 	headerStoreContractAddress common.Address
 }
 
-func NewEthChain(name string, chainId ChainId, rpcUrl string, stableBlockBeforeHeader int,
+func NewEthChain(name string, chainId int, chainEnum ChainEnum, rpcUrl string, stableBlockBeforeHeader int,
 	relayerContractAddressStr string, headerStoreContractAddressStr string) *TypeEther {
-	return &TypeEther{
+	ret := TypeEther{
 		name:                       name,
 		chainId:                    chainId,
+		chainEnum:                  chainEnum,
 		rpcUrl:                     rpcUrl,
 		client:                     libs.GetClientByUrl(rpcUrl),
 		stableBlockBeforeHeader:    stableBlockBeforeHeader,
 		relayerContractAddress:     common.HexToAddress(relayerContractAddressStr),
 		headerStoreContractAddress: common.HexToAddress(headerStoreContractAddressStr),
 	}
+	return &ret
 }
+
+func (t *TypeEther) GetAddress() string {
+	return t.addressString
+}
+
+func (t *TypeEther) SetTarget() {
+	//todo
+	panic("implement me")
+}
+
 func (t *TypeEther) GetName() string {
 	return t.name
 }
@@ -38,10 +54,13 @@ func (t *TypeEther) GetRpcUrl() string {
 	return t.rpcUrl
 }
 
-func (t *TypeEther) GetChainId() ChainId {
+func (t *TypeEther) GetChainId() int {
 	return t.chainId
 }
 
+func (t *TypeEther) GetChainEnum() ChainEnum {
+	return t.chainEnum
+}
 func (t *TypeEther) GetBlockNumber() uint64 {
 	num, err := t.client.BlockNumber(context.Background())
 	if err != nil {

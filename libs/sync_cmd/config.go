@@ -63,7 +63,7 @@ var (
 				print("Select source chain id:")
 				srcChainIdStr = libs.ReadString()
 				srcChainId, _ = strconv.Atoi(srcChainIdStr)
-				if _, ok := chain_structs.ChainId2Instance[chain_structs.ChainId(srcChainId)]; ok {
+				if _, ok := chain_structs.ChainId2Instance[chain_structs.ChainEnum(srcChainId)]; ok {
 					break
 				}
 			}
@@ -72,7 +72,7 @@ var (
 				print("Select  target Chain id:")
 				dstChainIdStr = libs.ReadString()
 				dstChainId, _ = strconv.Atoi(dstChainIdStr)
-				if _, ok := chain_structs.ChainId2Instance[chain_structs.ChainId(dstChainId)]; ok && dstChainId != srcChainId {
+				if _, ok := chain_structs.ChainId2Instance[chain_structs.ChainEnum(dstChainId)]; ok && dstChainId != srcChainId {
 					break
 				}
 			}
