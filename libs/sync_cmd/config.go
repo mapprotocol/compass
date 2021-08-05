@@ -63,20 +63,20 @@ var (
 				print("Select source chain id:")
 				srcChainIdStr = libs.ReadString()
 				srcChainId, _ = strconv.Atoi(srcChainIdStr)
-				if _, ok := chain_structs.ChainId2Instance[chain_structs.ChainEnum(srcChainId)]; ok {
+				if _, ok := chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(srcChainId)]; ok {
 					break
 				}
 			}
-			fileContents += "src_chain_id=" + srcChainIdStr + "\n"
+			fileContents += "src_chain_enum=" + srcChainIdStr + "\n"
 			for {
 				print("Select  target Chain id:")
 				dstChainIdStr = libs.ReadString()
 				dstChainId, _ = strconv.Atoi(dstChainIdStr)
-				if _, ok := chain_structs.ChainId2Instance[chain_structs.ChainEnum(dstChainId)]; ok && dstChainId != srcChainId {
+				if _, ok := chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(dstChainId)]; ok && dstChainId != srcChainId {
 					break
 				}
 			}
-			fileContents += "dst_chain_id=" + dstChainIdStr + "\n"
+			fileContents += "dst_chain_enum=" + dstChainIdStr + "\n"
 			for {
 				println("Enter the keystore file path.")
 				keystorePath = libs.ReadString()
@@ -130,7 +130,7 @@ func readEnvFileContents() bool {
 	return true
 }
 func printMapOption() {
-	for k, v := range chain_structs.ChainId2Instance {
+	for k, v := range chain_structs.ChainEnum2Instance {
 		println(k, ":", v.GetName())
 	}
 }
