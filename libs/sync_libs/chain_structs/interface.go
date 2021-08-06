@@ -23,6 +23,8 @@ type ChainInterface interface {
 }
 type ContractInterface interface {
 	Register(value big.Int) bool
+	UnRegister(value big.Int) bool
+	GetRelayerBalance() GetRelayerBalanceResponse
 }
 
 var ChainEnum2Instance = map[ChainEnum]ChainInterface{
