@@ -3,11 +3,11 @@ package chain_structs
 type ChainEnum int
 
 const (
-	MapId ChainEnum = 1
-	EthId ChainEnum = 2
+	MapId ChainEnum = 1001
+	EthId ChainEnum = 1000
 )
 
-type MapChain interface {
+type ChainInterface interface {
 	GetName() string
 	GetChainEnum() ChainEnum
 	GetChainId() int
@@ -16,11 +16,12 @@ type MapChain interface {
 	GetBlockHeader(num uint64) []byte
 	GetAddress() string
 	SetTarget(keystoreStr string, password string)
+	SyncBlock(data *[]byte)
 }
 
-var ChainEnum2Instance = map[ChainEnum]MapChain{
-	MapId: NewEthChain("map chain", 1133, MapId, "http://127.0.0.1:7545", 10,
-		"0x0", "0x0"),
-	EthId: NewEthChain("Ethereum main net", 1, MapId, "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", 10,
-		"0x0", "0x0"),
+var ChainEnum2Instance = map[ChainEnum]ChainInterface{
+	MapId: NewEthChain("map_chain_test", 1133, MapId, "http://119.8.165.158:7445", 10,
+		"0x0", "0x000068656164657273746F726541646472657373"),
+	EthId: NewEthChain("Ethereum test net", 1, EthId, "http://119.8.165.158:8545", 10,
+		"", ""),
 }

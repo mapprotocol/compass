@@ -57,7 +57,7 @@ var (
 
 			fileContents := ""
 
-			println("Chain list: ")
+			println("ChainInterface list: ")
 			printMapOption()
 			for {
 				print("Select source chain id:")
@@ -69,7 +69,7 @@ var (
 			}
 			fileContents += "src_chain_enum=" + srcChainIdStr + "\n"
 			for {
-				print("Select  target Chain id:")
+				print("Select  target ChainInterface id:")
 				dstChainIdStr = libs.ReadString()
 				dstChainId, _ = strconv.Atoi(dstChainIdStr)
 				if _, ok := chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(dstChainId)]; ok && dstChainId != srcChainId {
