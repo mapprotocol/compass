@@ -7,7 +7,7 @@ import (
 func Run() {
 	var rootCmd = &cobra.Command{Use: "map_rly"}
 
-	rootCmd.AddCommand(cmdDaemon, cmdConfigFunc())
+	rootCmd.AddCommand(cmdRegister, cmdDaemon, cmdConfigFunc())
 	err := rootCmd.Execute()
 	if err != nil {
 		return
