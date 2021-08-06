@@ -90,3 +90,24 @@ func CallContract(client *ethclient.Client, from, toAddress common.Address, inpu
 	}
 	return ret
 }
+func CallContractReturnBool(client *ethclient.Client, from, toAddress common.Address, input []byte) ([]byte, bool) {
+	var ret []byte
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Println("Get SuggestGasPrice  error: ", err)
+		return ret, false
+	}
+	msg := ethereum.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Data: input}
+
+	header, err := client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		log.Println("Get blockNumber error: ", err)
+	}
+	ret, err = client.CallContract(context.Background(), msg, header.Number)
+	if err != nil {
+		log.Println("method CallContract error: ", err)
+		return ret, false
+	}
+	return ret, true
+}

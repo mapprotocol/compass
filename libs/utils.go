@@ -87,6 +87,11 @@ func GetLastLineWithSeek() string {
 func WeiToEther(wei *big.Int) *big.Float {
 	return new(big.Float).Quo(new(big.Float).SetInt(wei), big.NewFloat(params.Ether))
 }
+func EthToWei(Value *big.Int) *big.Int {
+	baseUnit := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	value := new(big.Int).Mul(Value, baseUnit)
+	return value
+}
 
 func Unix2Time(timestamp big.Int) time.Time {
 	i, err := strconv.ParseInt(timestamp.String(), 10, 64)
