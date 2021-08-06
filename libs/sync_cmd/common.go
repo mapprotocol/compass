@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	srcInstance, dstInstance chain_structs.MapChain
+	srcInstance, dstInstance chain_structs.ChainInterface
 )
 
 func initClient() {

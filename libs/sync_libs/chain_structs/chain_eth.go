@@ -28,6 +28,10 @@ type TypeEther struct {
 	headerStoreContractAddress common.Address
 }
 
+func (t *TypeEther) SyncBlock(data *[]byte) {
+
+}
+
 func NewEthChain(name string, chainId int, chainEnum ChainEnum, rpcUrl string, stableBlockBeforeHeader int,
 	relayerContractAddressStr string, headerStoreContractAddressStr string) *TypeEther {
 	ret := TypeEther{
