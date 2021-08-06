@@ -3,6 +3,7 @@ package chain_structs
 import (
 	"context"
 	"crypto/ecdsa"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -13,6 +14,9 @@ import (
 	"math/big"
 	"os"
 	"signmap/libs"
+	"signmap/libs/contracts"
+	contracts2 "signmap/libs/sync_libs/contracts"
+	"strings"
 )
 
 type TypeEther struct {
@@ -22,14 +26,17 @@ type TypeEther struct {
 	rpcUrl                     string
 	client                     *ethclient.Client
 	stableBlockBeforeHeader    int
-	addressString              string            //if SetTarget is not called ,it's empty
+	address                    common.Address    //if SetTarget is not called ,it's nil
 	PrivateKey                 *ecdsa.PrivateKey //if SetTarget is not called ,it's nil
 	relayerContractAddress     common.Address
 	headerStoreContractAddress common.Address
 }
 
-func (t *TypeEther) SyncBlock(data *[]byte) {
+func (t *TypeEther) SyncBlock(from ChainEnum, data *[]byte) {
 
+	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.HeaderStoreContractAbi))
+	input := contracts.PackInput(abiStaking, "save", big.NewInt(int64(from)), big.NewInt(int64(t.GetChainEnum())), *data)
+	contracts.CallContract(t.client, t.address, t.headerStoreContractAddress, input)
 }
 
 func NewEthChain(name string, chainId int, chainEnum ChainEnum, rpcUrl string, stableBlockBeforeHeader int,
@@ -48,7 +55,7 @@ func NewEthChain(name string, chainId int, chainEnum ChainEnum, rpcUrl string, s
 }
 
 func (t *TypeEther) GetAddress() string {
-	return t.addressString
+	return t.address.String()
 }
 
 func (t *TypeEther) SetTarget(keystoreStr string, password string) {
@@ -79,7 +86,7 @@ func (t *TypeEther) SetTarget(keystoreStr string, password string) {
 		}
 	}
 	t.PrivateKey = key.PrivateKey
-	t.addressString = crypto.PubkeyToAddress(key.PrivateKey.PublicKey).String()
+	t.address = crypto.PubkeyToAddress(key.PrivateKey.PublicKey)
 
 }
 

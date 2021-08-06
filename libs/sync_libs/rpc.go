@@ -22,10 +22,10 @@ func rpcToolFromRequestByte2ResponseByte(url *string, requestByte *[]byte) *[]by
 	}
 	return &body
 }
-func HeaderCurrentNumber(url string, chianEnum chain_structs.ChainEnum) (num int) {
+func HeaderCurrentNumber(url string, chainEnum chain_structs.ChainEnum) (num int) {
 	requestBody, _ := json.Marshal(chain_structs.Request{
 		Method: "header_currentHeaderNumber",
-		Params: []chain_structs.ChainEnum{chianEnum},
+		Params: []chain_structs.ChainEnum{chainEnum},
 		Id:     "1",
 	})
 	responseByte := rpcToolFromRequestByte2ResponseByte(&url, &requestBody)

@@ -1,5 +1,7 @@
 package chain_structs
 
+import "math/big"
+
 type ChainEnum int
 
 const (
@@ -16,12 +18,16 @@ type ChainInterface interface {
 	GetBlockHeader(num uint64) []byte
 	GetAddress() string
 	SetTarget(keystoreStr string, password string)
-	SyncBlock(data *[]byte)
+	SyncBlock(from ChainEnum, Cdata *[]byte)
+	ContractInterface
+}
+type ContractInterface interface {
+	Register(value big.Int) bool
 }
 
 var ChainEnum2Instance = map[ChainEnum]ChainInterface{
-	MapId: NewEthChain("map_chain_test", 1133, MapId, "http://119.8.165.158:7445", 10,
-		"0x0", "0x000068656164657273746F726541646472657373"),
+	MapId: NewEthChain("map_chain_test", 213, MapId, "http://119.8.165.158:7445", 10,
+		"0x00000000000052656c6179657241646472657373", "0x000068656164657273746F726541646472657373"),
 	EthId: NewEthChain("Ethereum test net", 1, EthId, "http://119.8.165.158:8545", 10,
 		"", ""),
 }
