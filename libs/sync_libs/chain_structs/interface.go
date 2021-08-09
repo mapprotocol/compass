@@ -25,6 +25,8 @@ type ContractInterface interface {
 	Register(value *big.Int) bool
 	UnRegister(value *big.Int) bool
 	GetRelayerBalance() GetRelayerBalanceResponse
+	GetRelayer() GetRelayerResponse
+	GetPeriodHeight() GetPeriodHeightResponse
 }
 
 var ChainEnum2Instance = map[ChainEnum]ChainInterface{

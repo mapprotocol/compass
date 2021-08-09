@@ -42,3 +42,30 @@ func (t *TypeEther) GetRelayerBalance() GetRelayerBalanceResponse {
 	}
 	return res
 }
+func (t *TypeEther) GetRelayer() GetRelayerResponse {
+	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
+	input := contracts.PackInput(abiStaking, "getRelayer", t.address)
+	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
+
+	var res GetRelayerResponse
+	err := abiStaking.UnpackIntoInterface(&res, "getRelayer", ret)
+	if err != nil {
+		log.Println("abi error", err)
+		return res
+	}
+	return res
+}
+func (t *TypeEther) GetPeriodHeight() GetPeriodHeightResponse {
+	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
+	input := contracts.PackInput(abiStaking, "getPeriodHeight", t.address)
+	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
+
+	var res GetPeriodHeightResponse
+
+	err := abiStaking.UnpackIntoInterface(&res, "getPeriodHeight", ret)
+	if err != nil {
+		log.Println("abi error", err)
+		return res
+	}
+	return res
+}
