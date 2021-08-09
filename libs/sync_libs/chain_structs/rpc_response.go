@@ -3,9 +3,9 @@ package chain_structs
 import "math/big"
 
 type GetRelayerBalanceResponse struct {
-	Register *big.Int
-	Locked   *big.Int
-	Unlocked *big.Int
+	Registered    *big.Int
+	Unregistering *big.Int
+	Unregistered  *big.Int
 }
 type GetRelayerResponse struct {
 	Relayer  bool
