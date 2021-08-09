@@ -62,15 +62,15 @@ func displayOnce(clearScreen bool) {
 	}
 	table.Body.Cells = append(table.Body.Cells, []*simpletable.Cell{
 		{Text: "registered amount"},
-		{Text: libs.WeiToEther(relayerBalance.Register).String()},
+		{Text: libs.WeiToEther(relayerBalance.Registered).String()},
 	})
 	table.Body.Cells = append(table.Body.Cells, []*simpletable.Cell{
 		{Text: "locked amount"},
-		{Text: libs.WeiToEther(relayerBalance.Locked).String()},
+		{Text: libs.WeiToEther(relayerBalance.Unregistering).String()},
 	})
 	table.Body.Cells = append(table.Body.Cells, []*simpletable.Cell{
 		{Text: "redeemable amount"},
-		{Text: libs.WeiToEther(relayerBalance.Unlocked).String()},
+		{Text: libs.WeiToEther(relayerBalance.Unregistered).String()},
 	})
 	table.Body.Cells = append(table.Body.Cells, []*simpletable.Cell{
 		{Text: "is registered"},
