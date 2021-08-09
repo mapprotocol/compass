@@ -17,19 +17,20 @@ import (
 	"signmap/libs/contracts"
 	contracts2 "signmap/libs/sync_libs/contracts"
 	"strings"
+	"time"
 )
 
 type TypeEther struct {
-	name                       string
-	chainEnum                  ChainEnum
-	chainId                    int
-	rpcUrl                     string
+	base                       ChainImplBase
 	client                     *ethclient.Client
-	stableBlockBeforeHeader    int
 	address                    common.Address    //if SetTarget is not called ,it's nil
 	PrivateKey                 *ecdsa.PrivateKey //if SetTarget is not called ,it's nil
 	relayerContractAddress     common.Address
 	headerStoreContractAddress common.Address
+}
+
+func (t *TypeEther) NumberOfSecondsOfBlockCreationTime() time.Duration {
+	return t.base.numberOfSecondsOfBlockCreationTime
 }
 
 func (t *TypeEther) SyncBlock(from ChainEnum, data *[]byte) {
@@ -39,15 +40,18 @@ func (t *TypeEther) SyncBlock(from ChainEnum, data *[]byte) {
 	contracts.CallContract(t.client, t.address, t.headerStoreContractAddress, input)
 }
 
-func NewEthChain(name string, chainId int, chainEnum ChainEnum, rpcUrl string, stableBlockBeforeHeader int,
+func NewEthChain(name string, chainId int, chainEnum ChainEnum, seconds int, rpcUrl string, stableBlockBeforeHeader int,
 	relayerContractAddressStr string, headerStoreContractAddressStr string) *TypeEther {
 	ret := TypeEther{
-		name:                       name,
-		chainId:                    chainId,
-		chainEnum:                  chainEnum,
-		rpcUrl:                     rpcUrl,
+		base: ChainImplBase{
+			name:                               name,
+			chainId:                            chainId,
+			numberOfSecondsOfBlockCreationTime: time.Duration(seconds) * time.Second,
+			chainEnum:                          chainEnum,
+			rpcUrl:                             rpcUrl,
+			stableBlockBeforeHeader:            stableBlockBeforeHeader,
+		},
 		client:                     libs.GetClientByUrl(rpcUrl),
-		stableBlockBeforeHeader:    stableBlockBeforeHeader,
 		relayerContractAddress:     common.HexToAddress(relayerContractAddressStr),
 		headerStoreContractAddress: common.HexToAddress(headerStoreContractAddressStr),
 	}
@@ -91,19 +95,19 @@ func (t *TypeEther) SetTarget(keystoreStr string, password string) {
 }
 
 func (t *TypeEther) GetName() string {
-	return t.name
+	return t.base.name
 }
 
 func (t *TypeEther) GetRpcUrl() string {
-	return t.rpcUrl
+	return t.base.rpcUrl
 }
 
 func (t *TypeEther) GetChainId() int {
-	return t.chainId
+	return t.base.chainId
 }
 
 func (t *TypeEther) GetChainEnum() ChainEnum {
-	return t.chainEnum
+	return t.base.chainEnum
 }
 func (t *TypeEther) GetBlockNumber() uint64 {
 	num, err := t.client.BlockNumber(context.Background())
@@ -113,11 +117,11 @@ func (t *TypeEther) GetBlockNumber() uint64 {
 	return 0
 }
 
-func (t *TypeEther) GetBlockHeader(num uint64) []byte {
+func (t *TypeEther) GetBlockHeader(num uint64) *[]byte {
 	block, err := t.client.BlockByNumber(context.Background(), big.NewInt(int64(num)))
 	if err != nil {
-		return []byte{}
+		return &[]byte{}
 	}
 	data, _ := block.Header().MarshalJSON()
-	return data
+	return &data
 }
