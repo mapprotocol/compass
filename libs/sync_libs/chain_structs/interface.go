@@ -22,8 +22,8 @@ type ChainInterface interface {
 	ContractInterface
 }
 type ContractInterface interface {
-	Register(value big.Int) bool
-	UnRegister(value big.Int) bool
+	Register(value *big.Int) bool
+	UnRegister(value *big.Int) bool
 	GetRelayerBalance() GetRelayerBalanceResponse
 }
 

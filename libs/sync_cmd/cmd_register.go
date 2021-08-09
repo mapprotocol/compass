@@ -14,10 +14,10 @@ var (
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			var value big.Int
-			var min = big.NewInt(10000)
+			var min = big.NewInt(100000)
 			if len(args) == 0 {
 				for {
-					print("Enter the registering amount(Unit Wei):  ")
+					print("Enter the registering amount(Unit Eth):  ")
 					valueString := libs.ReadString()
 					if _, ok := value.SetString(valueString, 10); ok {
 						if value.Cmp(min) == -1 {
@@ -42,7 +42,7 @@ var (
 
 			initClient()
 			valueWei := libs.EthToWei(&value)
-			if dstInstance.Register(*valueWei) {
+			if dstInstance.Register(valueWei) {
 				println("There are no errors, you can query by subcommand info to see if it was successful.")
 			}
 		},

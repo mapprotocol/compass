@@ -41,7 +41,7 @@ var (
 			}
 			initClient()
 			valueWei := libs.EthToWei(&value)
-			if dstInstance.UnRegister(*valueWei) {
+			if dstInstance.UnRegister(valueWei) {
 				println("There are no errors, you can query by subcommand info to see if it was successful.")
 			}
 		},
