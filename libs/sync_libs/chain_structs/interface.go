@@ -1,6 +1,9 @@
 package chain_structs
 
-import "math/big"
+import (
+	"math/big"
+	"time"
+)
 
 type ChainEnum int
 
@@ -15,11 +18,20 @@ type ChainInterface interface {
 	GetChainId() int
 	GetBlockNumber() uint64
 	GetRpcUrl() string
-	GetBlockHeader(num uint64) []byte
+	GetBlockHeader(num uint64) *[]byte
 	GetAddress() string
 	SetTarget(keystoreStr string, password string)
 	SyncBlock(from ChainEnum, Cdata *[]byte)
+	NumberOfSecondsOfBlockCreationTime() time.Duration
 	ContractInterface
+}
+type ChainImplBase struct {
+	name                               string
+	chainEnum                          ChainEnum
+	chainId                            int
+	rpcUrl                             string
+	numberOfSecondsOfBlockCreationTime time.Duration
+	stableBlockBeforeHeader            int
 }
 type ContractInterface interface {
 	Register(value *big.Int) bool
@@ -30,8 +42,8 @@ type ContractInterface interface {
 }
 
 var ChainEnum2Instance = map[ChainEnum]ChainInterface{
-	MapId: NewEthChain("map_chain_test", 213, MapId, "http://119.8.165.158:7445", 10,
+	MapId: NewEthChain("map_chain_test", 213, MapId, 6, "http://119.8.165.158:7445", 10,
 		"0x00000000000052656c6179657241646472657373", "0x000068656164657273746F726541646472657373"),
-	EthId: NewEthChain("Ethereum test net", 1, EthId, "http://119.8.165.158:8545", 10,
+	EthId: NewEthChain("Ethereum test net", 1, EthId, 15, "http://119.8.165.158:8545", 10,
 		"", ""),
 }
