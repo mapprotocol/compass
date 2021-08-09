@@ -23,7 +23,7 @@ var (
 				return
 			}
 			initClient()
-			displayOnce()
+			displayOnce(false)
 		},
 	}
 	cmdInfoWatch = &cobra.Command{
@@ -39,7 +39,7 @@ var (
 				}
 			}
 			for {
-				displayOnce()
+				displayOnce(true)
 				time.Sleep(time.Duration(interval) * time.Second)
 			}
 		},
@@ -50,7 +50,7 @@ func cmdInfoFunc() *cobra.Command {
 	cmdInfo.AddCommand(cmdInfoWatch)
 	return cmdInfo
 }
-func displayOnce() {
+func displayOnce(clearScreen bool) {
 	relayerBalance := dstInstance.GetRelayerBalance()
 	relayer := dstInstance.GetRelayer()
 	table := simpletable.New()
@@ -84,5 +84,8 @@ func displayOnce() {
 		{Text: "current epoch"},
 		{Text: relayer.Epoch.String()},
 	})
+	if clearScreen {
+		CallClear()
+	}
 	fmt.Println(table.String())
 }
