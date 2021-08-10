@@ -23,6 +23,7 @@ type ChainInterface interface {
 	SetTarget(keystoreStr string, password string)
 	SyncBlock(from ChainEnum, Cdata *[]byte)
 	NumberOfSecondsOfBlockCreationTime() time.Duration
+	GetStableBlockBeforeHeader() uint64
 	ContractInterface
 }
 type ChainImplBase struct {
@@ -31,7 +32,7 @@ type ChainImplBase struct {
 	chainId                            int
 	rpcUrl                             string
 	numberOfSecondsOfBlockCreationTime time.Duration
-	stableBlockBeforeHeader            int
+	stableBlockBeforeHeader            uint64
 }
 type ContractInterface interface {
 	Register(value *big.Int) bool
@@ -40,6 +41,8 @@ type ContractInterface interface {
 	GetRelayer() GetRelayerResponse
 	GetPeriodHeight() GetPeriodHeightResponse
 }
+
+// relayContractAddressStr is empty,it cannot be target,
 
 var ChainEnum2Instance = map[ChainEnum]ChainInterface{
 	MapId: NewEthChain("map_chain_test", 213, MapId, 6, "http://119.8.165.158:7445", 10,
