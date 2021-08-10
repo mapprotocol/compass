@@ -54,6 +54,7 @@ func initClient() {
 		os.Exit(1)
 	}
 	dstInstance.SetTarget(keystore, password)
+	structUnStableBlock.Time = srcInstance.NumberOfSecondsOfBlockCreationTime()
 }
 
 var clear map[string]func() //create a map for storing clear funcs
