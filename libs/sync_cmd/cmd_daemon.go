@@ -19,7 +19,7 @@ var (
 	currentBlockNumber       uint64 = 0
 	canDo                           = false
 	structRegisterNotRelayer        = &waitTimeAndMessage{
-		Time:    time.Minute,
+		Time:    2 * time.Minute,
 		Message: "registered not relayer",
 	}
 	structUnregistered = &waitTimeAndMessage{
@@ -40,8 +40,7 @@ var (
 			updateBlockNumberThread(dstInstance, &dstBlockNumber, 20)
 			updateBlockNumberThread(srcInstance, &srcBlockNumber, 10)
 			updateCurrentBlockNumberThread()
-			byteData := srcInstance.GetBlockHeader(30000)
-			dstInstance.SyncBlock(srcInstance.GetChainEnum(), byteData)
+
 			for {
 				//println(srcBlockNumber,dstBlockNumber)  // Reserve for testing
 				if !canDo {
@@ -61,7 +60,7 @@ var (
 )
 
 func displayMessageAndSleep(s *waitTimeAndMessage) {
-	println(s.Message)
+	log.Println(s.Message)
 	time.Sleep(s.Time)
 }
 func updateCanDoThread() {
@@ -82,7 +81,12 @@ func updateCanDoThread() {
 
 			if getHeight.Relayer && getHeight.Start.Uint64() <= dstBlockNumber && getHeight.End.Uint64() >= dstBlockNumber {
 				if !canDo {
-					updateCurrentBlockNumber()
+					//There is no room for errors when canDo convert from false to true
+					if updateCurrentBlockNumber() == 0 {
+						log.Println("updateCurrentBlockNumber rpc call error")
+						time.Sleep(time.Minute)
+						continue
+					}
 				}
 				canDo = true
 				estimateTime := time.Duration((getHeight.End.Uint64()-dstBlockNumber)/2) * dstInstance.NumberOfSecondsOfBlockCreationTime()
@@ -92,8 +96,6 @@ func updateCanDoThread() {
 					time.Sleep(5 * time.Minute)
 				}
 			} else {
-				// should unreachable
-				log.Println("blockchain error !")
 				canDo = false
 				time.Sleep(5 * time.Minute)
 			}
@@ -130,6 +132,7 @@ func updateBlockNumberThread(chainImpl chain_structs.ChainInterface, blockNumber
 				interval = time.Duration(uint64(totalMilliseconds) / (*blockNumber - startBlockNumber))
 				log.Println(chainImpl.GetName(), ":", *blockNumber)
 			} else {
+				// if !canDo ,this number is very different from the true value, but it doesn't matter.
 				*blockNumber += 1
 			}
 			i += 1
@@ -149,10 +152,11 @@ func updateCurrentBlockNumberThread() {
 		}
 	}()
 }
-func updateCurrentBlockNumber() {
+
+func updateCurrentBlockNumber() uint64 {
 	headerCurrentNumber := sync_libs.HeaderCurrentNumber(srcInstance.GetRpcUrl(), srcInstance.GetChainEnum())
 	if headerCurrentNumber > currentBlockNumber {
 		currentBlockNumber = headerCurrentNumber
 	}
-
+	return headerCurrentNumber
 }
