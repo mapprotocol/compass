@@ -22,7 +22,7 @@ func rpcToolFromRequestByte2ResponseByte(url *string, requestByte *[]byte) *[]by
 	}
 	return &body
 }
-func HeaderCurrentNumber(url string, chainEnum chain_structs.ChainEnum) (num int) {
+func HeaderCurrentNumber(url string, chainEnum chain_structs.ChainEnum) (num uint64) {
 	requestBody, _ := json.Marshal(chain_structs.Request{
 		Method: "header_currentHeaderNumber",
 		Params: []chain_structs.ChainEnum{chainEnum},
@@ -30,7 +30,7 @@ func HeaderCurrentNumber(url string, chainEnum chain_structs.ChainEnum) (num int
 	})
 	responseByte := rpcToolFromRequestByte2ResponseByte(&url, &requestBody)
 	err := json.Unmarshal(*responseByte, &struct {
-		Result *int `json:"result"`
+		Result *uint64 `json:"result"`
 	}{&num})
 	if err != nil {
 		return 0

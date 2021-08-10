@@ -29,18 +29,30 @@ type TypeEther struct {
 	headerStoreContractAddress common.Address
 }
 
+func (t *TypeEther) GetStableBlockBeforeHeader() uint64 {
+	return t.base.stableBlockBeforeHeader
+
+}
+
 func (t *TypeEther) NumberOfSecondsOfBlockCreationTime() time.Duration {
 	return t.base.numberOfSecondsOfBlockCreationTime
 }
 
 func (t *TypeEther) SyncBlock(from ChainEnum, data *[]byte) {
-
 	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.HeaderStoreContractAbi))
-	input := contracts.PackInput(abiStaking, "save", big.NewInt(int64(from)), big.NewInt(int64(t.GetChainEnum())), *data)
-	contracts.CallContract(t.client, t.address, t.headerStoreContractAddress, input)
+	input := contracts.PackInput(abiStaking, "save",
+		big.NewInt(int64(from)),
+		big.NewInt(int64(t.GetChainEnum())),
+		data,
+	)
+	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.headerStoreContractAddress, nil, t.PrivateKey, input)
+	//println(tx.Hash().String())
+	//libs.GetResult(t.client, tx.Hash())
+	_ = tx
+	return
 }
 
-func NewEthChain(name string, chainId int, chainEnum ChainEnum, seconds int, rpcUrl string, stableBlockBeforeHeader int,
+func NewEthChain(name string, chainId int, chainEnum ChainEnum, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,
 	relayerContractAddressStr string, headerStoreContractAddressStr string) *TypeEther {
 	ret := TypeEther{
 		base: ChainImplBase{

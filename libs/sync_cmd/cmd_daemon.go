@@ -3,6 +3,7 @@ package sync_cmd
 import (
 	"github.com/spf13/cobra"
 	"log"
+	"signmap/libs/sync_libs"
 	"signmap/libs/sync_libs/chain_structs"
 	"time"
 )
@@ -16,13 +17,14 @@ var (
 	srcBlockNumber           uint64 = 0
 	dstBlockNumber           uint64 = 0
 	currentBlockNumber       uint64 = 0
+	canDo                           = false
 	structRegisterNotRelayer        = &waitTimeAndMessage{
 		Time:    time.Minute,
-		Message: "",
+		Message: "registered not relayer",
 	}
 	structUnregistered = &waitTimeAndMessage{
 		Time:    10 * time.Minute,
-		Message: "structUnregistered",
+		Message: "Unregistered",
 	}
 	structUnStableBlock = &waitTimeAndMessage{
 		Time:    time.Second * 2, //it will update at initClient func
@@ -37,17 +39,25 @@ var (
 			updateCanDoThread()
 			updateBlockNumberThread(dstInstance, &dstBlockNumber, 20)
 			updateBlockNumberThread(srcInstance, &srcBlockNumber, 10)
+			updateCurrentBlockNumberThread()
+			byteData := srcInstance.GetBlockHeader(30000)
+			dstInstance.SyncBlock(srcInstance.GetChainEnum(), byteData)
 			for {
 				//println(srcBlockNumber,dstBlockNumber)  // Reserve for testing
 				if !canDo {
 					time.Sleep(time.Minute)
 					continue
 				}
-
+				if currentBlockNumber+srcInstance.GetStableBlockBeforeHeader() > srcBlockNumber {
+					displayMessageAndSleep(structUnStableBlock)
+					continue
+				}
+				byteData := srcInstance.GetBlockHeader(currentBlockNumber)
+				dstInstance.SyncBlock(srcInstance.GetChainEnum(), byteData)
+				currentBlockNumber += 1
 			}
 		},
 	}
-	canDo = false
 )
 
 func displayMessageAndSleep(s *waitTimeAndMessage) {
@@ -71,6 +81,9 @@ func updateCanDoThread() {
 			getHeight := dstInstance.GetPeriodHeight()
 
 			if getHeight.Relayer && getHeight.Start.Uint64() <= dstBlockNumber && getHeight.End.Uint64() >= dstBlockNumber {
+				if !canDo {
+					updateCurrentBlockNumber()
+				}
 				canDo = true
 				estimateTime := time.Duration((getHeight.End.Uint64()-dstBlockNumber)/2) * dstInstance.NumberOfSecondsOfBlockCreationTime()
 				if estimateTime > 5*time.Minute {
@@ -123,4 +136,23 @@ func updateBlockNumberThread(chainImpl chain_structs.ChainInterface, blockNumber
 			time.Sleep(interval)
 		}
 	}()
+}
+
+func updateCurrentBlockNumberThread() {
+	updateCurrentBlockNumber()
+	go func() {
+		for {
+			time.Sleep(5 * time.Minute)
+			if canDo {
+				updateCurrentBlockNumber()
+			}
+		}
+	}()
+}
+func updateCurrentBlockNumber() {
+	headerCurrentNumber := sync_libs.HeaderCurrentNumber(srcInstance.GetRpcUrl(), srcInstance.GetChainEnum())
+	if headerCurrentNumber > currentBlockNumber {
+		currentBlockNumber = headerCurrentNumber
+	}
+
 }
