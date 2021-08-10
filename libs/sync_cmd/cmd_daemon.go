@@ -15,6 +15,7 @@ type waitTimeAndMessage struct {
 var (
 	srcBlockNumber           uint64 = 0
 	dstBlockNumber           uint64 = 0
+	currentBlockNumber       uint64 = 0
 	structRegisterNotRelayer        = &waitTimeAndMessage{
 		Time:    time.Minute,
 		Message: "",
@@ -23,7 +24,10 @@ var (
 		Time:    10 * time.Minute,
 		Message: "structUnregistered",
 	}
-
+	structUnStableBlock = &waitTimeAndMessage{
+		Time:    time.Second * 2, //it will update at initClient func
+		Message: "Unstable block",
+	}
 	cmdDaemon = &cobra.Command{
 		Use:   "daemon ",
 		Short: "Run rly daemon.",
@@ -31,11 +35,14 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			initClient()
 			updateCanDoThread()
-			updateBlockNumber(dstInstance, &dstBlockNumber, 10)
-			updateBlockNumber(srcInstance, &srcBlockNumber, 5)
+			updateBlockNumberThread(dstInstance, &dstBlockNumber, 20)
+			updateBlockNumberThread(srcInstance, &srcBlockNumber, 10)
 			for {
 				//println(srcBlockNumber,dstBlockNumber)  // Reserve for testing
-				time.Sleep(time.Second * 5)
+				if !canDo {
+					time.Sleep(time.Minute)
+					continue
+				}
 
 			}
 		},
@@ -62,9 +69,15 @@ func updateCanDoThread() {
 				continue
 			}
 			getHeight := dstInstance.GetPeriodHeight()
-			if getHeight.Relayer {
-				canDo = true
 
+			if getHeight.Relayer && getHeight.Start.Uint64() <= dstBlockNumber && getHeight.End.Uint64() >= dstBlockNumber {
+				canDo = true
+				estimateTime := time.Duration((getHeight.End.Uint64()-dstBlockNumber)/2) * dstInstance.NumberOfSecondsOfBlockCreationTime()
+				if estimateTime > 5*time.Minute {
+					time.Sleep(estimateTime)
+				} else {
+					time.Sleep(5 * time.Minute)
+				}
 			} else {
 				// should unreachable
 				log.Println("blockchain error !")
@@ -74,7 +87,7 @@ func updateCanDoThread() {
 		}
 	}()
 }
-func updateBlockNumber(chainImpl chain_structs.ChainInterface, blockNumber *uint64, times int) {
+func updateBlockNumberThread(chainImpl chain_structs.ChainInterface, blockNumber *uint64, times int) {
 	go func() {
 		var i = 1
 		var interval = chainImpl.NumberOfSecondsOfBlockCreationTime()
@@ -96,7 +109,7 @@ func updateBlockNumber(chainImpl chain_structs.ChainInterface, blockNumber *uint
 							chainImpl.NumberOfSecondsOfBlockCreationTime().String(),
 							". It's actually ", interval.String())
 					}
-					println("block number not change")
+					log.Println("block number not change")
 					i += 1
 					time.Sleep(interval)
 					continue
