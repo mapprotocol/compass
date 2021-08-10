@@ -24,7 +24,7 @@ func initClient() {
 	dstChainIdStr := os.Getenv("dst_chain_enum")
 	keystore := os.Getenv("keystore")
 	password := os.Getenv("password")
-	var chainEnumInt int
+	var chainEnumIntSrc, chainEnumIntDst int
 	var ok bool
 	if srcChainIdStr == "" {
 		println("src_chain_enum not be set at .env")
@@ -34,8 +34,8 @@ func initClient() {
 		println("src_chain_enum and dst_chain_enum are not allowed the same")
 		os.Exit(1)
 	}
-	chainEnumInt, _ = strconv.Atoi(srcChainIdStr)
-	if srcInstance, ok = chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(chainEnumInt)]; !ok {
+	chainEnumIntSrc, _ = strconv.Atoi(srcChainIdStr)
+	if srcInstance, ok = chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(chainEnumIntSrc)]; !ok {
 		println("src_chain_enum not be set correctly at .env")
 		os.Exit(1)
 	}
@@ -43,8 +43,8 @@ func initClient() {
 		println("dst_chain_enum not be set at .env")
 		os.Exit(1)
 	}
-	chainEnumInt, _ = strconv.Atoi(srcChainIdStr)
-	if dstInstance, ok = chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(chainEnumInt)]; !ok {
+	chainEnumIntDst, _ = strconv.Atoi(dstChainIdStr)
+	if dstInstance, ok = chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(chainEnumIntDst)]; !ok {
 		println("dst_chain_enum not be set correctly at .env")
 		os.Exit(1)
 	}

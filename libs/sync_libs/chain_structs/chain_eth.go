@@ -63,6 +63,11 @@ func (t *TypeEther) GetAddress() string {
 }
 
 func (t *TypeEther) SetTarget(keystoreStr string, password string) {
+	if t.relayerContractAddress.String() == "0x0000000000000000000000000000000000000000" ||
+		t.headerStoreContractAddress.String() == "0x0000000000000000000000000000000000000000" {
+		println(t.GetName(), "cannot be target")
+		os.Exit(1)
+	}
 	keyJson, _ := ioutil.ReadFile(keystoreStr)
 	var err error
 	var key *keystore.Key
@@ -111,7 +116,7 @@ func (t *TypeEther) GetChainEnum() ChainEnum {
 }
 func (t *TypeEther) GetBlockNumber() uint64 {
 	num, err := t.client.BlockNumber(context.Background())
-	if err != nil {
+	if err == nil {
 		return num
 	}
 	return 0
