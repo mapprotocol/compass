@@ -5,7 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/libs/contracts"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"math/big"
 	"strings"
 )
@@ -25,7 +25,7 @@ func GetLastSign() *big.Int {
 	err := abiStaking.UnpackIntoInterface(&res, "getLastSign", ret)
 
 	if err != nil {
-		log.Println("abi error", err)
+		log.Infoln("abi error", err)
 		return res
 	}
 	return res

@@ -4,8 +4,8 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/libs/sync_libs"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"log"
 	"time"
 )
 
@@ -19,7 +19,9 @@ var (
 		Short: "Run rly daemon.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
+
 			cmd_runtime.InitClient()
+
 			updateCanDoThread()
 			updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumber, 20)
 			updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumber, 10)
@@ -64,7 +66,7 @@ func updateCanDoThread() {
 				if !canDo {
 					//There is no room for errors when canDo convert from false to true
 					if updateCurrentBlockNumber() == ^uint64(0) {
-						log.Println("updateCurrentBlockNumber rpc call error")
+						log.Infoln("updateCurrentBlockNumber rpc call error")
 						time.Sleep(time.Minute)
 						continue
 					}
@@ -97,21 +99,21 @@ func updateBlockNumberThread(chainImpl chains.ChainInterface, blockNumber *uint6
 				totalMilliseconds = time.Now().UnixNano() - startTime
 				if *blockNumber == startBlockNumber {
 					if interval*2 < chainImpl.NumberOfSecondsOfBlockCreationTime() {
-						log.Println("interval is too small，It should be close to",
+						log.Infoln("interval is too small，It should be close to",
 							chainImpl.NumberOfSecondsOfBlockCreationTime().String(),
 							". It's actually ", interval.String())
 					} else if interval > chainImpl.NumberOfSecondsOfBlockCreationTime()*2 {
-						log.Println("interval is too big，It should be close to",
+						log.Infoln("interval is too big，It should be close to",
 							chainImpl.NumberOfSecondsOfBlockCreationTime().String(),
 							". It's actually ", interval.String())
 					}
-					log.Println("block number not change")
+					log.Infoln("block number not change")
 					i += 1
 					time.Sleep(interval)
 					continue
 				}
 				interval = time.Duration(uint64(totalMilliseconds) / (*blockNumber - startBlockNumber))
-				log.Println(chainImpl.GetName(), ":", *blockNumber)
+				log.Infoln(chainImpl.GetName(), ":", *blockNumber)
 			} else {
 				// if !canDo ,this number is very different from the true value, but it doesn't matter.
 				*blockNumber += 1

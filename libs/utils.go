@@ -7,8 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/params"
+	log "github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"math/big"
 	"os"
 	"strconv"
@@ -32,12 +32,12 @@ func WriteLog(s string) {
 	w := bufio.NewWriter(SignLogFile)
 	_, err := fmt.Fprintln(w, s)
 	if err != nil {
-		log.Println("Write log error", err)
+		log.Infoln("Write log error", err)
 		return
 	}
 	err = w.Flush()
 	if err != nil {
-		log.Println("Write log error", err)
+		log.Infoln("Write log error", err)
 		return
 	}
 }
@@ -50,7 +50,7 @@ func GetLastLineWithSeek() string {
 	defer func(fileHandle *os.File) {
 		err := fileHandle.Close()
 		if err != nil {
-			log.Println(err)
+			log.Infoln(err)
 		}
 	}(fileHandle)
 
@@ -139,7 +139,7 @@ func GetResult(conn *ethclient.Client, txHash common.Hash) bool {
 		time.Sleep(time.Millisecond * 200)
 		_, isPending, err := conn.TransactionByHash(context.Background(), txHash)
 		if err != nil {
-			log.Println(err)
+			log.Infoln(err)
 			return false
 		}
 		count++

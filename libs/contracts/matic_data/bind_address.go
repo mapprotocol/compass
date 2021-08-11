@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/libs/contracts"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
@@ -26,7 +26,7 @@ func BindAddress() common.Address {
 	err := abiStaking.UnpackIntoInterface(&res, "bindAddress", ret)
 
 	if err != nil {
-		log.Println("abi error", err)
+		log.Infoln("abi error", err)
 		return common.Address{}
 	}
 	return res

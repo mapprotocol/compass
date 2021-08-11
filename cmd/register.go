@@ -3,9 +3,9 @@ package cmd
 import (
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/libs"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"math/big"
-	"os"
 )
 
 var (
@@ -14,6 +14,7 @@ var (
 		Short: "To become relayer, you need to register with some eth coins.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
+
 			var value big.Int
 			var min = big.NewInt(100000)
 			if len(args) == 0 {
@@ -32,12 +33,10 @@ var (
 				}
 			} else {
 				if _, ok := value.SetString(args[0], 10); !ok {
-					println("Not a number ")
-					os.Exit(1)
+					log.Fatal("Not a number ")
 				}
 				if value.Cmp(min) == -1 {
-					println("The value is at least 100000")
-					os.Exit(1)
+					log.Fatal("The value is at least 100000")
 				}
 			}
 

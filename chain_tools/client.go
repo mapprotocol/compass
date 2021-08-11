@@ -2,7 +2,7 @@ package chain_tools
 
 import (
 	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 func GetClientByUrl(rpcUrl string) *ethclient.Client {

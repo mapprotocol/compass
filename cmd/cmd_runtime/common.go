@@ -4,7 +4,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/joho/godotenv"
 	"github.com/mapprotocol/compass/chains"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"runtime"
@@ -40,44 +40,38 @@ func InitClient() {
 	if err != nil {
 		log.Fatal("Error ! loading .env file")
 	}
-	srcChainIdStr := os.Getenv("src_chain_enum")
-	dstChainIdStr := os.Getenv("dst_chain_enum")
+	srcChainIdStr := os.Getenv("src_chain_id")
+	dstChainIdStr := os.Getenv("dst_chain_id")
 	keystore := os.Getenv("keystore")
 	password := os.Getenv("password")
 	var chainEnumIntSrc, chainEnumIntDst int
 	var ok bool
 	if srcChainIdStr == "" {
-		println("src_chain_enum not be set at .env")
-		os.Exit(1)
+		log.Fatal("src_chain_id not be set at .env.")
 	}
 	if srcChainIdStr == dstChainIdStr {
-		println("src_chain_enum and dst_chain_enum are not allowed the same")
-		os.Exit(1)
+		log.Fatal("src_chain_id and dst_chain_id are not allowed the same.")
 	}
 	chainEnumIntSrc, _ = strconv.Atoi(srcChainIdStr)
 	if SrcInstance, ok = ChainEnum2Instance[chains.ChainEnum(chainEnumIntSrc)]; !ok {
-		println("src_chain_enum not be set correctly at .env")
-		os.Exit(1)
+		log.Fatal("src_chain_id not be set correctly at .env.")
 	}
 	if dstChainIdStr == "" {
-		println("dst_chain_enum not be set at .env")
-		os.Exit(1)
+		log.Fatal("dst_chain_id is not set at .env.")
 	}
 	chainEnumIntDst, _ = strconv.Atoi(dstChainIdStr)
 	if DstInstance, ok = ChainEnum2Instance[chains.ChainEnum(chainEnumIntDst)]; !ok {
-		println("dst_chain_enum not be set correctly at .env")
-		os.Exit(1)
+		log.Fatal("dst_chain_id is not set correctly at .env")
 	}
 
 	if keystore == "" || !common.FileExist(keystore) {
-		println("keystore be set correctly at .env, file not exists.")
-		os.Exit(1)
+		log.Fatal("keystore is not set correctly at .env, file not exists.")
 	}
 	DstInstance.SetTarget(keystore, password)
 	StructUnStableBlock.Time = SrcInstance.NumberOfSecondsOfBlockCreationTime()
 }
 func DisplayMessageAndSleep(s *waitTimeAndMessage) {
-	log.Println(s.Message)
+	log.Infoln(s.Message)
 	time.Sleep(s.Time)
 }
 

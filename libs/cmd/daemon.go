@@ -7,8 +7,8 @@ import (
 	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/libs/contracts/matic_data"
 	"github.com/mapprotocol/compass/libs/contracts/matic_staking"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"log"
 	"math/rand"
 	"os"
 	"strings"
@@ -31,7 +31,7 @@ var cmdDaemon = &cobra.Command{
 		signUnit := rand.Intn(24 * 60) //for production
 		//var everyNMinute = 1                 // require 60 % everyNMinute == 0 //for test
 		//signUnit := rand.Intn(everyNMinute)  //for test
-		//log.Println("signUnit = ", signUnit) // for test , production environment does not print
+		//log.Infoln("signUnit = ", signUnit) // for test , production environment does not print
 		c := make(chan bool)
 		go func(cc chan bool) {
 			for {
@@ -41,11 +41,11 @@ var cmdDaemon = &cobra.Command{
 				if nowUnit == 0 {
 					signUnit = rand.Intn(24 * 60) //for production
 					//signUnit = rand.Intn(everyNMinute) //for test
-					log.Println("signUnit = ", signUnit)
+					log.Infoln("signUnit = ", signUnit)
 				}
 
 				if nowUnit == signUnit && !strings.HasPrefix(libs.GetLastLineWithSeek(), date) {
-					log.Println(date)
+					log.Infoln(date)
 					// Determine if you have signed it today
 					if matic_staking.DO() {
 						libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))

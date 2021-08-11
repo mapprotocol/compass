@@ -6,7 +6,7 @@ import (
 	"github.com/mapprotocol/compass/libs/contracts"
 	contracts2 "github.com/mapprotocol/compass/libs/sync_libs/contracts"
 	"github.com/mapprotocol/compass/types"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"math/big"
 	"strings"
 )
@@ -54,7 +54,7 @@ func (t *TypeEther) GetRelayerBalance() types.GetRelayerBalanceResponse {
 	var res types.GetRelayerBalanceResponse
 	err := abiStaking.UnpackIntoInterface(&res, "getRelayerBalance", ret)
 	if err != nil {
-		log.Println("abi error", err)
+		log.Infoln("abi error", err)
 		return res
 	}
 	return res
@@ -67,7 +67,7 @@ func (t *TypeEther) GetRelayer() types.GetRelayerResponse {
 	var res types.GetRelayerResponse
 	err := abiStaking.UnpackIntoInterface(&res, "getRelayer", ret)
 	if err != nil {
-		log.Println("abi error", err)
+		log.Infoln("abi error", err)
 		return res
 	}
 	return res
@@ -81,7 +81,7 @@ func (t *TypeEther) GetPeriodHeight() types.GetPeriodHeightResponse {
 
 	err := abiStaking.UnpackIntoInterface(&res, "getPeriodHeight", ret)
 	if err != nil {
-		log.Println("abi error", err)
+		log.Infoln("abi error", err)
 		return res
 	}
 	return res
