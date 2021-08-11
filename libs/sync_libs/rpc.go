@@ -3,9 +3,9 @@ package sync_libs
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/mapprotocol/compass/libs/sync_libs/chain_structs"
 	"io/ioutil"
 	"net/http"
-	"signmap/libs/sync_libs/chain_structs"
 )
 
 func rpcToolFromRequestByte2ResponseByte(url *string, requestByte *[]byte) *[]byte {

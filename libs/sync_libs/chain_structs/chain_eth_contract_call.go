@@ -2,11 +2,11 @@ package chain_structs
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/mapprotocol/compass/libs"
+	"github.com/mapprotocol/compass/libs/contracts"
+	contracts2 "github.com/mapprotocol/compass/libs/sync_libs/contracts"
 	"log"
 	"math/big"
-	"signmap/libs"
-	"signmap/libs/contracts"
-	contracts2 "signmap/libs/sync_libs/contracts"
 	"strings"
 )
 

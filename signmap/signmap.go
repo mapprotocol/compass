@@ -1,6 +1,6 @@
 package main
 
-import "signmap/libs/cmd"
+import "github.com/mapprotocol/compass/libs/cmd"
 
 func main() {
 	cmd.Run()

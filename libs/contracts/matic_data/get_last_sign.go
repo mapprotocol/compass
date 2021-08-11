@@ -3,10 +3,10 @@ package matic_data
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/libs"
+	"github.com/mapprotocol/compass/libs/contracts"
 	"log"
 	"math/big"
-	"signmap/libs"
-	"signmap/libs/contracts"
 	"strings"
 )
 

@@ -1,10 +1,10 @@
 package sync_cmd
 
 import (
+	"github.com/mapprotocol/compass/libs"
 	"github.com/spf13/cobra"
 	"math/big"
 	"os"
-	"signmap/libs"
 )
 
 var (
