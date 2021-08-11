@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"github.com/mapprotocol/compass/libs"
 	"github.com/spf13/cobra"
 	"os"
-	"signmap/libs"
 )
 
 func Run() {

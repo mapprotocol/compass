@@ -1,10 +1,10 @@
 package sync_cmd
 
 import (
+	"github.com/mapprotocol/compass/libs/sync_libs"
+	"github.com/mapprotocol/compass/libs/sync_libs/chain_structs"
 	"github.com/spf13/cobra"
 	"log"
-	"signmap/libs/sync_libs"
-	"signmap/libs/sync_libs/chain_structs"
 	"time"
 )
 

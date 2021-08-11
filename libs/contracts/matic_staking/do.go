@@ -5,10 +5,10 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/libs"
+	"github.com/mapprotocol/compass/libs/contracts"
+	"github.com/mapprotocol/compass/libs/contracts/matic_data"
 	"log"
-	"signmap/libs"
-	"signmap/libs/contracts"
-	"signmap/libs/contracts/matic_data"
 	"strings"
 	"time"
 )

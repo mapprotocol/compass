@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/mapprotocol/compass/libs/contracts/matic_data"
 	"github.com/spf13/cobra"
-	"signmap/libs/contracts/matic_data"
 )
 
 var cmdInfo = &cobra.Command{

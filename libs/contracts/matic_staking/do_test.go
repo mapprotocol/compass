@@ -1,7 +1,7 @@
 package matic_staking
 
 import (
-	"signmap/libs"
+	"github.com/mapprotocol/compass/libs"
 	"testing"
 )
 

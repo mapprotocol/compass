@@ -3,8 +3,8 @@ package sync_cmd
 import (
 	"fmt"
 	"github.com/alexeyco/simpletable"
+	"github.com/mapprotocol/compass/libs"
 	"github.com/spf13/cobra"
-	"signmap/libs"
 	"strconv"
 	"time"
 )

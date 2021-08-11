@@ -3,11 +3,11 @@ package sync_cmd
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/joho/godotenv"
+	"github.com/mapprotocol/compass/libs/sync_libs/chain_structs"
 	"log"
 	"os"
 	"os/exec"
 	"runtime"
-	"signmap/libs/sync_libs/chain_structs"
 	"strconv"
 )
 

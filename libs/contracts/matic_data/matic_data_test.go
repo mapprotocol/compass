@@ -1,7 +1,7 @@
 package matic_data
 
 import (
-	"signmap/libs"
+	"github.com/mapprotocol/compass/libs"
 	"testing"
 )
 

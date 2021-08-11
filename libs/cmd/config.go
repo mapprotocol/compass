@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/mapprotocol/compass/libs"
 	"github.com/spf13/cobra"
-	"signmap/libs"
 )
 
 var (
@@ -13,7 +13,10 @@ var (
 		Short: "Configure the application.",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
+			err := cmd.Help()
+			if err != nil {
+				return
+			}
 		},
 	}
 	configGet = &cobra.Command{
