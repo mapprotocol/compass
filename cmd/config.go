@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/libs"
-	"github.com/mapprotocol/compass/libs/sync_libs/chain_structs"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
@@ -63,7 +64,7 @@ var (
 				print("Select source chain id:")
 				srcChainIdStr = libs.ReadString()
 				srcChainId, _ = strconv.Atoi(srcChainIdStr)
-				if _, ok := chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(srcChainId)]; ok {
+				if _, ok := cmd_runtime.ChainEnum2Instance[chains.ChainEnum(srcChainId)]; ok {
 					break
 				}
 			}
@@ -72,7 +73,7 @@ var (
 				print("Select  target ChainInterface id:")
 				dstChainIdStr = libs.ReadString()
 				dstChainId, _ = strconv.Atoi(dstChainIdStr)
-				if _, ok := chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(dstChainId)]; ok && dstChainId != srcChainId {
+				if _, ok := cmd_runtime.ChainEnum2Instance[chains.ChainEnum(dstChainId)]; ok && dstChainId != srcChainId {
 					break
 				}
 			}
@@ -130,7 +131,7 @@ func readEnvFileContents() bool {
 	return true
 }
 func printMapOption() {
-	for k, v := range chain_structs.ChainEnum2Instance {
+	for k, v := range cmd_runtime.ChainEnum2Instance {
 		println(k, ":", v.GetName())
 	}
 }

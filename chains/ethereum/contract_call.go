@@ -1,10 +1,11 @@
-package chain_structs
+package ethereum
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/libs/contracts"
 	contracts2 "github.com/mapprotocol/compass/libs/sync_libs/contracts"
+	"github.com/mapprotocol/compass/types"
 	"log"
 	"math/big"
 	"strings"
@@ -45,12 +46,12 @@ func (t *TypeEther) Withdraw(value *big.Int) bool {
 	return true
 }
 
-func (t *TypeEther) GetRelayerBalance() GetRelayerBalanceResponse {
+func (t *TypeEther) GetRelayerBalance() types.GetRelayerBalanceResponse {
 	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
 	input := contracts.PackInput(abiStaking, "getRelayerBalance", t.address)
 	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
 
-	var res GetRelayerBalanceResponse
+	var res types.GetRelayerBalanceResponse
 	err := abiStaking.UnpackIntoInterface(&res, "getRelayerBalance", ret)
 	if err != nil {
 		log.Println("abi error", err)
@@ -58,12 +59,12 @@ func (t *TypeEther) GetRelayerBalance() GetRelayerBalanceResponse {
 	}
 	return res
 }
-func (t *TypeEther) GetRelayer() GetRelayerResponse {
+func (t *TypeEther) GetRelayer() types.GetRelayerResponse {
 	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
 	input := contracts.PackInput(abiStaking, "getRelayer", t.address)
 	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
 
-	var res GetRelayerResponse
+	var res types.GetRelayerResponse
 	err := abiStaking.UnpackIntoInterface(&res, "getRelayer", ret)
 	if err != nil {
 		log.Println("abi error", err)
@@ -71,12 +72,12 @@ func (t *TypeEther) GetRelayer() GetRelayerResponse {
 	}
 	return res
 }
-func (t *TypeEther) GetPeriodHeight() GetPeriodHeightResponse {
+func (t *TypeEther) GetPeriodHeight() types.GetPeriodHeightResponse {
 	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
 	input := contracts.PackInput(abiStaking, "getPeriodHeight", t.address)
 	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
 
-	var res GetPeriodHeightResponse
+	var res types.GetPeriodHeightResponse
 
 	err := abiStaking.UnpackIntoInterface(&res, "getPeriodHeight", ret)
 	if err != nil {

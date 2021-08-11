@@ -1,4 +1,4 @@
-package chain_structs
+package types
 
 import "math/big"
 
