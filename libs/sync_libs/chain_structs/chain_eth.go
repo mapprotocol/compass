@@ -3,9 +3,11 @@ package chain_structs
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/json"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"golang.org/x/crypto/ssh/terminal"
@@ -46,10 +48,12 @@ func (t *TypeEther) SyncBlock(from ChainEnum, data *[]byte) {
 		data,
 	)
 	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.headerStoreContractAddress, nil, t.PrivateKey, input)
-	//println(tx.Hash().String())
-	//libs.GetResult(t.client, tx.Hash())
-	_ = tx
-	return
+	if tx == nil {
+		log.Println("SyncBlock failed")
+		return
+	}
+	log.Println("SyncBlock tx hash :", tx.Hash().String())
+	libs.GetResult(t.client, tx.Hash())
 }
 
 func NewEthChain(name string, chainId int, chainEnum ChainEnum, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,
@@ -139,6 +143,6 @@ func (t *TypeEther) GetBlockHeader(num uint64) *[]byte {
 	if err != nil {
 		return &[]byte{}
 	}
-	data, _ := block.Header().MarshalJSON()
+	data, _ := json.Marshal([]*types.Header{block.Header()})
 	return &data
 }

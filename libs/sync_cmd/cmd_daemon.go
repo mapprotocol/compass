@@ -78,11 +78,12 @@ func updateCanDoThread() {
 				continue
 			}
 			getHeight := dstInstance.GetPeriodHeight()
-
+			//println("start end :",getHeight.Start.Uint64(),getHeight.End.Uint64())
+			//println("dst block number", dstBlockNumber)
 			if getHeight.Relayer && getHeight.Start.Uint64() <= dstBlockNumber && getHeight.End.Uint64() >= dstBlockNumber {
 				if !canDo {
 					//There is no room for errors when canDo convert from false to true
-					if updateCurrentBlockNumber() == 0 {
+					if updateCurrentBlockNumber() == ^uint64(0) {
 						log.Println("updateCurrentBlockNumber rpc call error")
 						time.Sleep(time.Minute)
 						continue
@@ -155,8 +156,8 @@ func updateCurrentBlockNumberThread() {
 
 func updateCurrentBlockNumber() uint64 {
 	headerCurrentNumber := sync_libs.HeaderCurrentNumber(srcInstance.GetRpcUrl(), srcInstance.GetChainEnum())
-	if headerCurrentNumber > currentBlockNumber {
-		currentBlockNumber = headerCurrentNumber
+	if headerCurrentNumber != ^uint64(0) && headerCurrentNumber > currentBlockNumber {
+		currentBlockNumber = headerCurrentNumber + 1
 	}
 	return headerCurrentNumber
 }

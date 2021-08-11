@@ -31,7 +31,7 @@ var (
 				}
 			} else {
 				if _, ok := value.SetString(args[0], 10); !ok {
-					println("Value not a number ")
+					println("Not a number ")
 					os.Exit(1)
 				}
 				if value.Cmp(min) == -1 {

@@ -17,16 +17,32 @@ func (t *TypeEther) Register(value *big.Int) bool {
 	input := contracts.PackInput(abiStaking, "register", value)
 	//_,ok := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
 	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
+	if tx == nil {
+		return false
+	}
 	libs.GetResult(t.client, tx.Hash())
-	return tx != nil
+	return true
 }
 
 func (t *TypeEther) UnRegister(value *big.Int) bool {
 	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
 	input := contracts.PackInput(abiStaking, "unregister", &value)
 	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
+	if tx == nil {
+		return false
+	}
 	libs.GetResult(t.client, tx.Hash())
-	return tx != nil
+	return true
+}
+func (t *TypeEther) Withdraw(value *big.Int) bool {
+	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
+	input := contracts.PackInput(abiStaking, "withdraw", &value)
+	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
+	if tx == nil {
+		return false
+	}
+	libs.GetResult(t.client, tx.Hash())
+	return true
 }
 
 func (t *TypeEther) GetRelayerBalance() GetRelayerBalanceResponse {
