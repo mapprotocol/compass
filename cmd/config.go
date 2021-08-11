@@ -1,4 +1,4 @@
-package sync_cmd
+package cmd
 
 import (
 	"bufio"

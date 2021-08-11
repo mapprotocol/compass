@@ -1,4 +1,4 @@
-package sync_cmd
+package common
 
 import (
 	"github.com/ethereum/go-ethereum/common"
@@ -9,13 +9,33 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
+	"time"
 )
+
+type waitTimeAndMessage struct {
+	Time    time.Duration
+	Message string
+}
 
 var (
-	srcInstance, dstInstance chain_structs.ChainInterface
+	DstInstance chain_structs.ChainInterface
+	SrcInstance chain_structs.ChainInterface
+
+	StructRegisterNotRelayer = &waitTimeAndMessage{
+		Time:    2 * time.Minute,
+		Message: "registered not relayer",
+	}
+	StructUnregistered = &waitTimeAndMessage{
+		Time:    10 * time.Minute,
+		Message: "Unregistered",
+	}
+	StructUnStableBlock = &waitTimeAndMessage{
+		Time:    time.Second * 2, //it will update at InitClient func
+		Message: "Unstable block",
+	}
 )
 
-func initClient() {
+func InitClient() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error ! loading .env file")
@@ -35,7 +55,7 @@ func initClient() {
 		os.Exit(1)
 	}
 	chainEnumIntSrc, _ = strconv.Atoi(srcChainIdStr)
-	if srcInstance, ok = chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(chainEnumIntSrc)]; !ok {
+	if SrcInstance, ok = chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(chainEnumIntSrc)]; !ok {
 		println("src_chain_enum not be set correctly at .env")
 		os.Exit(1)
 	}
@@ -44,7 +64,7 @@ func initClient() {
 		os.Exit(1)
 	}
 	chainEnumIntDst, _ = strconv.Atoi(dstChainIdStr)
-	if dstInstance, ok = chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(chainEnumIntDst)]; !ok {
+	if DstInstance, ok = chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(chainEnumIntDst)]; !ok {
 		println("dst_chain_enum not be set correctly at .env")
 		os.Exit(1)
 	}
@@ -53,8 +73,12 @@ func initClient() {
 		println("keystore be set correctly at .env, file not exists.")
 		os.Exit(1)
 	}
-	dstInstance.SetTarget(keystore, password)
-	structUnStableBlock.Time = srcInstance.NumberOfSecondsOfBlockCreationTime()
+	DstInstance.SetTarget(keystore, password)
+	StructUnStableBlock.Time = SrcInstance.NumberOfSecondsOfBlockCreationTime()
+}
+func DisplayMessageAndSleep(s *waitTimeAndMessage) {
+	log.Println(s.Message)
+	time.Sleep(s.Time)
 }
 
 var clear map[string]func() //create a map for storing clear funcs

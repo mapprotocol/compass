@@ -1,8 +1,9 @@
-package sync_cmd
+package cmd
 
 import (
 	"fmt"
 	"github.com/alexeyco/simpletable"
+	"github.com/mapprotocol/compass/cmd/common"
 	"github.com/mapprotocol/compass/libs"
 	"github.com/spf13/cobra"
 	"strconv"
@@ -22,7 +23,7 @@ var (
 				}
 				return
 			}
-			initClient()
+			common.InitClient()
 			displayOnce(false)
 		},
 	}
@@ -31,7 +32,7 @@ var (
 		Short: "Get account info every some seconds ,default 5 seconds.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			initClient()
+			common.InitClient()
 			var interval = 5
 			if len(args) != 0 {
 				if i, err := strconv.Atoi(args[0]); err == nil {
@@ -51,8 +52,8 @@ func cmdInfoFunc() *cobra.Command {
 	return cmdInfo
 }
 func displayOnce(clearScreen bool) {
-	relayerBalance := dstInstance.GetRelayerBalance()
-	relayer := dstInstance.GetRelayer()
+	relayerBalance := common.DstInstance.GetRelayerBalance()
+	relayer := common.DstInstance.GetRelayer()
 	table := simpletable.New()
 	table.Header = &simpletable.Header{
 		Cells: []*simpletable.Cell{
@@ -85,7 +86,7 @@ func displayOnce(clearScreen bool) {
 		{Text: relayer.Epoch.String()},
 	})
 	if clearScreen {
-		CallClear()
+		common.CallClear()
 	}
 	fmt.Println(table.String())
 }
