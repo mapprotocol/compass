@@ -7,9 +7,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/mapprotocol/compass/atlas"
 	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/libs"
@@ -144,6 +144,6 @@ func (t *TypeEther) GetBlockHeader(num uint64) *[]byte {
 	if err != nil {
 		return &[]byte{}
 	}
-	data, _ := json.Marshal([]*types.Header{block.Header()})
+	data, _ := json.Marshal([]*atlas.Header{chain_tools.ConvertHeader(block.Header())})
 	return &data
 }
