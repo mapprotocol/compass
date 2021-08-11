@@ -104,7 +104,7 @@ var (
 				}
 				println("Successful.")
 			} else {
-				println("Nothing change.")
+				println("Nothing changed.")
 			}
 		},
 	}
