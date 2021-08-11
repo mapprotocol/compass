@@ -3,9 +3,9 @@ package libs
 import (
 	"crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
-	"log"
 )
 
 var privatekeyInKeystore *ecdsa.PrivateKey
@@ -51,7 +51,7 @@ func GetKey(password string) *ecdsa.PrivateKey {
 			print("Please enter your password: ")
 			passwordByte, err := terminal.ReadPassword(0)
 			if err != nil {
-				log.Println("Password typed: " + string(password))
+				log.Infoln("Password typed: " + string(password))
 			}
 			password = string(passwordByte)
 			key, err1 = keystore.DecryptKey(keyJson, password)

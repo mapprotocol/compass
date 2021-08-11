@@ -15,9 +15,9 @@ import (
 	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/libs/contracts"
 	contracts2 "github.com/mapprotocol/compass/libs/sync_libs/contracts"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
-	"log"
 	"math/big"
 	"os"
 	"strings"
@@ -51,10 +51,10 @@ func (t *TypeEther) Save(from chains.ChainEnum, data *[]byte) {
 	)
 	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.headerStoreContractAddress, nil, t.PrivateKey, input)
 	if tx == nil {
-		log.Println("Save failed")
+		log.Infoln("Save failed")
 		return
 	}
-	log.Println("Save tx hash :", tx.Hash().String())
+	log.Infoln("Save tx hash :", tx.Hash().String())
 	libs.GetResult(t.client, tx.Hash())
 }
 
@@ -83,8 +83,7 @@ func (t *TypeEther) GetAddress() string {
 func (t *TypeEther) SetTarget(keystoreStr string, password string) {
 	if t.relayerContractAddress.String() == "0x0000000000000000000000000000000000000000" ||
 		t.headerStoreContractAddress.String() == "0x0000000000000000000000000000000000000000" {
-		println(t.GetName(), "cannot be target")
-		os.Exit(1)
+		log.Fatal(t.GetName(), "cannot be target")
 	}
 	keyJson, _ := ioutil.ReadFile(keystoreStr)
 	var err error
@@ -100,7 +99,7 @@ func (t *TypeEther) SetTarget(keystoreStr string, password string) {
 			print("Please enter your password: ")
 			passwordByte, err := terminal.ReadPassword(0)
 			if err != nil {
-				log.Println("Password typed: " + string(password))
+				log.Infoln("Password typed: " + string(password))
 			}
 			password = string(passwordByte)
 			key, err = keystore.DecryptKey(keyJson, password)

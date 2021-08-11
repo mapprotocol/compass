@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 func SendTransaction() {
@@ -16,18 +16,18 @@ func SendTransaction() {
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		log.Println("error casting public key to ECDSA")
+		log.Infoln("error casting public key to ECDSA")
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		log.Println(err)
+		log.Infoln(err)
 	}
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Println(err)
+		log.Infoln(err)
 	}
 
 	var data []byte
@@ -44,17 +44,17 @@ func SendTransaction() {
 	chainID, err := client.NetworkID(context.Background())
 
 	if err != nil {
-		log.Println(err)
+		log.Infoln(err)
 	}
 
 	signedTx, err := types.SignTx(tx, types.NewEIP2930Signer(chainID), privateKey)
 	if err != nil {
-		log.Println(err)
+		log.Infoln(err)
 	}
 
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		log.Println(err)
+		log.Infoln(err)
 	}
 
 	fmt.Printf("tx sent: %s", signedTx.Hash().Hex())

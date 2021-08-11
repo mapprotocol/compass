@@ -3,9 +3,9 @@ package cmd
 import (
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/libs"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"math/big"
-	"os"
 )
 
 var (
@@ -32,12 +32,10 @@ var (
 				}
 			} else {
 				if _, ok := value.SetString(args[0], 10); !ok {
-					println("Value not a number ")
-					os.Exit(1)
+					log.Fatal("Value not a number ")
 				}
 				if value.Cmp(min) == -1 {
-					println("The value is at least 100000")
-					os.Exit(1)
+					log.Fatal("The value is at least 100000")
 				}
 			}
 			cmd_runtime.InitClient()

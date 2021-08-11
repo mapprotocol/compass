@@ -2,7 +2,7 @@ package libs
 
 import (
 	"github.com/ethereum/go-ethereum/ethclient"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 func GetClient() *ethclient.Client {

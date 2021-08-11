@@ -7,10 +7,10 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/libs"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -61,23 +61,23 @@ var (
 			println("ChainInterface list: ")
 			printMapOption()
 			for {
-				print("Select source chain id:")
+				print("Select source ChainInterface chain id:")
 				srcChainIdStr = libs.ReadString()
 				srcChainId, _ = strconv.Atoi(srcChainIdStr)
 				if _, ok := cmd_runtime.ChainEnum2Instance[chains.ChainEnum(srcChainId)]; ok {
 					break
 				}
 			}
-			fileContents += "src_chain_enum=" + srcChainIdStr + "\n"
+			fileContents += "src_chain_id=" + srcChainIdStr + "\n"
 			for {
-				print("Select  target ChainInterface id:")
+				print("Select target ChainInterface chain id:")
 				dstChainIdStr = libs.ReadString()
 				dstChainId, _ = strconv.Atoi(dstChainIdStr)
 				if _, ok := cmd_runtime.ChainEnum2Instance[chains.ChainEnum(dstChainId)]; ok && dstChainId != srcChainId {
 					break
 				}
 			}
-			fileContents += "dst_chain_enum=" + dstChainIdStr + "\n"
+			fileContents += "dst_chain_id=" + dstChainIdStr + "\n"
 			for {
 				println("Enter the keystore file path.")
 				keystorePath = libs.ReadString()
@@ -87,10 +87,10 @@ var (
 				println(keystorePath, "file not exists.")
 			}
 			fileContents += "keystore=" + keystorePath + "\n"
-			println("Enter the password .For safety, it can be empty,but it can't be wrong. If it is empty，enter the password manually when required")
+			println("Enter the password .For safety, it can be empty,but it can't be wrong. If it is empty，enter the password manually when required.")
 			passwordByte, err = terminal.ReadPassword(0)
 			if err != nil {
-				log.Println("Read password  error : ", err)
+				log.Infoln("Read password  error : ", err)
 			}
 			password = string(passwordByte)
 			fileContents += "password=" + password + "\n"
@@ -132,7 +132,7 @@ func readEnvFileContents() bool {
 }
 func printMapOption() {
 	for k, v := range cmd_runtime.ChainEnum2Instance {
-		println(k, ":", v.GetName())
+		println("  ", k, ":", v.GetName())
 	}
 }
 func cmdConfigFunc() *cobra.Command {

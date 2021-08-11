@@ -8,7 +8,7 @@ import (
 	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/libs/contracts"
 	"github.com/mapprotocol/compass/libs/contracts/matic_data"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
 )
@@ -34,12 +34,12 @@ func DO() bool {
 				println("Sign in successfully.")
 				return true
 			}
-			log.Println("Attempts to get the receipt ", tryTimes, " times，unsuccessful.")
+			log.Infoln("Attempts to get the receipt ", tryTimes, " times，unsuccessful.")
 			return false
 		}
 		receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 		if err != nil {
-			log.Println("Get receipt error: ", err)
+			log.Infoln("Get receipt error: ", err)
 			time.Sleep(sleepSecond)
 			continue
 		}
@@ -48,11 +48,11 @@ func DO() bool {
 			println("Sign in successfully.")
 			return true
 		case types.ReceiptStatusFailed:
-			log.Println("Transaction not completed，unconfirmed.")
+			log.Infoln("Transaction not completed，unconfirmed.")
 			return false
 		default:
 			//should unreachable
-			log.Println("Unknown receipt status: ", receipt.Status)
+			log.Infoln("Unknown receipt status: ", receipt.Status)
 			time.Sleep(sleepSecond / 2)
 			continue
 		}

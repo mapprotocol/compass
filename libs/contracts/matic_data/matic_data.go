@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/libs/contracts"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"math/big"
 	"strings"
 )
@@ -30,7 +30,7 @@ func GetData() {
 	err := abiStaking.UnpackIntoInterface(&userInfo, "getUserInfo", ret)
 
 	if err != nil {
-		log.Println("abi error", err)
+		log.Infoln("abi error", err)
 		return
 	}
 	fmt.Printf("It has been signed in for %s/%s days.", userInfo.DaySign, userInfo.DayCount)
@@ -45,7 +45,7 @@ func GetData() {
 	var award *big.Int
 	err = abiStaking.UnpackIntoInterface(&award, "getAward", ret)
 	if err != nil {
-		log.Println("abi error", err)
+		log.Infoln("abi error", err)
 		return
 	}
 	fmt.Printf("%f of interest", libs.WeiToEther(award))
