@@ -1,4 +1,4 @@
-package chain_structs
+package types
 
 type GetAccountInfoResponse struct {
 	EpochID        string `json:"epochID"`

@@ -1,9 +1,9 @@
-package common
+package cmd_runtime
 
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/joho/godotenv"
-	"github.com/mapprotocol/compass/libs/sync_libs/chain_structs"
+	"github.com/mapprotocol/compass/chains"
 	"log"
 	"os"
 	"os/exec"
@@ -18,8 +18,8 @@ type waitTimeAndMessage struct {
 }
 
 var (
-	DstInstance chain_structs.ChainInterface
-	SrcInstance chain_structs.ChainInterface
+	DstInstance chains.ChainInterface
+	SrcInstance chains.ChainInterface
 
 	StructRegisterNotRelayer = &waitTimeAndMessage{
 		Time:    2 * time.Minute,
@@ -55,7 +55,7 @@ func InitClient() {
 		os.Exit(1)
 	}
 	chainEnumIntSrc, _ = strconv.Atoi(srcChainIdStr)
-	if SrcInstance, ok = chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(chainEnumIntSrc)]; !ok {
+	if SrcInstance, ok = ChainEnum2Instance[chains.ChainEnum(chainEnumIntSrc)]; !ok {
 		println("src_chain_enum not be set correctly at .env")
 		os.Exit(1)
 	}
@@ -64,7 +64,7 @@ func InitClient() {
 		os.Exit(1)
 	}
 	chainEnumIntDst, _ = strconv.Atoi(dstChainIdStr)
-	if DstInstance, ok = chain_structs.ChainEnum2Instance[chain_structs.ChainEnum(chainEnumIntDst)]; !ok {
+	if DstInstance, ok = ChainEnum2Instance[chains.ChainEnum(chainEnumIntDst)]; !ok {
 		println("dst_chain_enum not be set correctly at .env")
 		os.Exit(1)
 	}

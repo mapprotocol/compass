@@ -3,7 +3,8 @@ package sync_libs
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/mapprotocol/compass/libs/sync_libs/chain_structs"
+	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/types"
 	"io/ioutil"
 	"net/http"
 )
@@ -22,10 +23,10 @@ func rpcToolFromRequestByte2ResponseByte(url *string, requestByte *[]byte) *[]by
 	}
 	return &body
 }
-func HeaderCurrentNumber(url string, chainEnum chain_structs.ChainEnum) (num uint64) {
-	requestBody, _ := json.Marshal(chain_structs.Request{
+func HeaderCurrentNumber(url string, chainEnum chains.ChainEnum) (num uint64) {
+	requestBody, _ := json.Marshal(types.Request{
 		Method: "header_currentHeaderNumber",
-		Params: []chain_structs.ChainEnum{chainEnum},
+		Params: []chains.ChainEnum{chainEnum},
 		Id:     "1",
 	})
 	responseByte := rpcToolFromRequestByte2ResponseByte(&url, &requestBody)

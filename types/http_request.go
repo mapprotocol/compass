@@ -1,4 +1,4 @@
-package chain_structs
+package types
 
 type Request struct {
 	Method  string      `json:"method"`

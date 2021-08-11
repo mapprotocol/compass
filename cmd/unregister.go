@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/mapprotocol/compass/cmd/common"
+	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/libs"
 	"github.com/spf13/cobra"
 	"math/big"
@@ -40,9 +40,9 @@ var (
 					os.Exit(1)
 				}
 			}
-			common.InitClient()
+			cmd_runtime.InitClient()
 			valueWei := libs.EthToWei(&value)
-			if common.DstInstance.UnRegister(valueWei) {
+			if cmd_runtime.DstInstance.UnRegister(valueWei) {
 				println("There are no errors, you can query by subcommand info to see if it was successful.")
 			}
 		},

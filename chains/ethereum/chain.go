@@ -1,4 +1,4 @@
-package chain_structs
+package ethereum
 
 import (
 	"context"
@@ -10,6 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/mapprotocol/compass/chain_tools"
+	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/libs/contracts"
 	contracts2 "github.com/mapprotocol/compass/libs/sync_libs/contracts"
@@ -23,7 +25,7 @@ import (
 )
 
 type TypeEther struct {
-	base                       ChainImplBase
+	base                       chains.ChainImplBase
 	client                     *ethclient.Client
 	address                    common.Address    //if SetTarget is not called ,it's nil
 	PrivateKey                 *ecdsa.PrivateKey //if SetTarget is not called ,it's nil
@@ -32,15 +34,15 @@ type TypeEther struct {
 }
 
 func (t *TypeEther) GetStableBlockBeforeHeader() uint64 {
-	return t.base.stableBlockBeforeHeader
+	return t.base.StableBlockBeforeHeader
 
 }
 
 func (t *TypeEther) NumberOfSecondsOfBlockCreationTime() time.Duration {
-	return t.base.numberOfSecondsOfBlockCreationTime
+	return t.base.NumberOfSecondsOfBlockCreationTime
 }
 
-func (t *TypeEther) SyncBlock(from ChainEnum, data *[]byte) {
+func (t *TypeEther) Save(from chains.ChainEnum, data *[]byte) {
 	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.HeaderStoreContractAbi))
 	input := contracts.PackInput(abiStaking, "save",
 		big.NewInt(int64(from)),
@@ -49,25 +51,25 @@ func (t *TypeEther) SyncBlock(from ChainEnum, data *[]byte) {
 	)
 	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.headerStoreContractAddress, nil, t.PrivateKey, input)
 	if tx == nil {
-		log.Println("SyncBlock failed")
+		log.Println("Save failed")
 		return
 	}
-	log.Println("SyncBlock tx hash :", tx.Hash().String())
+	log.Println("Save tx hash :", tx.Hash().String())
 	libs.GetResult(t.client, tx.Hash())
 }
 
-func NewEthChain(name string, chainId int, chainEnum ChainEnum, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,
+func NewEthChain(name string, chainId int, chainEnum chains.ChainEnum, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,
 	relayerContractAddressStr string, headerStoreContractAddressStr string) *TypeEther {
 	ret := TypeEther{
-		base: ChainImplBase{
-			name:                               name,
-			chainId:                            chainId,
-			numberOfSecondsOfBlockCreationTime: time.Duration(seconds) * time.Second,
-			chainEnum:                          chainEnum,
-			rpcUrl:                             rpcUrl,
-			stableBlockBeforeHeader:            stableBlockBeforeHeader,
+		base: chains.ChainImplBase{
+			Name:                               name,
+			ChainId:                            chainId,
+			NumberOfSecondsOfBlockCreationTime: time.Duration(seconds) * time.Second,
+			ChainEnum:                          chainEnum,
+			RpcUrl:                             rpcUrl,
+			StableBlockBeforeHeader:            stableBlockBeforeHeader,
 		},
-		client:                     libs.GetClientByUrl(rpcUrl),
+		client:                     chain_tools.GetClientByUrl(rpcUrl),
 		relayerContractAddress:     common.HexToAddress(relayerContractAddressStr),
 		headerStoreContractAddress: common.HexToAddress(headerStoreContractAddressStr),
 	}
@@ -116,19 +118,19 @@ func (t *TypeEther) SetTarget(keystoreStr string, password string) {
 }
 
 func (t *TypeEther) GetName() string {
-	return t.base.name
+	return t.base.Name
 }
 
 func (t *TypeEther) GetRpcUrl() string {
-	return t.base.rpcUrl
+	return t.base.RpcUrl
 }
 
 func (t *TypeEther) GetChainId() int {
-	return t.base.chainId
+	return t.base.ChainId
 }
 
-func (t *TypeEther) GetChainEnum() ChainEnum {
-	return t.base.chainEnum
+func (t *TypeEther) GetChainEnum() chains.ChainEnum {
+	return t.base.ChainEnum
 }
 func (t *TypeEther) GetBlockNumber() uint64 {
 	num, err := t.client.BlockNumber(context.Background())

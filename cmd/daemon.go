@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/mapprotocol/compass/cmd/common"
+	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/libs/sync_libs"
-	"github.com/mapprotocol/compass/libs/sync_libs/chain_structs"
 	"github.com/spf13/cobra"
 	"log"
 	"time"
@@ -19,10 +19,10 @@ var (
 		Short: "Run rly daemon.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			common.InitClient()
+			cmd_runtime.InitClient()
 			updateCanDoThread()
-			updateBlockNumberThread(common.DstInstance, &dstBlockNumber, 20)
-			updateBlockNumberThread(common.SrcInstance, &srcBlockNumber, 10)
+			updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumber, 20)
+			updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumber, 10)
 			updateCurrentBlockNumberThread()
 
 			for {
@@ -31,12 +31,12 @@ var (
 					time.Sleep(time.Minute)
 					continue
 				}
-				if currentBlockNumber+common.SrcInstance.GetStableBlockBeforeHeader() > srcBlockNumber {
-					common.DisplayMessageAndSleep(common.StructUnStableBlock)
+				if currentBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > srcBlockNumber {
+					cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnStableBlock)
 					continue
 				}
-				byteData := common.SrcInstance.GetBlockHeader(currentBlockNumber)
-				common.DstInstance.SyncBlock(common.SrcInstance.GetChainEnum(), byteData)
+				byteData := cmd_runtime.SrcInstance.GetBlockHeader(currentBlockNumber)
+				cmd_runtime.DstInstance.Save(cmd_runtime.SrcInstance.GetChainEnum(), byteData)
 				currentBlockNumber += 1
 			}
 		},
@@ -46,18 +46,18 @@ var (
 func updateCanDoThread() {
 	go func() {
 		for {
-			relayer := common.DstInstance.GetRelayer()
+			relayer := cmd_runtime.DstInstance.GetRelayer()
 			if !relayer.Register {
 				canDo = false
-				common.DisplayMessageAndSleep(common.StructUnregistered)
+				cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnregistered)
 				continue
 			}
 			if !relayer.Relayer {
 				canDo = false
-				common.DisplayMessageAndSleep(common.StructRegisterNotRelayer)
+				cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructRegisterNotRelayer)
 				continue
 			}
-			getHeight := common.DstInstance.GetPeriodHeight()
+			getHeight := cmd_runtime.DstInstance.GetPeriodHeight()
 			//println("start end :",getHeight.Start.Uint64(),getHeight.End.Uint64())
 			//println("dst block number", dstBlockNumber)
 			if getHeight.Relayer && getHeight.Start.Uint64() <= dstBlockNumber && getHeight.End.Uint64() >= dstBlockNumber {
@@ -70,7 +70,7 @@ func updateCanDoThread() {
 					}
 				}
 				canDo = true
-				estimateTime := time.Duration((getHeight.End.Uint64()-dstBlockNumber)/2) * common.DstInstance.NumberOfSecondsOfBlockCreationTime()
+				estimateTime := time.Duration((getHeight.End.Uint64()-dstBlockNumber)/2) * cmd_runtime.DstInstance.NumberOfSecondsOfBlockCreationTime()
 				if estimateTime > 5*time.Minute {
 					time.Sleep(estimateTime)
 				} else {
@@ -83,7 +83,7 @@ func updateCanDoThread() {
 		}
 	}()
 }
-func updateBlockNumberThread(chainImpl chain_structs.ChainInterface, blockNumber *uint64, times int) {
+func updateBlockNumberThread(chainImpl chains.ChainInterface, blockNumber *uint64, times int) {
 	go func() {
 		var i = 1
 		var interval = chainImpl.NumberOfSecondsOfBlockCreationTime()
@@ -135,7 +135,7 @@ func updateCurrentBlockNumberThread() {
 }
 
 func updateCurrentBlockNumber() uint64 {
-	headerCurrentNumber := sync_libs.HeaderCurrentNumber(common.SrcInstance.GetRpcUrl(), common.SrcInstance.GetChainEnum())
+	headerCurrentNumber := sync_libs.HeaderCurrentNumber(cmd_runtime.SrcInstance.GetRpcUrl(), cmd_runtime.SrcInstance.GetChainEnum())
 	if headerCurrentNumber != ^uint64(0) && headerCurrentNumber > currentBlockNumber {
 		currentBlockNumber = headerCurrentNumber + 1
 	}
