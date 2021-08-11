@@ -1,6 +1,7 @@
-package sync_cmd
+package cmd
 
 import (
+	"github.com/mapprotocol/compass/cmd/common"
 	"github.com/mapprotocol/compass/libs/sync_libs"
 	"github.com/mapprotocol/compass/libs/sync_libs/chain_structs"
 	"github.com/spf13/cobra"
@@ -8,37 +9,20 @@ import (
 	"time"
 )
 
-type waitTimeAndMessage struct {
-	Time    time.Duration
-	Message string
-}
-
 var (
-	srcBlockNumber           uint64 = 0
-	dstBlockNumber           uint64 = 0
-	currentBlockNumber       uint64 = 0
-	canDo                           = false
-	structRegisterNotRelayer        = &waitTimeAndMessage{
-		Time:    2 * time.Minute,
-		Message: "registered not relayer",
-	}
-	structUnregistered = &waitTimeAndMessage{
-		Time:    10 * time.Minute,
-		Message: "Unregistered",
-	}
-	structUnStableBlock = &waitTimeAndMessage{
-		Time:    time.Second * 2, //it will update at initClient func
-		Message: "Unstable block",
-	}
-	cmdDaemon = &cobra.Command{
+	srcBlockNumber     uint64 = 0
+	dstBlockNumber     uint64 = 0
+	currentBlockNumber uint64 = 0
+	canDo                     = false
+	cmdDaemon                 = &cobra.Command{
 		Use:   "daemon ",
 		Short: "Run rly daemon.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			initClient()
+			common.InitClient()
 			updateCanDoThread()
-			updateBlockNumberThread(dstInstance, &dstBlockNumber, 20)
-			updateBlockNumberThread(srcInstance, &srcBlockNumber, 10)
+			updateBlockNumberThread(common.DstInstance, &dstBlockNumber, 20)
+			updateBlockNumberThread(common.SrcInstance, &srcBlockNumber, 10)
 			updateCurrentBlockNumberThread()
 
 			for {
@@ -47,37 +31,33 @@ var (
 					time.Sleep(time.Minute)
 					continue
 				}
-				if currentBlockNumber+srcInstance.GetStableBlockBeforeHeader() > srcBlockNumber {
-					displayMessageAndSleep(structUnStableBlock)
+				if currentBlockNumber+common.SrcInstance.GetStableBlockBeforeHeader() > srcBlockNumber {
+					common.DisplayMessageAndSleep(common.StructUnStableBlock)
 					continue
 				}
-				byteData := srcInstance.GetBlockHeader(currentBlockNumber)
-				dstInstance.SyncBlock(srcInstance.GetChainEnum(), byteData)
+				byteData := common.SrcInstance.GetBlockHeader(currentBlockNumber)
+				common.DstInstance.SyncBlock(common.SrcInstance.GetChainEnum(), byteData)
 				currentBlockNumber += 1
 			}
 		},
 	}
 )
 
-func displayMessageAndSleep(s *waitTimeAndMessage) {
-	log.Println(s.Message)
-	time.Sleep(s.Time)
-}
 func updateCanDoThread() {
 	go func() {
 		for {
-			relayer := dstInstance.GetRelayer()
+			relayer := common.DstInstance.GetRelayer()
 			if !relayer.Register {
 				canDo = false
-				displayMessageAndSleep(structUnregistered)
+				common.DisplayMessageAndSleep(common.StructUnregistered)
 				continue
 			}
 			if !relayer.Relayer {
 				canDo = false
-				displayMessageAndSleep(structRegisterNotRelayer)
+				common.DisplayMessageAndSleep(common.StructRegisterNotRelayer)
 				continue
 			}
-			getHeight := dstInstance.GetPeriodHeight()
+			getHeight := common.DstInstance.GetPeriodHeight()
 			//println("start end :",getHeight.Start.Uint64(),getHeight.End.Uint64())
 			//println("dst block number", dstBlockNumber)
 			if getHeight.Relayer && getHeight.Start.Uint64() <= dstBlockNumber && getHeight.End.Uint64() >= dstBlockNumber {
@@ -90,7 +70,7 @@ func updateCanDoThread() {
 					}
 				}
 				canDo = true
-				estimateTime := time.Duration((getHeight.End.Uint64()-dstBlockNumber)/2) * dstInstance.NumberOfSecondsOfBlockCreationTime()
+				estimateTime := time.Duration((getHeight.End.Uint64()-dstBlockNumber)/2) * common.DstInstance.NumberOfSecondsOfBlockCreationTime()
 				if estimateTime > 5*time.Minute {
 					time.Sleep(estimateTime)
 				} else {
@@ -155,7 +135,7 @@ func updateCurrentBlockNumberThread() {
 }
 
 func updateCurrentBlockNumber() uint64 {
-	headerCurrentNumber := sync_libs.HeaderCurrentNumber(srcInstance.GetRpcUrl(), srcInstance.GetChainEnum())
+	headerCurrentNumber := sync_libs.HeaderCurrentNumber(common.SrcInstance.GetRpcUrl(), common.SrcInstance.GetChainEnum())
 	if headerCurrentNumber != ^uint64(0) && headerCurrentNumber > currentBlockNumber {
 		currentBlockNumber = headerCurrentNumber + 1
 	}

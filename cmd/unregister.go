@@ -1,6 +1,7 @@
-package sync_cmd
+package cmd
 
 import (
+	"github.com/mapprotocol/compass/cmd/common"
 	"github.com/mapprotocol/compass/libs"
 	"github.com/spf13/cobra"
 	"math/big"
@@ -8,16 +9,16 @@ import (
 )
 
 var (
-	cmdRegister = &cobra.Command{
-		Use:   "register",
-		Short: "To become relayer, you need to register with some eth coins.",
+	cmdUnRegister = &cobra.Command{
+		Use:   "unregister",
+		Short: "With the unregister transaction executed, the unregistering portion is locked in the contract for about 2 epoch. After the period, you can withdraw the unregistered coins.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			var value big.Int
 			var min = big.NewInt(100000)
 			if len(args) == 0 {
 				for {
-					print("Enter the registering amount(Unit Eth):  ")
+					print("Enter the unregistering amount(Unit Wei):  ")
 					valueString := libs.ReadString()
 					if _, ok := value.SetString(valueString, 10); ok {
 						if value.Cmp(min) == -1 {
@@ -31,7 +32,7 @@ var (
 				}
 			} else {
 				if _, ok := value.SetString(args[0], 10); !ok {
-					println("Not a number ")
+					println("Value not a number ")
 					os.Exit(1)
 				}
 				if value.Cmp(min) == -1 {
@@ -39,10 +40,9 @@ var (
 					os.Exit(1)
 				}
 			}
-
-			initClient()
+			common.InitClient()
 			valueWei := libs.EthToWei(&value)
-			if dstInstance.Register(valueWei) {
+			if common.DstInstance.UnRegister(valueWei) {
 				println("There are no errors, you can query by subcommand info to see if it was successful.")
 			}
 		},
