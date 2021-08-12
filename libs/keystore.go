@@ -3,6 +3,8 @@ package libs
 import (
 	"crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
@@ -17,19 +19,20 @@ func GetKey(password string) *ecdsa.PrivateKey {
 	path := ReadConfig("keystore", "keystore.json")
 	//Compatible for development
 	//You only need to deploy one keystore.json file at project root when you take the test
-	if fileExist("../" + path) {
+
+	if common.FileExist("../" + path) {
 		path = "../" + path
 	}
-	if fileExist("../../" + path) {
+	if common.FileExist("../../" + path) {
 		path = "../../" + path
 	}
-	if fileExist("../../../" + path) {
+	if common.FileExist("../../../" + path) {
 		path = "../../../" + path
 	}
 	for {
-		if !fileExist(path) {
+		if !common.FileExist(path) {
 			print(path + " does not exist, please enter the keystore path: ")
-			path = ReadString()
+			path = utils.ReadString()
 		} else {
 			break
 		}

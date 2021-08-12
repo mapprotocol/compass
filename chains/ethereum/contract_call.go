@@ -4,7 +4,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	abi2 "github.com/mapprotocol/compass/abi"
 	"github.com/mapprotocol/compass/chain_tools"
-	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/types"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -18,7 +17,7 @@ func (t *TypeEther) Register(value *big.Int) bool {
 	if tx == nil {
 		return false
 	}
-	return libs.WaitingForEndPending(t.client, tx.Hash())
+	return chain_tools.WaitingForEndPending(t.client, tx.Hash())
 }
 
 func (t *TypeEther) UnRegister(value *big.Int) bool {
@@ -28,7 +27,7 @@ func (t *TypeEther) UnRegister(value *big.Int) bool {
 	if tx == nil {
 		return false
 	}
-	return libs.WaitingForEndPending(t.client, tx.Hash())
+	return chain_tools.WaitingForEndPending(t.client, tx.Hash())
 }
 
 func (t *TypeEther) Withdraw(value *big.Int) bool {
@@ -38,7 +37,7 @@ func (t *TypeEther) Withdraw(value *big.Int) bool {
 	if tx == nil {
 		return false
 	}
-	return libs.WaitingForEndPending(t.client, tx.Hash())
+	return chain_tools.WaitingForEndPending(t.client, tx.Hash())
 }
 
 func (t *TypeEther) GetRelayerBalance() types.GetRelayerBalanceResponse {

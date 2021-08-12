@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/alexeyco/simpletable"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
-	"github.com/mapprotocol/compass/libs"
+	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"strconv"
@@ -69,15 +69,15 @@ func displayOnce(clearScreen bool) {
 	}
 	table.Body.Cells = append(table.Body.Cells, []*simpletable.Cell{
 		{Text: "registered amount"},
-		{Text: libs.WeiToEther(relayerBalance.Registered).String()},
+		{Text: utils.WeiToEther(relayerBalance.Registered).String()},
 	})
 	table.Body.Cells = append(table.Body.Cells, []*simpletable.Cell{
 		{Text: "locked amount"},
-		{Text: libs.WeiToEther(relayerBalance.Unregistering).String()},
+		{Text: utils.WeiToEther(relayerBalance.Unregistering).String()},
 	})
 	table.Body.Cells = append(table.Body.Cells, []*simpletable.Cell{
 		{Text: "redeemable amount"},
-		{Text: libs.WeiToEther(relayerBalance.Unregistered).String()},
+		{Text: utils.WeiToEther(relayerBalance.Unregistered).String()},
 	})
 	table.Body.Cells = append(table.Body.Cells, []*simpletable.Cell{
 		{Text: "is registered"},

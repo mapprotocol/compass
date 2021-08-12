@@ -2,32 +2,12 @@ package libs
 
 import (
 	"bufio"
-	"context"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/params"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"math/big"
 	"os"
-	"strconv"
-	"time"
 )
 
-func fileExist(path string) bool {
-	_, err := os.Lstat(path)
-	return !os.IsNotExist(err)
-}
-
-func ReadString() string {
-	var input string
-	_, err := fmt.Scanln(&input)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return input
-}
 func WriteLog(s string) {
 	w := bufio.NewWriter(SignLogFile)
 	_, err := fmt.Fprintln(w, s)
@@ -87,22 +67,7 @@ func GetLastLineWithSeek() string {
 
 	return line
 }
-func WeiToEther(wei *big.Int) *big.Float {
-	return new(big.Float).Quo(new(big.Float).SetInt(wei), big.NewFloat(params.Ether))
-}
-func EthToWei(Value *big.Int) *big.Int {
-	baseUnit := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-	value := new(big.Int).Mul(Value, baseUnit)
-	return value
-}
 
-func Unix2Time(timestamp big.Int) time.Time {
-	i, err := strconv.ParseInt(timestamp.String(), 10, 64)
-	if err != nil {
-		return time.Unix(0, 0)
-	}
-	return time.Unix(i, 0)
-}
 func WriteConfig(key string, value string) {
 	err := DiskCache.Write(key, []byte(value))
 	if err != nil {
@@ -131,24 +96,4 @@ func ReadConfigWithCondition(key string, defaultValue string, f func(string) boo
 	} else {
 		return defaultValue
 	}
-}
-func WaitingForEndPending(conn *ethclient.Client, txHash common.Hash) bool {
-	count := 0
-	for {
-		time.Sleep(time.Millisecond * 200)
-		_, isPending, err := conn.TransactionByHash(context.Background(), txHash)
-		if err != nil {
-			log.Infoln(err)
-			return false
-		}
-		count++
-		if !isPending {
-			break
-		}
-		if count >= 100 {
-			fmt.Println("Not waiting for the result.")
-			return false
-		}
-	}
-	return true
 }
