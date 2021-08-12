@@ -23,8 +23,8 @@ var (
 			cmd_runtime.InitClient()
 
 			updateCanDoThread()
-			updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumber, 20)
-			updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumber, 10)
+			updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumber, 10)
+			updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumber, 5)
 			updateCurrentBlockNumberThread()
 
 			for {
@@ -60,8 +60,7 @@ func updateCanDoThread() {
 				continue
 			}
 			getHeight := cmd_runtime.DstInstance.GetPeriodHeight()
-			//println("start end :",getHeight.Start.Uint64(),getHeight.End.Uint64())
-			//println("dst block number", dstBlockNumber)
+
 			if getHeight.Relayer && getHeight.Start.Uint64() <= dstBlockNumber && getHeight.End.Uint64() >= dstBlockNumber {
 				if !canDo {
 					//There is no room for errors when canDo convert from false to true
@@ -73,14 +72,16 @@ func updateCanDoThread() {
 				}
 				canDo = true
 				estimateTime := time.Duration((getHeight.End.Uint64()-dstBlockNumber)/2) * cmd_runtime.DstInstance.NumberOfSecondsOfBlockCreationTime()
-				if estimateTime > 5*time.Minute {
+				if estimateTime > time.Minute {
 					time.Sleep(estimateTime)
 				} else {
-					time.Sleep(5 * time.Minute)
+					time.Sleep(time.Minute)
 				}
 			} else {
+				println("start end :", getHeight.Start.Uint64(), getHeight.End.Uint64())
+				println("dst block number", dstBlockNumber)
 				canDo = false
-				time.Sleep(5 * time.Minute)
+				time.Sleep(time.Minute)
 			}
 		}
 	}()
@@ -126,7 +127,6 @@ func updateBlockNumberThread(chainImpl chains.ChainInterface, blockNumber *uint6
 }
 
 func updateCurrentBlockNumberThread() {
-	updateCurrentBlockNumber()
 	go func() {
 		for {
 			time.Sleep(5 * time.Minute)
@@ -142,5 +142,6 @@ func updateCurrentBlockNumber() uint64 {
 	if headerCurrentNumber != ^uint64(0) && headerCurrentNumber > currentBlockNumber {
 		currentBlockNumber = headerCurrentNumber + 1
 	}
+	log.Infoln("headerCurrentNumber =", headerCurrentNumber)
 	return headerCurrentNumber
 }
