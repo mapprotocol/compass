@@ -9,12 +9,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	abi2 "github.com/mapprotocol/compass/abi"
 	"github.com/mapprotocol/compass/atlas"
 	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/libs"
-	"github.com/mapprotocol/compass/libs/contracts"
-	contracts2 "github.com/mapprotocol/compass/libs/sync_libs/contracts"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
@@ -43,13 +42,13 @@ func (t *TypeEther) NumberOfSecondsOfBlockCreationTime() time.Duration {
 }
 
 func (t *TypeEther) Save(from chains.ChainEnum, data *[]byte) {
-	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.HeaderStoreContractAbi))
-	input := contracts.PackInput(abiStaking, "save",
+	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.HeaderStoreContractAbi))
+	input := chain_tools.PackInput(abiStaking, "save",
 		big.NewInt(int64(from)),
 		big.NewInt(int64(t.GetChainEnum())),
 		data,
 	)
-	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.headerStoreContractAddress, nil, t.PrivateKey, input)
+	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.headerStoreContractAddress, nil, t.PrivateKey, input)
 	if tx == nil {
 		log.Infoln("Save failed")
 		return

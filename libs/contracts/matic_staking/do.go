@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/libs/contracts"
 	"github.com/mapprotocol/compass/libs/contracts/matic_data"
@@ -19,7 +20,7 @@ func DO() bool {
 	privateKey := libs.GetKey("")
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
-	input := contracts.PackInput(abiStaking, "sign")
+	input := chain_tools.PackInput(abiStaking, "sign")
 	tx := contracts.SendContractTransaction(client, fromAddress, libs.StakingContractAddress, nil, privateKey, input)
 	if tx == nil {
 		return false

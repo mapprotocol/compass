@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/libs"
 	"github.com/mapprotocol/compass/libs/contracts"
 	log "github.com/sirupsen/logrus"
@@ -17,7 +18,7 @@ func GetData() {
 	privateKey := libs.GetKey("")
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
-	input := contracts.PackInput(abiStaking, "getUserInfo", fromAddress)
+	input := chain_tools.PackInput(abiStaking, "getUserInfo", fromAddress)
 	ret := contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
 
 	userInfo := struct {
@@ -37,7 +38,7 @@ func GetData() {
 	println()
 	fmt.Printf("%f was pledged, ", libs.WeiToEther(userInfo.Amount))
 
-	input = contracts.PackInput(abiStaking, "getAward", fromAddress)
+	input = chain_tools.PackInput(abiStaking, "getAward", fromAddress)
 	ret = contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
 	if len(ret) == 0 {
 		return

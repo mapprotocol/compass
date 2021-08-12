@@ -2,9 +2,9 @@ package ethereum
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	abi2 "github.com/mapprotocol/compass/abi"
+	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/libs"
-	"github.com/mapprotocol/compass/libs/contracts"
-	contracts2 "github.com/mapprotocol/compass/libs/sync_libs/contracts"
 	"github.com/mapprotocol/compass/types"
 	log "github.com/sirupsen/logrus"
 	"math/big"
@@ -12,9 +12,9 @@ import (
 )
 
 func (t *TypeEther) Register(value *big.Int) bool {
-	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
-	input := contracts.PackInput(abiStaking, "register", value)
-	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
+	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.RelayerContractAbi))
+	input := chain_tools.PackInput(abiStaking, "register", value)
+	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
 	if tx == nil {
 		return false
 	}
@@ -22,9 +22,9 @@ func (t *TypeEther) Register(value *big.Int) bool {
 }
 
 func (t *TypeEther) UnRegister(value *big.Int) bool {
-	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
-	input := contracts.PackInput(abiStaking, "unregister", &value)
-	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
+	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.RelayerContractAbi))
+	input := chain_tools.PackInput(abiStaking, "unregister", &value)
+	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
 	if tx == nil {
 		return false
 	}
@@ -32,9 +32,9 @@ func (t *TypeEther) UnRegister(value *big.Int) bool {
 }
 
 func (t *TypeEther) Withdraw(value *big.Int) bool {
-	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
-	input := contracts.PackInput(abiStaking, "withdraw", &value)
-	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
+	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.RelayerContractAbi))
+	input := chain_tools.PackInput(abiStaking, "withdraw", &value)
+	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
 	if tx == nil {
 		return false
 	}
@@ -42,9 +42,9 @@ func (t *TypeEther) Withdraw(value *big.Int) bool {
 }
 
 func (t *TypeEther) GetRelayerBalance() types.GetRelayerBalanceResponse {
-	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
-	input := contracts.PackInput(abiStaking, "getRelayerBalance", t.address)
-	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
+	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.RelayerContractAbi))
+	input := chain_tools.PackInput(abiStaking, "getRelayerBalance", t.address)
+	ret, _ := chain_tools.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
 	var res types.GetRelayerBalanceResponse
 	if len(ret) == 0 {
 		return res
@@ -57,9 +57,9 @@ func (t *TypeEther) GetRelayerBalance() types.GetRelayerBalanceResponse {
 	return res
 }
 func (t *TypeEther) GetRelayer() types.GetRelayerResponse {
-	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
-	input := contracts.PackInput(abiStaking, "getRelayer", t.address)
-	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
+	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.RelayerContractAbi))
+	input := chain_tools.PackInput(abiStaking, "getRelayer", t.address)
+	ret, _ := chain_tools.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
 	var res types.GetRelayerResponse
 	if len(ret) == 0 {
 		return res
@@ -72,9 +72,9 @@ func (t *TypeEther) GetRelayer() types.GetRelayerResponse {
 	return res
 }
 func (t *TypeEther) GetPeriodHeight() types.GetPeriodHeightResponse {
-	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
-	input := contracts.PackInput(abiStaking, "getPeriodHeight", t.address)
-	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
+	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.RelayerContractAbi))
+	input := chain_tools.PackInput(abiStaking, "getPeriodHeight", t.address)
+	ret, _ := chain_tools.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
 
 	var res types.GetPeriodHeightResponse
 	if len(ret) == 0 {

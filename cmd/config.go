@@ -120,7 +120,7 @@ func readEnvFileContents() bool {
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-
+			log.Fatal(err)
 		}
 	}(file)
 
