@@ -13,7 +13,6 @@ import (
 	"github.com/mapprotocol/compass/atlas"
 	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/chains"
-	"github.com/mapprotocol/compass/libs"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
@@ -54,7 +53,7 @@ func (t *TypeEther) Save(from chains.ChainEnum, data *[]byte) {
 		return
 	}
 	log.Infoln("Save tx hash :", tx.Hash().String())
-	libs.WaitingForEndPending(t.client, tx.Hash())
+	chain_tools.WaitingForEndPending(t.client, tx.Hash())
 }
 
 func NewEthChain(name string, chainId int, chainEnum chains.ChainEnum, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,

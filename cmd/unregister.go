@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
-	"github.com/mapprotocol/compass/libs"
+	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"math/big"
@@ -19,7 +19,7 @@ var (
 			if len(args) == 0 {
 				for {
 					print("Enter the unregistering amount(Unit Wei):  ")
-					valueString := libs.ReadString()
+					valueString := utils.ReadString()
 					if _, ok := value.SetString(valueString, 10); ok {
 						if value.Cmp(min) == -1 {
 							println("The value is at least 100000")
@@ -39,7 +39,7 @@ var (
 				}
 			}
 			cmd_runtime.InitClient()
-			valueWei := libs.EthToWei(&value)
+			valueWei := utils.EthToWei(&value)
 			if cmd_runtime.DstInstance.UnRegister(valueWei) {
 				println("There are no errors, you can query by subcommand info to see if it was successful.")
 			}

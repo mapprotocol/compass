@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
-	"github.com/mapprotocol/compass/libs"
+	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
@@ -43,10 +43,9 @@ var (
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			if common.FileExist(envFile) {
-				//  print alert info
 				readEnvFileContents()
 				print(".env file already exists,OverWrite or not (y/n): ")
-				input := libs.ReadString()
+				input := utils.ReadString()
 				if strings.ToLower(input) != "y" {
 					return
 				}
@@ -62,7 +61,7 @@ var (
 			printMapOption()
 			for {
 				print("Select source ChainInterface chain id:")
-				srcChainIdStr = libs.ReadString()
+				srcChainIdStr = utils.ReadString()
 				srcChainId, _ = strconv.Atoi(srcChainIdStr)
 				if _, ok := cmd_runtime.ChainEnum2Instance[chains.ChainEnum(srcChainId)]; ok {
 					break
@@ -71,7 +70,7 @@ var (
 			fileContents += "src_chain_id=" + srcChainIdStr + "\n"
 			for {
 				print("Select target ChainInterface chain id:")
-				dstChainIdStr = libs.ReadString()
+				dstChainIdStr = utils.ReadString()
 				dstChainId, _ = strconv.Atoi(dstChainIdStr)
 				if _, ok := cmd_runtime.ChainEnum2Instance[chains.ChainEnum(dstChainId)]; ok && dstChainId != srcChainId {
 					break
@@ -80,7 +79,7 @@ var (
 			fileContents += "dst_chain_id=" + dstChainIdStr + "\n"
 			for {
 				println("Enter the keystore file path.")
-				keystorePath = libs.ReadString()
+				keystorePath = utils.ReadString()
 				if common.FileExist(keystorePath) {
 					break
 				}
@@ -97,7 +96,7 @@ var (
 			println("The new configuration is as follows")
 			println(fileContents)
 			print("Confirm the change，Make sure the password is correct or empty.(y/n):")
-			input = libs.ReadString()
+			input = utils.ReadString()
 			if strings.ToLower(input) == "y" {
 				err = ioutil.WriteFile(envFile, []byte(fileContents), 0600)
 				if err != nil {
