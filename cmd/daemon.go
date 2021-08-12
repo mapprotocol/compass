@@ -138,7 +138,7 @@ func updateCurrentBlockNumberThread() {
 }
 
 func updateCurrentBlockNumber() uint64 {
-	headerCurrentNumber := sync_libs.HeaderCurrentNumber(cmd_runtime.SrcInstance.GetRpcUrl(), cmd_runtime.SrcInstance.GetChainEnum())
+	headerCurrentNumber := sync_libs.HeaderCurrentNumber(cmd_runtime.DstInstance.GetRpcUrl(), cmd_runtime.SrcInstance.GetChainEnum())
 	if headerCurrentNumber != ^uint64(0) && headerCurrentNumber > currentBlockNumber {
 		currentBlockNumber = headerCurrentNumber + 1
 	}
