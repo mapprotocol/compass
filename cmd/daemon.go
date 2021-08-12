@@ -95,6 +95,7 @@ func updateBlockNumberThread(chainImpl chains.ChainInterface, blockNumber *uint6
 		var startTime = time.Now().UnixNano()
 		for {
 			if canDo && i%times == 0 {
+				byIncr := *blockNumber
 				*blockNumber = chainImpl.GetBlockNumber()
 				totalMilliseconds = time.Now().UnixNano() - startTime
 				if *blockNumber == startBlockNumber {
@@ -113,7 +114,7 @@ func updateBlockNumberThread(chainImpl chains.ChainInterface, blockNumber *uint6
 					continue
 				}
 				interval = time.Duration(uint64(totalMilliseconds) / (*blockNumber - startBlockNumber))
-				log.Infoln(chainImpl.GetName(), ":", *blockNumber)
+				log.Infoln(chainImpl.GetName(), "block number : byIncr =", byIncr, ", byRpc =", *blockNumber)
 			} else {
 				// if !canDo ,this number is very different from the true value, but it doesn't matter.
 				*blockNumber += 1
