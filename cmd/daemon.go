@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
-	"github.com/mapprotocol/compass/libs/sync_libs"
+	"github.com/mapprotocol/compass/http_call"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"time"
@@ -138,7 +138,7 @@ func updateCurrentBlockNumberThread() {
 }
 
 func updateCurrentBlockNumber() uint64 {
-	headerCurrentNumber := sync_libs.HeaderCurrentNumber(cmd_runtime.DstInstance.GetRpcUrl(), cmd_runtime.SrcInstance.GetChainEnum())
+	headerCurrentNumber := http_call.HeaderCurrentNumber(cmd_runtime.DstInstance.GetRpcUrl(), cmd_runtime.SrcInstance.GetChainEnum())
 	if headerCurrentNumber != ^uint64(0) && headerCurrentNumber > currentBlockNumber {
 		currentBlockNumber = headerCurrentNumber + 1
 	}
