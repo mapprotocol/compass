@@ -132,7 +132,7 @@ func ReadConfigWithCondition(key string, defaultValue string, f func(string) boo
 		return defaultValue
 	}
 }
-func GetResult(conn *ethclient.Client, txHash common.Hash) bool {
+func WaitingForEndPending(conn *ethclient.Client, txHash common.Hash) bool {
 	count := 0
 	for {
 		time.Sleep(time.Millisecond * 200)
@@ -145,7 +145,7 @@ func GetResult(conn *ethclient.Client, txHash common.Hash) bool {
 		if !isPending {
 			break
 		}
-		if count >= 80 {
+		if count >= 100 {
 			fmt.Println("Not waiting for the result.")
 			return false
 		}

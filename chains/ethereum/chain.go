@@ -55,7 +55,7 @@ func (t *TypeEther) Save(from chains.ChainEnum, data *[]byte) {
 		return
 	}
 	log.Infoln("Save tx hash :", tx.Hash().String())
-	libs.GetResult(t.client, tx.Hash())
+	libs.WaitingForEndPending(t.client, tx.Hash())
 }
 
 func NewEthChain(name string, chainId int, chainEnum chains.ChainEnum, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,

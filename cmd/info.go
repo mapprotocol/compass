@@ -5,6 +5,7 @@ import (
 	"github.com/alexeyco/simpletable"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/libs"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"strconv"
 	"time"
@@ -54,6 +55,11 @@ func cmdInfoFunc() *cobra.Command {
 func displayOnce(clearScreen bool) {
 	relayerBalance := cmd_runtime.DstInstance.GetRelayerBalance()
 	relayer := cmd_runtime.DstInstance.GetRelayer()
+	if relayerBalance.Registered == nil || relayer.Epoch == nil {
+		log.Warnln("call GetRelayerBalance or GetRelayer return nil")
+		return
+	}
+
 	table := simpletable.New()
 	table.Header = &simpletable.Header{
 		Cells: []*simpletable.Cell{

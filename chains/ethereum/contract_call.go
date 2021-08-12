@@ -12,17 +12,13 @@ import (
 )
 
 func (t *TypeEther) Register(value *big.Int) bool {
-
 	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
-
 	input := contracts.PackInput(abiStaking, "register", value)
-	//_,ok := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
 	tx := contracts.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
 	if tx == nil {
 		return false
 	}
-	libs.GetResult(t.client, tx.Hash())
-	return true
+	return libs.WaitingForEndPending(t.client, tx.Hash())
 }
 
 func (t *TypeEther) UnRegister(value *big.Int) bool {
@@ -32,9 +28,9 @@ func (t *TypeEther) UnRegister(value *big.Int) bool {
 	if tx == nil {
 		return false
 	}
-	libs.GetResult(t.client, tx.Hash())
-	return true
+	return libs.WaitingForEndPending(t.client, tx.Hash())
 }
+
 func (t *TypeEther) Withdraw(value *big.Int) bool {
 	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
 	input := contracts.PackInput(abiStaking, "withdraw", &value)
@@ -42,19 +38,20 @@ func (t *TypeEther) Withdraw(value *big.Int) bool {
 	if tx == nil {
 		return false
 	}
-	libs.GetResult(t.client, tx.Hash())
-	return true
+	return libs.WaitingForEndPending(t.client, tx.Hash())
 }
 
 func (t *TypeEther) GetRelayerBalance() types.GetRelayerBalanceResponse {
 	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
 	input := contracts.PackInput(abiStaking, "getRelayerBalance", t.address)
 	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
-
 	var res types.GetRelayerBalanceResponse
+	if len(ret) == 0 {
+		return res
+	}
 	err := abiStaking.UnpackIntoInterface(&res, "getRelayerBalance", ret)
 	if err != nil {
-		log.Infoln("abi error", err)
+		log.Warnln("abi error", err)
 		return res
 	}
 	return res
@@ -63,11 +60,13 @@ func (t *TypeEther) GetRelayer() types.GetRelayerResponse {
 	var abiStaking, _ = abi.JSON(strings.NewReader(contracts2.RelayerContractAbi))
 	input := contracts.PackInput(abiStaking, "getRelayer", t.address)
 	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
-
 	var res types.GetRelayerResponse
+	if len(ret) == 0 {
+		return res
+	}
 	err := abiStaking.UnpackIntoInterface(&res, "getRelayer", ret)
 	if err != nil {
-		log.Infoln("abi error", err)
+		log.Warnln("abi error", err)
 		return res
 	}
 	return res
@@ -78,10 +77,12 @@ func (t *TypeEther) GetPeriodHeight() types.GetPeriodHeightResponse {
 	ret, _ := contracts.CallContractReturnBool(t.client, t.address, t.relayerContractAddress, input)
 
 	var res types.GetPeriodHeightResponse
-
+	if len(ret) == 0 {
+		return res
+	}
 	err := abiStaking.UnpackIntoInterface(&res, "getPeriodHeight", ret)
 	if err != nil {
-		log.Infoln("abi error", err)
+		log.Warnln("abi error", err)
 		return res
 	}
 	return res
