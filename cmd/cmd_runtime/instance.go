@@ -7,7 +7,7 @@ import (
 
 const (
 	MapId chains.ChainEnum = 1000
-	EthId chains.ChainEnum = 1001
+	EthId chains.ChainEnum = 1003
 )
 
 var ChainEnum2Instance = map[chains.ChainEnum]chains.ChainInterface{
