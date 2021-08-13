@@ -1,39 +1,45 @@
 # Compass
 Compass is Ultra-light Verification Protocol of MAP Protocol. It is designed as a library, that other blockchains can integrated it to support MAP Protocol.
 
-# signmap Usage
+# map-rly Usage
+
+##  Help document
+```shell
+./map-rly 
+./map-rly help  
+```
+<p>The default command is help.</p>
+
+## Configure the application.
+```shell
+./map-rly config set # Interactive setting configuration
+./map-rly config get # Reading configuration
+```
+
+## To become relayer
+```shell
+./map-rly register  # Interactive
+./map-rly register 200000 # Direct execution
+```
+<p>You can continue to call to increase the registration amount</p>
+
+## 
+```shell
+./map-rly unregister  # Interactive
+./map-rly unregister 200000 # Direct execution
+```
+<p>With the unregister transaction executed, the unregistering portion is locked in the contract for about 2 epoch. After the period, you can withdraw the unregistered coins.</p>
+
+##  Get relayer information
+```shell
+./map-rly info # Read information once
+./map-rly info watch # Read information Every five seconds
+./map-rly info watch 10 # Read information Every ten seconds
+```
 
 ## Main daemon program
 ```shell
-$ ./signmap 
+./map-rly daemon
 ```
-<p> Keystore file is required, Default is in the current folder keystore.json. If not, you need to type it in the input box.
-<p>Password is required.
+<p>Do relay work</p>
 
-## Help document
-```shell
-$ ./signmap help  
-```
-## Configure the application.
-```shell
-$ ./signmap config
-```
-<p> Specify keystore file path.
-
-## Read the sign-in history
-```shell
-$ ./signmap log
-```
-##  Get user information
-```shell
-$ ./signmap info
-```
-<p>Acquisition of sign-in times, pledge amount, revenue. 
-<p>Keystore and password is required.
-
-##  Configure the application chain
-```shell
-$ ./signmap chain
-```
-<p>Create or update rpc url, contract address. 
-<p> User input is not safe. Please guarantee that it is correct by yourself！
