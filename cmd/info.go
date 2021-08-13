@@ -53,10 +53,18 @@ func cmdInfoFunc() *cobra.Command {
 	return cmdInfo
 }
 func displayOnce(clearScreen bool) {
-	relayerBalance := cmd_runtime.DstInstance.GetRelayerBalance()
 	relayer := cmd_runtime.DstInstance.GetRelayer()
-	if relayerBalance.Registered == nil || relayer.Epoch == nil {
-		log.Warnln("call GetRelayerBalance or GetRelayer return nil")
+	if relayer.Epoch == nil {
+		log.Warnln("Call GetRelayer return nil")
+		return
+	}
+	if !relayer.Register {
+		log.Warnln("Unregistered")
+		return
+	}
+	relayerBalance := cmd_runtime.DstInstance.GetRelayerBalance()
+	if relayerBalance.Registered == nil {
+		log.Warnln("Call GetRelayerBalance return nil")
 		return
 	}
 
