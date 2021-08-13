@@ -36,5 +36,5 @@ do
   pair=($(echo "$i" | tr ',' "\n"))
   GOOS=$pair
   GOARCH=${pair[1]}
-  env GOOS="$GOOS" GOARCH="$GOARCH" go build -o $targetDir/signmap_"$GOOS"_"$GOARCH".exe "$cmdDir"/../signmap/
+  env GOOS="$GOOS" GOARCH="$GOARCH" go build -o $targetDir/map-rly_"$GOOS"_"$GOARCH".exe "$cmdDir"/../rly/
 done
