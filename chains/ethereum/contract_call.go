@@ -17,7 +17,7 @@ func (t *TypeEther) Register(value *big.Int) bool {
 	if tx == nil {
 		return false
 	}
-	return chain_tools.WaitingForEndPending(t.client, tx.Hash())
+	return chain_tools.WaitingForEndPending(t.client, tx.Hash(), 30)
 }
 
 func (t *TypeEther) UnRegister(value *big.Int) bool {
@@ -27,7 +27,7 @@ func (t *TypeEther) UnRegister(value *big.Int) bool {
 	if tx == nil {
 		return false
 	}
-	return chain_tools.WaitingForEndPending(t.client, tx.Hash())
+	return chain_tools.WaitingForEndPending(t.client, tx.Hash(), 30)
 }
 
 func (t *TypeEther) Withdraw(value *big.Int) bool {
@@ -37,7 +37,7 @@ func (t *TypeEther) Withdraw(value *big.Int) bool {
 	if tx == nil {
 		return false
 	}
-	return chain_tools.WaitingForEndPending(t.client, tx.Hash())
+	return chain_tools.WaitingForEndPending(t.client, tx.Hash(), 30)
 }
 
 func (t *TypeEther) GetRelayerBalance() types.GetRelayerBalanceResponse {
