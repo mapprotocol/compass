@@ -15,33 +15,30 @@ func WaitingForEndPending(conn *ethclient.Client, txHash common.Hash, waitingSec
 	for {
 		_, isPending, err := conn.TransactionByHash(context.Background(), txHash)
 		if err != nil {
-			log.Infoln(err)
+			log.Warnln(err)
 			return false
 		}
 		count++
 		if !isPending {
-			break
+			return true
 		}
 		if count >= waitingSeconds {
-			log.Warnln("Not waiting for the result.")
+			log.Warnln("Not waiting for the result.", txHash.String())
 			return false
 		}
 		time.Sleep(time.Second)
 	}
-	return true
 }
 func WaitForReceipt(conn *ethclient.Client, txHash common.Hash) bool {
 	onceTime := time.Second
 	for {
 		receipt, err := conn.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
-			log.Warnln("Get receipt error: ", err)
 			time.Sleep(onceTime)
 			continue
 		}
 		switch receipt.Status {
 		case types.ReceiptStatusSuccessful:
-			println("Sign in successfully.")
 			return true
 		case types.ReceiptStatusFailed:
 			log.Warnln("Transaction not completed，unconfirmed.", txHash.String())
