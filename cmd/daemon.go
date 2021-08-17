@@ -38,7 +38,7 @@ var (
 					continue
 				}
 				byteData := cmd_runtime.SrcInstance.GetBlockHeader(currentBlockNumber)
-				cmd_runtime.DstInstance.Save(cmd_runtime.SrcInstance.GetChainEnum(), byteData)
+				cmd_runtime.DstInstance.Save(cmd_runtime.SrcInstance.GetChainId(), byteData)
 				currentBlockNumber += 1
 			}
 		},
@@ -138,7 +138,7 @@ func updateCurrentBlockNumberThread() {
 }
 
 func updateCurrentBlockNumber() uint64 {
-	headerCurrentNumber := http_call.HeaderCurrentNumber(cmd_runtime.DstInstance.GetRpcUrl(), cmd_runtime.SrcInstance.GetChainEnum())
+	headerCurrentNumber := http_call.HeaderCurrentNumber(cmd_runtime.DstInstance.GetRpcUrl(), cmd_runtime.SrcInstance.GetChainId())
 	if headerCurrentNumber != ^uint64(0) && headerCurrentNumber > currentBlockNumber {
 		currentBlockNumber = headerCurrentNumber + 1
 	}

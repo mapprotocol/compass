@@ -6,26 +6,24 @@ import (
 	"time"
 )
 
-type ChainEnum int
+type ChainId int
 
 type ChainInterface interface {
 	GetName() string
-	GetChainEnum() ChainEnum
-	GetChainId() int
+	GetChainId() ChainId
 	GetBlockNumber() uint64
 	GetRpcUrl() string
 	GetBlockHeader(num uint64) *[]byte
 	GetAddress() string
 	SetTarget(keystoreStr string, password string)
-	Save(from ChainEnum, Cdata *[]byte)
+	Save(from ChainId, Cdata *[]byte)
 	NumberOfSecondsOfBlockCreationTime() time.Duration
 	GetStableBlockBeforeHeader() uint64
 	ContractInterface
 }
 type ChainImplBase struct {
 	Name                               string
-	ChainEnum                          ChainEnum
-	ChainId                            int
+	ChainId                            ChainId
 	RpcUrl                             string
 	NumberOfSecondsOfBlockCreationTime time.Duration
 	StableBlockBeforeHeader            uint64
