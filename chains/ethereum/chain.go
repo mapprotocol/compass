@@ -40,11 +40,11 @@ func (t *TypeEther) NumberOfSecondsOfBlockCreationTime() time.Duration {
 	return t.base.NumberOfSecondsOfBlockCreationTime
 }
 
-func (t *TypeEther) Save(from chains.ChainEnum, data *[]byte) {
+func (t *TypeEther) Save(from chains.ChainId, data *[]byte) {
 	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.HeaderStoreContractAbi))
 	input := chain_tools.PackInput(abiStaking, "save",
 		big.NewInt(int64(from)),
-		big.NewInt(int64(t.GetChainEnum())),
+		big.NewInt(int64(t.GetChainId())),
 		data,
 	)
 	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.headerStoreContractAddress, nil, t.PrivateKey, input)
@@ -56,14 +56,13 @@ func (t *TypeEther) Save(from chains.ChainEnum, data *[]byte) {
 	chain_tools.WaitingForEndPending(t.client, tx.Hash(), 50)
 }
 
-func NewEthChain(name string, chainId int, chainEnum chains.ChainEnum, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,
+func NewEthChain(name string, chainId chains.ChainId, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,
 	relayerContractAddressStr string, headerStoreContractAddressStr string) *TypeEther {
 	ret := TypeEther{
 		base: chains.ChainImplBase{
 			Name:                               name,
 			ChainId:                            chainId,
 			NumberOfSecondsOfBlockCreationTime: time.Duration(seconds) * time.Second,
-			ChainEnum:                          chainEnum,
 			RpcUrl:                             rpcUrl,
 			StableBlockBeforeHeader:            stableBlockBeforeHeader,
 		},
@@ -122,13 +121,10 @@ func (t *TypeEther) GetRpcUrl() string {
 	return t.base.RpcUrl
 }
 
-func (t *TypeEther) GetChainId() int {
+func (t *TypeEther) GetChainId() chains.ChainId {
 	return t.base.ChainId
 }
 
-func (t *TypeEther) GetChainEnum() chains.ChainEnum {
-	return t.base.ChainEnum
-}
 func (t *TypeEther) GetBlockNumber() uint64 {
 	num, err := t.client.BlockNumber(context.Background())
 	if err == nil {

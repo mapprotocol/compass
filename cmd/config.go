@@ -63,7 +63,7 @@ var (
 				print("Select source ChainInterface chain id:")
 				srcChainIdStr = utils.ReadString()
 				srcChainId, _ = strconv.Atoi(srcChainIdStr)
-				if _, ok := cmd_runtime.ChainEnum2Instance[chains.ChainEnum(srcChainId)]; ok {
+				if _, ok := cmd_runtime.ChainEnum2Instance[chains.ChainId(srcChainId)]; ok {
 					break
 				}
 			}
@@ -72,7 +72,7 @@ var (
 				print("Select target ChainInterface chain id:")
 				dstChainIdStr = utils.ReadString()
 				dstChainId, _ = strconv.Atoi(dstChainIdStr)
-				if _, ok := cmd_runtime.ChainEnum2Instance[chains.ChainEnum(dstChainId)]; ok && dstChainId != srcChainId {
+				if _, ok := cmd_runtime.ChainEnum2Instance[chains.ChainId(dstChainId)]; ok && dstChainId != srcChainId {
 					break
 				}
 			}

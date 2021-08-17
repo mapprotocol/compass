@@ -7,10 +7,10 @@ import (
 	"github.com/mapprotocol/compass/utils"
 )
 
-func HeaderCurrentNumber(url string, chainEnum chains.ChainEnum) (num uint64) {
+func HeaderCurrentNumber(url string, chainEnum chains.ChainId) (num uint64) {
 	requestBody, _ := json.Marshal(types.Request{
 		Method: "header_currentHeaderNumber",
-		Params: []chains.ChainEnum{chainEnum},
+		Params: []chains.ChainId{chainEnum},
 		Id:     "1",
 	})
 	responseByte := utils.RpcToolFromRequestByte2ResponseByte(&url, &requestBody)

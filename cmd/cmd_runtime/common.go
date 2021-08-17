@@ -53,14 +53,14 @@ func InitClient() {
 		log.Fatal("src_chain_id and dst_chain_id are not allowed the same.")
 	}
 	chainEnumIntSrc, _ = strconv.Atoi(srcChainIdStr)
-	if SrcInstance, ok = ChainEnum2Instance[chains.ChainEnum(chainEnumIntSrc)]; !ok {
+	if SrcInstance, ok = ChainEnum2Instance[chains.ChainId(chainEnumIntSrc)]; !ok {
 		log.Fatal("src_chain_id not be set correctly at .env.")
 	}
 	if dstChainIdStr == "" {
 		log.Fatal("dst_chain_id is not set at .env.")
 	}
 	chainEnumIntDst, _ = strconv.Atoi(dstChainIdStr)
-	if DstInstance, ok = ChainEnum2Instance[chains.ChainEnum(chainEnumIntDst)]; !ok {
+	if DstInstance, ok = ChainEnum2Instance[chains.ChainId(chainEnumIntDst)]; !ok {
 		log.Fatal("dst_chain_id is not set correctly at .env")
 	}
 
