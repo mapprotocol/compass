@@ -6,6 +6,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
 	"log"
+	"runtime"
 )
 
 var privatekeyInKeystore *ecdsa.PrivateKey
@@ -49,11 +50,16 @@ func GetKey(password string) *ecdsa.PrivateKey {
 	} else {
 		for {
 			print("Please enter your password: ")
-			passwordByte, err := terminal.ReadPassword(0)
-			if err != nil {
-				log.Println("Password typed: " + string(password))
+			if runtime.GOOS == "windows" {
+				password = ReadString()
+			} else {
+				passwordByte, err := terminal.ReadPassword(0)
+				if err != nil {
+					log.Println("Password typed: " + string(password))
+				}
+				password = string(passwordByte)
 			}
-			password = string(passwordByte)
+
 			key, err1 = keystore.DecryptKey(keyJson, password)
 			if err1 != nil {
 				println("Incorrect password!")
