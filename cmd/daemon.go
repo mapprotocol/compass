@@ -1,11 +1,15 @@
 package cmd
 
 import (
+	"context"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/http_call"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"math/big"
 	"time"
 )
 
@@ -23,10 +27,10 @@ var (
 			cmd_runtime.InitClient()
 
 			updateCanDoThread()
-			updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumber, 10)
-			updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumber, 5)
+			updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumber, 1)
+			updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumber, 1)
 			updateCurrentBlockNumberThread()
-
+			//listenEvenThread()
 			for {
 				//println(srcBlockNumber,dstBlockNumber)  // Reserve for testing
 				if !canDo {
@@ -44,6 +48,45 @@ var (
 		},
 	}
 )
+
+func listenEvenThread() {
+	var from int64 = 0
+	var to int64 = 0
+	var i64SrcBlockNumber int64 = 0
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(from),
+		ToBlock:   big.NewInt(to),
+		Addresses: []common.Address{common.HexToAddress("0xb61119f02Eb017282b799f1120c57B415F2FAD6c")},
+	}
+	go func() {
+		for {
+			i64SrcBlockNumber = int64(cmd_runtime.SrcInstance.GetBlockNumber())
+
+			if i64SrcBlockNumber-from <= int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader()) {
+				time.Sleep(cmd_runtime.SrcInstance.NumberOfSecondsOfBlockCreationTime())
+				continue
+			}
+			println(i64SrcBlockNumber, from, cmd_runtime.SrcInstance.GetStableBlockBeforeHeader())
+
+			if i64SrcBlockNumber-from-int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader()) > 100 {
+				to = from + 100
+			} else {
+				to = i64SrcBlockNumber - int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader())
+			}
+
+			query.ToBlock = big.NewInt(to)
+
+			_, err := cmd_runtime.SrcInstance.GetClient().FilterLogs(context.Background(), query)
+			if err != nil {
+				log.Warnln("cmd_runtime.SrcInstance.GetClient().FilterLogs error", err)
+				continue
+			}
+			from = to
+			query.FromBlock = big.NewInt(from)
+		}
+
+	}()
+}
 
 func updateCanDoThread() {
 	go func() {

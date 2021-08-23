@@ -31,6 +31,10 @@ type TypeEther struct {
 	headerStoreContractAddress common.Address
 }
 
+func (t *TypeEther) GetClient() *ethclient.Client {
+	return t.client
+}
+
 func (t *TypeEther) GetStableBlockBeforeHeader() uint64 {
 	return t.base.StableBlockBeforeHeader
 
