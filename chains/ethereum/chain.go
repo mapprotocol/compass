@@ -80,7 +80,7 @@ func (t *TypeEther) GetAddress() string {
 func (t *TypeEther) SetTarget(keystoreStr string, password string) {
 	if t.relayerContractAddress.String() == "0x0000000000000000000000000000000000000000" ||
 		t.headerStoreContractAddress.String() == "0x0000000000000000000000000000000000000000" {
-		log.Fatal(t.GetName(), "cannot be target")
+		log.Fatal(t.GetName(), " cannot be target, relayer_contract_address and header_store_contract_address are required for target.")
 	}
 	keyJson, _ := ioutil.ReadFile(keystoreStr)
 	var err error
@@ -88,7 +88,7 @@ func (t *TypeEther) SetTarget(keystoreStr string, password string) {
 	if len(password) != 0 {
 		key, err = keystore.DecryptKey(keyJson, password)
 		if err != nil {
-			println("Incorrect password! Modify the content in the .env file. It can be empty,but it can't be wrong.")
+			log.Fatal("Incorrect password! Modify the content in the config file. It can be empty,but it can't be wrong.")
 			os.Exit(1)
 		}
 	} else {

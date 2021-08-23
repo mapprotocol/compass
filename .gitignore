@@ -1,8 +1,6 @@
-sign.log
 .idea
 keystore.json
 target
 /contracts/node_modules/
 runtime
-.env
-sqlite.db
+config.toml
