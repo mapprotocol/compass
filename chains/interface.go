@@ -1,6 +1,7 @@
 package chains
 
 import (
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/mapprotocol/compass/types"
 	"math/big"
 	"time"
@@ -10,6 +11,7 @@ type ChainId int
 
 type ChainInterface interface {
 	GetName() string
+	GetClient() *ethclient.Client
 	GetChainId() ChainId
 	GetBlockNumber() uint64
 	GetRpcUrl() string
