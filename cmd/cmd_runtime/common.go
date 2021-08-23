@@ -2,13 +2,12 @@ package cmd_runtime
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/joho/godotenv"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/chains/ethereum"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"runtime"
-	"strconv"
 	"time"
 )
 
@@ -36,33 +35,24 @@ var (
 )
 
 func InitClient() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error ! loading .env file")
-	}
-	srcChainIdStr := os.Getenv("src_chain_id")
-	dstChainIdStr := os.Getenv("dst_chain_id")
-	keystore := os.Getenv("keystore")
-	password := os.Getenv("password")
-	var chainEnumIntSrc, chainEnumIntDst int
-	var ok bool
-	if srcChainIdStr == "" {
-		log.Fatal("src_chain_id not be set at .env.")
-	}
-	if srcChainIdStr == dstChainIdStr {
-		log.Fatal("src_chain_id and dst_chain_id are not allowed the same.")
-	}
-	chainEnumIntSrc, _ = strconv.Atoi(srcChainIdStr)
-	if SrcInstance, ok = ChainEnum2Instance[chains.ChainId(chainEnumIntSrc)]; !ok {
-		log.Fatal("src_chain_id not be set correctly at .env.")
-	}
-	if dstChainIdStr == "" {
-		log.Fatal("dst_chain_id is not set at .env.")
-	}
-	chainEnumIntDst, _ = strconv.Atoi(dstChainIdStr)
-	if DstInstance, ok = ChainEnum2Instance[chains.ChainId(chainEnumIntDst)]; !ok {
-		log.Fatal("dst_chain_id is not set correctly at .env")
-	}
+	globalConfig, srcChainConfig, dstChainConfig := ReadTomlConfig()
+
+	keystore := globalConfig.Keystore
+	password := globalConfig.Password
+
+	SrcInstance = ethereum.NewEthChain(
+		srcChainConfig.Name, srcChainConfig.ChainId,
+		srcChainConfig.BlockCreatingTime, srcChainConfig.RpcUrl,
+		srcChainConfig.StableBlock,
+		"", "",
+	)
+
+	DstInstance = ethereum.NewEthChain(
+		dstChainConfig.Name, dstChainConfig.ChainId,
+		dstChainConfig.BlockCreatingTime, dstChainConfig.RpcUrl,
+		dstChainConfig.StableBlock,
+		dstChainConfig.RelayerContractAddress, dstChainConfig.HeaderStoreContractAddress,
+	)
 
 	if keystore == "" || !common.FileExist(keystore) {
 		log.Fatal("keystore is not set correctly at .env, file not exists.")
