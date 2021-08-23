@@ -11,10 +11,8 @@ Compass is Ultra-light Verification Protocol of MAP Protocol. It is designed as 
 <p>The default command is help.</p>
 
 ## Configure the application.
-```shell
-./map-rly config set # Interactive setting configuration
-./map-rly config get # Reading configuration
-```
+<p>The command requires a configuration file named config.toml in the same directory as the command</p>
+<p>This is [example](https://github.com/mapprotocol/compass/example.config.toml)</p>
 
 ## To become relayer
 ```shell
