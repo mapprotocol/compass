@@ -12,7 +12,8 @@ Compass is Ultra-light Verification Protocol of MAP Protocol. It is designed as 
 
 ## Configure the application.
 <p>The command requires a configuration file named config.toml in the same directory as the command</p>
-<p>This is [example](https://github.com/mapprotocol/compass/example.config.toml)</p>
+<p>This is [`example`]: https://github.com/mapprotocol/compass/blob/main/example.config.toml
+</p>
 
 ## To become relayer
 ```shell
