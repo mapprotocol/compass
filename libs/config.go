@@ -18,7 +18,7 @@ var (
 	SendTransactionGasLimit = uint64(21000)
 	ToAddress               = common.HexToAddress("0x799E24dC6B48549BbD1Fc9fcCa4d72880d8c7a15")
 	SignLogFile, _          = os.OpenFile(LogFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0700)
-	RuntimeDirectory        = "runtime"
+	RuntimeDirectory        = filepath2.Join(filepath2.Dir(os.Args[0]), "runtime")
 	ConfigDirectory         = filepath2.Join(RuntimeDirectory, "config")
 	LogFile                 = filepath2.Join(RuntimeDirectory, "sign.log")
 	DiskCache               = diskv.New(diskv.Options{

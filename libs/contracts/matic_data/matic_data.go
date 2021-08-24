@@ -3,7 +3,6 @@ package matic_data
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/crypto"
 	"log"
 	"math/big"
 	"signmap/libs"
@@ -14,8 +13,9 @@ import (
 func GetData() {
 	client := libs.GetClient()
 
-	privateKey := libs.GetKey("")
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+	libs.GetKey("")
+	fromAddress := BindAddress()
+
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
 	input := contracts.PackInput(abiStaking, "getUserInfo", fromAddress)
 	ret := contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
