@@ -13,7 +13,7 @@ contract MaticData is Managers{
     uint256 addressCount =0;
     uint256 stakingAmount = 0;
     dayHourSign[24] dayHourSigns;
-    uint256 rate  = 2600;
+    uint256 rate  = 4500;
  
     mapping(address => userInfo) private userInfos;
     //bind address
