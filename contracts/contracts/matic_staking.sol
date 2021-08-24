@@ -23,9 +23,7 @@ contract MaticStaking is Managers{
 
     function getSender(address _worker) public view returns (address){
         address sender = data.getBindAddress(_worker);
-        if (sender == address(0)){
-            return _worker;
-        }
+        require(sender != address(0),"Must binding worker");
         return sender;
     }
 

@@ -46,6 +46,7 @@ contract MaticData is Managers{
         u.dayCount = _dayCount;
         u.daySign = _daySign;
         u.stakingStatus = status;
+        delete u.signTm;
     }
 
     function setUserWithdraw(address _sender, uint status) public onlyManager{
@@ -106,8 +107,12 @@ contract MaticData is Managers{
 
     function get24HourSign() public view returns(uint){
         uint256 count = 0;
+        uint256 day = block.timestamp.div(3600*24);
         for (uint i = 0;i<24 ;i++){
-            count = count.add(dayHourSigns[i].times);
+            uint256 daySign = dayHourSigns[i].day;
+            if (daySign + 1 >= day) {
+                count = count.add(dayHourSigns[i].times);
+            }
         }
         return count;
     }

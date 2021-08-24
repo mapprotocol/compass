@@ -10,9 +10,7 @@ contract EthereumData is Managers{
     mapping(address => userInfo) private userInfos;
     //bind address
     mapping(address => address) private bindAddress;
-
     uint256 stakingAmount;
-
     uint256 rate = 2600;
 
     //data userinfo
@@ -51,9 +49,12 @@ contract EthereumData is Managers{
         return bindAddress[_source];
     }
     
-    function setCanWithdraw(address _source) public onlyManager{
+    function setCanWithdraw(address _source,uint256 dayCount) public onlyManager{
         userInfo storage u = userInfos[_source];
         u.stakingStatus = 1;
+        if (dayCount >0){
+            u.dayCount= dayCount;
+        }
     }
     
     function getStakingStatus(address _source) public view returns (uint256){
