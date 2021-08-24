@@ -6,6 +6,8 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 	"runtime"
 )
 
@@ -18,23 +20,7 @@ func GetKey(password string) *ecdsa.PrivateKey {
 	path := ReadConfig("keystore", "keystore.json")
 	//Compatible for development
 	//You only need to deploy one keystore.json file at project root when you take the test
-	if fileExist("../" + path) {
-		path = "../" + path
-	}
-	if fileExist("../../" + path) {
-		path = "../../" + path
-	}
-	if fileExist("../../../" + path) {
-		path = "../../../" + path
-	}
-	for {
-		if !fileExist(path) {
-			print(path + " does not exist, please enter the keystore path: ")
-			path = ReadString()
-		} else {
-			break
-		}
-	}
+	path = filepath.Join(filepath.Dir(os.Args[0]), path)
 
 	keyJson, err := ioutil.ReadFile(path)
 	if err != nil {
