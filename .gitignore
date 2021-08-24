@@ -1,5 +1,6 @@
-sign.log
 .idea
-keystore
+keystore.json
 target
 /contracts/node_modules/
+runtime
+config.toml

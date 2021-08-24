@@ -1,0 +1,24 @@
+[global]
+#keystore path
+keystore="keystore.json"
+# The password can be empty,but it can't be wrong. If it is empty，enter the password manually when required.
+password = "1234561"
+
+[src_chain]
+#The name doesn't matter, it only shows up in the log
+name = "Ethereum test net"
+chain_id = 10
+block_creating_seconds = 15
+rpc_url = "http://119.8.165.158:8545"
+stable_block = 10
+
+[dst_chain]
+##The name doesn't matter, it only shows up in the log
+name = "map_chain_test"
+chain_id = 211
+block_creating_seconds = 6
+rpc_url = "http://119.8.165.158:7445"
+stable_block = 10
+relayer_contract_address = "0x00000000000052656c6179657241646472657373"
+header_store_contract_address = "0x000068656164657273746F726541646472657373"
+
