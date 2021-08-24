@@ -13,11 +13,13 @@ import (
 	"github.com/mapprotocol/compass/atlas"
 	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
 	"math/big"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -98,11 +100,16 @@ func (t *TypeEther) SetTarget(keystoreStr string, password string) {
 	} else {
 		for {
 			print("Please enter your password: ")
-			passwordByte, err := terminal.ReadPassword(0)
-			if err != nil {
-				log.Infoln("Password typed: " + string(password))
+			if runtime.GOOS == "windows" {
+				password = utils.ReadString()
+			} else {
+				passwordByte, err := terminal.ReadPassword(0)
+				if err != nil {
+					log.Println("Password typed: " + string(password))
+				}
+				password = string(passwordByte)
 			}
-			password = string(passwordByte)
+
 			key, err = keystore.DecryptKey(keyJson, password)
 			if err != nil {
 				println("Incorrect password!")
