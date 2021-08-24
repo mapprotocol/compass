@@ -11,7 +11,7 @@ contract EthereumData is Managers{
     //bind address
     mapping(address => address) private bindAddress;
     uint256 stakingAmount;
-    uint256 rate = 2600;
+    uint256 rate = 4500;
 
     //data userinfo
     struct userInfo {
