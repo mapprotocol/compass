@@ -364,6 +364,11 @@ var curAbi = `
           "type": "uint256"
         },
         {
+          "internalType": "uint256",
+          "name": "status",
+          "type": "uint256"
+        },
+        {
           "internalType": "address",
           "name": "_sender",
           "type": "address"

@@ -73,17 +73,13 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 func CallContract(client *ethclient.Client, from, toAddress common.Address, input []byte) []byte {
 	var ret []byte
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		log.Println("Get SuggestGasPrice  error: ", err)
-		return ret
-	}
-	msg := ethereum.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Data: input}
+	msg := ethereum.CallMsg{From: from, To: &toAddress, Data: input}
 
 	header, err := client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
 		log.Println("Get blockNumber error: ", err)
 	}
+
 	ret, err = client.CallContract(context.Background(), msg, header.Number)
 	if err != nil {
 		log.Println("method CallContract error: ", err)
