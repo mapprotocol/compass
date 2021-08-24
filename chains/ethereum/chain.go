@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -13,13 +12,8 @@ import (
 	"github.com/mapprotocol/compass/atlas"
 	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/chains"
-	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
-	"io/ioutil"
 	"math/big"
-	"os"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -88,37 +82,7 @@ func (t *TypeEther) SetTarget(keystoreStr string, password string) {
 		t.headerStoreContractAddress.String() == "0x0000000000000000000000000000000000000000" {
 		log.Fatal(t.GetName(), " cannot be target, relayer_contract_address and header_store_contract_address are required for target.")
 	}
-	keyJson, _ := ioutil.ReadFile(keystoreStr)
-	var err error
-	var key *keystore.Key
-	if len(password) != 0 {
-		key, err = keystore.DecryptKey(keyJson, password)
-		if err != nil {
-			log.Fatal("Incorrect password! Modify the content in the config file. It can be empty,but it can't be wrong.")
-			os.Exit(1)
-		}
-	} else {
-		for {
-			print("Please enter your password: ")
-			if runtime.GOOS == "windows" {
-				password = utils.ReadString()
-			} else {
-				passwordByte, err := terminal.ReadPassword(0)
-				if err != nil {
-					log.Println("Password typed: " + string(password))
-				}
-				password = string(passwordByte)
-			}
-
-			key, err = keystore.DecryptKey(keyJson, password)
-			if err != nil {
-				println("Incorrect password!")
-			} else {
-				println()
-				break
-			}
-		}
-	}
+	key, _ := chain_tools.LoadPrivateKey(keystoreStr, password)
 	t.PrivateKey = key.PrivateKey
 	t.address = crypto.PubkeyToAddress(key.PrivateKey.PublicKey)
 

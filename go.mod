@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/alexeyco/simpletable v1.0.0
+	github.com/denisbrodbeck/machineid v1.0.1 // indirect
 	github.com/ethereum/go-ethereum v1.10.4
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect

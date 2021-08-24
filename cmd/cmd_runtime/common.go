@@ -1,9 +1,9 @@
 package cmd_runtime
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/chains/ethereum"
+	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
@@ -62,9 +62,8 @@ func InitClient() {
 	if !strings.Contains(keystore, "/") && !strings.Contains(keystore, "\\") {
 		keystore = filepath.Join(filepath.Dir(os.Args[0]), keystore)
 	}
-	if !common.FileExist(keystore) {
-		log.Fatal("keystore file not exists.")
-
+	if password != "" {
+		password = string(utils.AesCbcDecrypt(password))
 	}
 	DstInstance.SetTarget(keystore, password)
 	StructUnStableBlock.Time = SrcInstance.NumberOfSecondsOfBlockCreationTime()
