@@ -17,7 +17,7 @@ contract EthereumStaking is Managers {
     event withdrawE(address sender, uint256 amount);
     event bindingE(address sender, address bindAddress);
 
-    uint256 public subsidy = 1000 * 1e18;
+    uint256 public subsidy = 500 * 1e18;
 
     modifier checkEnd(address _address){
         (,,uint256 _status) = data.getUserInfo(_address);
@@ -33,8 +33,8 @@ contract EthereumStaking is Managers {
 
     function staking(uint256 _amount, uint256 _dayCount) public {
         require(_dayCount == 3 ||
-        _dayCount == 60 ||
-            _dayCount == 90, "day error");
+            _dayCount == 30 ||
+            _dayCount == 60, "day error");
         (uint256 amount,uint256 dayCount,) = data.getUserInfo(msg.sender);
         if (amount > 0) {
             require(_dayCount == dayCount, "only choose first dayCount");
