@@ -20,12 +20,7 @@ func PackInput(AbiStaking abi.ABI, abiMethod string, params ...interface{}) []by
 func CallContractReturnBool(client *ethclient.Client, from, toAddress common.Address, input []byte) ([]byte, bool) {
 	var ret []byte
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		log.Warnln("Get SuggestGasPrice  error: ", err)
-		return ret, false
-	}
-	msg := ethereum.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Data: input}
+	msg := ethereum.CallMsg{From: from, To: &toAddress, Data: input}
 
 	header, err := client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
