@@ -16,14 +16,14 @@ func BindAddress() common.Address {
 	privateKey := libs.GetKey("")
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
-	input := contracts.PackInput(abiStaking, "bindAddress", fromAddress)
+	input := contracts.PackInput(abiStaking, "getBindAddress", fromAddress)
 	ret := contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
 
 	var res = common.Address{}
 	if len(ret) == 0 {
 		return res
 	}
-	err := abiStaking.UnpackIntoInterface(&res, "bindAddress", ret)
+	err := abiStaking.UnpackIntoInterface(&res, "getBindAddress", ret)
 
 	if err != nil {
 		log.Println("abi error", err)
