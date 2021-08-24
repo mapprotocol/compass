@@ -17,7 +17,8 @@ async function main() {
     console.log("MaticStaking address:", mStaking.address);
 
     await mData.addManager(mStaking.address);
-    await mStaking.addManager("0x228F78fC398DB973B96eD666C92E78753b9466Eb");
+    //await mStaking.addManager("0x228F78fC398DB973B96eD666C92E78753b9466Eb");
+    await mStaking.addManager("0x200aee9ba7040d778922a763ce8a50948d61aff5");
 
 }
 
