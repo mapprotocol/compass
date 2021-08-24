@@ -49,10 +49,7 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 		GasPrice: gasPrice,
 		Data:     input,
 	})
-	chainID, err := client.ChainID(context.Background())
-	if err != nil {
-		log.Println("Get ChainID error:", err)
-	}
+	chainID := big.NewInt(137)
 	fmt.Println("TX data nonce ", nonce, " transfer value ", value, " gasLimit ", gasLimit, " gasPrice ", gasPrice, " chainID ", chainID)
 
 	signedTx, err := types.SignTx(tx, types.NewEIP2930Signer(chainID), privateKey)

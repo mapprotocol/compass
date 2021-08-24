@@ -28,9 +28,9 @@ var (
 	blockChainMap         map[string]Chain
 	ExternalBlockChainMap map[string]Chain
 	internalBlockChainMap = map[string]Chain{"1": {
-		"https://rpc-mumbai.maticvigil.com/",
-		"0x719E49E6F30cC742e97d134a9Fc513EB41c834fd",
-		"0x08C8D95AA6563D46d57c46616D63b579FDeFC097",
+		"https://rpc-mainnet.maticvigil.com/",
+		"0xDD4b1526e89c4e9aC01C8f81C2037Dc109fda022",
+		"0x5d01Cd722857fC4Af311A3335E37bDedc29484a8",
 	}}
 	ExternalBlockChainKey = "externalBlockChain"
 )

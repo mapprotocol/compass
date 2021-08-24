@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"log"
+	"math/big"
 )
 
 func SendTransaction() {
@@ -41,13 +42,11 @@ func SendTransaction() {
 		Data:     data,
 	})
 
-	chainID, err := client.NetworkID(context.Background())
-
 	if err != nil {
 		log.Println(err)
 	}
 
-	signedTx, err := types.SignTx(tx, types.NewEIP2930Signer(chainID), privateKey)
+	signedTx, err := types.SignTx(tx, types.NewEIP2930Signer(big.NewInt(137)), privateKey)
 	if err != nil {
 		log.Println(err)
 	}
