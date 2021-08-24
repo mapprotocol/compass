@@ -1,2 +1,2 @@
-npx hardhat run scripts/deploy_ethereum.js --network Eth
-npx hardhat run scripts/deploy_matic.js --network Matic
+npx hardhat run scriptsmain/deploy_ethereum.js --network Eth
+npx hardhat run scriptsmain/deploy_matic.js --network Matic
