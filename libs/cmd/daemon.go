@@ -47,10 +47,15 @@ var cmdDaemon = &cobra.Command{
 				if nowUnit == signUnit && !strings.HasPrefix(libs.GetLastLineWithSeek(), date) {
 					log.Println(date)
 					// Determine if you have signed it today
-					if matic_staking.DO() {
-						libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
-						matic_data.GetData()
-					}
+					go func() {
+						if matic_staking.DO() {
+							libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
+							matic_data.GetData()
+						} else {
+							libs.WriteLog(fmt.Sprintf("%s %d Sign in unsuccessfully.", date, nowUnit))
+						}
+					}()
+
 				}
 			}
 		}(c)

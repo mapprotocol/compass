@@ -25,7 +25,7 @@ func DO() bool {
 		return false
 	}
 	i := -1
-	tryTimes := 5
+	tryTimes := 10
 	sleepSecond := 5 * time.Second
 	for {
 		i += 1
