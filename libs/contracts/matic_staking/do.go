@@ -39,7 +39,6 @@ func DO() bool {
 		}
 		receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 		if err != nil {
-			log.Println("Get receipt error: ", err)
 			time.Sleep(sleepSecond)
 			continue
 		}

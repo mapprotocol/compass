@@ -45,7 +45,6 @@ var cmdDaemon = &cobra.Command{
 				}
 
 				if nowUnit == signUnit && !strings.HasPrefix(libs.GetLastLineWithSeek(), date) {
-					log.Println(date)
 					// Determine if you have signed it today
 					go func() {
 						if matic_staking.DO() {
