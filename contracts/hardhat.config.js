@@ -28,6 +28,11 @@ module.exports = {
       url: `https://http-mainnet-node.huobichain.com`,
       chainId : 128,
       accounts: [`0x${PRIVATE_KEY}`]
+    },
+    Eth: {
+      url: `https://mainnet.infura.io/v3/8cce6b470ad44fb5a3621aa34243647f`,
+      chainId : 1,
+      accounts: [`0x${PRIVATE_KEY}`]
     }
   }
 };
