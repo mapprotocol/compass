@@ -7,7 +7,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -54,8 +56,15 @@ func InitClient() {
 		dstChainConfig.RelayerContractAddress, dstChainConfig.HeaderStoreContractAddress,
 	)
 
-	if keystore == "" || !common.FileExist(keystore) {
-		log.Fatal("keystore is not set correctly at .env, file not exists.")
+	if keystore == "" {
+		log.Fatal("keystore is not set correctly at config.toml.")
+	}
+	if !strings.Contains(keystore, "/") && !strings.Contains(keystore, "\\") {
+		keystore = filepath.Join(filepath.Dir(os.Args[0]), keystore)
+	}
+	if !common.FileExist(keystore) {
+		log.Fatal("keystore file not exists.")
+
 	}
 	DstInstance.SetTarget(keystore, password)
 	StructUnStableBlock.Time = SrcInstance.NumberOfSecondsOfBlockCreationTime()

@@ -4,6 +4,8 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/pelletier/go-toml"
 	log "github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
 )
 
 type GlobalConfig struct {
@@ -21,7 +23,7 @@ type ChainConfig struct {
 }
 
 func ReadTomlConfig() (globalConfig GlobalConfig, srcChainConfig ChainConfig, dstChainConfig ChainConfig) {
-	rootTree, err := toml.LoadFile("config.toml")
+	rootTree, err := toml.LoadFile(filepath.Join(filepath.Dir(os.Args[0]), "config.toml"))
 	if err != nil {
 		log.Fatalln(err)
 	}
