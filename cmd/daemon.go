@@ -17,10 +17,25 @@ import (
 )
 
 var (
-	event1Key                 = "event1Key"
-	event1ArrayKey            = "event1ArrayKey"
-	srcBlockNumber     uint64 = 0
-	dstBlockNumber     uint64 = 0
+	blockNumberByEstimation           = true
+	event1Key                         = "event1Key"
+	event1ArrayKey                    = "event1ArrayKey"
+	srcBlockNumberByEstimation uint64 = 0
+	dstBlockNumberByEstimation uint64 = 0
+	getSrcBlockNumber                 = func() uint64 {
+		if blockNumberByEstimation {
+			return srcBlockNumberByEstimation
+		} else {
+			return cmd_runtime.SrcInstance.GetBlockNumber()
+		}
+	}
+	getDstBlockNumber = func() uint64 {
+		if blockNumberByEstimation {
+			return dstBlockNumberByEstimation
+		} else {
+			return cmd_runtime.DstInstance.GetBlockNumber()
+		}
+	}
 	currentBlockNumber uint64 = 0
 	canDo                     = false
 	cmdDaemon                 = &cobra.Command{
@@ -32,18 +47,19 @@ var (
 			cmd_runtime.InitClient()
 
 			updateCanDoThread()
-			updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumber, 10)
-			updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumber, 10)
+			if blockNumberByEstimation {
+				updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumberByEstimation, 10)
+				updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumberByEstimation, 10)
+			}
 			updateCurrentBlockNumberThread()
 			listenEventThread()
 
 			for {
-				//println(srcBlockNumber,dstBlockNumber)  // Reserve for testing
 				if !canDo {
 					time.Sleep(time.Minute)
 					continue
 				}
-				if currentBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > srcBlockNumber {
+				if currentBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > getSrcBlockNumber() {
 					cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnStableBlock)
 					continue
 				}
@@ -71,7 +87,7 @@ func listenEventThread() {
 	}
 	go func() {
 		for {
-			i64SrcBlockNumber = int64(cmd_runtime.SrcInstance.GetBlockNumber())
+			i64SrcBlockNumber = int64(getSrcBlockNumber())
 
 			if i64SrcBlockNumber-from <= int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader()) {
 				time.Sleep(cmd_runtime.SrcInstance.NumberOfSecondsOfBlockCreationTime())
@@ -135,8 +151,8 @@ func updateCanDoThread() {
 				continue
 			}
 			getHeight := cmd_runtime.DstInstance.GetPeriodHeight()
-
-			if getHeight.Relayer && getHeight.Start.Uint64() <= dstBlockNumber && getHeight.End.Uint64() >= dstBlockNumber {
+			curDstBlockNumber := getDstBlockNumber()
+			if getHeight.Relayer && getHeight.Start.Uint64() <= getDstBlockNumber() && getHeight.End.Uint64() >= curDstBlockNumber {
 				if !canDo {
 					//There is no room for errors when canDo convert from false to true
 					if updateCurrentBlockNumber() == ^uint64(0) {
@@ -146,15 +162,13 @@ func updateCanDoThread() {
 					}
 				}
 				canDo = true
-				estimateTime := time.Duration((getHeight.End.Uint64()-dstBlockNumber)/2) * cmd_runtime.DstInstance.NumberOfSecondsOfBlockCreationTime()
+				estimateTime := time.Duration((getHeight.End.Uint64()-curDstBlockNumber)/2) * cmd_runtime.DstInstance.NumberOfSecondsOfBlockCreationTime()
 				if estimateTime > time.Minute {
 					time.Sleep(estimateTime)
 				} else {
 					time.Sleep(time.Minute)
 				}
 			} else {
-				println("start end :", getHeight.Start.Uint64(), getHeight.End.Uint64())
-				println("dst block number", dstBlockNumber)
 				canDo = false
 				time.Sleep(time.Minute)
 			}
