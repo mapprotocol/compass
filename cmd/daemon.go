@@ -7,13 +7,18 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/http_call"
+	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"math/big"
+	"strconv"
+	"strings"
 	"time"
 )
 
 var (
+	event1Key                 = "event1Key"
+	event1ArrayKey            = "event1ArrayKey"
 	srcBlockNumber     uint64 = 0
 	dstBlockNumber     uint64 = 0
 	currentBlockNumber uint64 = 0
@@ -27,10 +32,11 @@ var (
 			cmd_runtime.InitClient()
 
 			updateCanDoThread()
-			updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumber, 1)
-			updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumber, 1)
+			updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumber, 10)
+			updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumber, 10)
 			updateCurrentBlockNumberThread()
-			//listenEvenThread()
+			listenEventThread()
+
 			for {
 				//println(srcBlockNumber,dstBlockNumber)  // Reserve for testing
 				if !canDo {
@@ -49,14 +55,19 @@ var (
 	}
 )
 
-func listenEvenThread() {
-	var from int64 = 0
-	var to int64 = 0
+func listenEventThread() {
+	log.Infoln("listenEventThread started.")
+	event1KeyStr := utils.Get(levelDbInstance, event1Key)
+	event1KeyInt, _ := strconv.Atoi(event1KeyStr)
+	event1ArrayStr := utils.Get(levelDbInstance, event1ArrayKey)
+	var from = int64(event1KeyInt)
+	var to = from
 	var i64SrcBlockNumber int64 = 0
+	var lastBlockNumber = uint64(from)
 	query := ethereum.FilterQuery{
 		FromBlock: big.NewInt(from),
 		ToBlock:   big.NewInt(to),
-		Addresses: []common.Address{common.HexToAddress("0xb61119f02Eb017282b799f1120c57B415F2FAD6c")},
+		Addresses: []common.Address{common.HexToAddress("0x493344A244D405E97C316B01dA822a66694b401f")},
 	}
 	go func() {
 		for {
@@ -66,23 +77,44 @@ func listenEvenThread() {
 				time.Sleep(cmd_runtime.SrcInstance.NumberOfSecondsOfBlockCreationTime())
 				continue
 			}
-			println(i64SrcBlockNumber, from, cmd_runtime.SrcInstance.GetStableBlockBeforeHeader())
 
 			if i64SrcBlockNumber-from-int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader()) > 100 {
 				to = from + 100
 			} else {
 				to = i64SrcBlockNumber - int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader())
 			}
+			log.Infoln("queryEvent from:", from, ",to: ", to, ",block number:", i64SrcBlockNumber)
 
+			query.FromBlock = big.NewInt(from)
 			query.ToBlock = big.NewInt(to)
 
-			_, err := cmd_runtime.SrcInstance.GetClient().FilterLogs(context.Background(), query)
+			logs, err := cmd_runtime.SrcInstance.GetClient().FilterLogs(context.Background(), query)
+			log.Infoln("query ", len(logs), " events.")
 			if err != nil {
 				log.Warnln("cmd_runtime.SrcInstance.GetClient().FilterLogs error", err)
+				time.Sleep(5 * time.Second)
 				continue
 			}
-			from = to
-			query.FromBlock = big.NewInt(from)
+			//var log types.Log
+			for _, aLog := range logs {
+				if strings.Contains(event1ArrayStr, aLog.TxHash.String()) {
+					continue
+				}
+				//todo Interacting with a contract
+				println(aLog.TxHash.String())
+
+				if aLog.BlockNumber != lastBlockNumber {
+					utils.Put(levelDbInstance, event1Key, strconv.Itoa(int(aLog.BlockNumber)))
+					lastBlockNumber = aLog.BlockNumber
+					event1ArrayStr = ""
+				} else {
+					event1ArrayStr += aLog.TxHash.String() + ","
+				}
+				utils.Put(levelDbInstance, event1ArrayKey, event1ArrayStr)
+
+			}
+			from = to + 1
+			utils.Put(levelDbInstance, event1Key, strconv.Itoa(int(from)))
 		}
 
 	}()
