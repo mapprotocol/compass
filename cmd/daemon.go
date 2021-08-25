@@ -178,7 +178,7 @@ func updateBlockNumberThread(chainImpl chains.ChainInterface, blockNumber *uint6
 	go func() {
 		var i = 1
 		var interval = chainImpl.NumberOfSecondsOfBlockCreationTime()
-		var totalMilliseconds int64 = 0
+		var totalMilliseconds int64
 		var startBlockNumber = chainImpl.GetBlockNumber()
 		*blockNumber = startBlockNumber
 		var startTime = time.Now().UnixNano()

@@ -5,7 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -30,7 +30,7 @@ func LoadPrivateKey(keystoreStr, password string) (key *keystore.Key, inputPassw
 			if runtime.GOOS == "windows" {
 				password = utils.ReadString()
 			} else {
-				passwordByte, err := terminal.ReadPassword(0)
+				passwordByte, err := term.ReadPassword(0)
 				if err != nil {
 					log.Println("Password typed: " + string(password))
 				}
