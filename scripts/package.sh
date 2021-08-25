@@ -5,7 +5,7 @@ cmdDir=$(pwd)
 popd >/dev/null
 
 cd "$cmdDir"/../target
-
+rm -f *.zip
 mv signmap_darwin_amd64.exe signmap
 zip signmap_darwin_amd64.zip signmap
 
