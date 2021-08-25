@@ -29,13 +29,24 @@ func WaitingForEndPending(conn *ethclient.Client, txHash common.Hash, waitingSec
 		time.Sleep(time.Second)
 	}
 }
-func WaitForReceipt(conn *ethclient.Client, txHash common.Hash) bool {
+
+// WaitForReceipt
+// @waitingSeconds int  <=0 means forever，
+func WaitForReceipt(conn *ethclient.Client, txHash common.Hash, waitingSeconds int) bool {
 	onceTime := time.Second
+	count := 0
 	for {
+		count += 1
+
 		receipt, err := conn.TransactionReceipt(context.Background(), txHash)
 		if err != nil {
-			time.Sleep(onceTime)
-			continue
+			if count == waitingSeconds {
+				log.Warnln("Not waiting for the Receipt.", txHash.String(), waitingSeconds, "times.")
+				return false
+			} else {
+				time.Sleep(onceTime)
+				continue
+			}
 		}
 		switch receipt.Status {
 		case types.ReceiptStatusSuccessful:
