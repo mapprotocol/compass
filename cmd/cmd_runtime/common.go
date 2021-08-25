@@ -19,8 +19,9 @@ type waitTimeAndMessage struct {
 }
 
 var (
-	DstInstance chains.ChainInterface
-	SrcInstance chains.ChainInterface
+	DstInstance             chains.ChainInterface
+	SrcInstance             chains.ChainInterface
+	BlockNumberByEstimation = true
 
 	StructRegisterNotRelayer = &waitTimeAndMessage{
 		Time:    2 * time.Minute,
@@ -41,6 +42,7 @@ func InitClient() {
 
 	keystore := globalConfig.Keystore
 	password := globalConfig.Password
+	BlockNumberByEstimation = globalConfig.BlockNumberByEstimation
 
 	SrcInstance = ethereum.NewEthChain(
 		srcChainConfig.Name, srcChainConfig.ChainId,

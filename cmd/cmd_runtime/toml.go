@@ -9,8 +9,9 @@ import (
 )
 
 type GlobalConfig struct {
-	Keystore string `toml:"keystore"`
-	Password string `toml:"password"`
+	Keystore                string `toml:"keystore"`
+	Password                string `toml:"password"`
+	BlockNumberByEstimation bool   `toml:"block_number_by_estimation"`
 }
 type ChainConfig struct {
 	Name                       string         `toml:"name"`
@@ -24,6 +25,7 @@ type ChainConfig struct {
 
 func ReadTomlConfig() (globalConfig GlobalConfig, srcChainConfig ChainConfig, dstChainConfig ChainConfig) {
 	rootTree, err := toml.LoadFile(filepath.Join(filepath.Dir(os.Args[0]), "config.toml"))
+	//rootTree, err =  toml.LoadFile("/Users/yangdianqing/code/go/compass/config.toml") // for dev
 	if err != nil {
 		log.Fatalln(err)
 	}

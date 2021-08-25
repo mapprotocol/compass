@@ -17,20 +17,19 @@ import (
 )
 
 var (
-	blockNumberByEstimation           = true
 	event1Key                         = "event1Key"
 	event1ArrayKey                    = "event1ArrayKey"
 	srcBlockNumberByEstimation uint64 = 0
 	dstBlockNumberByEstimation uint64 = 0
 	getSrcBlockNumber                 = func() uint64 {
-		if blockNumberByEstimation {
+		if cmd_runtime.BlockNumberByEstimation {
 			return srcBlockNumberByEstimation
 		} else {
 			return cmd_runtime.SrcInstance.GetBlockNumber()
 		}
 	}
 	getDstBlockNumber = func() uint64 {
-		if blockNumberByEstimation {
+		if cmd_runtime.BlockNumberByEstimation {
 			return dstBlockNumberByEstimation
 		} else {
 			return cmd_runtime.DstInstance.GetBlockNumber()
@@ -47,7 +46,7 @@ var (
 			cmd_runtime.InitClient()
 
 			updateCanDoThread()
-			if blockNumberByEstimation {
+			if cmd_runtime.BlockNumberByEstimation {
 				updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumberByEstimation, 10)
 				updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumberByEstimation, 10)
 			}
