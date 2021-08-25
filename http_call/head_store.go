@@ -5,6 +5,7 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/types"
 	"github.com/mapprotocol/compass/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 func HeaderCurrentNumber(url string, chainEnum chains.ChainId) (num uint64) {
@@ -18,7 +19,8 @@ func HeaderCurrentNumber(url string, chainEnum chains.ChainId) (num uint64) {
 		Result *uint64 `json:"result"`
 	}{&num})
 	if err != nil {
-		return 0
+		log.Warnln("HeaderCurrentNumber error: ", err)
+		return ^uint64(0)
 	}
 	return
 }
