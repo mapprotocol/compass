@@ -25,7 +25,7 @@ type ChainConfig struct {
 
 func ReadTomlConfig() (globalConfig GlobalConfig, srcChainConfig ChainConfig, dstChainConfig ChainConfig) {
 	rootTree, err := toml.LoadFile(filepath.Join(filepath.Dir(os.Args[0]), "config.toml"))
-	//rootTree, err =  toml.LoadFile("/Users/yangdianqing/code/go/compass/config.toml") // for dev
+	rootTree, err = toml.LoadFile("/Users/yangdianqing/code/go/compass/config.toml") // for dev
 	if err != nil {
 		log.Fatalln(err)
 	}

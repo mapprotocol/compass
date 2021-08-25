@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/http_call"
@@ -17,8 +19,10 @@ import (
 )
 
 var (
-	event1Key                         = "event1Key"
-	event1ArrayKey                    = "event1ArrayKey"
+	event1Key      = "event1Key"
+	event1ArrayKey = "event1ArrayKey"
+	event1Hash     = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
+
 	srcBlockNumberByEstimation uint64 = 0
 	dstBlockNumberByEstimation uint64 = 0
 	getSrcBlockNumber                 = func() uint64 {
@@ -82,7 +86,7 @@ func listenEventThread() {
 	query := ethereum.FilterQuery{
 		FromBlock: big.NewInt(from),
 		ToBlock:   big.NewInt(to),
-		Addresses: []common.Address{common.HexToAddress("0x493344A244D405E97C316B01dA822a66694b401f")},
+		Addresses: []common.Address{common.HexToAddress("0x3BdD6a12085DFAA420c0A3B3c6eb11362D2aED8A")},
 	}
 	go func() {
 		for {
@@ -112,11 +116,16 @@ func listenEventThread() {
 			}
 			//var log types.Log
 			for _, aLog := range logs {
+				if event1Hash != aLog.Topics[0] {
+					continue
+				}
 				if strings.Contains(event1ArrayStr, aLog.TxHash.String()) {
 					continue
 				}
 				//todo Interacting with a contract
-				println(aLog.TxHash.String())
+				//println(aLog.TxHash.String())
+				fmt.Printf("%+v", aLog)
+				println()
 
 				if aLog.BlockNumber != lastBlockNumber {
 					utils.Put(levelDbInstance, event1Key, strconv.Itoa(int(aLog.BlockNumber)))
