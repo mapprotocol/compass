@@ -3,6 +3,7 @@ package chain_tools
 import (
 	"context"
 	"crypto/ecdsa"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -22,13 +23,12 @@ func SendContractTransactionWithoutOutputUnlessError(client *ethclient.Client, f
 		return nil
 	}
 	var gasLimit uint64
-	//msg := ethereum.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Value: value, Data: input}
-	//gasLimit, err = client.EstimateGas(context.Background(), msg)
-	//if err != nil {
-	//	log.Infoln("EstimateGas error: ", err)
-	//	return nil
-	//}
-	gasLimit = uint64(800000)
+	msg := ethereum.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Value: value, Data: input}
+	gasLimit, err = client.EstimateGas(context.Background(), msg)
+	if err != nil {
+		log.Warnln("EstimateGas error: ", err)
+		return nil
+	}
 	tx := types.NewTx(&types.LegacyTx{
 		Nonce:    nonce,
 		Value:    value,

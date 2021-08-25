@@ -29,25 +29,18 @@ func ReadTomlConfig() (globalConfig GlobalConfig, srcChainConfig ChainConfig, ds
 	if err != nil {
 		log.Fatalln(err)
 	}
-	err = parseKey("global", rootTree, func() {
+	_ = parseKey("global", rootTree, func() {
 		log.Fatal("Config.toml does not contain global block")
 	}).(*toml.Tree).Unmarshal(&globalConfig)
-	if err != nil {
-		// do nothing
-	}
-	err = parseKey("src_chain", rootTree, func() {
+
+	_ = parseKey("src_chain", rootTree, func() {
 		log.Fatal("Config.toml does not contain src_chain block")
 	}).(*toml.Tree).Unmarshal(&srcChainConfig)
-	if err != nil {
-		// do nothing
-	}
 
-	err = parseKey("dst_chain", rootTree, func() {
+	_ = parseKey("dst_chain", rootTree, func() {
 		log.Fatal("Config.toml does not contain dst_chain block")
 	}).(*toml.Tree).Unmarshal(&dstChainConfig)
-	if err != nil {
-		// do nothing
-	}
+
 	if srcChainConfig.ChainId <= 0 || dstChainConfig.ChainId <= 0 {
 		log.Fatal("chain_id is required, it has to be a natural number.")
 	}

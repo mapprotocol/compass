@@ -9,14 +9,17 @@ import (
 func RpcToolFromRequestByte2ResponseByte(url *string, requestByte *[]byte) *[]byte {
 	requestBodyBytes := bytes.NewBuffer(*requestByte)
 	resp, err := http.Post(*url, "application/json", requestBodyBytes)
-	nilResp := []byte{}
+	var nilResp, body []byte
 	if err != nil {
 		return &nilResp
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return &nilResp
+	}
 	err = resp.Body.Close()
 	if err != nil {
-		return nil
+		return &nilResp
 	}
 	return &body
 }
