@@ -16,6 +16,6 @@ mv signmap_linux_amd64.exe signmap
 zip signmap_linux_amd64.zip signmap
 
 mv signmap_windows_amd64.exe signmap.exe
-echo signmap > signmap.bat
+printf "signmap\\r\\npause" > signmap.bat
 zip signmap_windows_amd64.zip signmap.exe
 zip -u signmap_windows_amd64.zip signmap.bat
