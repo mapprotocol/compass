@@ -18,16 +18,10 @@ func PackInput(AbiStaking abi.ABI, abiMethod string, params ...interface{}) []by
 }
 
 func CallContractReturnBool(client *ethclient.Client, from, toAddress common.Address, input []byte) ([]byte, bool) {
-	var ret []byte
 
 	msg := ethereum.CallMsg{From: from, To: &toAddress, Data: input}
 
-	header, err := client.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		log.Warnln("Get blockNumber error: ", err)
-		return ret, false
-	}
-	ret, err = client.CallContract(context.Background(), msg, header.Number)
+	ret, err := client.CallContract(context.Background(), msg, nil)
 	if err != nil {
 		log.Warnln("method CallContract error: ", err)
 		return ret, false
