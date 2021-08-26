@@ -8,6 +8,7 @@ import (
 	"signmap/libs"
 	"signmap/libs/contracts"
 	"strings"
+	"time"
 )
 
 func GetData() {
@@ -18,8 +19,6 @@ func GetData() {
 
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
 	input := contracts.PackInput(abiStaking, "getUserInfo", fromAddress)
-	ret := contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
-
 	userInfo := struct {
 		Amount        *big.Int
 		DayCount      *big.Int
@@ -27,25 +26,41 @@ func GetData() {
 		StakingStatus *big.Int
 		SignTm        interface{}
 	}{}
-	err := abiStaking.UnpackIntoInterface(&userInfo, "getUserInfo", ret)
-
+	var err error
+	var ret []byte
+	for i := 0; i < 3; i++ {
+		ret = contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
+		err = abiStaking.UnpackIntoInterface(&userInfo, "getUserInfo", ret)
+		if err == nil {
+			break
+		} else {
+			time.Sleep(5 * time.Second)
+		}
+	}
 	if err != nil {
-		log.Println("abi error", err)
+		log.Println("call getData error :", err)
 		return
 	}
+
 	fmt.Printf("It has been signed in for %s/%s days.", userInfo.DaySign, userInfo.DayCount)
 	println()
 	fmt.Printf("%f was pledged, ", libs.WeiToEther(userInfo.Amount))
 
-	input = contracts.PackInput(abiStaking, "getAward", fromAddress)
-	ret = contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
-	if len(ret) == 0 {
-		return
-	}
 	var award *big.Int
-	err = abiStaking.UnpackIntoInterface(&award, "getAward", ret)
+	input = contracts.PackInput(abiStaking, "getAward", fromAddress)
+
+	for i := 0; i < 3; i++ {
+		ret = contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
+		err = abiStaking.UnpackIntoInterface(&award, "getAward", ret)
+		if err == nil {
+			break
+		} else {
+			time.Sleep(5 * time.Second)
+		}
+	}
+
 	if err != nil {
-		log.Println("abi error", err)
+		log.Println("call getAward error :", err)
 		return
 	}
 	fmt.Printf("%f of interest", libs.WeiToEther(award))

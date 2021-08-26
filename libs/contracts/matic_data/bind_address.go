@@ -8,6 +8,7 @@ import (
 	"signmap/libs"
 	"signmap/libs/contracts"
 	"strings"
+	"time"
 )
 
 func BindAddress() common.Address {
@@ -17,16 +18,21 @@ func BindAddress() common.Address {
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
 	input := contracts.PackInput(abiStaking, "getBindAddress", fromAddress)
-	ret := contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
-
 	var res = common.Address{}
-	if len(ret) == 0 {
-		return res
+	var ret []byte
+	var err error
+	for i := 0; i < 3; i++ {
+		ret = contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
+		err = abiStaking.UnpackIntoInterface(&res, "getBindAddress", ret)
+		if err == nil {
+			break
+		} else {
+			time.Sleep(5 * time.Second)
+		}
 	}
-	err := abiStaking.UnpackIntoInterface(&res, "getBindAddress", ret)
 
 	if err != nil {
-		log.Println("abi error", err)
+		log.Println("call BindAddress error:", err)
 		return common.Address{}
 	}
 	return res

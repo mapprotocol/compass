@@ -69,15 +69,10 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 }
 func CallContract(client *ethclient.Client, from, toAddress common.Address, input []byte) []byte {
 	var ret []byte
-
+	var err error
 	msg := ethereum.CallMsg{From: from, To: &toAddress, Data: input}
 
-	header, err := client.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		log.Println("Get blockNumber error: ", err)
-	}
-
-	ret, err = client.CallContract(context.Background(), msg, header.Number)
+	ret, err = client.CallContract(context.Background(), msg, nil)
 	if err != nil {
 		log.Println("method CallContract error: ", err)
 	}

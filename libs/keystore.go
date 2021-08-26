@@ -3,7 +3,7 @@ package libs
 import (
 	"crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	"io/ioutil"
 	"log"
 	"os"
@@ -39,7 +39,7 @@ func GetKey(password string) *ecdsa.PrivateKey {
 			if runtime.GOOS == "windows" {
 				password = ReadString()
 			} else {
-				passwordByte, err := terminal.ReadPassword(0)
+				passwordByte, err := term.ReadPassword(0)
 				if err != nil {
 					log.Println("Password typed: " + string(password))
 				}
