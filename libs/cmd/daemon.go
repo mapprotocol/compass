@@ -30,10 +30,12 @@ var cmdDaemon = &cobra.Command{
 		if amount == nil || amount == big.NewInt(0) {
 			println("No pledge yet, please pledge first.")
 			os.Exit(1)
-
 		}
 		rand.Seed(time.Now().UnixNano())
 		libs.WriteLog(time.Now().Format("20060102 15:04:05") + ". starting success!")
+		log.Println("Start-up success")
+		log.Println("Running process......")
+
 		signUnit := rand.Intn(24 * 60) //for production
 		//var everyNMinute = 1                 // require 60 % everyNMinute == 0 //for test
 		//signUnit := rand.Intn(everyNMinute)  //for test
