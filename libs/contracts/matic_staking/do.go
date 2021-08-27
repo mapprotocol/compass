@@ -20,8 +20,17 @@ func DO() bool {
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
 	input := contracts.PackInput(abiStaking, "sign")
-	tx := contracts.SendContractTransaction(client, fromAddress, libs.StakingContractAddress, nil, privateKey, input)
+	var tx *types.Transaction
+	for i := 0; i < 5; i++ {
+		tx = contracts.SendContractTransaction(client, fromAddress, libs.StakingContractAddress, nil, privateKey, input)
+		if tx == nil {
+			time.Sleep(10 * time.Second)
+		} else {
+			break
+		}
+	}
 	if tx == nil {
+		log.Println("Attempts to sign 5 times，unsuccessful. The network impassability。")
 		return false
 	}
 	i := -1

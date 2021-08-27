@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cobra"
 	"log"
+	"math/big"
 	"math/rand"
 	"os"
 	"signmap/libs"
@@ -25,7 +26,12 @@ var cmdDaemon = &cobra.Command{
 			println("Worker not set！ please set a worker.")
 			os.Exit(1)
 		}
-		matic_data.GetData()
+		amount := matic_data.GetData()
+		if amount == nil || amount == big.NewInt(0) {
+			println("No pledge yet, please pledge first.")
+			os.Exit(1)
+
+		}
 		rand.Seed(time.Now().UnixNano())
 		libs.WriteLog(time.Now().Format("20060102 15:04:05") + ". starting success!")
 		signUnit := rand.Intn(24 * 60) //for production

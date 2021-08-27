@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func GetData() {
+func GetData() *big.Int {
 	client := libs.GetClient()
 
 	libs.GetKey("")
@@ -39,7 +39,7 @@ func GetData() {
 	}
 	if err != nil {
 		log.Println("call getData error :", err)
-		return
+		return nil
 	}
 
 	fmt.Printf("It has been signed in for %s/%s days.", userInfo.DaySign, userInfo.DayCount)
@@ -61,8 +61,9 @@ func GetData() {
 
 	if err != nil {
 		log.Println("call getAward error :", err)
-		return
+		return nil
 	}
 	fmt.Printf("%f of interest", libs.WeiToEther(award))
 	println()
+	return userInfo.Amount
 }
