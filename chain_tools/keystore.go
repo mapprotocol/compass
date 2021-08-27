@@ -3,12 +3,11 @@ package chain_tools
 import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/term"
 	"io/ioutil"
 	"os"
-	"runtime"
+	"syscall"
 )
 
 func LoadPrivateKey(keystoreStr, password string) (key *keystore.Key, inputPassword string) {
@@ -27,15 +26,12 @@ func LoadPrivateKey(keystoreStr, password string) (key *keystore.Key, inputPassw
 	} else {
 		for {
 			print("Please enter your password: ")
-			if runtime.GOOS == "windows" {
-				password = utils.ReadString()
-			} else {
-				passwordByte, err := term.ReadPassword(0)
-				if err != nil {
-					log.Println("Password typed: " + string(password))
-				}
-				password = string(passwordByte)
+
+			passwordByte, err := term.ReadPassword(syscall.Stdin)
+			if err != nil {
+				log.Println("Password typed: " + string(password))
 			}
+			password = string(passwordByte)
 
 			key, err = keystore.DecryptKey(keyJson, password)
 			if err != nil {
