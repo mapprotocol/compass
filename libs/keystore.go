@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
+	"syscall"
 )
 
 var privatekeyInKeystore *ecdsa.PrivateKey
@@ -36,15 +36,12 @@ func GetKey(password string) *ecdsa.PrivateKey {
 	} else {
 		for {
 			print("Please enter your password: ")
-			if runtime.GOOS == "windows" {
-				password = ReadString()
-			} else {
-				passwordByte, err := term.ReadPassword(0)
-				if err != nil {
-					log.Println("Password typed: " + string(password))
-				}
-				password = string(passwordByte)
+
+			passwordByte, err := term.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				log.Println("Password typed: " + string(password))
 			}
+			password = string(passwordByte)
 
 			key, err1 = keystore.DecryptKey(keyJson, password)
 			if err1 != nil {
