@@ -51,6 +51,9 @@ var cmdDaemon = &cobra.Command{
 					//signUnit = rand.Intn(everyNMinute) //for test
 					log.Println("signUnit = ", signUnit)
 				}
+				if nowUnit%20 == 0 {
+					log.Println("running... ", nowUnit)
+				}
 
 				if nowUnit == signUnit && !strings.HasPrefix(libs.GetLastLineWithSeek(), date) {
 					// Determine if you have signed it today
