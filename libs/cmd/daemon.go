@@ -51,18 +51,18 @@ var cmdDaemon = &cobra.Command{
 					//signUnit = rand.Intn(everyNMinute) //for test
 					log.Println("signUnit = ", signUnit)
 				}
-				if nowUnit%20 == 0 {
-					log.Println("running... ", nowUnit)
-				}
+				print("running... ", nowUnit, "\r")
 
 				if nowUnit == signUnit && !strings.HasPrefix(libs.GetLastLineWithSeek(), date) {
+					log.Println("start signing.")
 					// Determine if you have signed it today
 					go func() {
 						if matic_staking.DO() {
 							libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 							matic_data.GetData()
 						} else {
-							libs.WriteLog(fmt.Sprintf("%s %d Sign in unsuccessfully.", date, nowUnit))
+							// add - let strings.HasPrefix(libs.GetLastLineWithSeek() return false
+							libs.WriteLog(fmt.Sprintf("-%s %d Sign in unsuccessfully.", date, nowUnit))
 						}
 					}()
 
