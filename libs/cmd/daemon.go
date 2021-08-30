@@ -25,7 +25,7 @@ var (
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			libs.GetKey("")
-			if bytes.Compare(matic_data.BindAddress().Bytes(), common.Address{}.Bytes()) == 0 {
+			if bytes.Equal(matic_data.BindAddress().Bytes(), common.Address{}.Bytes()) {
 				println("Worker not set！ please set a worker.")
 				os.Exit(1)
 			}
@@ -57,7 +57,7 @@ var (
 			}()
 			go func(cc chan bool) {
 				for {
-					_ = <-cc
+					<-cc
 					nowUnit, date := libs.NowTime() // for production
 					//nowUnit, date := libs.NowTimeForTestEveryNMinute(everyNMinute) //for test
 					if nowUnit == 0 {
@@ -80,7 +80,7 @@ var (
 									libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 									matic_data.GetData()
 									signUnit = -1
-									balance := libs.GetBalance()
+									balance = libs.GetBalance()
 									if balance.Cmp(warnBalance) == -1 {
 										log.Println("Lack of balance. The balance is： ", libs.WeiToEther(balance))
 										log.Println("The next sign-in may fail, please recharge")

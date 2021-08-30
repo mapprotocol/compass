@@ -13,7 +13,7 @@ var (
 		Short: "Configure the application chain.",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
+			_ = cmd.Help()
 		},
 	}
 	cmdChainLs = &cobra.Command{
@@ -41,9 +41,9 @@ var (
 			DataContractAddress := libs.ReadString()
 
 			newMap[key] = libs.Chain{
-				RpcUrl,
-				StakingContractAddress,
-				DataContractAddress,
+				RpcUrl:                 RpcUrl,
+				StakingContractAddress: StakingContractAddress,
+				DataContractAddress:    DataContractAddress,
 			}
 			bt, _ := json.Marshal(newMap)
 			libs.WriteConfig(libs.ExternalBlockChainKey, string(bt))

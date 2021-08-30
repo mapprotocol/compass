@@ -12,11 +12,6 @@ import (
 	"time"
 )
 
-func fileExist(path string) bool {
-	_, err := os.Lstat(path)
-	return !os.IsNotExist(err)
-}
-
 func ReadString() string {
 	var input string
 	_, err := fmt.Scanln(&input)
