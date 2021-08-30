@@ -5,10 +5,17 @@ import (
 	"log"
 )
 
+var (
+	client *ethclient.Client
+)
+
 func GetClient() *ethclient.Client {
-	client, err := ethclient.Dial(RpcUrl)
-	if err != nil {
-		log.Fatal(err)
+	if client == nil {
+		var err error
+		client, err = ethclient.Dial(RpcUrl)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	return client
 }

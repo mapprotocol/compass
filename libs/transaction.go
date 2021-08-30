@@ -58,3 +58,14 @@ func SendTransaction() {
 
 	fmt.Printf("tx sent: %s", signedTx.Hash().Hex())
 }
+
+func GetBalance() *big.Int {
+	client := GetClient()
+	privateKey := GetKey("")
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+	balance, err := client.BalanceAt(context.Background(), fromAddress, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return balance
+}
