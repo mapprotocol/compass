@@ -3,7 +3,6 @@ package contracts
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -24,13 +23,13 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 
 	nonce, err := client.PendingNonceAt(context.Background(), from)
 	if err != nil {
-		log.Println(err)
+		log.Println("PendingNonceAt error", err)
 		return nil
 	}
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		log.Println(err)
+		log.Println("SuggestGasPrice error", err)
 		return nil
 	}
 
@@ -50,7 +49,7 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 		Data:     input,
 	})
 	chainID := big.NewInt(137)
-	fmt.Println("TX data nonce ", nonce, " transfer value ", value, " gasLimit ", gasLimit, " gasPrice ", gasPrice, " chainID ", chainID)
+	log.Println("TX data nonce ", nonce, " transfer value ", value, " gasLimit ", gasLimit, " gasPrice ", gasPrice)
 
 	signedTx, err := types.SignTx(tx, types.NewEIP2930Signer(chainID), privateKey)
 	if err != nil {
