@@ -41,37 +41,47 @@ var cmdDaemon = &cobra.Command{
 		//signUnit := rand.Intn(everyNMinute)  //for test
 		//log.Println("signUnit = ", signUnit) // for test , production environment does not print
 		c := make(chan bool)
+		go func() {
+			for {
+				print("\r", "UTC time: ", time.Now().UTC().Format("15:04:05"))
+				time.Sleep(time.Second)
+			}
+		}()
 		go func(cc chan bool) {
 			for {
 				_ = <-cc
 				nowUnit, date := libs.NowTime() // for production
 				//nowUnit, date := libs.NowTimeForTestEveryNMinute(everyNMinute) //for test
 				if nowUnit == 0 {
-					signUnit = rand.Intn(24 * 60) //for production
+					//Since the sleep is less than 1 minute, this may be performed twice one day
+					//If signUnit is not specified as 0, there will be no problem
+					signUnit = rand.Intn(24*60-1) + 1 //for production
 					//signUnit = rand.Intn(everyNMinute) //for test
 					log.Println("signUnit = ", signUnit)
 				}
-				print("running... ", nowUnit, "\r")
 
-				if nowUnit == signUnit && !strings.HasPrefix(libs.GetLastLineWithSeek(), date) {
-					log.Println("start signing.")
+				if nowUnit == signUnit {
+					log.Println("start signing. step 1.")
 					// Determine if you have signed it today
-					go func() {
-						if matic_staking.DO() {
-							libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
-							matic_data.GetData()
-						} else {
-							// add - let strings.HasPrefix(libs.GetLastLineWithSeek() return false
-							libs.WriteLog(fmt.Sprintf("-%s %d Sign in unsuccessfully.", date, nowUnit))
-						}
-					}()
-
+					if !strings.HasPrefix(libs.GetLastLineWithSeek(), date) {
+						log.Println("start signing. step 2.")
+						go func() {
+							if matic_staking.DO() {
+								libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
+								matic_data.GetData()
+								signUnit = -1
+							} else {
+								// add - let strings.HasPrefix(libs.GetLastLineWithSeek() return false
+								libs.WriteLog(fmt.Sprintf("-%s %d Sign in unsuccessfully.", date, nowUnit))
+							}
+						}()
+					}
 				}
 			}
 		}(c)
 		for {
 			c <- true
-			time.Sleep(time.Minute)
+			time.Sleep(time.Second * 55)
 		}
 	},
 }
