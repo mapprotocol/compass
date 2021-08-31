@@ -2,20 +2,43 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/http_call"
+	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"math/big"
+	"strconv"
+	"strings"
 	"time"
 )
 
 var (
-	srcBlockNumber     uint64 = 0
-	dstBlockNumber     uint64 = 0
+	event1Key      = "event1Key"
+	event1ArrayKey = "event1ArrayKey"
+	event1Hash     = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
+
+	srcBlockNumberByEstimation uint64 = 0
+	dstBlockNumberByEstimation uint64 = 0
+	getSrcBlockNumber                 = func() uint64 {
+		if cmd_runtime.BlockNumberByEstimation {
+			return srcBlockNumberByEstimation
+		} else {
+			return cmd_runtime.SrcInstance.GetBlockNumber()
+		}
+	}
+	getDstBlockNumber = func() uint64 {
+		if cmd_runtime.BlockNumberByEstimation {
+			return dstBlockNumberByEstimation
+		} else {
+			return cmd_runtime.DstInstance.GetBlockNumber()
+		}
+	}
 	currentBlockNumber uint64 = 0
 	canDo                     = false
 	cmdDaemon                 = &cobra.Command{
@@ -27,17 +50,19 @@ var (
 			cmd_runtime.InitClient()
 
 			updateCanDoThread()
-			updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumber, 1)
-			updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumber, 1)
+			if cmd_runtime.BlockNumberByEstimation {
+				updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumberByEstimation, 10)
+				updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumberByEstimation, 10)
+			}
 			updateCurrentBlockNumberThread()
-			//listenEvenThread()
+			listenEventThread()
+
 			for {
-				//println(srcBlockNumber,dstBlockNumber)  // Reserve for testing
 				if !canDo {
 					time.Sleep(time.Minute)
 					continue
 				}
-				if currentBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > srcBlockNumber {
+				if currentBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > getSrcBlockNumber() {
 					cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnStableBlock)
 					continue
 				}
@@ -49,40 +74,71 @@ var (
 	}
 )
 
-func listenEvenThread() {
-	var from int64 = 0
-	var to int64 = 0
+func listenEventThread() {
+	log.Infoln("listenEventThread started.")
+	event1KeyStr := utils.Get(levelDbInstance, event1Key)
+	event1KeyInt, _ := strconv.Atoi(event1KeyStr)
+	event1ArrayStr := utils.Get(levelDbInstance, event1ArrayKey)
+	var from = int64(event1KeyInt)
+	var to = from
 	var i64SrcBlockNumber int64 = 0
+	var lastBlockNumber = uint64(from)
 	query := ethereum.FilterQuery{
 		FromBlock: big.NewInt(from),
 		ToBlock:   big.NewInt(to),
-		Addresses: []common.Address{common.HexToAddress("0xb61119f02Eb017282b799f1120c57B415F2FAD6c")},
+		Addresses: []common.Address{common.HexToAddress("0x3BdD6a12085DFAA420c0A3B3c6eb11362D2aED8A")},
 	}
 	go func() {
 		for {
-			i64SrcBlockNumber = int64(cmd_runtime.SrcInstance.GetBlockNumber())
+			i64SrcBlockNumber = int64(getSrcBlockNumber())
 
 			if i64SrcBlockNumber-from <= int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader()) {
 				time.Sleep(cmd_runtime.SrcInstance.NumberOfSecondsOfBlockCreationTime())
 				continue
 			}
-			println(i64SrcBlockNumber, from, cmd_runtime.SrcInstance.GetStableBlockBeforeHeader())
 
 			if i64SrcBlockNumber-from-int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader()) > 100 {
 				to = from + 100
 			} else {
 				to = i64SrcBlockNumber - int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader())
 			}
+			log.Infoln("queryEvent from:", from, ",to: ", to, ",block number:", i64SrcBlockNumber)
 
+			query.FromBlock = big.NewInt(from)
 			query.ToBlock = big.NewInt(to)
 
-			_, err := cmd_runtime.SrcInstance.GetClient().FilterLogs(context.Background(), query)
+			logs, err := cmd_runtime.SrcInstance.GetClient().FilterLogs(context.Background(), query)
+			log.Infoln("query ", len(logs), " events.")
 			if err != nil {
 				log.Warnln("cmd_runtime.SrcInstance.GetClient().FilterLogs error", err)
+				time.Sleep(5 * time.Second)
 				continue
 			}
-			from = to
-			query.FromBlock = big.NewInt(from)
+			//var log types.Log
+			for _, aLog := range logs {
+				if event1Hash != aLog.Topics[0] {
+					continue
+				}
+				if strings.Contains(event1ArrayStr, aLog.TxHash.String()) {
+					continue
+				}
+				//todo Interacting with a contract
+				//println(aLog.TxHash.String())
+				fmt.Printf("%+v", aLog)
+				println()
+
+				if aLog.BlockNumber != lastBlockNumber {
+					utils.Put(levelDbInstance, event1Key, strconv.Itoa(int(aLog.BlockNumber)))
+					lastBlockNumber = aLog.BlockNumber
+					event1ArrayStr = ""
+				} else {
+					event1ArrayStr += aLog.TxHash.String() + ","
+				}
+				utils.Put(levelDbInstance, event1ArrayKey, event1ArrayStr)
+
+			}
+			from = to + 1
+			utils.Put(levelDbInstance, event1Key, strconv.Itoa(int(from)))
 		}
 
 	}()
@@ -103,8 +159,8 @@ func updateCanDoThread() {
 				continue
 			}
 			getHeight := cmd_runtime.DstInstance.GetPeriodHeight()
-
-			if getHeight.Relayer && getHeight.Start.Uint64() <= dstBlockNumber && getHeight.End.Uint64() >= dstBlockNumber {
+			curDstBlockNumber := getDstBlockNumber()
+			if getHeight.Relayer && getHeight.Start.Uint64() <= getDstBlockNumber() && getHeight.End.Uint64() >= curDstBlockNumber {
 				if !canDo {
 					//There is no room for errors when canDo convert from false to true
 					if updateCurrentBlockNumber() == ^uint64(0) {
@@ -114,15 +170,13 @@ func updateCanDoThread() {
 					}
 				}
 				canDo = true
-				estimateTime := time.Duration((getHeight.End.Uint64()-dstBlockNumber)/2) * cmd_runtime.DstInstance.NumberOfSecondsOfBlockCreationTime()
+				estimateTime := time.Duration((getHeight.End.Uint64()-curDstBlockNumber)/2) * cmd_runtime.DstInstance.NumberOfSecondsOfBlockCreationTime()
 				if estimateTime > time.Minute {
 					time.Sleep(estimateTime)
 				} else {
 					time.Sleep(time.Minute)
 				}
 			} else {
-				println("start end :", getHeight.Start.Uint64(), getHeight.End.Uint64())
-				println("dst block number", dstBlockNumber)
 				canDo = false
 				time.Sleep(time.Minute)
 			}
@@ -133,7 +187,7 @@ func updateBlockNumberThread(chainImpl chains.ChainInterface, blockNumber *uint6
 	go func() {
 		var i = 1
 		var interval = chainImpl.NumberOfSecondsOfBlockCreationTime()
-		var totalMilliseconds int64 = 0
+		var totalMilliseconds int64
 		var startBlockNumber = chainImpl.GetBlockNumber()
 		*blockNumber = startBlockNumber
 		var startTime = time.Now().UnixNano()

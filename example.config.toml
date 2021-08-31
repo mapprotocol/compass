@@ -1,8 +1,13 @@
 [global]
-#keystore path
+# keystore path，absolute path, or current path
 keystore="keystore.json"
 # The password can be empty,but it can't be wrong. If it is empty，enter the password manually when required.
+# The password does not support plaintext. Run a subcommand password to generate AES ciphertext
+# Ciphertext is machine related
 password = "1234561"
+# Suggest that block_number_by_estimation is true, if it is true, block_creating_seconds is more important
+# True will work a little faster，
+block_number_by_estimation = true
 
 [src_chain]
 #The name doesn't matter, it only shows up in the log
