@@ -89,6 +89,8 @@ var (
 								}
 								doing = false
 							}()
+						} else {
+							log.Println("Sign-in has been made today")
 						}
 					}
 				}

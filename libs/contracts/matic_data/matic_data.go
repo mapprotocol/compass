@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"log"
 	"math/big"
+	"os"
 	"signmap/libs"
 	"signmap/libs/contracts"
 	"strings"
@@ -41,6 +42,12 @@ func GetData() *big.Int {
 		log.Println("call getData error :", err)
 		return nil
 	}
+	defer func(DaySign, DayCount *big.Int) {
+		if DayCount != nil && DayCount != big.NewInt(0) && DaySign.Cmp(DayCount) >= 0 {
+			log.Println("All sign-in completed")
+			os.Exit(0)
+		}
+	}(userInfo.DaySign, userInfo.DayCount)
 
 	fmt.Printf("It has been signed in for %s/%s days.", userInfo.DaySign, userInfo.DayCount)
 	println()
