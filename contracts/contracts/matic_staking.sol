@@ -39,7 +39,7 @@ contract MaticStaking is Managers{
     }
     
     function binding(address _sender, address _binding) public onlyManager{
-        data.setBindAddress(_binding,_sender);
+        data.setBindAddress(_sender,_binding);
         emit bindingE(_sender,_binding);
     }
 
@@ -59,7 +59,6 @@ contract MaticStaking is Managers{
         day = tm.div(3600*24);
         hour = tm.sub(day.mul(3600*24)).div(3600);
     }
-
 
     function sign() public{
         address sender = getSender(msg.sender);

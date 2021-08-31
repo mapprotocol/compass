@@ -12,7 +12,7 @@ contract MaticData is Managers{
     //address count 
     uint256 addressCount =0;
     uint256 stakingAmount = 0;
-    dayHourSign[24] dayHourSigns;
+    dayHourSign[24] public dayHourSigns;
     uint256 rate  = 4500;
  
     mapping(address => userInfo) private userInfos;
@@ -77,7 +77,7 @@ contract MaticData is Managers{
     function getLastSign(address _sender) public view returns(uint256){
         userInfo memory u = userInfos[_sender];
         if(u.signTm.length == 0) return 0;
-        return u.signTm[u.signTm.length];
+        return u.signTm[u.signTm.length-1];
     }
     
     function setBindAddress(address _source,address _bind) public onlyManager{
@@ -104,13 +104,22 @@ contract MaticData is Managers{
     function setStakingAmount(uint amount) public onlyManager{
         stakingAmount = amount;
     }
+    
+    function getTmDayHour(uint256 tm) public pure returns(uint256 day,uint256 hour){
+        if (tm == 0){
+            return(0,0);
+        }
+        day = tm.div(3600*24);
+        hour = tm.sub(day.mul(3600*24)).div(3600);
+    }
 
     function get24HourSign() public view returns(uint){
         uint256 count = 0;
-        uint256 day = block.timestamp.div(3600*24);
+        (uint256 day,uint256 hour) = getTmDayHour(block.timestamp);
+        
         for (uint i = 0;i<24 ;i++){
             uint256 daySign = dayHourSigns[i].day;
-            if (daySign + 1 >= day) {
+            if (daySign == day ||(daySign + 1 == day && hour <=i)) {
                 count = count.add(dayHourSigns[i].times);
             }
         }
@@ -125,7 +134,7 @@ contract MaticData is Managers{
         return 0;
     }
 
-    function setRate(uint256 _rate) public{
+    function setRate(uint256 _rate) public onlyManager{
         rate = _rate;
     }
     
@@ -136,5 +145,10 @@ contract MaticData is Managers{
     function getDayHourSign(uint256 hour) public view returns(uint256 day, uint256 times){
         dayHourSign memory dhs = dayHourSigns[hour];
         return (dhs.day,dhs.times);
+    }
+    
+    function setLastSign(address user,uint256 tm) public onlyManager {
+         userInfo storage u = userInfos[user];
+         u.signTm.push(tm);
     }
 }
