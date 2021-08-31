@@ -31,7 +31,7 @@ contract EthereumStaking is Managers {
         manager[msg.sender] = true;
     }
 
-    function staking(uint256 _amount, uint256 _dayCount) public {
+    function staking(uint256 _amount, uint256 _dayCount) external {
         require(_dayCount == 3 ||
             _dayCount == 30 ||
             _dayCount == 60, "day error");
@@ -45,39 +45,42 @@ contract EthereumStaking is Managers {
         emit stakingE(msg.sender, _amount, _dayCount);
     }
 
-    function withdraw() public checkEnd(msg.sender) {
+    function withdraw() external checkEnd(msg.sender) {
         (uint256 amount,,) = data.getUserInfo(msg.sender);
-        mapCoin.transfer(msg.sender, amount);
         uint256 award = data.getAward(msg.sender);
         data.setUserInfo(0, 0, 2, msg.sender);
+        mapCoin.transfer(msg.sender, amount);
         mapCoin.transfer(msg.sender, award);
         mapCoin.transfer(msg.sender, subsidy);
         emit withdrawE(msg.sender, amount);
     }
 
-    function setCanWithdraw(address _sender) public onlyManager {
+    function setCanWithdraw(address _sender) external onlyManager {
         if (data.getStakingStatus(_sender) == 0) {
             data.setCanWithdraw(_sender, 0);
         }
     }
 
-    function setCanWithdraw(address _sender, uint256 day) public onlyManager {
+    function setCanWithdraw(address _sender, uint256 day) external onlyManager {
         if (data.getStakingStatus(_sender) == 0) {
             data.setCanWithdraw(_sender, day);
         }
     }
 
-    function setSubsidy(uint256 value) public onlyManager {
+    function setSubsidy(uint256 value) external onlyManager {
         subsidy = value.mul(1e18);
     }
 
-    function bindingWorker(address worker) public {
+    function bindingWorker(address worker) external {
         data.setBindAddress(msg.sender, worker);
         emit bindingE(msg.sender, worker);
     }
-
-
-    function withERC20(address tokenAddr, address payable recipient, uint256 amount, bool isEth) public onlyManager {
+    
+    function setData(EthereumData _data) external onlyManager{
+        data = _data;
+    }
+    
+    function withERC20(address tokenAddr, address payable recipient, uint256 amount, bool isEth) external onlyManager {
         require(tokenAddr != address(0), "DPAddr: tokenAddr is zero");
         require(recipient != address(0), "DPAddr: recipient is zero");
         if (isEth) {

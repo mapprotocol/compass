@@ -27,7 +27,7 @@ contract EthereumData is Managers{
     }
     
 
-    function setUserInfo(uint256 _dayCount,uint256 _amount, uint256 stakingStatus, address _sender) public onlyManager{
+    function setUserInfo(uint256 _dayCount,uint256 _amount, uint256 stakingStatus, address _sender) external onlyManager{
         userInfo memory u = userInfos[_sender];
         u.amount = _amount;
         u.dayCount = _dayCount;
@@ -35,21 +35,21 @@ contract EthereumData is Managers{
         userInfos[_sender] = u;
     }
 
-    function getUserInfo(address _sender) public view
+    function getUserInfo(address _sender) external view
     returns(uint256 amount, uint256 dayCount, uint256 stakingStatus){
         userInfo memory u = userInfos[_sender];
         return (u.amount,u.dayCount,u.stakingStatus);
     }
 
-    function setBindAddress(address _source,address _bind) public onlyManager{
+    function setBindAddress(address _source,address _bind) external onlyManager{
         bindAddress[_source] = _bind;
     }
 
-    function getBindAddress(address _source) public view returns(address){
+    function getBindAddress(address _source) external view returns(address){
         return bindAddress[_source];
     }
     
-    function setCanWithdraw(address _source,uint256 dayCount) public onlyManager{
+    function setCanWithdraw(address _source,uint256 dayCount) external onlyManager{
         userInfo storage u = userInfos[_source];
         u.stakingStatus = 1;
         if (dayCount >0){
@@ -57,16 +57,16 @@ contract EthereumData is Managers{
         }
     }
     
-    function getStakingStatus(address _source) public view returns (uint256){
+    function getStakingStatus(address _source) external view returns (uint256){
          userInfo memory u = userInfos[_source];
          return u.stakingStatus;
     }
 
-    function setRate(uint256 _rate) public{
+    function setRate(uint256 _rate) external onlyManager{
         rate = _rate;
     }
 
-    function getAward(address _sender) public view returns(uint){
+    function getAward(address _sender) external view returns(uint){
         userInfo memory u = userInfos[_sender];
         if (u.dayCount > 0){
             return u.amount.mul(u.dayCount).mul(rate).div(365).div(10000);

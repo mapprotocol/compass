@@ -20,6 +20,10 @@ contract MaticStaking is Managers{
     constructor(MaticData _data) {
         data = _data;
     } 
+    
+    function setData(MaticData _data) external onlyManager{
+        data = _data;
+    }
 
     function getSender(address _worker) public view returns (address){
         address sender = data.getBindAddress(_worker);
@@ -27,7 +31,7 @@ contract MaticStaking is Managers{
         return sender;
     }
 
-    function staking(uint256 _dayCount, uint256 _amount, address _sender) public onlyManager {
+    function staking(uint256 _dayCount, uint256 _amount, address _sender) external onlyManager {
         (uint256 amount,,,,) = data.getUserInfo(_sender);
         data.setUserInfo(_dayCount,0,amount.add(_amount),0,_sender);
         if (amount == 0){
@@ -38,12 +42,12 @@ contract MaticStaking is Managers{
 
     }
     
-    function binding(address _sender, address _binding) public onlyManager{
+    function binding(address _sender, address _binding) external onlyManager{
         data.setBindAddress(_sender,_binding);
         emit bindingE(_sender,_binding);
     }
 
-    function withdraw(address _sender) public onlyManager{
+    function withdraw(address _sender) external onlyManager{
         (uint256 amount,,,uint256 stakingStatus,) = data.getUserInfo(_sender);
         require(stakingStatus != 2,"user is withdraw");
         data.setAddressCount(data.getAddressCount().sub(1));
@@ -60,7 +64,7 @@ contract MaticStaking is Managers{
         hour = tm.sub(day.mul(3600*24)).div(3600);
     }
 
-    function sign() public{
+    function sign() external{
         address sender = getSender(msg.sender);
         (uint256 amount,uint256 dayCount,uint256 daySign,uint256 status,) = data.getUserInfo(sender);
         require(amount > 0 && status == 0, "address is not staking or status is error");
