@@ -39,7 +39,7 @@ func DO() bool {
 	for {
 		i += 1
 		if i >= tryTimes {
-			if libs.Unix2Time(*matic_data.GetLastSign()).Format("20060102") == time.Now().Format("20060102") {
+			if libs.Unix2Time(*matic_data.GetLastSign()).Format("20060102") == time.Now().UTC().Format("20060102") {
 				println("Sign in successfully.")
 				return true
 			}

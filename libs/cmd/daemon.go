@@ -12,7 +12,6 @@ import (
 	"signmap/libs"
 	"signmap/libs/contracts/matic_data"
 	"signmap/libs/contracts/matic_staking"
-	"strings"
 	"time"
 )
 
@@ -40,7 +39,7 @@ var (
 				os.Exit(1)
 			}
 			rand.Seed(time.Now().UnixNano())
-			libs.WriteLog(time.Now().Format("20060102 15:04:05") + ". starting success!")
+			libs.WriteLog(time.Now().Format("-20060102 15:04:05") + ". starting success!")
 			log.Println("Start-up success")
 			log.Println("Running process......")
 
@@ -59,22 +58,20 @@ var (
 				for {
 					<-cc
 					nowUnit, date := libs.NowTime() // for production
-					//nowUnit, date := libs.NowTimeForTestEveryNMinute(everyNMinute) //for test
 					if nowUnit == 0 {
 						//Since the sleep is less than 1 minute, this may be performed twice one day
 						//If signUnit is not specified as 0, there will be no problem
 						signUnit = rand.Intn(24*60-1) + 1 //for production
-						//signUnit = rand.Intn(everyNMinute) //for test
 						log.Println("signUnit = ", signUnit)
 						doing = false //Fault tolerance
 					}
 
 					if nowUnit == signUnit && !doing {
 						doing = true
-						log.Println("start signing. step 1.")
+
 						// Determine if you have signed it today
-						if !strings.HasPrefix(libs.GetLastLineWithSeek(), date) {
-							log.Println("start signing. step 2.")
+						if libs.Unix2Time(*matic_data.GetLastSign()).Format("20060102") != time.Now().UTC().Format("20060102") {
+							log.Println("start signing.")
 							go func() {
 								if matic_staking.DO() {
 									libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
