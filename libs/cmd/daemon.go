@@ -44,13 +44,11 @@ var (
 			log.Println("Running process......")
 
 			signUnit := rand.Intn(24 * 60) //for production
-			//var everyNMinute = 1                 // require 60 % everyNMinute == 0 //for test
-			//signUnit := rand.Intn(everyNMinute)  //for test
-			//log.Println("signUnit = ", signUnit) // for test , production environment does not print
+
 			c := make(chan bool)
 			go func() {
 				for {
-					print("\r", "UTC time: ", time.Now().UTC().Format("15:04:05"))
+					print("UTC time: ", time.Now().UTC().Format("15:04:05"), "\r")
 					time.Sleep(time.Second)
 				}
 			}()
@@ -70,18 +68,20 @@ var (
 						doing = true
 
 						// Determine if you have signed it today
-						if libs.Unix2Time(*matic_data.GetLastSign()).Format("20060102") != time.Now().UTC().Format("20060102") {
+						if libs.Unix2Time(*matic_data.GetLastSign()).UTC().Format("20060102") != time.Now().UTC().Format("20060102") {
 							log.Println("start signing.")
 							go func() {
 								if matic_staking.DO() {
 									libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
-									matic_data.GetData()
 									signUnit = -1
 									balance = libs.GetBalance()
 									if balance.Cmp(warnBalance) == -1 {
 										log.Println("Lack of balance. The balance is： ", libs.WeiToEther(balance))
 										log.Println("The next sign-in may fail, please recharge")
 									}
+									time.Sleep(10 * time.Second)
+									matic_data.GetData()
+
 								} else {
 									// add - let strings.HasPrefix(libs.GetLastLineWithSeek() return false
 									log.Println("Sign in unsuccessfully.")
