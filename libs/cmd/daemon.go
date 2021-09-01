@@ -50,7 +50,7 @@ var (
 			signUnit = rand.Intn(24 * 60) //for production
 
 			lastSignTimestamp, ok := matic_data.GetLastSign()
-			if lastSignTimestamp == big.NewInt(0) && ok {
+			if lastSignTimestamp.Int64() == 0 && ok {
 				doSign()
 			}
 			c := make(chan bool)
