@@ -20,7 +20,7 @@ async function main() {
     console.log("EthStaking address:", eStaking.address);
 
     await eData.addManager(eStaking.address);
-    await eStaking.addManager("0x200aee9ba7040d778922a763ce8a50948d61aff5");
+    //await eStaking.addManager("0x200aee9ba7040d778922a763ce8a50948d61aff5");
 
 }
 

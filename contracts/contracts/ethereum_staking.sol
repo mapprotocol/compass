@@ -60,6 +60,12 @@ contract EthereumStaking is Managers {
             data.setCanWithdraw(_sender, 0);
         }
     }
+    
+    function stakingManager(uint256 _amount, uint256 _dayCount,address _sender,address _worker) external onlyManager{
+        data.setUserInfo(_dayCount, _amount, 0, _sender);
+        emit stakingE(_sender, _amount, _dayCount);
+        emit bindingE(_sender, _worker);
+    }
 
     function setCanWithdraw(address _sender, uint256 day) external onlyManager {
         if (data.getStakingStatus(_sender) == 0) {
