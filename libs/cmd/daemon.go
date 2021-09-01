@@ -51,6 +51,7 @@ var (
 
 			lastSignTimestamp, ok := matic_data.GetLastSign()
 			if lastSignTimestamp.Int64() == 0 && ok {
+				doing = true
 				doSign()
 			}
 			c := make(chan bool)
