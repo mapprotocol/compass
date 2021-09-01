@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"math/big"
+	"signmap/libs"
 )
 
 func PackInput(AbiStaking abi.ABI, abiMethod string, params ...interface{}) []byte {
@@ -48,7 +49,7 @@ func SendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 		GasPrice: gasPrice,
 		Data:     input,
 	})
-	chainID := big.NewInt(137)
+	chainID := libs.ChainId
 	log.Println("TX data nonce ", nonce, " transfer value ", value, " gasLimit ", gasLimit, " gasPrice ", gasPrice)
 
 	signedTx, err := types.SignTx(tx, types.NewEIP2930Signer(chainID), privateKey)

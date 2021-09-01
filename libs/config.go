@@ -10,11 +10,11 @@ import (
 )
 
 var (
-	SendTransactionValue   = big.NewInt(1000000000000000000)
-	RpcUrl                 = GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].RpcUrl
-	StakingContractAddress = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].StakingContractAddress)
-	DataContractAddress    = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].DataContractAddress)
-
+	SendTransactionValue    = big.NewInt(1000000000000000000)
+	RpcUrl                  = GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].RpcUrl
+	StakingContractAddress  = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].StakingContractAddress)
+	DataContractAddress     = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].DataContractAddress)
+	ChainId                 = big.NewInt(80001)
 	SendTransactionGasLimit = uint64(21000)
 	ToAddress               = common.HexToAddress("0x799E24dC6B48549BbD1Fc9fcCa4d72880d8c7a15")
 	SignLogFile, _          = os.OpenFile(LogFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0700)
@@ -28,9 +28,9 @@ var (
 	blockChainMap         map[string]Chain
 	ExternalBlockChainMap map[string]Chain
 	internalBlockChainMap = map[string]Chain{"1": {
-		"https://rpc-mainnet.maticvigil.com/",
-		"0xF7485a69ef82dd8A45dbecec4b0FDd3f32C8677C",
-		"0x5d01Cd722857fC4Af311A3335E37bDedc29484a8",
+		"https://rpc-mumbai.maticvigil.com/",
+		"0x139c8549E40E8fe2a1f7F6bee8B3EDDAE62435fa",
+		"0xf1DE90875987C264234c374cC5b3814699deeC9e",
 	}}
 	ExternalBlockChainKey = "externalBlockChain"
 )

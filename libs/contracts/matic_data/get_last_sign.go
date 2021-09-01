@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func GetLastSign() *big.Int {
+func GetLastSign() (*big.Int, bool) {
 	client := libs.GetClient()
 
 	fromAddress := BindAddress()
@@ -19,13 +19,13 @@ func GetLastSign() *big.Int {
 	var res = big.NewInt(0)
 	if len(ret) == 0 {
 		log.Println("getLastSign error.")
-		return res
+		return res, false
 	}
 	err := abiStaking.UnpackIntoInterface(&res, "getLastSign", ret)
 
 	if err != nil {
 		log.Println("abi error", err)
-		return res
+		return res, false
 	}
-	return res
+	return res, true
 }

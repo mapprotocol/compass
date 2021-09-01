@@ -18,6 +18,10 @@ import (
 var (
 	warnBalance = big.NewInt(1e16)
 	doing       = false
+	signUnit    int
+	balance     *big.Int
+	nowUnit     int
+	date        string
 	cmdDaemon   = &cobra.Command{
 		Use:   "daemon ",
 		Short: "(Default) Run signmap daemon .",
@@ -33,7 +37,7 @@ var (
 				println("No pledge yet, please pledge first.")
 				os.Exit(1)
 			}
-			balance := libs.GetBalance()
+			balance = libs.GetBalance()
 			if balance.Cmp(warnBalance) == -1 {
 				println("Lack of balance. The balance is： ", libs.WeiToEther(balance))
 				os.Exit(1)
@@ -43,8 +47,12 @@ var (
 			log.Println("Start-up success")
 			log.Println("Running process......")
 
-			signUnit := rand.Intn(24 * 60) //for production
+			signUnit = rand.Intn(24 * 60) //for production
 
+			lastSignTimestamp, ok := matic_data.GetLastSign()
+			if lastSignTimestamp == big.NewInt(0) && ok {
+				doSign()
+			}
 			c := make(chan bool)
 			go func() {
 				for {
@@ -55,7 +63,7 @@ var (
 			go func(cc chan bool) {
 				for {
 					<-cc
-					nowUnit, date := libs.NowTime() // for production
+					nowUnit, date = libs.NowTime() // for production
 					if nowUnit == 0 {
 						//Since the sleep is less than 1 minute, this may be performed twice one day
 						//If signUnit is not specified as 0, there will be no problem
@@ -68,27 +76,10 @@ var (
 						doing = true
 
 						// Determine if you have signed it today
-						if libs.Unix2Time(*matic_data.GetLastSign()).UTC().Format("20060102") != time.Now().UTC().Format("20060102") {
-							log.Println("start signing.")
-							go func() {
-								if matic_staking.DO() {
-									libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
-									signUnit = -1
-									balance = libs.GetBalance()
-									if balance.Cmp(warnBalance) == -1 {
-										log.Println("Lack of balance. The balance is： ", libs.WeiToEther(balance))
-										log.Println("The next sign-in may fail, please recharge")
-									}
-									time.Sleep(10 * time.Second)
-									matic_data.GetData()
+						lastSignTimestamp, _ = matic_data.GetLastSign()
 
-								} else {
-									// add - let strings.HasPrefix(libs.GetLastLineWithSeek() return false
-									log.Println("Sign in unsuccessfully.")
-									libs.WriteLog(fmt.Sprintf("-%s %d Sign in unsuccessfully.", date, nowUnit))
-								}
-								doing = false
-							}()
+						if libs.Unix2Time(*lastSignTimestamp).UTC().Format("20060102") != time.Now().UTC().Format("20060102") {
+							doSign()
 						} else {
 							log.Println("Sign-in has been made today")
 						}
@@ -102,3 +93,26 @@ var (
 		},
 	}
 )
+
+func doSign() {
+	log.Println("start signing.")
+	go func() {
+		if matic_staking.DO() {
+			libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
+			signUnit = -1
+			balance = libs.GetBalance()
+			if balance.Cmp(warnBalance) == -1 {
+				log.Println("Lack of balance. The balance is： ", libs.WeiToEther(balance))
+				log.Println("The next sign-in may fail, please recharge")
+			}
+			time.Sleep(10 * time.Second)
+			matic_data.GetData()
+
+		} else {
+			// add - let strings.HasPrefix(libs.GetLastLineWithSeek() return false
+			log.Println("Sign in unsuccessfully.")
+			libs.WriteLog(fmt.Sprintf("-%s %d Sign in unsuccessfully.", date, nowUnit))
+		}
+		doing = false
+	}()
+}
