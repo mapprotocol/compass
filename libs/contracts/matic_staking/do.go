@@ -44,7 +44,8 @@ func DO() bool {
 				println("Sign in successfully.")
 				return true
 			}
-			log.Println("Attempts to get the receipt ", tryTimes, " times，unsuccessful.")
+			log.Println("The server did not return the result. please check the status at the following website")
+			println("https://relayer.mapdapp.net/#/manage")
 			return false
 		}
 		receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())

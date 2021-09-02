@@ -110,9 +110,7 @@ func doSign() {
 			matic_data.GetData()
 
 		} else {
-			// add - let strings.HasPrefix(libs.GetLastLineWithSeek() return false
-			log.Println("Sign in unsuccessfully.")
-			libs.WriteLog(fmt.Sprintf("-%s %d Sign in unsuccessfully.", date, nowUnit))
+			libs.WriteLog(fmt.Sprintf("-%s %d unkown if it worked.", date, nowUnit))
 		}
 		doing = false
 	}()
