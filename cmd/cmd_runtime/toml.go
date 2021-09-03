@@ -1,29 +1,20 @@
 package cmd_runtime
 
 import (
-	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/types"
 	"github.com/pelletier/go-toml"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 )
 
-type GlobalConfig struct {
-	Keystore                string `toml:"keystore"`
-	Password                string `toml:"password"`
-	BlockNumberByEstimation bool   `toml:"block_number_by_estimation"`
-}
-type ChainConfig struct {
-	Name                       string         `toml:"name"`
-	ChainId                    chains.ChainId `toml:"chain_id"`
-	BlockCreatingTime          int            `toml:"block_creating_seconds"`
-	RpcUrl                     string         `toml:"rpc_url"`
-	StableBlock                uint64         `toml:"stable_block"`
-	RelayerContractAddress     string         `toml:"relayer_contract_address"`
-	HeaderStoreContractAddress string         `toml:"header_store_contract_address"`
-}
+var (
+	GlobalConfigV  types.GlobalConfig
+	SrcChainConfig types.ChainConfig
+	DstChainConfig types.ChainConfig
+)
 
-func ReadTomlConfig() (globalConfig GlobalConfig, srcChainConfig ChainConfig, dstChainConfig ChainConfig) {
+func ReadTomlConfig() {
 	rootTree, err := toml.LoadFile(filepath.Join(filepath.Dir(os.Args[0]), "config.toml"))
 	rootTree, err = toml.LoadFile("/Users/yangdianqing/code/go/compass/config.toml") // for dev
 	if err != nil {
@@ -31,24 +22,27 @@ func ReadTomlConfig() (globalConfig GlobalConfig, srcChainConfig ChainConfig, ds
 	}
 	_ = parseKey("global", rootTree, func() {
 		log.Fatal("Config.toml does not contain global block")
-	}).(*toml.Tree).Unmarshal(&globalConfig)
+	}).(*toml.Tree).Unmarshal(&GlobalConfigV)
 
 	_ = parseKey("src_chain", rootTree, func() {
 		log.Fatal("Config.toml does not contain src_chain block")
-	}).(*toml.Tree).Unmarshal(&srcChainConfig)
+	}).(*toml.Tree).Unmarshal(&SrcChainConfig)
 
 	_ = parseKey("dst_chain", rootTree, func() {
 		log.Fatal("Config.toml does not contain dst_chain block")
-	}).(*toml.Tree).Unmarshal(&dstChainConfig)
+	}).(*toml.Tree).Unmarshal(&DstChainConfig)
 
-	if srcChainConfig.ChainId <= 0 || dstChainConfig.ChainId <= 0 {
+	if SrcChainConfig.ChainId <= 0 || DstChainConfig.ChainId <= 0 {
 		log.Fatal("chain_id is required, it has to be a natural number.")
 	}
-	if srcChainConfig.BlockCreatingTime <= 0 || dstChainConfig.BlockCreatingTime <= 0 {
+	if SrcChainConfig.BlockCreatingTime <= 0 || DstChainConfig.BlockCreatingTime <= 0 {
 		log.Fatal("block_creating_seconds is required, it has to be a natural number.")
 	}
-	if srcChainConfig.StableBlock <= 0 || dstChainConfig.StableBlock <= 0 {
+	if SrcChainConfig.StableBlock <= 0 || DstChainConfig.StableBlock <= 0 {
 		log.Fatal("stable_block is required, it has to be a natural number.")
+	}
+	if SrcChainConfig.RouterContractAddress == "" || DstChainConfig.RouterContractAddress == "" {
+		log.Fatal("router_contract is required.")
 	}
 	return
 }

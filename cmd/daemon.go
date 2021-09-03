@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/atlas"
+	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	"github.com/mapprotocol/compass/http_call"
@@ -19,10 +20,6 @@ import (
 )
 
 var (
-	event1Key      = "event1Key"
-	event1ArrayKey = "event1ArrayKey"
-	event1Hash     = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
-
 	srcBlockNumberByEstimation uint64 = 0
 	dstBlockNumberByEstimation uint64 = 0
 	getSrcBlockNumber                 = func() uint64 {
@@ -56,7 +53,6 @@ var (
 			}
 			updateCurrentBlockNumberThread()
 			listenEventThread()
-
 			for {
 				if !canDo {
 					time.Sleep(time.Minute)
@@ -76,10 +72,13 @@ var (
 
 func listenEventThread() {
 	log.Infoln("listenEventThread started.")
-	event1KeyStr := utils.Get(levelDbInstance, event1Key)
+	event1KeyStr := utils.Get(levelDbInstance, chain_tools.Event1Key)
 	event1KeyInt, _ := strconv.Atoi(event1KeyStr)
-	event1ArrayStr := utils.Get(levelDbInstance, event1ArrayKey)
+	event1ArrayStr := utils.Get(levelDbInstance, chain_tools.Event1ArrayKey)
 	var from = int64(event1KeyInt)
+	if cmd_runtime.GlobalConfigV.StartWithBlock > from {
+		from = cmd_runtime.GlobalConfigV.StartWithBlock
+	}
 	var to = from
 	var i64SrcBlockNumber int64 = 0
 	var lastBlockNumber = uint64(from)
@@ -116,7 +115,7 @@ func listenEventThread() {
 			}
 			//var log types.Log
 			for _, aLog := range logs {
-				if event1Hash != aLog.Topics[0] {
+				if chain_tools.Event1Hash != aLog.Topics[0] {
 					continue
 				}
 				if strings.Contains(event1ArrayStr, aLog.TxHash.String()) {
@@ -124,21 +123,22 @@ func listenEventThread() {
 				}
 				//todo Interacting with a contract
 				//println(aLog.TxHash.String())
+				atlas.GetTxProve(cmd_runtime.SrcInstance, &aLog)
 				fmt.Printf("%+v", aLog)
 				println()
 
 				if aLog.BlockNumber != lastBlockNumber {
-					utils.Put(levelDbInstance, event1Key, strconv.Itoa(int(aLog.BlockNumber)))
+					utils.Put(levelDbInstance, chain_tools.Event1Key, strconv.Itoa(int(aLog.BlockNumber)))
 					lastBlockNumber = aLog.BlockNumber
 					event1ArrayStr = ""
 				} else {
 					event1ArrayStr += aLog.TxHash.String() + ","
 				}
-				utils.Put(levelDbInstance, event1ArrayKey, event1ArrayStr)
+				utils.Put(levelDbInstance, chain_tools.Event1ArrayKey, event1ArrayStr)
 
 			}
 			from = to + 1
-			utils.Put(levelDbInstance, event1Key, strconv.Itoa(int(from)))
+			utils.Put(levelDbInstance, chain_tools.Event1Key, strconv.Itoa(int(from)))
 		}
 
 	}()

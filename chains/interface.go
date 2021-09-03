@@ -7,25 +7,23 @@ import (
 	"time"
 )
 
-type ChainId int
-
 type ChainInterface interface {
 	GetName() string
 	GetClient() *ethclient.Client
-	GetChainId() ChainId
+	GetChainId() types.ChainId
 	GetBlockNumber() uint64
 	GetRpcUrl() string
 	GetBlockHeader(num uint64) *[]byte
 	GetAddress() string
 	SetTarget(keystoreStr string, password string)
-	Save(from ChainId, Cdata *[]byte)
+	Save(from types.ChainId, Cdata *[]byte)
 	NumberOfSecondsOfBlockCreationTime() time.Duration
 	GetStableBlockBeforeHeader() uint64
 	ContractInterface
 }
 type ChainImplBase struct {
 	Name                               string
-	ChainId                            ChainId
+	ChainId                            types.ChainId
 	RpcUrl                             string
 	NumberOfSecondsOfBlockCreationTime time.Duration
 	StableBlockBeforeHeader            uint64
