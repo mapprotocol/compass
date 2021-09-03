@@ -3,6 +3,7 @@ package atlas
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/light"
 	"math/big"
 )
 
@@ -22,4 +23,17 @@ type Header struct {
 	Extra       []byte           `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash      `json:"mixHash"`
 	Nonce       types.BlockNonce `json:"nonce"`
+}
+
+type TxParams struct {
+	From  []byte
+	To    []byte
+	Value *big.Int
+}
+
+type TxProve struct {
+	Tx               *TxParams
+	Receipt          *types.Receipt
+	Prove            light.NodeList
+	TransactionIndex uint
 }

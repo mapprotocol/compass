@@ -27,7 +27,7 @@ func LoadPrivateKey(keystoreStr, password string) (key *keystore.Key, inputPassw
 		for {
 			print("Please enter your password: ")
 
-			passwordByte, err := term.ReadPassword(syscall.Stdin)
+			passwordByte, err := term.ReadPassword(int(syscall.Stdin))
 			if err != nil {
 				log.Println("Password typed: " + string(password))
 			}

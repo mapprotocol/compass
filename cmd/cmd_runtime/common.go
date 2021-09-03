@@ -38,24 +38,24 @@ var (
 )
 
 func InitClient() {
-	globalConfig, srcChainConfig, dstChainConfig := ReadTomlConfig()
+	ReadTomlConfig()
 
-	keystore := globalConfig.Keystore
-	password := globalConfig.Password
-	BlockNumberByEstimation = globalConfig.BlockNumberByEstimation
+	keystore := GlobalConfigV.Keystore
+	password := GlobalConfigV.Password
+	BlockNumberByEstimation = GlobalConfigV.BlockNumberByEstimation
 
 	SrcInstance = ethereum.NewEthChain(
-		srcChainConfig.Name, srcChainConfig.ChainId,
-		srcChainConfig.BlockCreatingTime, srcChainConfig.RpcUrl,
-		srcChainConfig.StableBlock,
+		SrcChainConfig.Name, SrcChainConfig.ChainId,
+		SrcChainConfig.BlockCreatingTime, SrcChainConfig.RpcUrl,
+		SrcChainConfig.StableBlock,
 		"", "",
 	)
 
 	DstInstance = ethereum.NewEthChain(
-		dstChainConfig.Name, dstChainConfig.ChainId,
-		dstChainConfig.BlockCreatingTime, dstChainConfig.RpcUrl,
-		dstChainConfig.StableBlock,
-		dstChainConfig.RelayerContractAddress, dstChainConfig.HeaderStoreContractAddress,
+		DstChainConfig.Name, DstChainConfig.ChainId,
+		DstChainConfig.BlockCreatingTime, DstChainConfig.RpcUrl,
+		DstChainConfig.StableBlock,
+		DstChainConfig.RelayerContractAddress, DstChainConfig.HeaderStoreContractAddress,
 	)
 
 	if keystore == "" {

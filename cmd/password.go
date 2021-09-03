@@ -13,9 +13,9 @@ var (
 		Short: "Get account info.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			globalConfig, _, _ := cmd_runtime.ReadTomlConfig()
+			cmd_runtime.ReadTomlConfig()
 
-			_, correctPassword := chain_tools.LoadPrivateKey(globalConfig.Keystore, "")
+			_, correctPassword := chain_tools.LoadPrivateKey(cmd_runtime.GlobalConfigV.Keystore, "")
 			println("Set next line to config.toml global.password :")
 			println(utils.AesCbcEncrypt([]byte(correctPassword)))
 		},

@@ -12,6 +12,7 @@ import (
 	"github.com/mapprotocol/compass/atlas"
 	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/types"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"strings"
@@ -40,7 +41,7 @@ func (t *TypeEther) NumberOfSecondsOfBlockCreationTime() time.Duration {
 	return t.base.NumberOfSecondsOfBlockCreationTime
 }
 
-func (t *TypeEther) Save(from chains.ChainId, data *[]byte) {
+func (t *TypeEther) Save(from types.ChainId, data *[]byte) {
 	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.HeaderStoreContractAbi))
 	input := chain_tools.PackInput(abiStaking, "save",
 		big.NewInt(int64(from)),
@@ -56,7 +57,7 @@ func (t *TypeEther) Save(from chains.ChainId, data *[]byte) {
 	chain_tools.WaitingForEndPending(t.client, tx.Hash(), 50)
 }
 
-func NewEthChain(name string, chainId chains.ChainId, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,
+func NewEthChain(name string, chainId types.ChainId, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,
 	relayerContractAddressStr string, headerStoreContractAddressStr string) *TypeEther {
 	ret := TypeEther{
 		base: chains.ChainImplBase{
@@ -96,7 +97,7 @@ func (t *TypeEther) GetRpcUrl() string {
 	return t.base.RpcUrl
 }
 
-func (t *TypeEther) GetChainId() chains.ChainId {
+func (t *TypeEther) GetChainId() types.ChainId {
 	return t.base.ChainId
 }
 
