@@ -1,17 +1,10 @@
 package cmd_runtime
 
 import (
-	"github.com/mapprotocol/compass/types"
 	"github.com/pelletier/go-toml"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
-)
-
-var (
-	GlobalConfigV  types.GlobalConfig
-	SrcChainConfig types.ChainConfig
-	DstChainConfig types.ChainConfig
 )
 
 func ReadTomlConfig() {
@@ -42,7 +35,7 @@ func ReadTomlConfig() {
 		log.Fatal("stable_block is required, it has to be a natural number.")
 	}
 	if SrcChainConfig.RouterContractAddress == "" || DstChainConfig.RouterContractAddress == "" {
-		log.Fatal("router_contract is required.")
+		log.Fatal("router_contract_address is required.")
 	}
 	return
 }

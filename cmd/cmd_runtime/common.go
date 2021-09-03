@@ -1,8 +1,8 @@
 package cmd_runtime
 
 import (
-	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/chains/ethereum"
+	"github.com/mapprotocol/compass/types"
 	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -11,30 +11,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-)
-
-type waitTimeAndMessage struct {
-	Time    time.Duration
-	Message string
-}
-
-var (
-	DstInstance             chains.ChainInterface
-	SrcInstance             chains.ChainInterface
-	BlockNumberByEstimation = true
-
-	StructRegisterNotRelayer = &waitTimeAndMessage{
-		Time:    2 * time.Minute,
-		Message: "registered not relayer",
-	}
-	StructUnregistered = &waitTimeAndMessage{
-		Time:    10 * time.Minute,
-		Message: "Unregistered",
-	}
-	StructUnStableBlock = &waitTimeAndMessage{
-		Time:    time.Second * 2, //it will update at InitClient func
-		Message: "Unstable block",
-	}
 )
 
 func InitClient() {
@@ -70,7 +46,7 @@ func InitClient() {
 	DstInstance.SetTarget(keystore, password)
 	StructUnStableBlock.Time = SrcInstance.NumberOfSecondsOfBlockCreationTime()
 }
-func DisplayMessageAndSleep(s *waitTimeAndMessage) {
+func DisplayMessageAndSleep(s *types.WaitTimeAndMessage) {
 	log.Infoln(s.Message)
 	time.Sleep(s.Time)
 }
