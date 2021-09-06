@@ -10,7 +10,7 @@ import (
 var (
 	EventSwapOutKey         = "EventSwapOutKey"
 	EventSwapOutArrayKey    = "eventSwapOutArrayKey"
-	EventSwapOutHash        = crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
+	EventSwapOutHash        = crypto.Keccak256Hash([]byte("LogSwapOut(uint256,address,address,address,uint256,uint256,uint256)"))
 	GlobalConfigV           types.GlobalConfig
 	SrcChainConfig          types.ChainConfig
 	DstChainConfig          types.ChainConfig

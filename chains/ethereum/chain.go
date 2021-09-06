@@ -23,13 +23,17 @@ type TypeEther struct {
 	base                       chains.ChainImplBase
 	client                     *ethclient.Client
 	address                    common.Address    //if SetTarget is not called ,it's nil
-	PrivateKey                 *ecdsa.PrivateKey //if SetTarget is not called ,it's nil
+	privateKey                 *ecdsa.PrivateKey //if SetTarget is not called ,it's nil
 	relayerContractAddress     common.Address
 	headerStoreContractAddress common.Address
 }
 
 func (t *TypeEther) GetClient() *ethclient.Client {
 	return t.client
+}
+
+func (t *TypeEther) GetPrivateKey() *ecdsa.PrivateKey {
+	return t.privateKey
 }
 
 func (t *TypeEther) GetStableBlockBeforeHeader() uint64 {
@@ -48,7 +52,7 @@ func (t *TypeEther) Save(from types.ChainId, data *[]byte) {
 		big.NewInt(int64(t.GetChainId())),
 		data,
 	)
-	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.headerStoreContractAddress, nil, t.PrivateKey, input)
+	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.headerStoreContractAddress, nil, t.GetPrivateKey(), input)
 	if tx == nil {
 		log.Infoln("Save failed")
 		return
@@ -84,7 +88,7 @@ func (t *TypeEther) SetTarget(keystoreStr string, password string) {
 		log.Fatal(t.GetName(), " cannot be target, relayer_contract_address and header_store_contract_address are required for target.")
 	}
 	key, _ := chain_tools.LoadPrivateKey(keystoreStr, password)
-	t.PrivateKey = key.PrivateKey
+	t.privateKey = key.PrivateKey
 	t.address = crypto.PubkeyToAddress(key.PrivateKey.PublicKey)
 
 }

@@ -2,12 +2,11 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/atlas"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
+	"github.com/mapprotocol/compass/cmd/events"
 	"github.com/mapprotocol/compass/http_call"
 	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
@@ -53,18 +52,21 @@ var (
 			updateCurrentBlockNumberThread()
 			listenEventThread()
 			for {
-				if !canDo {
-					time.Sleep(time.Minute)
-					continue
-				}
-				if currentBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > getSrcBlockNumber() {
-					cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnStableBlock)
-					continue
-				}
-				byteData := cmd_runtime.SrcInstance.GetBlockHeader(currentBlockNumber)
-				cmd_runtime.DstInstance.Save(cmd_runtime.SrcInstance.GetChainId(), byteData)
-				currentBlockNumber += 1
+				time.Sleep(time.Hour)
 			}
+			//for {
+			//	if !canDo {
+			//		time.Sleep(time.Minute)
+			//		continue
+			//	}
+			//	if currentBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > getSrcBlockNumber() {
+			//		cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnStableBlock)
+			//		continue
+			//	}
+			//	byteData := cmd_runtime.SrcInstance.GetBlockHeader(currentBlockNumber)
+			//	cmd_runtime.DstInstance.Save(cmd_runtime.SrcInstance.GetChainId(), byteData)
+			//	currentBlockNumber += 1
+			//}
 		},
 	}
 )
@@ -120,10 +122,8 @@ func listenEventThread() {
 				if strings.Contains(eventSwapOutArrayStr, aLog.TxHash.String()) {
 					continue
 				}
-				//todo Interacting with a contract
-				//println(aLog.TxHash.String())
-				atlas.GetTxProve(cmd_runtime.SrcInstance, &aLog)
-				fmt.Printf("%+v", aLog)
+				events.HandleLogSwapOut(&aLog)
+
 				println()
 
 				if aLog.BlockNumber != lastBlockNumber {

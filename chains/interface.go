@@ -1,6 +1,7 @@
 package chains
 
 import (
+	"crypto/ecdsa"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/mapprotocol/compass/types"
 	"math/big"
@@ -16,6 +17,7 @@ type ChainInterface interface {
 	GetBlockHeader(num uint64) *[]byte
 	GetAddress() string
 	SetTarget(keystoreStr string, password string)
+	GetPrivateKey() *ecdsa.PrivateKey
 	Save(from types.ChainId, Cdata *[]byte)
 	NumberOfSecondsOfBlockCreationTime() time.Duration
 	GetStableBlockBeforeHeader() uint64
