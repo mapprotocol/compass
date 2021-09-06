@@ -13,7 +13,7 @@ import (
 func (t *TypeEther) Register(value *big.Int) bool {
 	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.RelayerContractAbi))
 	input := chain_tools.PackInput(abiStaking, "register", value)
-	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
+	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.GetPrivateKey(), input)
 	if tx == nil {
 		return false
 	}
@@ -23,7 +23,7 @@ func (t *TypeEther) Register(value *big.Int) bool {
 func (t *TypeEther) UnRegister(value *big.Int) bool {
 	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.RelayerContractAbi))
 	input := chain_tools.PackInput(abiStaking, "unregister", &value)
-	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
+	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.GetPrivateKey(), input)
 	if tx == nil {
 		return false
 	}
@@ -33,7 +33,7 @@ func (t *TypeEther) UnRegister(value *big.Int) bool {
 func (t *TypeEther) Withdraw(value *big.Int) bool {
 	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.RelayerContractAbi))
 	input := chain_tools.PackInput(abiStaking, "withdraw", &value)
-	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.PrivateKey, input)
+	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.relayerContractAddress, nil, t.GetPrivateKey(), input)
 	if tx == nil {
 		return false
 	}
