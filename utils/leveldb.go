@@ -8,7 +8,6 @@ import (
 func Get(db *leveldb.DB, key string) string {
 	value, err := db.Get([]byte(key), nil)
 	if err != nil {
-		log.Warnln(err)
 		return ""
 	}
 	return string(value)

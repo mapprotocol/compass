@@ -32,8 +32,9 @@ type TxParams struct {
 }
 
 type TxProve struct {
-	Tx               *TxParams
-	Receipt          *types.Receipt
-	Prove            light.NodeList
-	TransactionIndex uint
+	Tx          *TxParams
+	Receipt     *types.Receipt
+	Prove       light.NodeList
+	BlockNumber uint64
+	TxIndex     uint
 }

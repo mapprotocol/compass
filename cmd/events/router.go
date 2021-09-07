@@ -1,6 +1,7 @@
 package events
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -9,9 +10,10 @@ import (
 	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	types2 "github.com/mapprotocol/compass/types"
-	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
+	"math/big"
 	"strings"
+	"time"
 )
 
 var (
@@ -30,17 +32,24 @@ func HandleLogSwapOut(aLog *types.Log) {
 	txProve = atlas.GetTxProve(cmd_runtime.SrcInstance, aLog, &eventResponse)
 
 	token := common.BytesToAddress(aLog.Topics[1].Bytes())
-	to := common.BytesToAddress(aLog.Topics[3].Bytes())
+	//to := common.BytesToAddress(aLog.Topics[3].Bytes())
 
 	// swapIn(uint256 id, address token, address to, uint amount, uint fromChainID, bytes32[] memory data)
-	input := chain_tools.PackInput(abiRouter, "swapIn",
-		eventResponse.OrderId,
+	//input := chain_tools.PackInput(abiRouter, "swapIn",
+	//	eventResponse.OrderId,
+	//	token,
+	//	to,
+	//	eventResponse.Amount,
+	//	eventResponse.FromChainID,
+	//	aLog.Address,
+	//	txProve)
+	fmt.Printf("%+v", eventResponse)
+	input := chain_tools.PackInput(abiRouter, "txVerify",
+		common.BytesToAddress(aLog.Topics[0].Bytes()),
 		token,
-		to,
-		eventResponse.Amount,
-		eventResponse.FromChainID,
-		aLog.Address,
-		utils.ByteArray2Byte32Array(&txProve))
+		big.NewInt(int64(cmd_runtime.SrcChainConfig.ChainId)),
+		big.NewInt(int64(cmd_runtime.DstChainConfig.ChainId)),
+		txProve)
 
 	for {
 		for {
@@ -50,14 +59,17 @@ func HandleLogSwapOut(aLog *types.Log) {
 				nil, cmd_runtime.DstInstance.GetPrivateKey(),
 				input)
 			if tx == nil {
+				time.Sleep(5 * time.Second)
 				continue
 			}
 			if chain_tools.WaitingForEndPending(cmd_runtime.DstInstance.GetClient(), tx.Hash(), 100) {
 				break
 			}
 		}
-		if chain_tools.WaitForReceipt(cmd_runtime.DstInstance.GetClient(), tx.Hash(), 0) {
+		if chain_tools.WaitForReceipt(cmd_runtime.DstInstance.GetClient(), tx.Hash(), 1000) {
 			return
+		} else {
+			time.Sleep(5 * time.Second)
 		}
 	}
 
