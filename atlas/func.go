@@ -44,9 +44,10 @@ func GetTxProve(src chains.ChainInterface, aLog *types.Log, eventResponse *types
 			To:    aLog.Topics[3].Bytes(),
 			Value: eventResponse.Amount,
 		},
-		Receipt:          receipts[transactionIndex],
-		Prove:            proof.NodeList(),
-		TransactionIndex: transactionIndex,
+		Receipt:     receipts[transactionIndex],
+		Prove:       proof.NodeList(),
+		BlockNumber: blockNumber,
+		TxIndex:     transactionIndex,
 	}
 
 	input, err := rlp.EncodeToBytes(txProve)
