@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/chains"
+	types2 "github.com/mapprotocol/compass/types"
 	"math/big"
 )
 
@@ -19,7 +20,7 @@ var (
 	lastBlockNumber uint64
 )
 
-func GetTxProve(src chains.ChainInterface, aLog *types.Log) []byte {
+func GetTxProve(src chains.ChainInterface, aLog *types.Log, eventResponse *types2.EventLogSwapOutResponse) []byte {
 
 	// 调用以太坊接口获取 receipts
 	blockNumber := aLog.BlockNumber
@@ -38,11 +39,11 @@ func GetTxProve(src chains.ChainInterface, aLog *types.Log) []byte {
 	}
 
 	txProve := TxProve{
-		//Tx: &TxParams{
-		//	From:  fromAddr.Bytes(),
-		//	To:    toAddr.Bytes(),
-		//	Value: SendValue,
-		//},
+		Tx: &TxParams{
+			From:  aLog.Topics[2].Bytes(),
+			To:    aLog.Topics[3].Bytes(),
+			Value: eventResponse.Amount,
+		},
 		Receipt:          receipts[transactionIndex],
 		Prove:            proof.NodeList(),
 		TransactionIndex: transactionIndex,

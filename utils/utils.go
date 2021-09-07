@@ -24,3 +24,21 @@ func EthToWei(Value *big.Int) *big.Int {
 	value := new(big.Int).Mul(Value, baseUnit)
 	return value
 }
+func ByteArray2Byte32Array(input *[]byte) *[][32]byte {
+	var output = make([][32]byte, 0)
+	var cur = 0
+	var byteLen = len(*input)
+	for {
+		if cur+32 >= byteLen {
+			break
+		}
+		curByte := [32]byte{}
+		copy(curByte[:], (*input)[cur:cur+32])
+		output = append(output, curByte)
+		cur += 32
+	}
+	curByte := [32]byte{}
+	copy(curByte[:], (*input)[cur:])
+	output = append(output, curByte)
+	return &output
+}
