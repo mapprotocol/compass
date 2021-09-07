@@ -1,7 +1,6 @@
 package events
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -10,6 +9,7 @@ import (
 	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	types2 "github.com/mapprotocol/compass/types"
+	"github.com/mapprotocol/compass/utils"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -18,7 +18,7 @@ var (
 	abiRouter, _  = abi.JSON(strings.NewReader(abi2.RouterContractAbi))
 	eventResponse types2.EventLogSwapOutResponse
 	err           error
-	data          []byte
+	txProve       []byte
 	tx            *types.Transaction
 )
 
@@ -27,24 +27,21 @@ func HandleLogSwapOut(aLog *types.Log) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	data = atlas.GetTxProve(cmd_runtime.SrcInstance, aLog)
+	txProve = atlas.GetTxProve(cmd_runtime.SrcInstance, aLog, &eventResponse)
 
-	contractAddress := common.BytesToAddress(aLog.Topics[0].Bytes())
 	token := common.BytesToAddress(aLog.Topics[1].Bytes())
 	to := common.BytesToAddress(aLog.Topics[3].Bytes())
 
-	fmt.Printf("%+v", eventResponse)
-	fmt.Printf("%+v", aLog.Topics)
 	// swapIn(uint256 id, address token, address to, uint amount, uint fromChainID, bytes32[] memory data)
-	//todo byte32 parse error
 	input := chain_tools.PackInput(abiRouter, "swapIn",
 		eventResponse.OrderId,
 		token,
 		to,
 		eventResponse.Amount,
 		eventResponse.FromChainID,
-		contractAddress,
-		data)
+		aLog.Address,
+		utils.ByteArray2Byte32Array(&txProve))
+
 	for {
 		for {
 			tx = chain_tools.SendContractTransactionWithoutOutputUnlessError(cmd_runtime.DstInstance.GetClient(),
