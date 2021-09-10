@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	abi2 "github.com/mapprotocol/compass/abi"
-	"github.com/mapprotocol/compass/atlas"
 	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/types"
@@ -118,6 +118,6 @@ func (t *TypeEther) GetBlockHeader(num uint64) *[]byte {
 	if err != nil {
 		return &[]byte{}
 	}
-	data, _ := json.Marshal([]*atlas.Header{chain_tools.ConvertHeader(block.Header())})
+	data, _ := json.Marshal([]*types2.Header{block.Header()})
 	return &data
 }
