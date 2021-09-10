@@ -135,6 +135,14 @@ func listenEventThread() {
 				if strings.Contains(eventSwapOutArrayStr, aLog.TxHash.String()) {
 					continue
 				}
+				for {
+					if aLog.BlockNumber > currentWorkedBlockNumber {
+						_ = queryServerBlockNumber()
+						time.Sleep(5 * time.Second)
+					} else {
+						break
+					}
+				}
 				events.HandleLogSwapOut(&aLog)
 
 				println()
@@ -175,7 +183,7 @@ func updateCanDoThread() {
 			if getHeight.Relayer && getHeight.Start.Uint64() <= getDstBlockNumber() && getHeight.End.Uint64() >= curDstBlockNumber {
 				if !canDo {
 					//There is no room for errors when canDo convert from false to true
-					if _, err := queryServerBlockNumber(); err != nil {
+					if err := queryServerBlockNumber(); err != nil {
 						log.Infoln("updateCurrentBlockNumber rpc call error")
 						time.Sleep(time.Minute)
 						continue
@@ -234,12 +242,12 @@ func updateBlockNumberThread(chainImpl chains.ChainInterface, blockNumber *uint6
 		}
 	}()
 }
-func queryServerBlockNumber() (uint64, error) {
+func queryServerBlockNumber() error {
 
 	headerCurrentNumber := http_call.HeaderCurrentNumber(cmd_runtime.DstInstance.GetRpcUrl(), cmd_runtime.SrcInstance.GetChainId())
 	if headerCurrentNumber != ^uint64(0) && headerCurrentNumber >= currentWorkedBlockNumber {
 		currentWorkedBlockNumber = headerCurrentNumber
-		return headerCurrentNumber, nil
+		return nil
 	}
-	return 0, fmt.Errorf("get currentWorkingBlockNumber err")
+	return fmt.Errorf("get currentWorkingBlockNumber err")
 }
