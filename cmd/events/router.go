@@ -1,7 +1,6 @@
 package events
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -11,7 +10,6 @@ import (
 	"github.com/mapprotocol/compass/cmd/cmd_runtime"
 	types2 "github.com/mapprotocol/compass/types"
 	log "github.com/sirupsen/logrus"
-	"math/big"
 	"strings"
 	"time"
 )
@@ -43,12 +41,12 @@ func HandleLogSwapOut(aLog *types.Log) {
 	//	eventResponse.FromChainID,
 	//	aLog.Address,
 	//	txProve)
-	fmt.Printf("%+v", eventResponse)
+	//fmt.Printf("%+v", eventResponse)
 	input := chain_tools.PackInput(abiRouter, "txVerify",
-		common.BytesToAddress(aLog.Topics[0].Bytes()),
+		aLog.Address,
 		token,
-		big.NewInt(int64(cmd_runtime.SrcChainConfig.ChainId)),
-		big.NewInt(int64(cmd_runtime.DstChainConfig.ChainId)),
+		eventResponse.FromChainID,
+		eventResponse.ToChainID,
 		txProve)
 
 	for {

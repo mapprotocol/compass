@@ -3,12 +3,12 @@ package ethereum
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/json"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rlp"
 	abi2 "github.com/mapprotocol/compass/abi"
 	"github.com/mapprotocol/compass/chain_tools"
 	"github.com/mapprotocol/compass/chains"
@@ -118,6 +118,6 @@ func (t *TypeEther) GetBlockHeader(num uint64) *[]byte {
 	if err != nil {
 		return &[]byte{}
 	}
-	data, _ := json.Marshal([]*types2.Header{block.Header()})
+	data, _ := rlp.EncodeToBytes([]*types2.Header{block.Header()})
 	return &data
 }
