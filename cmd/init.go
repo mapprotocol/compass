@@ -18,6 +18,8 @@ func init() {
 		TimestampFormat: "2006-01-02 15:04:05",
 		FullTimestamp:   true,
 	})
+}
+func initDb() {
 	if _, err := os.Stat(runtimePath); os.IsNotExist(err) {
 		err := os.Mkdir(runtimePath, 0700)
 		if err != nil {
@@ -29,5 +31,4 @@ func init() {
 	if err != nil {
 		log.Fatal("open levelDbInstance file error :", err)
 	}
-
 }

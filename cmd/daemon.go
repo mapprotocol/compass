@@ -43,6 +43,7 @@ var (
 		Short: "Run rly daemon.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
+			initDb()
 			cmd_runtime.InitClient()
 			updateCanDoThread()
 			if cmd_runtime.BlockNumberByEstimation {
