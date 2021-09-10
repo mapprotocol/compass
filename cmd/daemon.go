@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/chains"
@@ -34,42 +35,54 @@ var (
 			return cmd_runtime.DstInstance.GetBlockNumber()
 		}
 	}
-	currentBlockNumber uint64 = 0
-	canDo                     = false
-	cmdDaemon                 = &cobra.Command{
+	currentWorkingBlockNumber uint64 = 0
+	currentWorkedBlockNumber  uint64 = 0
+	canDo                            = false
+	cmdDaemon                        = &cobra.Command{
 		Use:   "daemon ",
 		Short: "Run rly daemon.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-
 			cmd_runtime.InitClient()
-
 			updateCanDoThread()
 			if cmd_runtime.BlockNumberByEstimation {
 				updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumberByEstimation, 10)
 				updateBlockNumberThread(cmd_runtime.SrcInstance, &srcBlockNumberByEstimation, 10)
 			}
-			updateCurrentBlockNumberThread()
 			listenEventThread()
+			syncHeaderThread()
 			for {
 				time.Sleep(time.Hour)
 			}
-			//for {
-			//	if !canDo {
-			//		time.Sleep(time.Minute)
-			//		continue
-			//	}
-			//	if currentBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > getSrcBlockNumber() {
-			//		cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnStableBlock)
-			//		continue
-			//	}
-			//	byteData := cmd_runtime.SrcInstance.GetBlockHeader(currentBlockNumber)
-			//	cmd_runtime.DstInstance.Save(cmd_runtime.SrcInstance.GetChainId(), byteData)
-			//	currentBlockNumber += 1
-			//}
 		},
 	}
 )
+
+func syncHeaderThread() {
+	go func() {
+		for {
+			if currentWorkedBlockNumber == 0 {
+				time.Sleep(time.Second)
+			} else {
+				currentWorkingBlockNumber = currentWorkedBlockNumber
+				break
+			}
+		}
+		for {
+			if !canDo {
+				time.Sleep(time.Minute)
+				continue
+			}
+			if currentWorkingBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > getSrcBlockNumber() {
+				cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnStableBlock)
+				continue
+			}
+			byteData := cmd_runtime.SrcInstance.GetBlockHeader(currentWorkingBlockNumber)
+			cmd_runtime.DstInstance.Save(cmd_runtime.SrcInstance.GetChainId(), byteData)
+			currentWorkingBlockNumber += 1
+		}
+	}()
+}
 
 func listenEventThread() {
 	log.Infoln("listenEventThread started.")
@@ -97,8 +110,8 @@ func listenEventThread() {
 				continue
 			}
 
-			if i64SrcBlockNumber-from-int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader()) > 100 {
-				to = from + 100
+			if i64SrcBlockNumber-from-int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader()) > 99 {
+				to = from + 99
 			} else {
 				to = i64SrcBlockNumber - int64(cmd_runtime.SrcInstance.GetStableBlockBeforeHeader())
 			}
@@ -162,7 +175,7 @@ func updateCanDoThread() {
 			if getHeight.Relayer && getHeight.Start.Uint64() <= getDstBlockNumber() && getHeight.End.Uint64() >= curDstBlockNumber {
 				if !canDo {
 					//There is no room for errors when canDo convert from false to true
-					if updateCurrentBlockNumber() == ^uint64(0) {
+					if _, err := queryServerBlockNumber(); err != nil {
 						log.Infoln("updateCurrentBlockNumber rpc call error")
 						time.Sleep(time.Minute)
 						continue
@@ -221,23 +234,12 @@ func updateBlockNumberThread(chainImpl chains.ChainInterface, blockNumber *uint6
 		}
 	}()
 }
+func queryServerBlockNumber() (uint64, error) {
 
-func updateCurrentBlockNumberThread() {
-	go func() {
-		for {
-			time.Sleep(5 * time.Minute)
-			if canDo {
-				updateCurrentBlockNumber()
-			}
-		}
-	}()
-}
-
-func updateCurrentBlockNumber() uint64 {
 	headerCurrentNumber := http_call.HeaderCurrentNumber(cmd_runtime.DstInstance.GetRpcUrl(), cmd_runtime.SrcInstance.GetChainId())
-	if headerCurrentNumber != ^uint64(0) && headerCurrentNumber > currentBlockNumber {
-		currentBlockNumber = headerCurrentNumber + 1
+	if headerCurrentNumber != ^uint64(0) && headerCurrentNumber >= currentWorkedBlockNumber {
+		currentWorkedBlockNumber = headerCurrentNumber
+		return headerCurrentNumber, nil
 	}
-	log.Infoln("headerCurrentNumber =", headerCurrentNumber)
-	return headerCurrentNumber
+	return 0, fmt.Errorf("get currentWorkingBlockNumber err")
 }
