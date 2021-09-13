@@ -16,7 +16,17 @@ func ReadTomlConfig() {
 	_ = parseKey("global", rootTree, func() {
 		log.Fatal("Config.toml does not contain global block")
 	}).(*toml.Tree).Unmarshal(&GlobalConfigV)
+	if GlobalConfigV.StartWithBlock <= 0 {
+		GlobalConfigV.StartWithBlock = 1
+	}
 
+	if GlobalConfigV.BlockNumberLimitOnce == 0 {
+		GlobalConfigV.BlockNumberLimitOnce = 1
+	}
+	if GlobalConfigV.BlockNumberLimitOnce > 20 {
+		GlobalConfigV.BlockNumberLimitOnce = 20
+	}
+	println(GlobalConfigV.BlockNumberLimitOnce)
 	_ = parseKey("src_chain", rootTree, func() {
 		log.Fatal("Config.toml does not contain src_chain block")
 	}).(*toml.Tree).Unmarshal(&SrcChainConfig)

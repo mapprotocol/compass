@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func InitClient() {
+func InitConfigAndClient() {
 	ReadTomlConfig()
 
 	keystore := GlobalConfigV.Keystore
