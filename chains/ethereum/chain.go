@@ -113,11 +113,17 @@ func (t *TypeEther) GetBlockNumber() uint64 {
 	return 0
 }
 
-func (t *TypeEther) GetBlockHeader(num uint64) *[]byte {
-	block, err := t.client.BlockByNumber(context.Background(), big.NewInt(int64(num)))
-	if err != nil {
-		return &[]byte{}
+func (t *TypeEther) GetBlockHeader(num uint64, limit uint64) (*[]byte, error) {
+	var arr = make([]types2.Header, 0)
+	var i uint64
+	for i = 0; i < limit; i++ {
+		block, err := t.client.BlockByNumber(context.Background(), big.NewInt(int64(num+i)))
+		if err != nil {
+			return &[]byte{}, err
+		}
+		arr = append(arr, *block.Header())
 	}
-	data, _ := rlp.EncodeToBytes([]*types2.Header{block.Header()})
-	return &data
+
+	data, _ := rlp.EncodeToBytes(arr)
+	return &data, nil
 }
