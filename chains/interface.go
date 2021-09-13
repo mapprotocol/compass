@@ -14,7 +14,7 @@ type ChainInterface interface {
 	GetChainId() types.ChainId
 	GetBlockNumber() uint64
 	GetRpcUrl() string
-	GetBlockHeader(num uint64) *[]byte
+	GetBlockHeader(num uint64, limit uint64) (*[]byte, error)
 	GetAddress() string
 	SetTarget(keystoreStr string, password string)
 	GetPrivateKey() *ecdsa.PrivateKey

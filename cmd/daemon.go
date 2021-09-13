@@ -21,7 +21,9 @@ import (
 var (
 	srcBlockNumberByEstimation uint64 = 0
 	dstBlockNumberByEstimation uint64 = 0
-	getSrcBlockNumber                 = func() uint64 {
+	blockNumberLimit           uint64 = 3
+
+	getSrcBlockNumber = func() uint64 {
 		if cmd_runtime.BlockNumberByEstimation {
 			return srcBlockNumberByEstimation
 		} else {
@@ -78,9 +80,13 @@ func syncHeaderThread() {
 				cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnStableBlock)
 				continue
 			}
-			byteData := cmd_runtime.SrcInstance.GetBlockHeader(currentWorkingBlockNumber)
+			byteData, err := cmd_runtime.SrcInstance.GetBlockHeader(currentWorkingBlockNumber, blockNumberLimit)
+			if err != nil {
+				time.Sleep(10 * time.Second)
+				continue
+			}
 			cmd_runtime.DstInstance.Save(cmd_runtime.SrcInstance.GetChainId(), byteData)
-			currentWorkingBlockNumber += 1
+			currentWorkingBlockNumber += blockNumberLimit
 		}
 	}()
 }
