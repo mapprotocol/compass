@@ -75,17 +75,22 @@ func syncHeaderThread() {
 				time.Sleep(time.Minute)
 				continue
 			}
-			if currentWorkingBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > getSrcBlockNumber() {
+			srcBlockNumber := getSrcBlockNumber()
+			if currentWorkingBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() > srcBlockNumber {
 				cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnStableBlock)
 				continue
 			}
-			byteData, err := cmd_runtime.SrcInstance.GetBlockHeader(currentWorkingBlockNumber, cmd_runtime.GlobalConfigV.BlockNumberLimitOnce)
+			thisBlockNumberLimit := cmd_runtime.GlobalConfigV.BlockNumberLimitOnce
+			if currentWorkingBlockNumber+cmd_runtime.SrcInstance.GetStableBlockBeforeHeader()+thisBlockNumberLimit-1 > srcBlockNumber {
+				thisBlockNumberLimit = srcBlockNumber - currentWorkingBlockNumber - cmd_runtime.SrcInstance.GetStableBlockBeforeHeader() + 1
+			}
+			byteData, err := cmd_runtime.SrcInstance.GetBlockHeader(currentWorkingBlockNumber, thisBlockNumberLimit)
 			if err != nil {
 				time.Sleep(10 * time.Second)
 				continue
 			}
 			cmd_runtime.DstInstance.Save(cmd_runtime.SrcInstance.GetChainId(), byteData)
-			currentWorkingBlockNumber += cmd_runtime.GlobalConfigV.BlockNumberLimitOnce
+			currentWorkingBlockNumber += thisBlockNumberLimit
 		}
 	}()
 }

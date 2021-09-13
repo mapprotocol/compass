@@ -26,7 +26,6 @@ func ReadTomlConfig() {
 	if GlobalConfigV.BlockNumberLimitOnce > 20 {
 		GlobalConfigV.BlockNumberLimitOnce = 20
 	}
-	println(GlobalConfigV.BlockNumberLimitOnce)
 	_ = parseKey("src_chain", rootTree, func() {
 		log.Fatal("Config.toml does not contain src_chain block")
 	}).(*toml.Tree).Unmarshal(&SrcChainConfig)
