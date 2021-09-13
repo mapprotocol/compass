@@ -7,11 +7,14 @@ keystore="keystore.json"
 password = "1234561"
 # Suggest that block_number_by_estimation is true, if it is true, block_creating_seconds is more important
 # True will work a little faster，
-block_number_by_estimation = true
+block_number_by_estimation = false
 router_contract = ""
 # start_with_block, You can only change the value to a larger value, but cannot change it to a smaller value.
 # To change the value to a smaller value, you need to delete the database content
 start_with_block = 1
+# How many blocks are synchronized at one time? This value can only be between 1 and 20, preferably less than 10
+# nan will set to 1
+block_number_limit_once = 5
 
 [src_chain]
 #The name doesn't matter, it only shows up in the log

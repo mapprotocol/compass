@@ -24,7 +24,7 @@ var (
 				}
 				return
 			}
-			cmd_runtime.InitClient()
+			cmd_runtime.InitConfigAndClient()
 			displayOnce(false)
 		},
 	}
@@ -33,7 +33,7 @@ var (
 		Short: "Get account info every some seconds ,default 5 seconds.",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd_runtime.InitClient()
+			cmd_runtime.InitConfigAndClient()
 			var interval = 5
 			if len(args) != 0 {
 				if i, err := strconv.Atoi(args[0]); err == nil {

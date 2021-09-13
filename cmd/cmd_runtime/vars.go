@@ -27,7 +27,7 @@ var (
 		Message: "Unregistered",
 	}
 	StructUnStableBlock = &types.WaitTimeAndMessage{
-		Time:    time.Second * 2, //it will update at InitClient func
+		Time:    time.Second * 2, //it will update at InitConfigAndClient func
 		Message: "Unstable block",
 	}
 )

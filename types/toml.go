@@ -5,6 +5,7 @@ type GlobalConfig struct {
 	Password                string `toml:"password"`
 	BlockNumberByEstimation bool   `toml:"block_number_by_estimation"`
 	StartWithBlock          int64  `toml:"start_with_block"`
+	BlockNumberLimitOnce    uint64 `toml:"block_number_limit_once"`
 }
 type ChainConfig struct {
 	Name                       string  `toml:"name"`

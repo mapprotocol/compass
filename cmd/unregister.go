@@ -38,7 +38,7 @@ var (
 					log.Fatal("The value is at least 100000")
 				}
 			}
-			cmd_runtime.InitClient()
+			cmd_runtime.InitConfigAndClient()
 			valueWei := utils.EthToWei(&value)
 			if cmd_runtime.DstInstance.UnRegister(valueWei) {
 				println("There are no errors, you can query by subcommand info to see if it was successful.")

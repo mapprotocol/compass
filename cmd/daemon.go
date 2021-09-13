@@ -21,7 +21,6 @@ import (
 var (
 	srcBlockNumberByEstimation uint64 = 0
 	dstBlockNumberByEstimation uint64 = 0
-	blockNumberLimit           uint64 = 3
 
 	getSrcBlockNumber = func() uint64 {
 		if cmd_runtime.BlockNumberByEstimation {
@@ -46,7 +45,7 @@ var (
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			initDb()
-			cmd_runtime.InitClient()
+			cmd_runtime.InitConfigAndClient()
 			updateCanDoThread()
 			if cmd_runtime.BlockNumberByEstimation {
 				updateBlockNumberThread(cmd_runtime.DstInstance, &dstBlockNumberByEstimation, 10)
@@ -80,13 +79,13 @@ func syncHeaderThread() {
 				cmd_runtime.DisplayMessageAndSleep(cmd_runtime.StructUnStableBlock)
 				continue
 			}
-			byteData, err := cmd_runtime.SrcInstance.GetBlockHeader(currentWorkingBlockNumber, blockNumberLimit)
+			byteData, err := cmd_runtime.SrcInstance.GetBlockHeader(currentWorkingBlockNumber, cmd_runtime.GlobalConfigV.BlockNumberLimitOnce)
 			if err != nil {
 				time.Sleep(10 * time.Second)
 				continue
 			}
 			cmd_runtime.DstInstance.Save(cmd_runtime.SrcInstance.GetChainId(), byteData)
-			currentWorkingBlockNumber += blockNumberLimit
+			currentWorkingBlockNumber += cmd_runtime.GlobalConfigV.BlockNumberLimitOnce
 		}
 	}()
 }
