@@ -3,16 +3,13 @@ module github.com/mapprotocol/compass
 go 1.16
 
 require (
-	github.com/alexeyco/simpletable v1.0.0
-	github.com/btcsuite/btcd v0.22.0-beta // indirect
-	github.com/denisbrodbeck/machineid v1.0.1 // indirect
+	github.com/ChainSafe/chainbridge-substrate-events v0.0.0-20200715141113-87198532025e
+	github.com/ChainSafe/chainbridge-utils v1.0.6
+	github.com/ChainSafe/log15 v1.0.0
+	github.com/centrifuge/go-substrate-rpc-client v2.0.0+incompatible
+	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/ethereum/go-ethereum v1.10.8
-	github.com/mattn/go-runewidth v0.0.13 // indirect
-	github.com/pelletier/go-toml v1.9.3 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/spf13/cobra v1.2.1
-	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954 // indirect
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
-	golang.org/x/sys v0.0.0-20210909193231-528a39cd75f3 // indirect
-	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	github.com/prometheus/client_golang v1.4.1
+	github.com/stretchr/testify v1.7.0
+	github.com/urfave/cli/v2 v2.3.0
 )

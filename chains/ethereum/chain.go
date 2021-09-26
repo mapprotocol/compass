@@ -1,129 +1,225 @@
+// Copyright 2020 ChainSafe Systems
+// SPDX-License-Identifier: LGPL-3.0-only
+/*
+The ethereum package contains the logic for interacting with ethereum chains.
+
+There are 3 major components: the connection, the listener, and the writer.
+The currently supported transfer types are Fungible (ERC20), Non-Fungible (ERC721), and generic.
+
+Connection
+
+The connection contains the ethereum RPC client and can be accessed by both the writer and listener.
+
+Listener
+
+The listener polls for each new block and looks for deposit events in the bridge contract. If a deposit occurs, the listener will fetch additional information from the handler before constructing a message and forwarding it to the router.
+
+Writer
+
+The writer recieves the message and creates a proposals on-chain. Once a proposal is made, the writer then watches for a finalization event and will attempt to execute the proposal if a matching event occurs. The writer skips over any proposals it has already seen.
+*/
 package ethereum
 
 import (
-	"context"
-	"crypto/ecdsa"
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
-	types2 "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rlp"
-	abi2 "github.com/mapprotocol/compass/abi"
-	"github.com/mapprotocol/compass/chain_tools"
-	"github.com/mapprotocol/compass/chains"
-	"github.com/mapprotocol/compass/types"
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"math/big"
-	"strings"
-	"time"
+
+	"github.com/ChainSafe/chainbridge-utils/blockstore"
+	"github.com/ChainSafe/chainbridge-utils/core"
+	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
+	"github.com/ChainSafe/chainbridge-utils/keystore"
+	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
+	"github.com/ChainSafe/chainbridge-utils/msg"
+	"github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
+	bridge "github.com/mapprotocol/compass/bindings/Bridge"
+	erc20Handler "github.com/mapprotocol/compass/bindings/ERC20Handler"
+	erc721Handler "github.com/mapprotocol/compass/bindings/ERC721Handler"
+	"github.com/mapprotocol/compass/bindings/GenericHandler"
+	connection "github.com/mapprotocol/compass/connections/ethereum"
+	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
-type TypeEther struct {
-	base                       chains.ChainImplBase
-	client                     *ethclient.Client
-	address                    common.Address    //if SetTarget is not called ,it's nil
-	privateKey                 *ecdsa.PrivateKey //if SetTarget is not called ,it's nil
-	relayerContractAddress     common.Address
-	headerStoreContractAddress common.Address
+var _ core.Chain = &Chain{}
+
+var _ Connection = &connection.Connection{}
+
+type Connection interface {
+	Connect() error
+	Keypair() *secp256k1.Keypair
+	Opts() *bind.TransactOpts
+	CallOpts() *bind.CallOpts
+	LockAndUpdateOpts() error
+	UnlockOpts()
+	Client() *ethclient.Client
+	EnsureHasBytecode(address common.Address) error
+	LatestBlock() (*big.Int, error)
+	WaitForBlock(block *big.Int, delay *big.Int) error
+	Close()
 }
 
-func (t *TypeEther) GetClient() *ethclient.Client {
-	return t.client
+type Chain struct {
+	cfg      *core.ChainConfig // The config of the chain
+	conn     Connection        // THe chains connection
+	listener *listener         // The listener of this chain
+	writer   *writer           // The writer of the chain
+	stop     chan<- int
 }
 
-func (t *TypeEther) GetPrivateKey() *ecdsa.PrivateKey {
-	return t.privateKey
-}
-
-func (t *TypeEther) GetStableBlockBeforeHeader() uint64 {
-	return t.base.StableBlockBeforeHeader
-
-}
-
-func (t *TypeEther) NumberOfSecondsOfBlockCreationTime() time.Duration {
-	return t.base.NumberOfSecondsOfBlockCreationTime
-}
-
-func (t *TypeEther) Save(from types.ChainId, data *[]byte) {
-	var abiStaking, _ = abi.JSON(strings.NewReader(abi2.HeaderStoreContractAbi))
-	input := chain_tools.PackInput(abiStaking, "save",
-		big.NewInt(int64(from)),
-		big.NewInt(int64(t.GetChainId())),
-		data,
-	)
-	tx := chain_tools.SendContractTransactionWithoutOutputUnlessError(t.client, t.address, t.headerStoreContractAddress, nil, t.GetPrivateKey(), input)
-	if tx == nil {
-		log.Infoln("Save failed")
-		return
+// checkBlockstore queries the blockstore for the latest known block. If the latest block is
+// greater than cfg.startBlock, then cfg.startBlock is replaced with the latest known block.
+func setupBlockstore(cfg *Config, kp *secp256k1.Keypair) (*blockstore.Blockstore, error) {
+	bs, err := blockstore.NewBlockstore(cfg.blockstorePath, cfg.id, kp.Address())
+	if err != nil {
+		return nil, err
 	}
-	log.Infoln("Save tx hash :", tx.Hash().String())
-	chain_tools.WaitingForEndPending(t.client, tx.Hash(), 50)
-}
 
-func NewEthChain(name string, chainId types.ChainId, seconds int, rpcUrl string, stableBlockBeforeHeader uint64,
-	relayerContractAddressStr string, headerStoreContractAddressStr string) *TypeEther {
-	ret := TypeEther{
-		base: chains.ChainImplBase{
-			Name:                               name,
-			ChainId:                            chainId,
-			NumberOfSecondsOfBlockCreationTime: time.Duration(seconds) * time.Second,
-			RpcUrl:                             rpcUrl,
-			StableBlockBeforeHeader:            stableBlockBeforeHeader,
-		},
-		client:                     chain_tools.GetClientByUrl(rpcUrl),
-		relayerContractAddress:     common.HexToAddress(relayerContractAddressStr),
-		headerStoreContractAddress: common.HexToAddress(headerStoreContractAddressStr),
-	}
-	return &ret
-}
-
-func (t *TypeEther) GetAddress() string {
-	return t.address.String()
-}
-
-func (t *TypeEther) SetTarget(keystoreStr string, password string) {
-	if t.relayerContractAddress.String() == "0x0000000000000000000000000000000000000000" ||
-		t.headerStoreContractAddress.String() == "0x0000000000000000000000000000000000000000" {
-		log.Fatal(t.GetName(), " cannot be target, relayer_contract_address and header_store_contract_address are required for target.")
-	}
-	key, _ := chain_tools.LoadPrivateKey(keystoreStr, password)
-	t.privateKey = key.PrivateKey
-	t.address = crypto.PubkeyToAddress(key.PrivateKey.PublicKey)
-
-}
-
-func (t *TypeEther) GetName() string {
-	return t.base.Name
-}
-
-func (t *TypeEther) GetRpcUrl() string {
-	return t.base.RpcUrl
-}
-
-func (t *TypeEther) GetChainId() types.ChainId {
-	return t.base.ChainId
-}
-
-func (t *TypeEther) GetBlockNumber() uint64 {
-	num, err := t.client.BlockNumber(context.Background())
-	if err == nil {
-		return num
-	}
-	return 0
-}
-
-func (t *TypeEther) GetBlockHeader(num uint64, limit uint64) (*[]byte, error) {
-	var arr = make([]types2.Header, 0)
-	var i uint64
-	for i = 0; i < limit; i++ {
-		block, err := t.client.BlockByNumber(context.Background(), big.NewInt(int64(num+i)))
+	if !cfg.freshStart {
+		latestBlock, err := bs.TryLoadLatestBlock()
 		if err != nil {
-			return &[]byte{}, err
+			return nil, err
 		}
-		arr = append(arr, *block.Header())
+
+		if latestBlock.Cmp(cfg.startBlock) == 1 {
+			cfg.startBlock = latestBlock
+		}
 	}
 
-	data, _ := rlp.EncodeToBytes(arr)
-	return &data, nil
+	return bs, nil
+}
+
+func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics) (*Chain, error) {
+	cfg, err := parseChainConfig(chainCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	kpI, err := keystore.KeypairFromAddress(cfg.from, keystore.EthChain, cfg.keystorePath, chainCfg.Insecure)
+	if err != nil {
+		return nil, err
+	}
+	kp, _ := kpI.(*secp256k1.Keypair)
+
+	bs, err := setupBlockstore(cfg, kp)
+	if err != nil {
+		return nil, err
+	}
+
+	stop := make(chan int)
+	conn := connection.NewConnection(cfg.endpoint, cfg.http, kp, logger, cfg.gasLimit, cfg.maxGasPrice, cfg.gasMultiplier, cfg.egsApiKey, cfg.egsSpeed)
+	err = conn.Connect()
+	if err != nil {
+		return nil, err
+	}
+	err = conn.EnsureHasBytecode(cfg.bridgeContract)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.erc20HandlerContract != utils.ZeroAddress {
+		err = conn.EnsureHasBytecode(cfg.erc20HandlerContract)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if cfg.genericHandlerContract != utils.ZeroAddress {
+		err = conn.EnsureHasBytecode(cfg.genericHandlerContract)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	bridgeContract, err := bridge.NewBridge(cfg.bridgeContract, conn.Client())
+	if err != nil {
+		return nil, err
+	}
+
+	chainId, err := bridgeContract.ChainID(conn.CallOpts())
+	if err != nil {
+		return nil, err
+	}
+
+	if chainId != uint8(chainCfg.Id) {
+		return nil, fmt.Errorf("chainId (%d) and configuration chainId (%d) do not match", chainId, chainCfg.Id)
+	}
+
+	erc20HandlerContract, err := erc20Handler.NewERC20Handler(cfg.erc20HandlerContract, conn.Client())
+	if err != nil {
+		return nil, err
+	}
+
+	erc721HandlerContract, err := erc721Handler.NewERC721Handler(cfg.erc721HandlerContract, conn.Client())
+	if err != nil {
+		return nil, err
+	}
+
+	genericHandlerContract, err := GenericHandler.NewGenericHandler(cfg.genericHandlerContract, conn.Client())
+	if err != nil {
+		return nil, err
+	}
+
+	if chainCfg.LatestBlock {
+		curr, err := conn.LatestBlock()
+		if err != nil {
+			return nil, err
+		}
+		cfg.startBlock = curr
+	}
+
+	listener := NewListener(conn, cfg, logger, bs, stop, sysErr, m)
+	listener.setContracts(bridgeContract, erc20HandlerContract, erc721HandlerContract, genericHandlerContract)
+
+	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
+	writer.setContract(bridgeContract)
+
+	return &Chain{
+		cfg:      chainCfg,
+		conn:     conn,
+		writer:   writer,
+		listener: listener,
+		stop:     stop,
+	}, nil
+}
+
+func (c *Chain) SetRouter(r *core.Router) {
+	r.Listen(c.cfg.Id, c.writer)
+	c.listener.setRouter(r)
+}
+
+func (c *Chain) Start() error {
+	err := c.listener.start()
+	if err != nil {
+		return err
+	}
+
+	err = c.writer.start()
+	if err != nil {
+		return err
+	}
+
+	c.writer.log.Debug("Successfully started chain")
+	return nil
+}
+
+func (c *Chain) Id() msg.ChainId {
+	return c.cfg.Id
+}
+
+func (c *Chain) Name() string {
+	return c.cfg.Name
+}
+
+func (c *Chain) LatestBlock() metrics.LatestBlock {
+	return c.listener.latestBlock
+}
+
+// Stop signals to any running routines to exit
+func (c *Chain) Stop() {
+	close(c.stop)
+	if c.conn != nil {
+		c.conn.Close()
+	}
 }
