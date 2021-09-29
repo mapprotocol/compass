@@ -2,19 +2,21 @@ package libs
 
 import (
 	"encoding/json"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/peterbourgon/diskv"
 	"math/big"
 	"os"
 	filepath2 "path/filepath"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/peterbourgon/diskv"
 )
 
 var (
+	RpcUrl                 = GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "2", keyInBlockChainMap)].RpcUrl
+	StakingContractAddress = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "2", keyInBlockChainMap)].StakingContractAddress)
+	DataContractAddress    = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "2", keyInBlockChainMap)].DataContractAddress)
+	ChainId                = big.NewInt(97) // mode
+
 	SendTransactionValue    = big.NewInt(1000000000000000000)
-	RpcUrl                  = GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].RpcUrl
-	StakingContractAddress  = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].StakingContractAddress)
-	DataContractAddress     = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].DataContractAddress)
-	ChainId                 = big.NewInt(137)
 	SendTransactionGasLimit = uint64(21000)
 	ToAddress               = common.HexToAddress("0x799E24dC6B48549BbD1Fc9fcCa4d72880d8c7a15")
 	SignLogFile, _          = os.OpenFile(LogFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0700)
@@ -27,11 +29,18 @@ var (
 	})
 	blockChainMap         map[string]Chain
 	ExternalBlockChainMap map[string]Chain
-	internalBlockChainMap = map[string]Chain{"1": {
-		"https://rpc-mainnet.maticvigil.com/",
-		"0x567F5d1Bb4c095E7fD0AC939be1aeb1c661413a8",
-		"0x611A4593f4d4BA964E789a2E4681FA97364F73Cf",
-	}}
+	internalBlockChainMap = map[string]Chain{
+		"1": {
+			"https://rpc-mainnet.maticvigil.com/",
+			"0x567F5d1Bb4c095E7fD0AC939be1aeb1c661413a8",
+			"0x611A4593f4d4BA964E789a2E4681FA97364F73Cf",
+		},
+		"2": {
+			"https://data-seed-prebsc-1-s1.binance.org:8545/",
+			"0xe2B4C376ca6Aa0a291E221C96D57a57b4Ab41C15",
+			"0xe2B4C376ca6Aa0a291E221C96D57a57b4Ab41C15",
+		},
+	}
 	ExternalBlockChainKey = "externalBlockChain"
 )
 

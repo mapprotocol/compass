@@ -3,16 +3,16 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/spf13/cobra"
 	"log"
 	"math/big"
 	"math/rand"
 	"os"
 	"signmap/libs"
-	"signmap/libs/contracts/matic_data"
-	"signmap/libs/contracts/matic_staking"
+	"signmap/libs/contracts/staking_bsc"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -28,11 +28,11 @@ var (
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			libs.GetKey("")
-			if bytes.Equal(matic_data.BindAddress().Bytes(), common.Address{}.Bytes()) {
+			if bytes.Equal(staking_bsc.BindAddress().Bytes(), common.Address{}.Bytes()) {
 				println("Worker not set！ please set a worker.")
 				os.Exit(1)
 			}
-			amount := matic_data.GetData()
+			amount := staking_bsc.GetData()
 			if amount == nil || amount == big.NewInt(0) {
 				println("No pledge yet, please pledge first.")
 				os.Exit(1)
@@ -49,7 +49,7 @@ var (
 
 			signUnit = rand.Intn(24 * 60) //for production
 
-			lastSignTimestamp, ok := matic_data.GetLastSign()
+			lastSignTimestamp, ok := staking_bsc.GetLastSign()
 			if lastSignTimestamp.Int64() == 0 && ok {
 				doing = true
 				doSign()
@@ -77,7 +77,7 @@ var (
 						doing = true
 
 						// Determine if you have signed it today
-						lastSignTimestamp, _ = matic_data.GetLastSign()
+						lastSignTimestamp, _ = staking_bsc.GetLastSign()
 
 						if libs.Unix2Time(*lastSignTimestamp).UTC().Format("20060102") != time.Now().UTC().Format("20060102") {
 							doSign()
@@ -98,7 +98,7 @@ var (
 func doSign() {
 	log.Println("start signing.")
 	go func() {
-		if matic_staking.DO() {
+		if staking_bsc.DO() {
 			libs.WriteLog(fmt.Sprintf("%s %d Sign in successfully.", date, nowUnit))
 			signUnit = -1
 			balance = libs.GetBalance()
@@ -107,7 +107,7 @@ func doSign() {
 				log.Println("The next sign-in may fail, please recharge")
 			}
 			time.Sleep(10 * time.Second)
-			matic_data.GetData()
+			staking_bsc.GetData()
 
 		} else {
 			libs.WriteLog(fmt.Sprintf("-%s %d unkown if it worked.", date, nowUnit))
