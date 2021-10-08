@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"log"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func SendTransaction() {
@@ -59,11 +61,9 @@ func SendTransaction() {
 	fmt.Printf("tx sent: %s", signedTx.Hash().Hex())
 }
 
-func GetBalance() *big.Int {
+func GetBalance(addr common.Address) *big.Int {
 	client := GetClient()
-	privateKey := GetKey("")
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
-	balance, err := client.BalanceAt(context.Background(), fromAddress, nil)
+	balance, err := client.BalanceAt(context.Background(), addr, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

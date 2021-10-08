@@ -11,16 +11,14 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 )
 
-func GetData() *big.Int {
+func GetData(addr common.Address) *big.Int {
 	client := libs.GetClient()
 
-	libs.GetKey("")
-	fromAddress := BindAddress()
-
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
-	input := contracts.PackInput(abiStaking, "userInfos", fromAddress)
+	input := contracts.PackInput(abiStaking, "userInfos", addr)
 	userInfo := struct {
 		Amount        *big.Int
 		DayCount      *big.Int
@@ -31,7 +29,7 @@ func GetData() *big.Int {
 	var err error
 	var ret []byte
 	for i := 0; i < 3; i++ {
-		ret = contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
+		ret = contracts.CallContract(client, addr, libs.DataContractAddress, input)
 		err = abiStaking.UnpackIntoInterface(&userInfo, "userInfos", ret)
 		if err == nil {
 			break
@@ -55,10 +53,10 @@ func GetData() *big.Int {
 	fmt.Printf("%f was pledged, ", libs.WeiToEther(userInfo.Amount))
 
 	var award *big.Int
-	input = contracts.PackInput(abiStaking, "getAward", fromAddress)
+	input = contracts.PackInput(abiStaking, "getAward", addr)
 
 	for i := 0; i < 3; i++ {
-		ret = contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
+		ret = contracts.CallContract(client, addr, libs.DataContractAddress, input)
 		err = abiStaking.UnpackIntoInterface(&award, "getAward", ret)
 		if err == nil {
 			break

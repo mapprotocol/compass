@@ -8,15 +8,15 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 )
 
-func GetLastSign() (*big.Int, bool) {
+func GetLastSign(addr common.Address) (*big.Int, bool) {
 	client := libs.GetClient()
 
-	fromAddress := BindAddress()
 	var abiStaking, _ = abi.JSON(strings.NewReader(curAbi))
-	input := contracts.PackInput(abiStaking, "getLastSign", fromAddress)
-	ret := contracts.CallContract(client, fromAddress, libs.DataContractAddress, input)
+	input := contracts.PackInput(abiStaking, "getLastSign", addr)
+	ret := contracts.CallContract(client, addr, libs.DataContractAddress, input)
 	var res = big.NewInt(0)
 	if len(ret) == 0 {
 		log.Println("getLastSign error.")
