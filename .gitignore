@@ -22,6 +22,7 @@ coverage.txt
 build/
 bin/
 site/
+target/
 
 # golang
 .env
