@@ -2,16 +2,18 @@ package libs
 
 import (
 	"encoding/json"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/peterbourgon/diskv"
 	"math/big"
 	"os"
 	filepath2 "path/filepath"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/peterbourgon/diskv"
 )
 
 var (
 	SendTransactionValue    = big.NewInt(1000000000000000000)
 	RpcUrl                  = GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].RpcUrl
+	EthRpcUrl               = "https://mainnet.infura.io/v3/8a12910e30bb4e4ab04cd8d761a0552d"
 	StakingContractAddress  = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].StakingContractAddress)
 	DataContractAddress     = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "1", keyInBlockChainMap)].DataContractAddress)
 	ChainId                 = big.NewInt(137)

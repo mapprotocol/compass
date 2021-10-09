@@ -1,12 +1,14 @@
 package libs
 
 import (
-	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
+
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 var (
-	client *ethclient.Client
+	client    *ethclient.Client
+	ethClient *ethclient.Client
 )
 
 func GetClient() *ethclient.Client {
@@ -18,4 +20,15 @@ func GetClient() *ethclient.Client {
 		}
 	}
 	return client
+}
+
+func GetEthClient() *ethclient.Client {
+	if ethClient == nil {
+		var err error
+		ethClient, err = ethclient.Dial(EthRpcUrl)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	return ethClient
 }

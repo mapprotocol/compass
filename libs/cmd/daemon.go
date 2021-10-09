@@ -3,8 +3,6 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/spf13/cobra"
 	"log"
 	"math/big"
 	"math/rand"
@@ -13,6 +11,10 @@ import (
 	"signmap/libs/contracts/matic_data"
 	"signmap/libs/contracts/matic_staking"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -27,8 +29,12 @@ var (
 		Short: "(Default) Run signmap daemon .",
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
+			privateKey := libs.GetKey("")
+			fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+			bindAddress := matic_data.BindAddress()
+
 			libs.GetKey("")
-			if bytes.Equal(matic_data.BindAddress().Bytes(), common.Address{}.Bytes()) {
+			if bytes.Equal(bindAddress.Bytes(), common.Address{}.Bytes()) {
 				println("Worker not set！ please set a worker.")
 				os.Exit(1)
 			}
@@ -42,6 +48,14 @@ var (
 				println("Lack of balance. The balance is： ", libs.WeiToEther(balance))
 				os.Exit(1)
 			}
+
+			bindBalance := libs.GetEthBalance(bindAddress)
+			// print info
+			log.Println("Pledge Account: ", bindAddress.Hex())
+			log.Println("Pledge Balance: ", libs.WeiToEther(bindBalance), "ETH")
+			log.Println("Worker Account: ", fromAddress.Hex())
+			log.Println("Worker Balance: ", libs.WeiToEther(balance), "MATIC")
+
 			rand.Seed(time.Now().UnixNano())
 			libs.WriteLog(time.Now().Format("-20060102 15:04:05") + ". starting success!")
 			log.Println("Start-up success")

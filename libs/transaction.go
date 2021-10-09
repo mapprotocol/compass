@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"log"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func SendTransaction() {
@@ -64,6 +66,15 @@ func GetBalance() *big.Int {
 	privateKey := GetKey("")
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 	balance, err := client.BalanceAt(context.Background(), fromAddress, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return balance
+}
+
+func GetEthBalance(addr common.Address) *big.Int {
+	client := GetEthClient()
+	balance, err := client.BalanceAt(context.Background(), addr, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
