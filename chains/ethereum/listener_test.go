@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chainbridge-utils/blockstore"
-	"github.com/ChainSafe/chainbridge-utils/msg"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -19,6 +17,8 @@ import (
 	"github.com/mapprotocol/compass/bindings/ERC20Handler"
 	"github.com/mapprotocol/compass/bindings/ERC721Handler"
 	"github.com/mapprotocol/compass/bindings/GenericHandler"
+	"github.com/mapprotocol/compass/blockstore"
+	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	ethtest "github.com/mapprotocol/compass/shared/ethereum/testing"
 )

@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/chainbridge-utils/core"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/core"
 )
 
 //TestParseChainConfig tests parseChainConfig with all handlerContracts provided

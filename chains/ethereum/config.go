@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ChainSafe/chainbridge-utils/core"
-	"github.com/ChainSafe/chainbridge-utils/msg"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/connections/ethereum/egs"
+	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
@@ -22,10 +22,8 @@ const DefaultGasMultiplier = 1
 
 // Chain specific options
 var (
-	BridgeOpt             = "bridge"
-	Erc20HandlerOpt       = "erc20Handler"
-	Erc721HandlerOpt      = "erc721Handler"
-	GenericHandlerOpt     = "genericHandler"
+	BridgeOpt = "bridge"
+	//GenericHandlerOpt     = "genericHandler"
 	MaxGasPriceOpt        = "maxGasPrice"
 	GasLimitOpt           = "gasLimit"
 	GasMultiplier         = "gasMultiplier"
@@ -38,50 +36,45 @@ var (
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
 type Config struct {
-	name                   string      // Human-readable chain name
-	id                     msg.ChainId // ChainID
-	endpoint               string      // url for rpc endpoint
-	from                   string      // address of key to use
-	keystorePath           string      // Location of keyfiles
-	blockstorePath         string
-	freshStart             bool // Disables loading from blockstore at start
-	bridgeContract         common.Address
-	erc20HandlerContract   common.Address
-	erc721HandlerContract  common.Address
-	genericHandlerContract common.Address
-	gasLimit               *big.Int
-	maxGasPrice            *big.Int
-	gasMultiplier          *big.Float
-	http                   bool // Config for type of connection
-	startBlock             *big.Int
-	blockConfirmations     *big.Int
-	egsApiKey              string // API key for ethgasstation to query gas prices
-	egsSpeed               string // The speed which a transaction should be processed: average, fast, fastest. Default: fast
+	name           string      // Human-readable chain name
+	id             msg.ChainId // ChainID
+	endpoint       string      // url for rpc endpoint
+	from           string      // address of key to use
+	keystorePath   string      // Location of keyfiles
+	blockstorePath string
+	freshStart     bool // Disables loading from blockstore at start
+	bridgeContract common.Address
+	//genericHandlerContract common.Address
+	gasLimit           *big.Int
+	maxGasPrice        *big.Int
+	gasMultiplier      *big.Float
+	http               bool // Config for type of connection
+	startBlock         *big.Int
+	blockConfirmations *big.Int
+	egsApiKey          string // API key for ethgasstation to query gas prices
+	egsSpeed           string // The speed which a transaction should be processed: average, fast, fastest. Default: fast
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
 func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 
 	config := &Config{
-		name:                   chainCfg.Name,
-		id:                     chainCfg.Id,
-		endpoint:               chainCfg.Endpoint,
-		from:                   chainCfg.From,
-		keystorePath:           chainCfg.KeystorePath,
-		blockstorePath:         chainCfg.BlockstorePath,
-		freshStart:             chainCfg.FreshStart,
-		bridgeContract:         utils.ZeroAddress,
-		erc20HandlerContract:   utils.ZeroAddress,
-		erc721HandlerContract:  utils.ZeroAddress,
-		genericHandlerContract: utils.ZeroAddress,
-		gasLimit:               big.NewInt(DefaultGasLimit),
-		maxGasPrice:            big.NewInt(DefaultGasPrice),
-		gasMultiplier:          big.NewFloat(DefaultGasMultiplier),
-		http:                   false,
-		startBlock:             big.NewInt(0),
-		blockConfirmations:     big.NewInt(0),
-		egsApiKey:              "",
-		egsSpeed:               "",
+		name:               chainCfg.Name,
+		id:                 chainCfg.Id,
+		endpoint:           chainCfg.Endpoint,
+		from:               chainCfg.From,
+		keystorePath:       chainCfg.KeystorePath,
+		blockstorePath:     chainCfg.BlockstorePath,
+		freshStart:         chainCfg.FreshStart,
+		bridgeContract:     utils.ZeroAddress,
+		gasLimit:           big.NewInt(DefaultGasLimit),
+		maxGasPrice:        big.NewInt(DefaultGasPrice),
+		gasMultiplier:      big.NewFloat(DefaultGasMultiplier),
+		http:               false,
+		startBlock:         big.NewInt(0),
+		blockConfirmations: big.NewInt(0),
+		egsApiKey:          "",
+		egsSpeed:           "",
 	}
 
 	if contract, ok := chainCfg.Opts[BridgeOpt]; ok && contract != "" {
@@ -91,20 +84,10 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		return nil, fmt.Errorf("must provide opts.bridge field for ethereum config")
 	}
 
-	if contract, ok := chainCfg.Opts[Erc20HandlerOpt]; ok {
-		config.erc20HandlerContract = common.HexToAddress(contract)
-		delete(chainCfg.Opts, Erc20HandlerOpt)
-	}
-
-	if contract, ok := chainCfg.Opts[Erc721HandlerOpt]; ok {
-		config.erc721HandlerContract = common.HexToAddress(contract)
-		delete(chainCfg.Opts, Erc721HandlerOpt)
-	}
-
-	if contract, ok := chainCfg.Opts[GenericHandlerOpt]; ok {
-		config.genericHandlerContract = common.HexToAddress(contract)
-		delete(chainCfg.Opts, GenericHandlerOpt)
-	}
+	// if contract, ok := chainCfg.Opts[GenericHandlerOpt]; ok {
+	// 	config.genericHandlerContract = common.HexToAddress(contract)
+	// 	delete(chainCfg.Opts, GenericHandlerOpt)
+	// }
 
 	if gasPrice, ok := chainCfg.Opts[MaxGasPriceOpt]; ok {
 		price := big.NewInt(0)

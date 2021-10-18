@@ -15,14 +15,13 @@ import (
 
 	"strconv"
 
-	"github.com/ChainSafe/chainbridge-utils/core"
 	"github.com/ChainSafe/chainbridge-utils/metrics/health"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
-	"github.com/ChainSafe/chainbridge-utils/msg"
 	log "github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/chains/ethereum"
-	"github.com/mapprotocol/compass/chains/substrate"
 	"github.com/mapprotocol/compass/config"
+	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/msg"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/cli/v2"
 )
@@ -98,16 +97,16 @@ var accountCommand = cli.Command{
 }
 
 var (
-	Version = "0.0.1"
+	Version = "0.0.3"
 )
 
 // init initializes CLI
 func init() {
 	app.Action = run
-	app.Copyright = "Copyright 2019 ChainSafe Systems Authors"
-	app.Name = "chainbridge"
-	app.Usage = "ChainBridge"
-	app.Authors = []*cli.Author{{Name: "ChainSafe Systems 2019"}}
+	app.Copyright = "Copyright 2021 MAP Protocol 2021 Authors"
+	app.Name = "compass"
+	app.Usage = "Compass"
+	app.Authors = []*cli.Author{{Name: "MAP Protocol 2021"}}
 	app.Version = Version
 	app.EnableBashCompletion = true
 	app.Commands = []*cli.Command{
@@ -146,7 +145,7 @@ func run(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Info("Starting ChainBridge...")
+	log.Info("Starting Compass...")
 
 	cfg, err := config.GetConfig(ctx)
 	if err != nil {
@@ -196,9 +195,8 @@ func run(ctx *cli.Context) error {
 		}
 
 		if chain.Type == "ethereum" {
+			// only support eth
 			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m)
-		} else if chain.Type == "substrate" {
-			newChain, err = substrate.InitializeChain(chainConfig, logger, sysErr, m)
 		} else {
 			return errors.New("unrecognized Chain Type")
 		}
@@ -221,7 +219,7 @@ func run(ctx *cli.Context) error {
 				return err
 			}
 		}
-		h := health.NewHealthServer(port, c.Registry, int(blockTimeout))
+		h := health.NewHealthServer(port, c.ToUCoreRegistry(), int(blockTimeout))
 
 		go func() {
 			http.Handle("/metrics", promhttp.Handler())

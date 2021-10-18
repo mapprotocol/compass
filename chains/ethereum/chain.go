@@ -21,25 +21,19 @@ The writer recieves the message and creates a proposals on-chain. Once a proposa
 package ethereum
 
 import (
-	"fmt"
 	"math/big"
 
-	"github.com/ChainSafe/chainbridge-utils/blockstore"
-	"github.com/ChainSafe/chainbridge-utils/core"
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/chainbridge-utils/keystore"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
-	"github.com/ChainSafe/chainbridge-utils/msg"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	bridge "github.com/mapprotocol/compass/bindings/Bridge"
-	erc20Handler "github.com/mapprotocol/compass/bindings/ERC20Handler"
-	erc721Handler "github.com/mapprotocol/compass/bindings/ERC721Handler"
-	"github.com/mapprotocol/compass/bindings/GenericHandler"
+	"github.com/mapprotocol/compass/blockstore"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
+	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/msg"
 )
 
 var _ core.Chain = &Chain{}
@@ -118,49 +112,6 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		return nil, err
 	}
 
-	if cfg.erc20HandlerContract != utils.ZeroAddress {
-		err = conn.EnsureHasBytecode(cfg.erc20HandlerContract)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if cfg.genericHandlerContract != utils.ZeroAddress {
-		err = conn.EnsureHasBytecode(cfg.genericHandlerContract)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	bridgeContract, err := bridge.NewBridge(cfg.bridgeContract, conn.Client())
-	if err != nil {
-		return nil, err
-	}
-
-	chainId, err := bridgeContract.ChainID(conn.CallOpts())
-	if err != nil {
-		return nil, err
-	}
-
-	if chainId != uint8(chainCfg.Id) {
-		return nil, fmt.Errorf("chainId (%d) and configuration chainId (%d) do not match", chainId, chainCfg.Id)
-	}
-
-	erc20HandlerContract, err := erc20Handler.NewERC20Handler(cfg.erc20HandlerContract, conn.Client())
-	if err != nil {
-		return nil, err
-	}
-
-	erc721HandlerContract, err := erc721Handler.NewERC721Handler(cfg.erc721HandlerContract, conn.Client())
-	if err != nil {
-		return nil, err
-	}
-
-	genericHandlerContract, err := GenericHandler.NewGenericHandler(cfg.genericHandlerContract, conn.Client())
-	if err != nil {
-		return nil, err
-	}
-
 	if chainCfg.LatestBlock {
 		curr, err := conn.LatestBlock()
 		if err != nil {
@@ -169,11 +120,9 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		cfg.startBlock = curr
 	}
 
+	// simplified a little bit
 	listener := NewListener(conn, cfg, logger, bs, stop, sysErr, m)
-	listener.setContracts(bridgeContract, erc20HandlerContract, erc721HandlerContract, genericHandlerContract)
-
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
-	writer.setContract(bridgeContract)
 
 	return &Chain{
 		cfg:      chainCfg,

@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chainbridge-utils/keystore"
-	"github.com/ChainSafe/chainbridge-utils/msg"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/bindings/Bridge"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
+	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
