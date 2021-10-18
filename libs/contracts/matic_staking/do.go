@@ -2,15 +2,16 @@ package matic_staking
 
 import (
 	"context"
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"log"
 	"signmap/libs"
 	"signmap/libs/contracts"
 	"signmap/libs/contracts/matic_data"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func DO() bool {
@@ -34,7 +35,7 @@ func DO() bool {
 		return false
 	}
 	i := -1
-	tryTimes := 10
+	tryTimes := 100
 	sleepSecond := 5 * time.Second
 	for {
 		i += 1

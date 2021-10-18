@@ -125,7 +125,7 @@ func doSign() {
 
 		} else {
 			// add - let strings.HasPrefix(libs.GetLastLineWithSeek() return false
-			log.Println("Sign in unsuccessfully.")
+			log.Println("The server did not return the result,please check the status at the following website\nhttps://relayer.mapdapp.net/#/manage")
 			libs.WriteLog(fmt.Sprintf("-%s %d Sign in unsuccessfully.", date, nowUnit))
 		}
 		doing = false
