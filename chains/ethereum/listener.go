@@ -10,18 +10,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ChainSafe/chainbridge-utils/blockstore"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
-	"github.com/ChainSafe/chainbridge-utils/msg"
 	"github.com/ChainSafe/log15"
 	eth "github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/bindings/Bridge"
-	"github.com/mapprotocol/compass/bindings/ERC20Handler"
-	"github.com/mapprotocol/compass/bindings/ERC721Handler"
-	"github.com/mapprotocol/compass/bindings/GenericHandler"
+	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
@@ -30,20 +25,16 @@ var BlockRetryLimit = 5
 var ErrFatalPolling = errors.New("listener block polling failed")
 
 type listener struct {
-	cfg                    Config
-	conn                   Connection
-	router                 chains.Router
-	bridgeContract         *Bridge.Bridge // instance of bound bridge contract
-	erc20HandlerContract   *ERC20Handler.ERC20Handler
-	erc721HandlerContract  *ERC721Handler.ERC721Handler
-	genericHandlerContract *GenericHandler.GenericHandler
-	log                    log15.Logger
-	blockstore             blockstore.Blockstorer
-	stop                   <-chan int
-	sysErr                 chan<- error // Reports fatal error to core
-	latestBlock            metrics.LatestBlock
-	metrics                *metrics.ChainMetrics
-	blockConfirmations     *big.Int
+	cfg                Config
+	conn               Connection
+	router             chains.Router
+	log                log15.Logger
+	blockstore         blockstore.Blockstorer
+	stop               <-chan int
+	sysErr             chan<- error // Reports fatal error to core
+	latestBlock        metrics.LatestBlock
+	metrics            *metrics.ChainMetrics
+	blockConfirmations *big.Int
 }
 
 // NewListener creates and returns a listener
@@ -59,14 +50,6 @@ func NewListener(conn Connection, cfg *Config, log log15.Logger, bs blockstore.B
 		metrics:            m,
 		blockConfirmations: cfg.blockConfirmations,
 	}
-}
-
-// setContracts sets the listener with the appropriate contracts
-func (l *listener) setContracts(bridge *Bridge.Bridge, erc20Handler *ERC20Handler.ERC20Handler, erc721Handler *ERC721Handler.ERC721Handler, genericHandler *GenericHandler.GenericHandler) {
-	l.bridgeContract = bridge
-	l.erc20HandlerContract = erc20Handler
-	l.erc721HandlerContract = erc721Handler
-	l.genericHandlerContract = genericHandler
 }
 
 // sets the router
@@ -171,28 +154,9 @@ func (l *listener) getDepositEventsForBlock(latestBlock *big.Int) error {
 	for _, log := range logs {
 		var m msg.Message
 		destId := msg.ChainId(log.Topics[1].Big().Uint64())
-		rId := msg.ResourceIdFromSlice(log.Topics[2].Bytes())
-		nonce := msg.Nonce(log.Topics[3].Big().Uint64())
-
-		addr, err := l.bridgeContract.ResourceIDToHandlerAddress(&bind.CallOpts{From: l.conn.Keypair().CommonAddress()}, rId)
-		if err != nil {
-			return fmt.Errorf("failed to get handler from resource ID %x", rId)
-		}
-
-		if addr == l.cfg.erc20HandlerContract {
-			m, err = l.handleErc20DepositedEvent(destId, nonce)
-		} else if addr == l.cfg.erc721HandlerContract {
-			m, err = l.handleErc721DepositedEvent(destId, nonce)
-		} else if addr == l.cfg.genericHandlerContract {
-			m, err = l.handleGenericDepositedEvent(destId, nonce)
-		} else {
-			l.log.Error("event has unrecognized handler", "handler", addr.Hex())
-			return nil
-		}
-
-		if err != nil {
-			return err
-		}
+		// rId := msg.ResourceIdFromSlice(log.Topics[2].Bytes())
+		// nonce := msg.Nonce(log.Topics[3].Big().Uint64())
+		m.Destination = destId
 
 		err = l.router.Send(m)
 		if err != nil {

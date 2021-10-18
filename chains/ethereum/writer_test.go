@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/chainbridge-utils/msg"
 	"github.com/ChainSafe/log15"
 	eth "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/bindings/Bridge"
+	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	ethtest "github.com/mapprotocol/compass/shared/ethereum/testing"
 )

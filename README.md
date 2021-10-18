@@ -1,13 +1,5 @@
 # Compass
 
-<a href="https://discord.gg/ykXsJKfhgq">
-  <img alt="discord" src="https://img.shields.io/discord/593655374469660673?label=Discord&logo=discord&style=flat" />
-</a>
-<a href="https://github.com/ChainSafe/ChainBridge/actions">
-  <img alt="build status" src="https://github.com/ChainSafe/ChainBridge/workflows/Tests/badge.svg?branch=master" />
-</a>
-
-
 # Contents
 
 - [Getting Started](#getting-started)
@@ -166,8 +158,6 @@ $ make test
 Go tests specifically for ethereum, substrate and E2E can be run with
 ```
 $ make test-eth
-$ make test-sub
-$ make test-e2e
 ```
 
 # ChainSafe Security Policy
