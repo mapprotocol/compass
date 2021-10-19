@@ -58,7 +58,10 @@ var (
 			log.Println("Start-up success")
 			log.Println("Running process......")
 
-			signUnit = rand.Intn(24 * 60) //for production
+			// rand a minute from now on to the end of the day
+			signUnit, _ := libs.NowTime()
+			diff := rand.Intn(24*60 - signUnit)
+			signUnit += diff
 
 			lastSignTimestamp, ok := staking_bsc.GetLastSign(bindAddress)
 			if lastSignTimestamp.Int64() == 0 && ok {
@@ -121,6 +124,7 @@ func doSign(workAddr common.Address, bindAddr common.Address) {
 			staking_bsc.GetData(bindAddr)
 
 		} else {
+			log.Println("The server did not return the result,please check the status at the following website\nhttps://relayer.mapdapp.net/#/manage")
 			libs.WriteLog(fmt.Sprintf("-%s %d unkown if it worked.", date, nowUnit))
 		}
 		doing = false
