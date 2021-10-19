@@ -4,14 +4,12 @@
 package ethereum
 
 import (
-	"context"
 	"errors"
 	"math/big"
 	"time"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/msg"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
 // Number of blocks to wait for an finalization event
@@ -28,59 +26,53 @@ var ErrTxUnderpriced = errors.New("replacement transaction underpriced")
 var ErrFatalTx = errors.New("submission of transaction failed")
 var ErrFatalQuery = errors.New("query of chain state failed")
 
-// watchThenExecute watches for the latest block and executes once the matching finalized event is found
-func (w *writer) watchThenExecute(m msg.Message, data []byte, dataHash [32]byte, latestBlock *big.Int) {
-	w.log.Info("Watching for finalization event", "src", m.Source, "nonce", m.DepositNonce)
-
-	// watching for the latest block, querying and matching the finalized event will be retried up to ExecuteBlockWatchLimit times
-	for i := 0; i < ExecuteBlockWatchLimit; i++ {
+// executeMsg executes the msg, and send tx to the blockchain
+func (w *writer) executeMsg(m msg.Message) {
+	for i := 0; i < TxRetryLimit; i++ {
 		select {
 		case <-w.stop:
 			return
 		default:
-			// watch for the lastest block, retry up to BlockRetryLimit times
-			for waitRetrys := 0; waitRetrys < BlockRetryLimit; waitRetrys++ {
-				err := w.conn.WaitForBlock(latestBlock, w.cfg.blockConfirmations)
-				if err != nil {
-					w.log.Error("Waiting for block failed", "err", err)
-					// Exit if retries exceeded
-					if waitRetrys+1 == BlockRetryLimit {
-						w.log.Error("Waiting for block retries exceeded, shutting down")
-						w.sysErr <- ErrFatalQuery
-						return
-					}
-				} else {
-					break
-				}
-			}
-
-			// query for logs
-			query := buildQuery(w.cfg.bridgeContract, utils.ProposalEvent, latestBlock, latestBlock)
-			evts, err := w.conn.Client().FilterLogs(context.Background(), query)
+			err := w.conn.LockAndUpdateOpts()
 			if err != nil {
-				w.log.Error("Failed to fetch logs", "err", err)
+				w.log.Error("Failed to update nonce", "err", err)
 				return
 			}
+			// These store the gas limit and price before a transaction is sent for logging in case of a failure
+			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
+			gasLimit := w.conn.Opts().GasLimit
+			gasPrice := w.conn.Opts().GasPrice
+			nonce := w.conn.Opts().Nonce
 
-			// execute the proposal once we find the matching finalized event
-			for _, evt := range evts {
-				sourceId := evt.Topics[1].Big().Uint64()
-				depositNonce := evt.Topics[2].Big().Uint64()
-				status := evt.Topics[3].Big().Uint64()
+			// todo # sendtx using general method
+			tx := types.NewTransaction(nonce.Uint64(), w.cfg.bridgeContract, big.NewInt(0), gasLimit, gasPrice, nil)
 
-				if m.Source == msg.ChainId(sourceId) &&
-					m.DepositNonce.Big().Uint64() == depositNonce &&
-					utils.IsFinalized(uint8(status)) {
-					// todo
-					//w.executeProposal(m, data, dataHash)
-					return
-				} else {
-					w.log.Trace("Ignoring event", "src", sourceId, "nonce", depositNonce)
-				}
+			// err = w.conn.SendTransaction(context.Background(), signedTx)
+			// if err != nil {
+			// log.Fatal(err)
+			// }
+
+			// tx, err := w.bridgeContract.ExecuteProposal(
+			// 	w.conn.Opts(),
+			// 	uint8(m.Source),
+			// 	uint64(m.DepositNonce),
+			// 	data,
+			// 	m.ResourceId,
+			// )
+			w.conn.UnlockOpts()
+
+			if err == nil {
+				w.log.Info("Submitted proposal execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "gasPrice", tx.GasPrice().String())
+				return
+			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
+				w.log.Error("Nonce too low, will retry")
+				time.Sleep(TxRetryInterval)
+			} else {
+				w.log.Warn("Execution failed, tx may already be complete", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+				time.Sleep(TxRetryInterval)
 			}
-			w.log.Trace("No finalization event found in current block", "block", latestBlock, "src", m.Source, "nonce", m.DepositNonce)
-			latestBlock = latestBlock.Add(latestBlock, big.NewInt(1))
 		}
 	}
-	log.Warn("Block watch limit exceeded, skipping execution", "source", m.Source, "dest", m.Destination, "nonce", m.DepositNonce)
+	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	w.sysErr <- ErrFatalTx
 }

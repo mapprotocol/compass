@@ -11,6 +11,7 @@ import (
 
 	utilcore "github.com/ChainSafe/chainbridge-utils/core"
 	"github.com/ChainSafe/log15"
+	"github.com/mapprotocol/compass/msg"
 )
 
 type Core struct {
@@ -20,10 +21,10 @@ type Core struct {
 	sysErr   <-chan error
 }
 
-func NewCore(sysErr <-chan error) *Core {
+func NewCore(sysErr <-chan error, mapcid msg.ChainId) *Core {
 	return &Core{
 		Registry: make([]Chain, 0),
-		route:    NewRouter(log15.New("system", "router")),
+		route:    NewRouter(log15.New("system", "router"), mapcid),
 		log:      log15.New("system", "core"),
 		sysErr:   sysErr,
 	}

@@ -21,13 +21,15 @@ type Router struct {
 	registry map[msg.ChainId]Writer
 	lock     *sync.RWMutex
 	log      log.Logger
+	mapcid   msg.ChainId
 }
 
-func NewRouter(log log.Logger) *Router {
+func NewRouter(log log.Logger, mapcid msg.ChainId) *Router {
 	return &Router{
 		registry: make(map[msg.ChainId]Writer),
 		lock:     &sync.RWMutex{},
 		log:      log,
+		mapcid:   mapcid,
 	}
 }
 
@@ -37,7 +39,13 @@ func (r *Router) Send(msg msg.Message) error {
 	defer r.lock.Unlock()
 
 	r.log.Trace("Routing message", "src", msg.Source, "dest", msg.Destination, "nonce", msg.DepositNonce, "rId", msg.ResourceId.Hex())
-	w := r.registry[msg.Destination]
+	dest := msg.Destination
+	// if neither src or dest are from map, redirect to map chain
+	if msg.Source != r.mapcid && msg.Destination != r.mapcid {
+		dest = r.mapcid
+	}
+
+	w := r.registry[dest]
 	if w == nil {
 		return fmt.Errorf("unknown destination chainId: %d", msg.Destination)
 	}
