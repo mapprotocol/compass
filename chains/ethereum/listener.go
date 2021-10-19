@@ -153,9 +153,11 @@ func (l *listener) getDepositEventsForBlock(latestBlock *big.Int) error {
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
 		var m msg.Message
+		// todo # evm event to msg
 		destId := msg.ChainId(log.Topics[1].Big().Uint64())
 		// rId := msg.ResourceIdFromSlice(log.Topics[2].Bytes())
 		// nonce := msg.Nonce(log.Topics[3].Big().Uint64())
+		m.Source = l.cfg.id
 		m.Destination = destId
 
 		err = l.router.Send(m)

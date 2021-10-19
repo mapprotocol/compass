@@ -166,9 +166,18 @@ func run(ctx *cli.Context) error {
 
 	// Used to signal core shutdown due to fatal error
 	sysErr := make(chan error)
-	c := core.NewCore(sysErr)
 
-	for _, chain := range cfg.Chains {
+	mapcid, err := strconv.Atoi(cfg.MapChain.Id)
+	if err != nil {
+		return err
+	}
+	c := core.NewCore(sysErr, msg.ChainId(mapcid))
+	// merge map chain
+	allChains := make([]config.RawChainConfig, len(cfg.Chains), len(cfg.Chains)+1)
+	copy(allChains, cfg.Chains)
+	allChains = append(allChains, cfg.MapChain)
+
+	for _, chain := range allChains {
 		chainId, errr := strconv.Atoi(chain.Id)
 		if errr != nil {
 			return errr

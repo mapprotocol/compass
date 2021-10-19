@@ -18,6 +18,7 @@ const DefaultKeystorePath = "./keys"
 const DefaultBlockTimeout = int64(180) // 3 minutes
 
 type Config struct {
+	MapChain     RawChainConfig   `json:"mapchain"`
 	Chains       []RawChainConfig `json:"chains"`
 	KeystorePath string           `json:"keystorePath,omitempty"`
 }
@@ -67,6 +68,9 @@ func (c *Config) ToJSON(file string) *os.File {
 
 func (c *Config) validate() error {
 	for _, chain := range c.Chains {
+		if chain.Id == "" {
+			return fmt.Errorf("required field chain.Id empty for chain %s", chain.Id)
+		}
 		if chain.Type == "" {
 			return fmt.Errorf("required field chain.Type empty for chain %s", chain.Id)
 		}
@@ -76,13 +80,21 @@ func (c *Config) validate() error {
 		if chain.Name == "" {
 			return fmt.Errorf("required field chain.Name empty for chain %s", chain.Id)
 		}
-		if chain.Id == "" {
-			return fmt.Errorf("required field chain.Id empty for chain %s", chain.Id)
-		}
-		if chain.From == "" {
-			return fmt.Errorf("required field chain.From empty for chain %s", chain.Id)
-		}
+		// if chain.From == "" {
+		// 	return fmt.Errorf("required field chain.From empty for chain %s", chain.Id)
+		// }
 	}
+	// check map chain
+	if c.MapChain.Id == "" {
+		return fmt.Errorf("required field chain.Id empty for chain %s", c.MapChain.Id)
+	}
+	if c.MapChain.Endpoint == "" {
+		return fmt.Errorf("required field mapchain.Endpoint empty for chain %s", c.MapChain.Id)
+	}
+	if c.MapChain.From == "" {
+		return fmt.Errorf("required field chain.From empty for chain %s", c.MapChain.Id)
+	}
+
 	return nil
 }
 
@@ -102,6 +114,10 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 	}
 	log.Debug("Loaded config", "path", path)
 	err = fig.validate()
+	// fill map chain config
+	fig.MapChain.Type = "ethereum"
+	fig.MapChain.Name = "Map Chain"
+
 	if err != nil {
 		return nil, err
 	}
