@@ -111,7 +111,7 @@ func (l *listener) pollBlocks() error {
 			}
 
 			// Parse out events
-			err = l.getDepositEventsForBlock(currentBlock)
+			err = l.getEventsForBlock(currentBlock)
 			if err != nil {
 				l.log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				retry--
@@ -139,9 +139,9 @@ func (l *listener) pollBlocks() error {
 	}
 }
 
-// getDepositEventsForBlock looks for the deposit event in the latest block
-func (l *listener) getDepositEventsForBlock(latestBlock *big.Int) error {
-	l.log.Debug("Querying block for deposit events", "block", latestBlock)
+// getEventsForBlock looks for the deposit event in the latest block
+func (l *listener) getEventsForBlock(latestBlock *big.Int) error {
+	l.log.Debug("Querying block for events", "block", latestBlock)
 	query := buildQuery(l.cfg.bridgeContract, utils.Deposit, latestBlock, latestBlock)
 
 	// querying for logs
@@ -159,6 +159,10 @@ func (l *listener) getDepositEventsForBlock(latestBlock *big.Int) error {
 		// nonce := msg.Nonce(log.Topics[3].Big().Uint64())
 		m.Source = l.cfg.id
 		m.Destination = destId
+		payloads := make([]interface{}, 2)
+		payloads[0] = ethcommon.LeftPadBytes(big.NewInt(1000000000000000000).Bytes(), 32)
+		payloads[1] = ethcommon.LeftPadBytes([]byte("test string"), 32)
+		m.Payload = payloads
 
 		err = l.router.Send(m)
 		if err != nil {

@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	ZeroAddress  = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	ContractFunc = "Arrive(bytes32,uint256)"
 )
 
 //var StoreFunctionSig = CreateFunctionSignature("store(bytes32)")
@@ -17,11 +18,7 @@ var (
 // CreateFunctionSignature hashes the function signature and returns the first 4 bytes
 func CreateFunctionSignature(sig string) [4]byte {
 	var res [4]byte
-	hash := Hash([]byte(sig))
+	hash := crypto.Keccak256Hash([]byte(sig))
 	copy(res[:], hash[:])
 	return res
-}
-
-func Hash(data []byte) [32]byte {
-	return crypto.Keccak256Hash(data)
 }
