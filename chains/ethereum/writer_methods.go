@@ -4,12 +4,15 @@
 package ethereum
 
 import (
+	"context"
 	"errors"
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/msg"
+	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
 // Number of blocks to wait for an finalization event
@@ -42,23 +45,12 @@ func (w *writer) executeMsg(m msg.Message) {
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
-			nonce := w.conn.Opts().Nonce
 
 			// todo # sendtx using general method
-			tx := types.NewTransaction(nonce.Uint64(), w.cfg.bridgeContract, big.NewInt(0), gasLimit, gasPrice, nil)
+			data := m.TxDataWithSignature(utils.ContractFunc)
+			value := big.NewInt(0)
+			tx, err := w.sendTxToBridgeContract(value, data)
 
-			// err = w.conn.SendTransaction(context.Background(), signedTx)
-			// if err != nil {
-			// log.Fatal(err)
-			// }
-
-			// tx, err := w.bridgeContract.ExecuteProposal(
-			// 	w.conn.Opts(),
-			// 	uint8(m.Source),
-			// 	uint64(m.DepositNonce),
-			// 	data,
-			// 	m.ResourceId,
-			// )
 			w.conn.UnlockOpts()
 
 			if err == nil {
@@ -75,4 +67,42 @@ func (w *writer) executeMsg(m msg.Message) {
 	}
 	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
 	w.sysErr <- ErrFatalTx
+}
+
+func (w *writer) sendTxToBridgeContract(value *big.Int, input []byte) (*types.Transaction, error) {
+	gasPrice := w.conn.Opts().GasPrice
+	nonce := w.conn.Opts().Nonce
+	toAddress := w.cfg.bridgeContract
+	from := w.conn.Keypair().CommonAddress()
+
+	msg := ethereum.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Value: value, Data: input}
+	gasLimit, err := w.conn.Client().EstimateGas(context.Background(), msg)
+	if err != nil {
+		w.log.Error("EstimateGas failed", "error:", err.Error())
+		return nil, err
+	}
+	tx := types.NewTx(&types.LegacyTx{
+		Nonce:    nonce.Uint64(),
+		Value:    value,
+		To:       &toAddress,
+		Gas:      gasLimit,
+		GasPrice: gasPrice,
+		Data:     input,
+	})
+
+	chainID := big.NewInt(int64(w.cfg.id))
+	privateKey := w.conn.Keypair().PrivateKey()
+
+	signedTx, err := types.SignTx(tx, types.NewEIP2930Signer(chainID), privateKey)
+	if err != nil {
+		w.log.Error("SignTx failed", "error:", err.Error())
+		return nil, err
+	}
+
+	err = w.conn.Client().SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		w.log.Error("SendTransaction failed", "error:", err.Error())
+		return nil, err
+	}
+	return signedTx, nil
 }

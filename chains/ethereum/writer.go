@@ -48,9 +48,7 @@ func (w *writer) start() error {
 func (w *writer) ResolveMessage(m msg.Message) bool {
 	w.log.Info("Attempting to resolve message", "type", m.Type, "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "rId", m.ResourceId.Hex())
 
-	// todo # send msg to target chain
 	w.executeMsg(m)
-
 	// switch m.Type {
 	// case msg.FungibleTransfer:
 	// 	return w.createErc20Proposal(m)

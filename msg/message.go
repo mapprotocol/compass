@@ -6,6 +6,8 @@ package msg
 import (
 	"fmt"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type ChainId uint8
@@ -34,6 +36,18 @@ type Message struct {
 	DepositNonce Nonce        // Nonce for the deposit
 	ResourceId   ResourceId
 	Payload      []interface{} // data associated with event sequence
+}
+
+func (m *Message) TxDataWithSignature(sig string) []byte {
+	// signature
+	sigbytes := crypto.Keccak256Hash([]byte(sig))
+
+	var data []byte
+	data = append(data, sigbytes[:4]...)
+	for _, pl := range m.Payload {
+		data = append(data, pl.([]byte)...)
+	}
+	return data
 }
 
 func NewFungibleTransfer(source, dest ChainId, nonce Nonce, amount *big.Int, resourceId ResourceId, recipient []byte) Message {
