@@ -29,6 +29,15 @@ var (
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 
+			// print the big label
+			fmt.Println()
+			fmt.Println(`    _____           __  ___           `)
+			fmt.Println(`   / __(_)__ ____  /  |/  /__ ____    `)
+			fmt.Println(`  _\ \/ / _ ` + "`" + `/ _ \/ /|_/ / _ ` + "`" + `/ _ \   `)
+			fmt.Println(` /___/_/\_, /_//_/_/  /_/\_,_/ .__/   `)
+			fmt.Println(`       /___/                /_/      BSC version`)
+			fmt.Println()
+
 			privateKey := libs.GetKey("")
 			fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 			bindAddress := staking_bsc.BindAddress(fromAddress)
