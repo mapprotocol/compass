@@ -15,9 +15,8 @@ func (es EventSig) GetTopic() common.Hash {
 }
 
 const (
-	Deposit       EventSig = "Deposit(uint8,bytes32,uint64)"
-	ProposalEvent EventSig = "ProposalEvent(uint8,uint64,uint8,bytes32,bytes32)"
-	ProposalVote  EventSig = "ProposalVote(uint8,uint64,uint8,bytes32)"
+	// LogSwapOut(uint orderId, address indexed token, address indexed from, address indexed to, uint amount, uint fromChainID, uint toChainID);
+	SwapOut EventSig = "LogSwapOut(uint,address,address,address,uint,uint,uint)"
 )
 
 type ProposalStatus int

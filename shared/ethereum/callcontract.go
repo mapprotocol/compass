@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	ZeroAddress  = common.HexToAddress("0x0000000000000000000000000000000000000000")
-	ContractFunc = "Arrive(bytes32,uint256)"
+	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	// swapIn( uint256 id, address token, address to, uint amount, uint fromChainID, address sourceRouter, bytes memory data)
+	SwapIn = "swapIn(uint256,address,address,uint,uint,address,bytes)"
 )
 
 //var StoreFunctionSig = CreateFunctionSignature("store(bytes32)")

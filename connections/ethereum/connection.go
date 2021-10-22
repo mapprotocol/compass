@@ -223,13 +223,17 @@ func (c *Connection) LockAndUpdateOpts() error {
 
 	if head.BaseFee != nil {
 		c.opts.GasTipCap, c.opts.GasFeeCap, err = c.EstimateGasLondon(context.TODO(), head.BaseFee)
-		if err != nil {
-			c.UnlockOpts()
-			return err
-		}
 
 		// Both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) cannot be specified: https://github.com/ethereum/go-ethereum/blob/95bbd46eabc5d95d9fb2108ec232dd62df2f44ab/accounts/abi/bind/base.go#L254
 		c.opts.GasPrice = nil
+		if err != nil {
+			// if EstimateGasLondon failed, fall back to suggestGasPrice
+			c.opts.GasPrice, err = c.conn.SuggestGasPrice(context.TODO())
+			if err != nil {
+				c.UnlockOpts()
+				return err
+			}
+		}
 	} else {
 		var gasPrice *big.Int
 		gasPrice, err = c.SafeEstimateGas(context.TODO())
