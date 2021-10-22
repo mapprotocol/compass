@@ -116,7 +116,7 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 	err = fig.validate()
 	// fill map chain config
 	fig.MapChain.Type = "ethereum"
-	fig.MapChain.Name = "Map Chain"
+	fig.MapChain.Name = "map-chain"
 
 	if err != nil {
 		return nil, err

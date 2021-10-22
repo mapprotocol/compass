@@ -46,8 +46,8 @@ func (w *writer) executeMsg(m msg.Message) {
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
 
-			// todo # sendtx using general method
-			data := m.TxDataWithSignature(utils.ContractFunc)
+			// sendtx using general method
+			data := m.TxDataWithSignature(utils.SwapIn)
 			value := big.NewInt(0)
 			tx, err := w.sendTxToBridgeContract(value, data)
 
@@ -81,19 +81,36 @@ func (w *writer) sendTxToBridgeContract(value *big.Int, input []byte) (*types.Tr
 		w.log.Error("EstimateGas failed", "error:", err.Error())
 		return nil, err
 	}
-	tx := types.NewTx(&types.LegacyTx{
-		Nonce:    nonce.Uint64(),
-		Value:    value,
-		To:       &toAddress,
-		Gas:      gasLimit,
-		GasPrice: gasPrice,
-		Data:     input,
-	})
 
+	// td interface
+	var td types.TxData
+	if gasPrice != nil {
+		td = &types.LegacyTx{
+			Nonce:    nonce.Uint64(),
+			Value:    value,
+			To:       &toAddress,
+			Gas:      gasLimit,
+			GasPrice: gasPrice,
+			Data:     input,
+		}
+	} else {
+		// london format eip 1559
+		td = &types.DynamicFeeTx{
+			Nonce:     nonce.Uint64(),
+			Value:     value,
+			To:        &toAddress,
+			Gas:       gasLimit,
+			GasTipCap: w.conn.Opts().GasTipCap,
+			GasFeeCap: w.conn.Opts().GasFeeCap,
+			Data:      input,
+		}
+	}
+
+	tx := types.NewTx(td)
 	chainID := big.NewInt(int64(w.cfg.id))
 	privateKey := w.conn.Keypair().PrivateKey()
 
-	signedTx, err := types.SignTx(tx, types.NewEIP2930Signer(chainID), privateKey)
+	signedTx, err := types.SignTx(tx, types.NewLondonSigner(chainID), privateKey)
 	if err != nil {
 		w.log.Error("SignTx failed", "error:", err.Error())
 		return nil, err

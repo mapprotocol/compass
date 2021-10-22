@@ -13,7 +13,7 @@ import (
 	"github.com/mapprotocol/compass/msg"
 )
 
-const PathPostfix = ".chainbridge/blockstore"
+const PathPostfix = ".compass/blockstore"
 
 type Blockstorer interface {
 	StoreBlock(*big.Int) error

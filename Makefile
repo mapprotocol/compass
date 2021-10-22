@@ -22,22 +22,6 @@ get:
 	@echo "  >  \033[32mDownloading & Installing all the modules...\033[0m "
 	go mod tidy && go mod download
 
-get-lint:
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.31.0
-
-.PHONY: lint
-lint:
-	if [ ! -f ./bin/golangci-lint ]; then \
-		$(MAKE) get-lint; \
-	fi;
-	./bin/golangci-lint run ./... --timeout 5m0s
-
-lint-fix:
-	if [ ! -f ./bin/golangci-lint ]; then \
-		$(MAKE) get-lint; \
-	fi;
-	./bin/golangci-lint run ./... --timeout 5m0s --fix
-
 build:
 	@echo "  >  \033[32mBuilding compass...\033[0m "
 	cd cmd/compass && env GOARCH=amd64 go build -o ../../build/compass $(VERSION)
@@ -45,30 +29,3 @@ build:
 install:
 	@echo "  >  \033[32mInstalling compass...\033[0m "
 	cd cmd/compass && go install $(VERSION)
-
-build-mkdocs:
-	docker run --rm -it -v ${PWD}:/docs squidfunk/mkdocs-material build
-
-## license: Adds license header to missing files.
-license:
-	@echo "  >  \033[32mAdding license headers...\033[0m "
-	GO111MODULE=off go get -u github.com/google/addlicense
-	addlicense -c "ChainSafe Systems" -f ./scripts/header.txt -y 2020 .
-
-## license-check: Checks for missing license headers
-license-check:
-	@echo "  >  \033[Checking for license headers...\033[0m "
-	GO111MODULE=off go get -u github.com/google/addlicense
-	addlicense -check -c "ChainSafe Systems" -f ./scripts/header.txt -y 2020 .
-
-## Runs go test for all packages except the solidity bindings
-test:
-	@echo "  >  \033[32mRunning tests...\033[0m "
-	go test -p 1 -coverprofile=cover.out -v `go list ./... 
-
-test-eth:
-	@echo "  >  \033[32mRunning ethereum tests...\033[0m "
-	go test ./chains/ethereum
-
-clean:
-	rm -rf build/ solidity/

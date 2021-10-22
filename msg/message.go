@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type ChainId uint8
+type ChainId uint64
 type TransferType string
 type ResourceId [32]byte
 
@@ -27,6 +27,7 @@ func (n Nonce) Big() *big.Int {
 var FungibleTransfer TransferType = "FungibleTransfer"
 var NonFungibleTransfer TransferType = "NonFungibleTransfer"
 var GenericTransfer TransferType = "GenericTransfer"
+var SwapTransfer TransferType = "SwapTransfer"
 
 // Message is used as a generic format to communicate between chains
 type Message struct {
