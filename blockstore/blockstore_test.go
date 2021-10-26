@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ChainSafe/chainbridge-utils/keystore"
+	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/msg"
 )
 

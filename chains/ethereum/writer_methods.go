@@ -47,7 +47,7 @@ func (w *writer) executeMsg(m msg.Message) {
 			gasPrice := w.conn.Opts().GasPrice
 
 			// sendtx using general method
-			data := m.TxDataWithSignature(utils.SwapIn)
+			data := utils.ComposeMsgPayloadWithSignature(utils.SwapIn, m.Payload)
 			value := big.NewInt(0)
 			tx, err := w.sendTxToBridgeContract(value, data)
 
@@ -75,7 +75,14 @@ func (w *writer) sendTxToBridgeContract(value *big.Int, input []byte) (*types.Tr
 	toAddress := w.cfg.bridgeContract
 	from := w.conn.Keypair().CommonAddress()
 
-	msg := ethereum.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Value: value, Data: input}
+	msg := ethereum.CallMsg{
+		From:     from,
+		To:       &toAddress,
+		GasPrice: gasPrice,
+		Value:    value,
+		Data:     input,
+	}
+	w.log.Debug("eth CallMsg", "msg", msg)
 	gasLimit, err := w.conn.Client().EstimateGas(context.Background(), msg)
 	if err != nil {
 		w.log.Error("EstimateGas failed", "error:", err.Error())
@@ -84,7 +91,9 @@ func (w *writer) sendTxToBridgeContract(value *big.Int, input []byte) (*types.Tr
 
 	// td interface
 	var td types.TxData
+	// EIP-1559
 	if gasPrice != nil {
+		// legacy branch
 		td = &types.LegacyTx{
 			Nonce:    nonce.Uint64(),
 			Value:    value,
@@ -94,7 +103,7 @@ func (w *writer) sendTxToBridgeContract(value *big.Int, input []byte) (*types.Tr
 			Data:     input,
 		}
 	} else {
-		// london format eip 1559
+		// london branch
 		td = &types.DynamicFeeTx{
 			Nonce:     nonce.Uint64(),
 			Value:     value,
