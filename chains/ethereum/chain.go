@@ -24,7 +24,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
-	"github.com/ChainSafe/chainbridge-utils/keystore"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -33,6 +32,7 @@ import (
 	"github.com/mapprotocol/compass/blockstore"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/msg"
 )
 

@@ -6,8 +6,6 @@ package msg
 import (
 	"fmt"
 	"math/big"
-
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type ChainId uint64
@@ -24,9 +22,6 @@ func (n Nonce) Big() *big.Int {
 	return big.NewInt(int64(n))
 }
 
-var FungibleTransfer TransferType = "FungibleTransfer"
-var NonFungibleTransfer TransferType = "NonFungibleTransfer"
-var GenericTransfer TransferType = "GenericTransfer"
 var SwapTransfer TransferType = "SwapTransfer"
 
 // Message is used as a generic format to communicate between chains
@@ -39,57 +34,14 @@ type Message struct {
 	Payload      []interface{} // data associated with event sequence
 }
 
-func (m *Message) TxDataWithSignature(sig string) []byte {
-	// signature
-	sigbytes := crypto.Keccak256Hash([]byte(sig))
-
-	var data []byte
-	data = append(data, sigbytes[:4]...)
-	for _, pl := range m.Payload {
-		data = append(data, pl.([]byte)...)
-	}
-	return data
-}
-
-func NewFungibleTransfer(source, dest ChainId, nonce Nonce, amount *big.Int, resourceId ResourceId, recipient []byte) Message {
+func NewSwapTransfer(fromChainID, toChainID ChainId, payloads []interface{}) Message {
 	return Message{
-		Source:       source,
-		Destination:  dest,
-		Type:         FungibleTransfer,
-		DepositNonce: nonce,
-		ResourceId:   resourceId,
-		Payload: []interface{}{
-			amount.Bytes(),
-			recipient,
-		},
-	}
-}
-
-func NewNonFungibleTransfer(source, dest ChainId, nonce Nonce, resourceId ResourceId, tokenId *big.Int, recipient, metadata []byte) Message {
-	return Message{
-		Source:       source,
-		Destination:  dest,
-		Type:         NonFungibleTransfer,
-		DepositNonce: nonce,
-		ResourceId:   resourceId,
-		Payload: []interface{}{
-			tokenId.Bytes(),
-			recipient,
-			metadata,
-		},
-	}
-}
-
-func NewGenericTransfer(source, dest ChainId, nonce Nonce, resourceId ResourceId, metadata []byte) Message {
-	return Message{
-		Source:       source,
-		Destination:  dest,
-		Type:         GenericTransfer,
-		DepositNonce: nonce,
-		ResourceId:   resourceId,
-		Payload: []interface{}{
-			metadata,
-		},
+		Source:      fromChainID,
+		Destination: toChainID,
+		Type:        SwapTransfer,
+		//DepositNonce: nonce,
+		//ResourceId: resourceId,
+		Payload: payloads,
 	}
 }
 

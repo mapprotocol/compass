@@ -5,7 +5,6 @@ package ethereum
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
@@ -153,30 +152,14 @@ func (l *listener) getEventsForBlock(latestBlock *big.Int) error {
 
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
-		var m msg.Message
 		// evm event to msg
-		//destId := msg.ChainId(log.Topics[1].Big().Uint64())
-		token := log.Topics[1].Bytes()
-		to := log.Topics[3].Bytes()
-		// every 32 bytes forms a value
-		orderID := log.Data[:32]
-		amount := log.Data[32:64]
-		fromChainID := log.Data[64:96]
-		toChainID := log.Data[96:128]
+		fromChainID, toChainID, payload, err := utils.ParseEthLog(log, l.cfg.bridgeContract)
+		if err != nil {
+			return fmt.Errorf("unable to Parse Log: %w", err)
+		}
 
-		m.Source = msg.ChainId(binary.BigEndian.Uint64(fromChainID)) // l.cfg.id
-		m.Destination = msg.ChainId(binary.BigEndian.Uint64(toChainID))
-		m.Type = msg.SwapTransfer
-		// todo # for test case
-		payloads := make([]interface{}, 7)
-		payloads[0] = orderID
-		payloads[1] = ethcommon.LeftPadBytes(token, 32)
-		payloads[2] = ethcommon.LeftPadBytes(to, 32)
-		payloads[3] = amount
-		payloads[4] = fromChainID
-		payloads[5] = ethcommon.LeftPadBytes(l.cfg.bridgeContract.Bytes(), 32)
-		payloads[6] = ethcommon.LeftPadBytes([]byte("todo data"), 32)
-		m.Payload = payloads
+		msgpayload := []interface{}{payload}
+		m := msg.NewSwapTransfer(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload)
 
 		err = l.router.Send(m)
 		if err != nil {

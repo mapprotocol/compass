@@ -80,9 +80,9 @@ func (c *Config) validate() error {
 		if chain.Name == "" {
 			return fmt.Errorf("required field chain.Name empty for chain %s", chain.Id)
 		}
-		// if chain.From == "" {
-		// 	return fmt.Errorf("required field chain.From empty for chain %s", chain.Id)
-		// }
+		if chain.From == "" {
+			return fmt.Errorf("required field chain.From empty for chain %s", chain.Id)
+		}
 	}
 	// check map chain
 	if c.MapChain.Id == "" {
