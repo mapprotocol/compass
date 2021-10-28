@@ -1,60 +1,88 @@
 # Compass
 
+Compass is the Golang implementation of cross-chain communication relayer for MAP Protocol. It currently supports bridging between EVM based chains.
+
+This project is inspired by [ChainSafe/ChainBridge](https://github.com/ChainSafe/ChainBridge)
+
 # Contents
 
-- [Getting Started](#getting-started)
-- [Installation](#installation)
+- [Quick Start](getting-starte)
+- [Building](#building)
 - [Configuration](#configuration)
 - [Chain Implementations](#chain-implementations)
-- [Testing](#testing)
-- [Simulations](#simulations)
 
-# Getting Started
-- Check out our [documentation](https://chainbridge.chainsafe.io).
-- Try [running ChainBridge locally](https://chainbridge.chainsafe.io/local/).
-- Chat with us on [discord](https://discord.gg/ykXsJKfhgq).
+# Quick Start  
 
-# Installation
+### 1. Get the executable  
+the recommanded way to get the executable is to download it from the release page.  
 
-## Dependencies
+>if you want to build it from the source code,check the [building](#building) section below.  
 
-- [Subkey](https://substrate.dev/docs/en/knowledgebase/integrate/subkey): 
-Used for substrate key management. Only required if connecting to a substrate chain.
+### 2. Prepare the accounts for each chain  
+fund some accounts in order to send txs on each chain, you want to provice crosse-chain service.
+the esaiest way is to using the same one address for every chain.  
 
+after that we need to import the account into the keystore of compass.  
+using the private key is the simplest way, open your favourite terminal and run:  
 
-## Building
+```zsh
+compass accounts import --privateKey '********** your private key **********'
+```
 
-`make build`: Builds `chainbridge` in `./build`.
+during the process of importing, you will be asked to input a password.  
+the password is used to encrypt your keystore.you have to input it when unlocking your account.  
+
+to list the imported keys in the keystore, using the command below:  
+```zsh
+compass accounts list
+```
+
+### 3. Modify the configuration file  
+copy a example configure file from here.  
+modify the configuration accordingly.  
+fill the accounts for each chain.  
+
+### 4. Running the executable  
+lauch and keep the executable runing simply by run:
+```zsh
+compass
+```
+you will be asked to input the password to unlock your account.(which you have inputed at step 2)
+if everything runs smoothly. it's all set
+
+# Building
+
+Building compass requires a [Go](https://github.com/golang/go) compiler(version 1.16 or later)
+
+`make build`: Builds `compass` in `./build`.
 
 **or**
 
-`make install`: Uses `go install` to add `chainbridge` to your GOBIN.
-
-## Docker 
-The official ChainBridge Docker image can be found here.
-
-To build the Docker image locally run:
-
-```
-docker build -t chainsafe/chainbridge .
-```
-
-To start ChainBridge:
-
-``` 
-docker run -v ./config.json:/config.json chainsafe/chainbridge
-```
+`make install`: Uses `go install` to add `compass` to your GOBIN.
 
 # Configuration
 
-> Note: TOML configs have been deprecated in favour of JSON
+the configuration file is a small JSON file.  
 
-A chain configurations take this form:
+```
+{
+  "mapchain": {
+        "id": "0",                          // Chain ID of the MAP chain
+        "endpoint": "ws://<host>:<port>",   // Node endpoint
+        "from": "0xff93...",                // MAP chain address of relayer
+        "opts": {}                          // MAP Chain configuration options (see below)
+    },
+  "chains": []                              // List of Chain configurations
+}
+
+```
+
+A chain configurations take this form:  
 
 ```
 {
     "name": "eth",                      // Human-readable name
-    "type": "ethereum",                 // Chain type (eg. "ethereum" or "substrate")
+    "type": "ethereum",                 // Chain type (only "ethereum" is supported for now)
     "id": "0",                          // Chain ID
     "endpoint": "ws://<host>:<port>",   // Node endpoint
     "from": "0xff93...",                // On-chain address of relayer
@@ -62,40 +90,26 @@ A chain configurations take this form:
 }
 ```
 
-See `config.json.example` for an example configuration. 
+See `config.json.example` for an example configuration.  
 
 ### Ethereum Options
 
+Since MAP is also a EVM based chain, so the opts of the **mapchain** is following the options below as well  
 Ethereum chains support the following additional options:
 
 ```
 {
     "bridge": "0x12345...",          // Address of the bridge contract (required)
-    "erc20Handler": "0x1234...",     // Address of erc20 handler (required)
-    "erc721Handler": "0x1234...",    // Address of erc721 handler (required)
-    "genericHandler": "0x1234...",   // Address of generic handler (required)
     "maxGasPrice": "0x1234",         // Gas price for transactions (default: 20000000000)
     "gasLimit": "0x1234",            // Gas limit for transactions (default: 6721975)
     "gasMultiplier": "1.25",         // Multiplies the gas price by the supplied value (default: 1)
     "http": "true",                  // Whether the chain connection is ws or http (default: false)
     "startBlock": "1234",            // The block to start processing events from (default: 0)
     "blockConfirmations": "10"       // Number of blocks to wait before processing a block
-    "useExtendedCall": "true"        // Extend extrinsic calls to substrate with ResourceID. Used for backward compatibility with example pallet. *Default: false*
     "egsApiKey": "xxx..."            // API key for Eth Gas Station (https://www.ethgasstation.info/)
     "egsSpeed": "fast"               // Desired speed for gas price selection, the options are: "average", "fast", "fastest"
 }
 ```
-
-### Substrate Options
-
-Substrate supports the following additonal options:
-
-```
-{
-    "startBlock": "1234" // The block to start processing events from (default: 0)
-}
-```
-
 ## Blockstore
 
 The blockstore is used to record the last block the relayer processed, so it can pick up where it left off. 
@@ -106,67 +120,14 @@ To disable loading from the blockstore specify the `--fresh` flag. A custom path
 
 ## Keystore
 
-ChainBridge requires keys to sign and submit transactions, and to identify each bridge node on chain.
+Compass requires keys to sign and submit transactions, and to identify each bridge node on chain.
 
-To use secure keys, see `chainbridge accounts --help`. The keystore password can be supplied with the `KEYSTORE_PASSWORD` environment variable.
+To use secure keys, see `compass accounts --help`. The keystore password can be supplied with the `KEYSTORE_PASSWORD` environment variable.
 
-To import external ethereum keys, such as those generated with geth, use `chainbridge accounts import --ethereum /path/to/key`.
+To import external ethereum keys, such as those generated with geth, use `compass accounts import --ethereum /path/to/key`.
 
-To import private keys as keystores, use `chainbridge account import --privateKey key`.
-
-For testing purposes, chainbridge provides 5 test keys. The can be used with `--testkey <name>`, where `name` is one of `Alice`, `Bob`, `Charlie`, `Dave`, or `Eve`. 
-
-## Metrics
-
-See [metrics.md](/docs/metrics.md).
+To import private keys as keystores, use `compass accounts import --privateKey key`.
 
 # Chain Implementations
 
-- Ethereum (Solidity): [chainbridge-solidity](https://github.com/ChainSafe/chainbridge-solidity) 
-
-    The Solidity contracts required for chainbridge. Includes deployment and interaction CLI.
-    
-    The bindings for the contracts live in `bindings/`. To update the bindings modify `scripts/setup-contracts.sh` and then run `make clean && make setup-contracts`
-
-- Substrate: [chainbridge-substrate](https://github.com/ChainSafe/chainbridge-substrate)
-
-    A substrate pallet that can be integrated into a chain, as well as an example pallet to demonstrate chain integration.
-
-# Docs
-
-MKdocs will generate static HTML files for Chainsafe markdown files located in `Chainbridge/docs/`
-
-`make install-mkdocs`: Pull the docker image MkDocs
-
-`make mkdocs`: Run MkDoc's docker image, building and hosting the html files on `localhost:8000`  
-
-# Testing
-
-Unit tests require an ethereum node running on `localhost:8545` and a substrate node running on `localhost:9944`. E2E tests require an additional ethereum node on `localhost:8546`. 
-
-A docker-compose file is provided to run two Geth nodes and a chainbridge-substrate-chain node in isolated environments:
-```
-$ docker-compose -f ./docker-compose-e2e.yml up
-```
-
-See [chainbridge-solidity](https://github.com/chainsafe/chainbridge-solidity) and [chainbridge-substrate-chain](https://github.com/ChainSafe/chainbridge-substrate-chain) for more information on testing facilities.
-
-All Go tests can be run with:
-```
-$ make test
-```
-Go tests specifically for ethereum, substrate and E2E can be run with
-```
-$ make test-eth
-```
-
-# ChainSafe Security Policy
-
-## Reporting a Security Bug
-
-We take all security issues seriously, if you believe you have found a security issue within a ChainSafe
-project please notify us immediately. If an issue is confirmed, we will take all necessary precautions 
-to ensure a statement and patch release is made in a timely manner.
-
-Please email us a description of the flaw and any related information (e.g. reproduction steps, version) to
-[security at chainsafe dot io](mailto:security@chainsafe.io).
+- Ethereum (Solidity): #Todo
