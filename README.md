@@ -6,7 +6,7 @@ This project is inspired by [ChainSafe/ChainBridge](https://github.com/ChainSafe
 
 # Contents
 
-- [Quick Start](getting-starte)
+- [Quick Start](#quick-start)
 - [Building](#building)
 - [Configuration](#configuration)
 - [Chain Implementations](#chain-implementations)
@@ -23,7 +23,7 @@ fund some accounts in order to send txs on each chain, you want to provice cross
 the esaiest way is to using the same one address for every chain.  
 
 after that we need to import the account into the keystore of compass.  
-using the private key is the simplest way, open your favourite terminal and run:  
+using the private key is the simplest way,run the following command in terminal:  
 
 ```zsh
 compass accounts import --privateKey '********** your private key **********'
