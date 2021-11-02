@@ -16,7 +16,9 @@ import (
 var (
 	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
 	// swapIn( uint256 id, address token, address to, uint amount, uint fromChainID, address sourceRouter, bytes memory data)
-	SwapIn = "swapIn(uint256,address,address,uint256,uint256,address,bytes)"
+	// swapIn(uint id, address token, address to, uint amount, uint fromChainID,uint toChainID)
+	//SwapIn = "swapIn(uint256,address,address,uint256,uint256,address,bytes)"
+	SwapIn = "swapIn(uint256,address,address,uint256,uint256,uint256)"
 
 	uint256Ty, _ = abi.NewType("uint256", "", nil)
 	addressTy, _ = abi.NewType("address", "", nil)
@@ -44,12 +46,8 @@ var (
 			Type: uint256Ty,
 		},
 		{
-			Name: "_sourceRouter",
-			Type: addressTy,
-		},
-		{
-			Name: "_data",
-			Type: bytesTy,
+			Name: "_toChainID",
+			Type: uint256Ty,
 		},
 	}
 )
@@ -82,8 +80,9 @@ func ParseEthLog(log types.Log, bridge common.Address) (uint64, uint64, []byte, 
 		common.BytesToAddress(to),
 		big.NewInt(0).SetBytes(amount),
 		big.NewInt(0).SetBytes(fromChainID),
-		bridge,
-		[]byte("123456"),
+		big.NewInt(0).SetBytes(toChainID),
+		// bridge,
+		// []byte("123456"),
 	)
 	if err != nil {
 		return 0, 0, nil, err
