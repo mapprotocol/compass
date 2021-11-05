@@ -15,22 +15,24 @@ import (
 
 var (
 	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-	// swapIn( uint256 id, address token, address to, uint amount, uint fromChainID, address sourceRouter, bytes memory data)
-	// swapIn(uint id, address token, address to, uint amount, uint fromChainID,uint toChainID)
-	//SwapIn = "swapIn(uint256,address,address,uint256,uint256,address,bytes)"
-	SwapIn = "swapIn(uint256,address,address,uint256,uint256,uint256)"
+	// function swapIn(bytes32 hash, address token, address from, address to, uint amount, uint fromChainID,uint toChainID)
+	SwapIn = "swapIn(bytes32,address,address,address,uint256,uint256,uint256)"
 
+	bytes32Ty, _ = abi.NewType("bytes32", "", nil)
 	uint256Ty, _ = abi.NewType("uint256", "", nil)
 	addressTy, _ = abi.NewType("address", "", nil)
-	bytesTy, _   = abi.NewType("bytes", "", nil)
 
 	SwapInArgs = abi.Arguments{
 		{
-			Name: "_id",
-			Type: uint256Ty,
+			Name: "_hash",
+			Type: bytes32Ty,
 		},
 		{
 			Name: "_token",
+			Type: addressTy,
+		},
+		{
+			Name: "_from",
 			Type: addressTy,
 		},
 		{
@@ -64,9 +66,11 @@ func ComposeMsgPayloadWithSignature(sig string, msgPayload []interface{}) []byte
 
 func ParseEthLog(log types.Log, bridge common.Address) (uint64, uint64, []byte, error) {
 	token := log.Topics[1].Bytes()
+	from := log.Topics[2].Bytes()
 	to := log.Topics[3].Bytes()
 	// every 32 bytes forms a value
-	orderID := log.Data[:32]
+	var orderHash [32]byte
+	copy(orderHash[:], log.Data[:32])
 	amount := log.Data[32:64]
 
 	fromChainID := log.Data[64:96]
@@ -75,8 +79,9 @@ func ParseEthLog(log types.Log, bridge common.Address) (uint64, uint64, []byte, 
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 
 	payloads, err := SwapInArgs.Pack(
-		big.NewInt(0).SetBytes(orderID),
+		orderHash,
 		common.BytesToAddress(token),
+		common.BytesToAddress(from),
 		common.BytesToAddress(to),
 		big.NewInt(0).SetBytes(amount),
 		big.NewInt(0).SetBytes(fromChainID),
