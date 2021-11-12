@@ -1,4 +1,4 @@
-// Copyright 2020 ChainSafe Systems
+// Copyright 2021 Compass Systems
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package config
@@ -16,6 +16,7 @@ import (
 const DefaultConfigPath = "./config.json"
 const DefaultKeystorePath = "./keys"
 const DefaultBlockTimeout = int64(180) // 3 minutes
+const MapChainID = "mapChainId"
 
 type Config struct {
 	MapChain     RawChainConfig   `json:"mapchain"`

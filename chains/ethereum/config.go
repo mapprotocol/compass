@@ -1,4 +1,4 @@
-// Copyright 2020 ChainSafe Systems
+// Copyright 2021 Compass Systems
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package ethereum
@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
+	gconfig "github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/connections/ethereum/egs"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/msg"
@@ -32,19 +34,19 @@ var (
 	BlockConfirmationsOpt = "blockConfirmations"
 	EGSApiKey             = "egsApiKey"
 	EGSSpeed              = "egsSpeed"
+	SyncToMap             = "syncToMap"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
 type Config struct {
-	name           string      // Human-readable chain name
-	id             msg.ChainId // ChainID
-	endpoint       string      // url for rpc endpoint
-	from           string      // address of key to use
-	keystorePath   string      // Location of keyfiles
-	blockstorePath string
-	freshStart     bool // Disables loading from blockstore at start
-	bridgeContract common.Address
-	//genericHandlerContract common.Address
+	name               string      // Human-readable chain name
+	id                 msg.ChainId // ChainID
+	endpoint           string      // url for rpc endpoint
+	from               string      // address of key to use
+	keystorePath       string      // Location of keyfiles
+	blockstorePath     string
+	freshStart         bool // Disables loading from blockstore at start
+	bridgeContract     common.Address
 	gasLimit           *big.Int
 	maxGasPrice        *big.Int
 	gasMultiplier      *big.Float
@@ -53,6 +55,8 @@ type Config struct {
 	blockConfirmations *big.Int
 	egsApiKey          string // API key for ethgasstation to query gas prices
 	egsSpeed           string // The speed which a transaction should be processed: average, fast, fastest. Default: fast
+	syncToMap          bool   // Whether sync blockchain headers to Map
+	mapChainID         msg.ChainId
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
@@ -167,6 +171,21 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		// Default to "fast"
 		config.egsSpeed = egs.Fast
 		delete(chainCfg.Opts, EGSSpeed)
+	}
+
+	if syncToMap, ok := chainCfg.Opts[SyncToMap]; ok && syncToMap == "true" {
+		config.syncToMap = true
+		delete(chainCfg.Opts, SyncToMap)
+
+		chainId, errr := strconv.Atoi(chainCfg.Opts[gconfig.MapChainID])
+		if errr != nil {
+			return nil, errr
+		}
+		config.mapChainID = msg.ChainId(chainId)
+		delete(chainCfg.Opts, gconfig.MapChainID)
+	} else if syncToMap, ok := chainCfg.Opts[SyncToMap]; ok && syncToMap == "false" {
+		config.syncToMap = false
+		delete(chainCfg.Opts, SyncToMap)
 	}
 
 	if len(chainCfg.Opts) != 0 {

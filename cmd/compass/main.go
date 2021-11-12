@@ -1,4 +1,4 @@
-// Copyright 2020 ChainSafe Systems
+// Copyright 2021 Compass Systems
 // SPDX-License-Identifier: LGPL-3.0-only
 /*
 Provides the command-line interface for the chainbridge application.
@@ -182,6 +182,8 @@ func run(ctx *cli.Context) error {
 		if errr != nil {
 			return errr
 		}
+		// write Map chain id to opts
+		chain.Opts[config.MapChainID] = cfg.MapChain.Id
 		chainConfig := &core.ChainConfig{
 			Name:           chain.Name,
 			Id:             msg.ChainId(chainId),

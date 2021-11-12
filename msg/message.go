@@ -1,20 +1,20 @@
-// Copyright 2020 ChainSafe Systems
+// Copyright 2021 Compass Systems
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package msg
 
 import (
-	"fmt"
 	"math/big"
 )
 
 type ChainId uint64
 type TransferType string
-type ResourceId [32]byte
 
-func (r ResourceId) Hex() string {
-	return fmt.Sprintf("%x", r)
-}
+// type ResourceId [32]byte
+
+// func (r ResourceId) Hex() string {
+// 	return fmt.Sprintf("%x", r)
+// }
 
 type Nonce uint64
 
@@ -23,6 +23,7 @@ func (n Nonce) Big() *big.Int {
 }
 
 var SwapTransfer TransferType = "SwapTransfer"
+var SyncToMap TransferType = "SyncToMap"
 
 // Message is used as a generic format to communicate between chains
 type Message struct {
@@ -30,11 +31,12 @@ type Message struct {
 	Destination  ChainId      // Destination chain of message
 	Type         TransferType // type of bridge transfer
 	DepositNonce Nonce        // Nonce for the deposit
-	ResourceId   ResourceId
-	Payload      []interface{} // data associated with event sequence
+	// ResourceId   ResourceId
+	Payload []interface{}   // data associated with event sequence
+	DoneCh  chan<- struct{} // notify message is handled
 }
 
-func NewSwapTransfer(fromChainID, toChainID ChainId, payloads []interface{}) Message {
+func NewSwapTransfer(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {
 	return Message{
 		Source:      fromChainID,
 		Destination: toChainID,
@@ -42,11 +44,24 @@ func NewSwapTransfer(fromChainID, toChainID ChainId, payloads []interface{}) Mes
 		//DepositNonce: nonce,
 		//ResourceId: resourceId,
 		Payload: payloads,
+		DoneCh:  ch,
 	}
 }
 
-func ResourceIdFromSlice(in []byte) ResourceId {
-	var res ResourceId
-	copy(res[:], in)
-	return res
+func NewSyncToMap(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {
+	return Message{
+		Source:      fromChainID,
+		Destination: toChainID,
+		Type:        SyncToMap,
+		//DepositNonce: nonce,
+		//ResourceId: resourceId,
+		Payload: payloads,
+		DoneCh:  ch,
+	}
 }
+
+// func ResourceIdFromSlice(in []byte) ResourceId {
+// 	var res ResourceId
+// 	copy(res[:], in)
+// 	return res
+// }

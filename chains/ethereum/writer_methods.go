@@ -1,4 +1,4 @@
-// Copyright 2020 ChainSafe Systems
+// Copyright 2021 Compass Systems
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package ethereum
@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/params"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
@@ -29,17 +31,27 @@ var ErrTxUnderpriced = errors.New("replacement transaction underpriced")
 var ErrFatalTx = errors.New("submission of transaction failed")
 var ErrFatalQuery = errors.New("query of chain state failed")
 
-// executeMsg executes the msg, and send tx to the blockchain
-func (w *writer) executeMsg(m msg.Message) {
+// exeSwapMsg executes swap msg, and send tx to the destination blockchain
+func (w *writer) exeSwapMsg(m msg.Message) bool {
+	return w.callContractWithMsg(w.cfg.bridgeContract, utils.SwapIn, m)
+}
+
+// exeSwapMsg executes sync msg, and send tx to the destination blockchain
+func (w *writer) exeSyncMsg(m msg.Message) bool {
+	return w.callContractWithMsg(params.SaveHeaderContractAddr, params.SaveHeaderFuncSig, m)
+}
+
+// callContractWithMsg call contract using address and function signature with message info
+func (w *writer) callContractWithMsg(addr common.Address, funcSignature string, m msg.Message) bool {
 	for i := 0; i < TxRetryLimit; i++ {
 		select {
 		case <-w.stop:
-			return
+			return false
 		default:
 			err := w.conn.LockAndUpdateOpts()
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
-				return
+				return false
 			}
 			// These store the gas limit and price before a transaction is sent for logging in case of a failure
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
@@ -47,15 +59,17 @@ func (w *writer) executeMsg(m msg.Message) {
 			gasPrice := w.conn.Opts().GasPrice
 
 			// sendtx using general method
-			data := utils.ComposeMsgPayloadWithSignature(utils.SwapIn, m.Payload)
+			data := utils.ComposeMsgPayloadWithSignature(funcSignature, m.Payload)
 			value := big.NewInt(0)
-			tx, err := w.sendTxToBridgeContract(value, data)
+			tx, err := w.sendTx(&addr, value, data)
 
 			w.conn.UnlockOpts()
 
 			if err == nil {
+				// message successfully handled
 				w.log.Info("Submitted proposal execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "gasPrice", tx.GasPrice().String())
-				return
+				m.DoneCh <- struct{}{}
+				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry")
 				time.Sleep(TxRetryInterval)
@@ -67,17 +81,19 @@ func (w *writer) executeMsg(m msg.Message) {
 	}
 	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
 	w.sysErr <- ErrFatalTx
+	return false
+
 }
 
-func (w *writer) sendTxToBridgeContract(value *big.Int, input []byte) (*types.Transaction, error) {
+// sendTx send tx to an address with value and input data
+func (w *writer) sendTx(toAddress *common.Address, value *big.Int, input []byte) (*types.Transaction, error) {
 	gasPrice := w.conn.Opts().GasPrice
 	nonce := w.conn.Opts().Nonce
-	toAddress := w.cfg.bridgeContract
 	from := w.conn.Keypair().CommonAddress()
 
 	msg := ethereum.CallMsg{
 		From:     from,
-		To:       &toAddress,
+		To:       toAddress,
 		GasPrice: gasPrice,
 		Value:    value,
 		Data:     input,
@@ -97,7 +113,7 @@ func (w *writer) sendTxToBridgeContract(value *big.Int, input []byte) (*types.Tr
 		td = &types.LegacyTx{
 			Nonce:    nonce.Uint64(),
 			Value:    value,
-			To:       &toAddress,
+			To:       toAddress,
 			Gas:      gasLimit,
 			GasPrice: gasPrice,
 			Data:     input,
@@ -107,7 +123,7 @@ func (w *writer) sendTxToBridgeContract(value *big.Int, input []byte) (*types.Tr
 		td = &types.DynamicFeeTx{
 			Nonce:     nonce.Uint64(),
 			Value:     value,
-			To:        &toAddress,
+			To:        toAddress,
 			Gas:       gasLimit,
 			GasTipCap: w.conn.Opts().GasTipCap,
 			GasFeeCap: w.conn.Opts().GasFeeCap,
