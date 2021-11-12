@@ -1,4 +1,4 @@
-// Copyright 2020 ChainSafe Systems
+// Copyright 2021 Compass Systems
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package utils
@@ -18,6 +18,7 @@ var (
 	// function swapIn(bytes32 hash, address token, address from, address to, uint amount, uint fromChainID,uint toChainID)
 	SwapIn = "swapIn(bytes32,address,address,address,uint256,uint256,uint256)"
 
+	//bytesTy, _ = abi.NewType("bytes", "", nil)
 	bytes32Ty, _ = abi.NewType("bytes32", "", nil)
 	uint256Ty, _ = abi.NewType("uint256", "", nil)
 	addressTy, _ = abi.NewType("address", "", nil)

@@ -1,4 +1,4 @@
-// Copyright 2020 ChainSafe Systems
+// Copyright 2021 Compass Systems
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package ethereum
@@ -14,6 +14,8 @@ import (
 	"github.com/ChainSafe/log15"
 	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/msg"
@@ -35,6 +37,7 @@ type listener struct {
 	latestBlock        metrics.LatestBlock
 	metrics            *metrics.ChainMetrics
 	blockConfirmations *big.Int
+	msgCh              chan struct{} // wait for msg handles
 }
 
 // NewListener creates and returns a listener
@@ -49,6 +52,7 @@ func NewListener(conn Connection, cfg *Config, log log15.Logger, bs blockstore.B
 		latestBlock:        metrics.LatestBlock{LastUpdated: time.Now()},
 		metrics:            m,
 		blockConfirmations: cfg.blockConfirmations,
+		msgCh:              make(chan struct{}),
 	}
 }
 
@@ -110,13 +114,27 @@ func (l *listener) pollBlocks() error {
 				continue
 			}
 
+			// Sync headers to Map
+			if l.cfg.syncToMap {
+				l.log.Info("Sync Header to Map Chain", "target", currentBlock)
+				err = l.syncHeaderToMapChain(currentBlock)
+				if err != nil {
+					l.log.Error("Failed to sync header for block", "block", currentBlock, "err", err)
+					retry--
+					continue
+				}
+			}
+
 			// Parse out events
-			err = l.getEventsForBlock(currentBlock)
+			count, err := l.getEventsForBlock(currentBlock)
 			if err != nil {
 				l.log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				retry--
 				continue
 			}
+
+			// hold until all messages are handled
+			l.waitUntilMsgHandled(count)
 
 			// Write to block store. Not a critical operation, no need to retry
 			err = l.blockstore.StoreBlock(currentBlock)
@@ -140,14 +158,14 @@ func (l *listener) pollBlocks() error {
 }
 
 // getEventsForBlock looks for the deposit event in the latest block
-func (l *listener) getEventsForBlock(latestBlock *big.Int) error {
+func (l *listener) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	l.log.Debug("Querying block for events", "block", latestBlock)
 	query := buildQuery(l.cfg.bridgeContract, utils.SwapOut, latestBlock, latestBlock)
 
 	// querying for logs
 	logs, err := l.conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
-		return fmt.Errorf("unable to Filter Logs: %w", err)
+		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
 	// read through the log events and handle their deposit event if handler is recognized
@@ -155,11 +173,11 @@ func (l *listener) getEventsForBlock(latestBlock *big.Int) error {
 		// evm event to msg
 		fromChainID, toChainID, payload, err := utils.ParseEthLog(log, l.cfg.bridgeContract)
 		if err != nil {
-			return fmt.Errorf("unable to Parse Log: %w", err)
+			return 0, fmt.Errorf("unable to Parse Log: %w", err)
 		}
 
 		msgpayload := []interface{}{payload}
-		m := msg.NewSwapTransfer(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload)
+		m := msg.NewSwapTransfer(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, l.msgCh)
 
 		err = l.router.Send(m)
 		if err != nil {
@@ -167,7 +185,7 @@ func (l *listener) getEventsForBlock(latestBlock *big.Int) error {
 		}
 	}
 
-	return nil
+	return len(logs), nil
 }
 
 // buildQuery constructs a query for the bridgeContract by hashing sig to get the event topic
@@ -181,4 +199,37 @@ func buildQuery(contract ethcommon.Address, sig utils.EventSig, startBlock *big.
 		},
 	}
 	return query
+}
+
+// waitUntilMsgHandled this function will block untill message is handled
+func (l *listener) waitUntilMsgHandled(counter int) error {
+	for counter > 0 {
+		<-l.msgCh
+		counter -= 1
+	}
+	return nil
+}
+
+// syncHeaderToMapChain sync header from current chain to Map chain
+func (l *listener) syncHeaderToMapChain(latestBlock *big.Int) error {
+	header, err := l.conn.Client().HeaderByNumber(context.Background(), latestBlock)
+	if err != nil {
+		return err
+	}
+	chains := []types.Header{*header}
+	marshal, _ := rlp.EncodeToBytes(chains)
+
+	msgpayload := []interface{}{marshal}
+	m := msg.NewSyncToMap(l.cfg.id, l.cfg.mapChainID, msgpayload, l.msgCh)
+
+	err = l.router.Send(m)
+	if err != nil {
+		l.log.Error("subscription error: failed to route message", "err", err)
+	}
+
+	err = l.waitUntilMsgHandled(1)
+	if err != nil {
+		return err
+	}
+	return nil
 }

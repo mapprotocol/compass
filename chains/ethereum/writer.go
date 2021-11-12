@@ -1,4 +1,4 @@
-// Copyright 2020 ChainSafe Systems
+// Copyright 2021 Compass Systems
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package ethereum
@@ -12,7 +12,6 @@ import (
 
 var _ core.Writer = &writer{}
 
-// https://github.com/ChainSafe/chainbridge-solidity/blob/b5ed13d9798feb7c340e737a726dd415b8815366/contracts/Bridge.sol#L20
 var PassedStatus uint8 = 2
 var TransferredStatus uint8 = 3
 var CancelledStatus uint8 = 4
@@ -48,17 +47,14 @@ func (w *writer) start() error {
 func (w *writer) ResolveMessage(m msg.Message) bool {
 	w.log.Info("Attempting to resolve message", "type", m.Type, "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
 
-	w.executeMsg(m)
-	// switch m.Type {
-	// case msg.FungibleTransfer:
-	// 	return w.createErc20Proposal(m)
-	// case msg.NonFungibleTransfer:
-	// 	return w.createErc721Proposal(m)
-	// case msg.GenericTransfer:
-	// 	return w.createGenericDepositProposal(m)
-	// default:
-	// 	w.log.Error("Unknown message type received", "type", m.Type)
-	// 	return false
-	// }
+	switch m.Type {
+	case msg.SwapTransfer:
+		return w.exeSwapMsg(m)
+	case msg.SyncToMap:
+		return w.exeSyncMsg(m)
+	default:
+		w.log.Error("Unknown message type received", "type", m.Type)
+		return false
+	}
 	return true
 }
