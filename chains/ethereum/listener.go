@@ -171,13 +171,35 @@ func (l *listener) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
 		// evm event to msg
-		fromChainID, toChainID, payload, err := utils.ParseEthLog(log, l.cfg.bridgeContract)
-		if err != nil {
-			return 0, fmt.Errorf("unable to Parse Log: %w", err)
-		}
+		var m msg.Message
+		if l.cfg.syncToMap {
+			// when syncToMap we need to assemble a tx proof
+			txsHash, err := getTransactionsHashByBlockNumber(l.conn.Client(), latestBlock)
+			if err != nil {
+				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+			}
+			receipts, err := getReceiptsByTxsHash(l.conn.Client(), txsHash)
+			if err != nil {
+				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			}
 
-		msgpayload := []interface{}{payload}
-		m := msg.NewSwapTransfer(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, l.msgCh)
+			fromChainID, toChainID, payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, l.cfg.bridgeContract, receipts)
+			if err != nil {
+				return 0, fmt.Errorf("unable to Parse Log: %w", err)
+			}
+
+			msgpayload := []interface{}{payload}
+			m = msg.NewSwapWithProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, l.msgCh)
+
+		} else {
+			fromChainID, toChainID, payload, err := utils.ParseEthLogIntoSwapArgs(log, l.cfg.bridgeContract)
+			if err != nil {
+				return 0, fmt.Errorf("unable to Parse SwapArgs Log: %w", err)
+			}
+
+			msgpayload := []interface{}{payload}
+			m = msg.NewSwapTransfer(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, l.msgCh)
+		}
 
 		err = l.router.Send(m)
 		if err != nil {
@@ -203,6 +225,7 @@ func buildQuery(contract ethcommon.Address, sig utils.EventSig, startBlock *big.
 
 // waitUntilMsgHandled this function will block untill message is handled
 func (l *listener) waitUntilMsgHandled(counter int) error {
+	l.log.Debug("waitUntilMsgHandled", "counter", counter)
 	for counter > 0 {
 		<-l.msgCh
 		counter -= 1
@@ -225,6 +248,7 @@ func (l *listener) syncHeaderToMapChain(latestBlock *big.Int) error {
 	err = l.router.Send(m)
 	if err != nil {
 		l.log.Error("subscription error: failed to route message", "err", err)
+		return nil
 	}
 
 	err = l.waitUntilMsgHandled(1)
