@@ -36,10 +36,9 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 	return w.callContractWithMsg(w.cfg.bridgeContract, utils.SwapIn, m)
 }
 
-// exeSwapMsg executes sync msg, and send tx to the destination blockchain
-func (w *writer) exeSyncMsg(m msg.Message) bool {
-	return w.callContractWithMsg(params.SaveHeaderContractAddr, params.SaveHeaderFuncSig, m)
-}
+// func (w *writer) exeSwapWithProofMsg(m msg.Message) bool {
+// 	return w.callContractWithMsg(w.cfg.bridgeContract, utils.SwapInWithProof, m)
+// }
 
 // callContractWithMsg call contract using address and function signature with message info
 func (w *writer) callContractWithMsg(addr common.Address, funcSignature string, m msg.Message) bool {
@@ -60,14 +59,13 @@ func (w *writer) callContractWithMsg(addr common.Address, funcSignature string, 
 
 			// sendtx using general method
 			data := utils.ComposeMsgPayloadWithSignature(funcSignature, m.Payload)
-			value := big.NewInt(0)
-			tx, err := w.sendTx(&addr, value, data)
+			tx, err := w.sendTx(&addr, nil, data)
 
 			w.conn.UnlockOpts()
 
 			if err == nil {
 				// message successfully handled
-				w.log.Info("Submitted proposal execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "gasPrice", tx.GasPrice().String())
+				w.log.Info("Submitted cross tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "gasPrice", tx.GasPrice().String())
 				m.DoneCh <- struct{}{}
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
@@ -82,7 +80,6 @@ func (w *writer) callContractWithMsg(addr common.Address, funcSignature string, 
 	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
 	w.sysErr <- ErrFatalTx
 	return false
-
 }
 
 // sendTx send tx to an address with value and input data
@@ -147,4 +144,63 @@ func (w *writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 		return nil, err
 	}
 	return signedTx, nil
+}
+
+// exeSwapMsg executes sync msg, and send tx to the destination blockchain
+func (w *writer) exeSyncMsg(m msg.Message) bool {
+	//return w.callContractWithMsg(,  m)
+	for i := 0; i < TxRetryLimit; i++ {
+		select {
+		case <-w.stop:
+			return false
+		default:
+			err := w.conn.LockAndUpdateOpts()
+			if err != nil {
+				w.log.Error("Failed to update nonce", "err", err)
+				return false
+			}
+			// These store the gas limit and price before a transaction is sent for logging in case of a failure
+			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
+			gasLimit := w.conn.Opts().GasLimit
+			gasPrice := w.conn.Opts().GasPrice
+
+			// sendtx using abi from atlas
+			marshal, bsuc := m.Payload[0].([]byte)
+			if !bsuc {
+				w.log.Error("Failed to convert payload", "err", err)
+				w.conn.UnlockOpts()
+				return false
+			}
+
+			data, err := params.PackInput(params.ABIHeaderStore,
+				params.HeaderStoreFuncSig,
+				big.NewInt(int64(params.ChainTypeETH)),
+				big.NewInt(int64(params.ChainTypeMAP)),
+				marshal)
+			if err != nil {
+				w.log.Error("Failed to pack abi data", "err", err)
+				w.conn.UnlockOpts()
+				return false
+			}
+			tx, err := w.sendTx(&params.HeaderStoreAddress, nil, data)
+
+			w.conn.UnlockOpts()
+
+			if err == nil {
+				// message successfully handled
+				w.log.Info("Sync Header tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
+				m.DoneCh <- struct{}{}
+				return true
+			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
+				w.log.Error("Nonce too low, will retry")
+				time.Sleep(TxRetryInterval)
+			} else {
+				w.log.Warn("Execution failed, tx may already be complete", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+				time.Sleep(TxRetryInterval)
+			}
+		}
+	}
+	w.log.Error("Submission of Sync Header transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	w.sysErr <- ErrFatalTx
+	return false
 }

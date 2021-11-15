@@ -183,9 +183,10 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		}
 		config.mapChainID = msg.ChainId(chainId)
 		delete(chainCfg.Opts, gconfig.MapChainID)
-	} else if syncToMap, ok := chainCfg.Opts[SyncToMap]; ok && syncToMap == "false" {
+	} else {
 		config.syncToMap = false
 		delete(chainCfg.Opts, SyncToMap)
+		delete(chainCfg.Opts, gconfig.MapChainID)
 	}
 
 	if len(chainCfg.Opts) != 0 {

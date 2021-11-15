@@ -24,6 +24,7 @@ func (n Nonce) Big() *big.Int {
 
 var SwapTransfer TransferType = "SwapTransfer"
 var SyncToMap TransferType = "SyncToMap"
+var SwapWithProof TransferType = "SwapWithProof"
 
 // Message is used as a generic format to communicate between chains
 type Message struct {
@@ -41,10 +42,8 @@ func NewSwapTransfer(fromChainID, toChainID ChainId, payloads []interface{}, ch 
 		Source:      fromChainID,
 		Destination: toChainID,
 		Type:        SwapTransfer,
-		//DepositNonce: nonce,
-		//ResourceId: resourceId,
-		Payload: payloads,
-		DoneCh:  ch,
+		Payload:     payloads,
+		DoneCh:      ch,
 	}
 }
 
@@ -53,10 +52,18 @@ func NewSyncToMap(fromChainID, toChainID ChainId, payloads []interface{}, ch cha
 		Source:      fromChainID,
 		Destination: toChainID,
 		Type:        SyncToMap,
-		//DepositNonce: nonce,
-		//ResourceId: resourceId,
-		Payload: payloads,
-		DoneCh:  ch,
+		Payload:     payloads,
+		DoneCh:      ch,
+	}
+}
+
+func NewSwapWithProof(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {
+	return Message{
+		Source:      fromChainID,
+		Destination: toChainID,
+		Type:        SwapWithProof,
+		Payload:     payloads,
+		DoneCh:      ch,
 	}
 }
 
