@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
@@ -38,6 +39,7 @@ type listener struct {
 	metrics            *metrics.ChainMetrics
 	blockConfirmations *big.Int
 	msgCh              chan struct{} // wait for msg handles
+	syncedHeight       *big.Int      // used to record syncd height in map chain when sync is on
 }
 
 // NewListener creates and returns a listener
@@ -81,6 +83,28 @@ func (l *listener) start() error {
 func (l *listener) pollBlocks() error {
 	var currentBlock = l.cfg.startBlock
 	l.log.Info("Polling Blocks...", "block", currentBlock)
+
+	// check whether needs quick sync
+	if l.cfg.syncToMap {
+		syncedHeight, _, err := mapprotocol.GetCurrentNumberAbi(ethcommon.HexToAddress(l.cfg.from))
+		if err != nil {
+			l.log.Error("Get synced Height failed")
+			return err
+		}
+
+		l.log.Info("Check Sync Status...", "synced", syncedHeight)
+		l.syncedHeight = syncedHeight
+
+		if big.NewInt(0).Sub(currentBlock, l.syncedHeight).Cmp(l.blockConfirmations) == 1 {
+			//sync and start block differs too much perform a fast synced
+			l.log.Info("Perform fast sync to catch up...")
+			err = l.batchSyncHeadersTo(currentBlock)
+			if err != nil {
+				l.log.Error("Fast batch sync failed")
+				return err
+			}
+		}
+	}
 
 	var retry = BlockRetryLimit
 	for {
@@ -255,5 +279,46 @@ func (l *listener) syncHeaderToMapChain(latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (l *listener) batchSyncHeadersTo(height *big.Int) error {
+	// batch
+	var batch = big.NewInt(20)
+
+	chains := make([]types.Header, batch.Int64())
+
+	stopHeight := big.NewInt(0).Sub(height, batch)
+	for l.syncedHeight.Cmp(stopHeight) == -1 {
+
+		for i := int64(1); i <= batch.Int64(); i++ {
+			calcHeight := big.NewInt(0).Add(l.syncedHeight, big.NewInt(i))
+
+			header, err := l.conn.Client().HeaderByNumber(context.Background(), calcHeight)
+			if err != nil {
+				return err
+			}
+			chains[i-1] = *header
+		}
+
+		marshal, _ := rlp.EncodeToBytes(chains)
+		msgpayload := []interface{}{marshal}
+		m := msg.NewSyncToMap(l.cfg.id, l.cfg.mapChainID, msgpayload, l.msgCh)
+
+		err := l.router.Send(m)
+		if err != nil {
+			l.log.Error("subscription error: failed to route message", "err", err)
+			return err
+		}
+
+		err = l.waitUntilMsgHandled(1)
+		if err != nil {
+			return err
+		}
+
+		l.syncedHeight = big.NewInt(0).Add(l.syncedHeight, batch)
+		l.log.Info("Headers synced...", "height", l.syncedHeight)
+	}
+
 	return nil
 }

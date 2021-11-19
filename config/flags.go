@@ -94,6 +94,14 @@ var (
 	}
 )
 
+var (
+	AccountIdx = &cli.IntFlag{
+		Name:  "idx",
+		Usage: "index from accounts list",
+		Value: 0,
+	}
+)
+
 // Test Setting Flags
 var (
 	TestKeyFlag = &cli.StringFlag{
