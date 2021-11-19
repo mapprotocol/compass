@@ -21,6 +21,7 @@ import (
 	"github.com/mapprotocol/compass/chains/ethereum"
 	"github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/cli/v2"
@@ -59,15 +60,19 @@ var importFlags = []cli.Flag{
 	config.SubkeyNetworkFlag,
 }
 
+var registerFlags = []cli.Flag{
+	config.AccountIdx,
+}
+
 var accountCommand = cli.Command{
 	Name:  "accounts",
 	Usage: "manage bridge keystore",
 	Description: "The accounts command is used to manage the bridge keystore.\n" +
-		"\tTo generate a new account (key type generated is determined on the flag passed in): chainbridge accounts generate\n" +
-		"\tTo import a keystore file: chainbridge accounts import path/to/file\n" +
-		"\tTo import a geth keystore file: chainbridge accounts import --ethereum path/to/file\n" +
-		"\tTo import a private key file: chainbridge accounts import --privateKey private_key\n" +
-		"\tTo list keys: chainbridge accounts list",
+		"\tTo generate a new account (key type generated is determined on the flag passed in): compass accounts generate\n" +
+		"\tTo import a keystore file: compass accounts import path/to/file\n" +
+		"\tTo import a geth keystore file: compass accounts import --ethereum path/to/file\n" +
+		"\tTo import a private key file: compass accounts import --privateKey private_key\n" +
+		"\tTo list keys: compass accounts list",
 	Subcommands: []*cli.Command{
 		{
 			Action: wrapHandler(handleGenerateCmd),
@@ -96,6 +101,26 @@ var accountCommand = cli.Command{
 	},
 }
 
+var relayerCommand = cli.Command{
+	Name:  "relayers",
+	Usage: "manage relayer operations",
+	Description: "The relayers command is used to manage relayer on Map chain.\n" +
+		"\tTo register the first account as a relayer : compass relayers register\n" +
+		"\tTo register an account at specific index : compass relayers register --idx 0",
+	Subcommands: []*cli.Command{
+		{
+			Action: handleRegisterCmd,
+			Name:   "register",
+			Usage:  "register account as relayer",
+			Flags:  registerFlags,
+			Description: "The register subcommand is used to register an account as relayer.\n" +
+				"\tA path to the keystore must be provided\n" +
+				"\tA path to the config must be provided\n" +
+				"\tUse --idx to register an account at some index from accounts list.",
+		},
+	},
+}
+
 var (
 	Version = "0.0.3"
 )
@@ -111,6 +136,7 @@ func init() {
 	app.EnableBashCompletion = true
 	app.Commands = []*cli.Command{
 		&accountCommand,
+		//&relayerCommand,
 	}
 
 	app.Flags = append(app.Flags, cliFlags...)
@@ -175,9 +201,9 @@ func run(ctx *cli.Context) error {
 	// merge map chain
 	allChains := make([]config.RawChainConfig, len(cfg.Chains), len(cfg.Chains)+1)
 	copy(allChains, cfg.Chains)
-	allChains = append(allChains, cfg.MapChain)
+	allChains = append([]config.RawChainConfig{cfg.MapChain}, allChains...)
 
-	for _, chain := range allChains {
+	for idx, chain := range allChains {
 		chainId, errr := strconv.Atoi(chain.Id)
 		if errr != nil {
 			return errr
@@ -208,6 +234,11 @@ func run(ctx *cli.Context) error {
 		if chain.Type == "ethereum" {
 			// only support eth
 			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m)
+
+			if idx == 0 {
+				// assign global map conn
+				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
+			}
 		} else {
 			return errors.New("unrecognized Chain Type")
 		}
@@ -216,7 +247,6 @@ func run(ctx *cli.Context) error {
 			return err
 		}
 		c.AddChain(newChain)
-
 	}
 
 	// Start prometheus and health server

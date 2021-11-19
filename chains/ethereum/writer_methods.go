@@ -12,8 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"github.com/mapprotocol/compass/params"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
@@ -165,24 +165,16 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			gasPrice := w.conn.Opts().GasPrice
 
 			// sendtx using abi from atlas
-			marshal, bsuc := m.Payload[0].([]byte)
-			if !bsuc {
-				w.log.Error("Failed to convert payload", "err", err)
-				w.conn.UnlockOpts()
-				return false
-			}
+			marshal, _ := m.Payload[0].([]byte)
 
-			data, err := params.PackInput(params.ABIHeaderStore,
-				params.HeaderStoreFuncSig,
-				big.NewInt(int64(params.ChainTypeETH)),
-				big.NewInt(int64(params.ChainTypeMAP)),
-				marshal)
+			// save header data
+			data, err := mapprotocol.SaveHeaderTxData(marshal)
 			if err != nil {
 				w.log.Error("Failed to pack abi data", "err", err)
 				w.conn.UnlockOpts()
 				return false
 			}
-			tx, err := w.sendTx(&params.HeaderStoreAddress, nil, data)
+			tx, err := w.sendTx(&mapprotocol.HeaderStoreAddress, nil, data)
 
 			w.conn.UnlockOpts()
 
@@ -195,8 +187,9 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 				w.log.Error("Nonce too low, will retry")
 				time.Sleep(TxRetryInterval)
 			} else {
-				w.log.Warn("Execution failed, tx may already be complete", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
-				time.Sleep(TxRetryInterval)
+				w.log.Warn("Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+				m.DoneCh <- struct{}{}
+				return true
 			}
 		}
 	}

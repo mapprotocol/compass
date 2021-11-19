@@ -107,10 +107,10 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	if err != nil {
 		return nil, err
 	}
-	err = conn.EnsureHasBytecode(cfg.bridgeContract)
-	if err != nil {
-		return nil, err
-	}
+	// err = conn.EnsureHasBytecode(cfg.bridgeContract)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	if chainCfg.LatestBlock {
 		curr, err := conn.LatestBlock()
@@ -171,4 +171,9 @@ func (c *Chain) Stop() {
 	if c.conn != nil {
 		c.conn.Close()
 	}
+}
+
+// return EthClient for global map connection
+func (c *Chain) EthClient() *ethclient.Client {
+	return c.conn.Client()
 }
