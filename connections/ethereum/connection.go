@@ -45,8 +45,8 @@ type Connection struct {
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
 func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int, gasMultiplier *big.Float, gsnApiKey, gsnSpeed string) *Connection {
 	// tmp
-	pkstr := ethcommon.Bytes2Hex(ethcrypto.FromECDSA(kp.PrivateKey()))
-	fmt.Println("pk:" + pkstr)
+	// pkstr := ethcommon.Bytes2Hex(ethcrypto.FromECDSA(kp.PrivateKey()))
+	// fmt.Println("pk:" + pkstr)
 	return &Connection{
 		endpoint:      endpoint,
 		http:          http,

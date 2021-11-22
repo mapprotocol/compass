@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/big"
 	"time"
+	"github.com/pkg/math"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
@@ -98,7 +99,7 @@ func (l *listener) pollBlocks() error {
 		if big.NewInt(0).Sub(currentBlock, l.syncedHeight).Cmp(l.blockConfirmations) == 1 {
 			//sync and start block differs too much perform a fast synced
 			l.log.Info("Perform fast sync to catch up...")
-			err = l.batchSyncHeadersTo(currentBlock)
+			err = l.batchSyncHeadersTo(big.NewInt(0).Sub(currentBlock,mapprotocol.Big1))
 			if err != nil {
 				l.log.Error("Fast batch sync failed")
 				return err
@@ -285,20 +286,20 @@ func (l *listener) syncHeaderToMapChain(latestBlock *big.Int) error {
 func (l *listener) batchSyncHeadersTo(height *big.Int) error {
 	// batch
 	var batch = big.NewInt(20)
-
 	chains := make([]types.Header, batch.Int64())
-
-	stopHeight := big.NewInt(0).Sub(height, batch)
-	for l.syncedHeight.Cmp(stopHeight) == -1 {
-
-		for i := int64(1); i <= batch.Int64(); i++ {
+	var heightDiff = big.NewInt(0)
+	for l.syncedHeight.Cmp(height) == -1 {
+		chains = chains[:0]
+		heightDiff.Sub(height, l.syncedHeight)
+		loop := math.MinBigInt(batch,heightDiff)
+		for i := int64(1); i <=loop.Int64() ; i++ {
 			calcHeight := big.NewInt(0).Add(l.syncedHeight, big.NewInt(i))
 
 			header, err := l.conn.Client().HeaderByNumber(context.Background(), calcHeight)
 			if err != nil {
 				return err
 			}
-			chains[i-1] = *header
+			chains =append(chains,*header)
 		}
 
 		marshal, _ := rlp.EncodeToBytes(chains)
@@ -316,9 +317,10 @@ func (l *listener) batchSyncHeadersTo(height *big.Int) error {
 			return err
 		}
 
-		l.syncedHeight = big.NewInt(0).Add(l.syncedHeight, batch)
+		l.syncedHeight = l.syncedHeight.Add(l.syncedHeight, loop)
 		l.log.Info("Headers synced...", "height", l.syncedHeight)
 	}
 
+	l.log.Info("Batch sync finished", "height", height, "syncHeight", l.syncedHeight)
 	return nil
 }
