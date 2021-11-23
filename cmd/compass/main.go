@@ -234,7 +234,9 @@ func run(ctx *cli.Context) error {
 		if chain.Type == "ethereum" {
 			// only support eth
 			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m)
-
+			if err!=nil{
+				return err;
+			}
 			if idx == 0 {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
@@ -243,9 +245,6 @@ func run(ctx *cli.Context) error {
 			return errors.New("unrecognized Chain Type")
 		}
 
-		if err != nil {
-			return err
-		}
 		c.AddChain(newChain)
 	}
 

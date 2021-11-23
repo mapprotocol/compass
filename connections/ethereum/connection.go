@@ -219,7 +219,8 @@ func (c *Connection) LockAndUpdateOpts() error {
 	c.optsLock.Lock()
 
 	head, err := c.conn.HeaderByNumber(context.TODO(), nil)
-	if err != nil {
+	// cos map chain dont have this section in return,this err will be raised 
+	if err != nil && err.Error()!="missing required field 'sha3Uncles' for Header" {
 		c.UnlockOpts()
 		return err
 	}
@@ -262,11 +263,11 @@ func (c *Connection) UnlockOpts() {
 
 // LatestBlock returns the latest block from the current chain
 func (c *Connection) LatestBlock() (*big.Int, error) {
-	header, err := c.conn.HeaderByNumber(context.Background(), nil)
+	bnum, err := c.conn.BlockNumber(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	return header.Number, nil
+	return big.NewInt(0).SetUint64(bnum), nil
 }
 
 // EnsureHasBytecode asserts if contract code exists at the specified address

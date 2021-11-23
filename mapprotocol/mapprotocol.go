@@ -38,7 +38,7 @@ func GetCurrentNumberAbi(from common.Address) (*big.Int, string, error) {
 		return Big0, "", errors.New("Global Map Connection is not assigned!")
 	}
 
-	header, err := GlobalMapConn.HeaderByNumber(context.Background(), nil)
+	blockNum, err := GlobalMapConn.BlockNumber(context.Background())
 	if err != nil {
 		return Big0, "", err
 	}
@@ -49,7 +49,7 @@ func GetCurrentNumberAbi(from common.Address) (*big.Int, string, error) {
 		To:   &HeaderStoreAddress,
 		Data: input}
 
-	output, err := GlobalMapConn.CallContract(context.Background(), msg, header.Number)
+	output, err := GlobalMapConn.CallContract(context.Background(), msg, big.NewInt(0).SetUint64(blockNum))
 	if err != nil {
 		return Big0, "", err
 	}
