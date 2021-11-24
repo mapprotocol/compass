@@ -26,6 +26,10 @@ build:
 	@echo "  >  \033[32mBuilding compass...\033[0m "
 	cd cmd/compass && env GOARCH=amd64 go build -o ../../build/compass $(VERSION)
 
+dev:
+	@echo "  >  \033[32mBuilding compass-dev...\033[0m "
+	cd cmd/compass && env GOARCH=amd64 CGO_ENABLED=0 go build -o ../../build/compass-dev
+
 install:
 	@echo "  >  \033[32mInstalling compass...\033[0m "
 	cd cmd/compass && go install $(VERSION)
