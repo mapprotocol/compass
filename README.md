@@ -130,4 +130,5 @@ To import private keys as keystores, use `compass accounts import --privateKey k
 
 # Chain Implementations
 
-- Ethereum (Solidity): #Todo
+- Ethereum (Solidity): [contracts](https://github.com/mapprotocol/contracts)
+The Solidity contracts required for compass. Includes scripts for deployment.
