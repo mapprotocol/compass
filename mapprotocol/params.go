@@ -29,8 +29,9 @@ const (
 
 // common varible
 var (
-	Big0 = big.NewInt(0)
-	Big1 = big.NewInt(1)
+	Big0           = big.NewInt(0)
+	Big1           = big.NewInt(1)
+	RegisterAmount = int64(100000)
 )
 
 var (
@@ -38,7 +39,12 @@ var (
 	SaveHeader         = "save"
 	CurNbrAndHash      = "currentNumberAndHash"
 
-	ABIHeaderStore, _           = abi.JSON(strings.NewReader(HeaderStoreABIJSON))
-	ChainTypeETH      ChainType = ChainType(RopstenCHainID) // todo change to eth when get online
-	ChainTypeMAP      ChainType = ChainType(MainNetChainID) // todo may change?
+	RelayerAddress  = common.BytesToAddress([]byte("RelayerAddress"))
+	RegisterRelayer = "register"
+
+	ABIHeaderStore, _ = abi.JSON(strings.NewReader(HeaderStoreABIJSON))
+	ABIRelayer, _     = abi.JSON(strings.NewReader(RelayerABIJSON))
+
+	ChainTypeETH ChainType = ChainType(RopstenCHainID) // todo change to eth when get online
+	ChainTypeMAP ChainType = ChainType(MainNetChainID) // todo may change?
 )
