@@ -5,12 +5,19 @@ package mapprotocol
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"errors"
+	"fmt"
 	"math/big"
+	"time"
+
+	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
+	"github.com/ChainSafe/log15"
 
 	goeth "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -62,4 +69,135 @@ func GetCurrentNumberAbi(from common.Address) (*big.Int, string, error) {
 	hash := common.BytesToHash(ret[1].([]byte))
 
 	return height, hash.String(), nil
+}
+
+type Connection interface {
+	Keypair() *secp256k1.Keypair
+	Client() *ethclient.Client
+}
+
+func RegisterRelayerWithConn(conn Connection, value int64, logger log15.Logger) error {
+	amoutnOfwei := ethToWei(value)
+	input, err := packInput(ABIRelayer, RegisterRelayer, amoutnOfwei)
+	if err != nil {
+		return err
+	}
+	kp := conn.Keypair()
+	err = sendContractTransaction(conn.Client(), kp.CommonAddress(),
+		RelayerAddress, nil, kp.PrivateKey(), input, logger)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ethToWei(registerValue int64) *big.Int {
+	baseUnit := big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil)
+	value := big.NewInt(0).Mul(big.NewInt(registerValue), baseUnit)
+	return value
+}
+
+func sendContractTransaction(client *ethclient.Client, from, toAddress common.Address,
+	value *big.Int, privateKey *ecdsa.PrivateKey, input []byte, logger log15.Logger) error {
+
+	// Ensure a valid value field and resolve the account nonce
+	nonce, err := client.PendingNonceAt(context.Background(), from)
+	if err != nil {
+		logger.Error("sendContractTransaction PendingNonceAt")
+		return err
+	}
+
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		logger.Error("sendContractTransaction SuggestGasPrice")
+		return err
+	}
+
+	gasLimit := uint64(2100000) // in units
+	// If the contract surely has code (or code is not needed), estimate the transaction
+	// 如果合同确实有代码（或不需要代码），则估计交易
+	msg := goeth.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Value: value, Data: input}
+	gasLimit, err = client.EstimateGas(context.Background(), msg)
+	if err != nil {
+		logger.Info("client.EstimateGas failed!")
+	}
+	//log.Info("EstimateGas gasLimit : ", gasLimit)
+	if gasLimit < 1 {
+		gasLimit = 866328
+		logger.Info("use specified gasLimit", "gasLimit", gasLimit)
+	}
+
+	// Create the transaction, sign it and schedule it for execution
+	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, input)
+
+	chainID, err := client.ChainID(context.Background())
+	if err != nil {
+		logger.Error("sendContractTransaction ChainID")
+		return err
+	}
+	//log.Info("TX data nonce ", nonce, " transfer value ", value, " gasLimit ", gasLimit, " gasPrice ", gasPrice, " chainID ", chainID)
+	signer := types.LatestSignerForChainID(chainID)
+	signedTx, err := types.SignTx(tx, signer, privateKey)
+	if err != nil {
+		logger.Error("sendContractTransaction signedTx")
+		return err
+	}
+
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		logger.Error("sendContractTransaction client.SendTransaction")
+		return err
+	}
+	txHash := signedTx.Hash()
+	logger.Info("transaction sent", "txHash", txHash)
+	count := 0
+	for {
+		time.Sleep(time.Millisecond * 500)
+		_, isPending, err := client.TransactionByHash(context.Background(), txHash)
+
+		if err != nil {
+			logger.Error("sendContractTransaction TransactionByHash")
+			return err
+		}
+		count++
+		if !isPending {
+			break
+		} else {
+			logger.Info("transaction is pending, please wait...")
+		}
+	}
+	receipt, err := client.TransactionReceipt(context.Background(), txHash)
+	count1 := 0
+	if err != nil {
+		logger.Warn("TransactionReceipt failed, Retrying...", "err", err)
+		for {
+			time.Sleep(time.Second * 5)
+			count1++
+			receipt, err = client.TransactionReceipt(context.Background(), txHash)
+			if err == nil {
+				break
+			} else {
+				logger.Error("TransactionReceipt receipt finding...", "err", err)
+			}
+			if count1 > 10 {
+				return fmt.Errorf("EXCEED MAX TRYOUT")
+			}
+		}
+	}
+	if receipt.Status == types.ReceiptStatusSuccessful {
+		block, err := client.BlockByHash(context.Background(), receipt.BlockHash)
+		if err != nil {
+			logger.Error("BlockByHash failed", "BlockHash", receipt.BlockHash)
+			return err
+		} else {
+			logger.Info("Transaction Success", "block Number", receipt.BlockNumber.Uint64(), " block txs", len(block.Transactions()), "blockhash", block.Hash().Hex())
+			return nil
+		}
+	} else if receipt.Status == types.ReceiptStatusFailed {
+		logger.Warn("TX data  ", "nonce", nonce, " transfer value", value, " gasLimit", gasLimit, " gasPrice", gasPrice, " chainID", chainID)
+		logger.Warn("Transaction Failed", "Block Number", receipt.BlockNumber.Uint64())
+		return err
+	}
+	return fmt.Errorf("SOMETHING WENT WRONG")
 }

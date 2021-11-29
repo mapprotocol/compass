@@ -61,7 +61,8 @@ var importFlags = []cli.Flag{
 }
 
 var registerFlags = []cli.Flag{
-	config.AccountIdx,
+	config.Account,
+	config.Value,
 }
 
 var accountCommand = cli.Command{
@@ -105,8 +106,7 @@ var relayerCommand = cli.Command{
 	Name:  "relayers",
 	Usage: "manage relayer operations",
 	Description: "The relayers command is used to manage relayer on Map chain.\n" +
-		"\tTo register the first account as a relayer : compass relayers register\n" +
-		"\tTo register an account at specific index : compass relayers register --idx 0",
+		"\tTo register an account : compass relayers register --account '0x0...'",
 	Subcommands: []*cli.Command{
 		{
 			Action: handleRegisterCmd,
@@ -116,7 +116,7 @@ var relayerCommand = cli.Command{
 			Description: "The register subcommand is used to register an account as relayer.\n" +
 				"\tA path to the keystore must be provided\n" +
 				"\tA path to the config must be provided\n" +
-				"\tUse --idx to register an account at some index from accounts list.",
+				"\tUse --account to provide an address of an account.",
 		},
 	},
 }
@@ -136,7 +136,7 @@ func init() {
 	app.EnableBashCompletion = true
 	app.Commands = []*cli.Command{
 		&accountCommand,
-		//&relayerCommand,
+		&relayerCommand,
 	}
 
 	app.Flags = append(app.Flags, cliFlags...)
@@ -234,8 +234,8 @@ func run(ctx *cli.Context) error {
 		if chain.Type == "ethereum" {
 			// only support eth
 			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m)
-			if err!=nil{
-				return err;
+			if err != nil {
+				return err
 			}
 			if idx == 0 {
 				// assign global map conn

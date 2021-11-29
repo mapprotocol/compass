@@ -178,3 +178,8 @@ func (c *Chain) Stop() {
 func (c *Chain) EthClient() *ethclient.Client {
 	return c.conn.Client()
 }
+
+// return Connection interface for relayer register
+func (c *Chain) Conn() Connection {
+	return c.conn
+}

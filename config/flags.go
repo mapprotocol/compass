@@ -95,10 +95,15 @@ var (
 )
 
 var (
-	AccountIdx = &cli.IntFlag{
-		Name:  "idx",
-		Usage: "index from accounts list",
-		Value: 0,
+	Account = &cli.StringFlag{
+		Name:  "account",
+		Usage: "the address of account",
+	}
+
+	Value = &cli.Int64Flag{
+		Name:  "amount",
+		Usage: "the amount of Map to stake for register",
+		Value: 100000,
 	}
 )
 
