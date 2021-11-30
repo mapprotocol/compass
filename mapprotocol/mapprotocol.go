@@ -120,11 +120,12 @@ func sendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 	msg := goeth.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Value: value, Data: input}
 	gasLimit, err = client.EstimateGas(context.Background(), msg)
 	if err != nil {
-		logger.Info("client.EstimateGas failed!")
+		logger.Warn("client.EstimateGas failed!")
 	}
 	//log.Info("EstimateGas gasLimit : ", gasLimit)
 	if gasLimit < 1 {
-		gasLimit = 866328
+		//gasLimit = 866328
+		gasLimit = 2000000
 		logger.Info("use specified gasLimit", "gasLimit", gasLimit)
 	}
 
@@ -181,23 +182,17 @@ func sendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 				logger.Error("TransactionReceipt receipt finding...", "err", err)
 			}
 			if count1 > 10 {
-				return fmt.Errorf("EXCEED MAX TRYOUT")
+				return fmt.Errorf("exceed MAX tryout")
 			}
 		}
 	}
 	if receipt.Status == types.ReceiptStatusSuccessful {
-		block, err := client.BlockByHash(context.Background(), receipt.BlockHash)
-		if err != nil {
-			logger.Error("BlockByHash failed", "BlockHash", receipt.BlockHash)
-			return err
-		} else {
-			logger.Info("Transaction Success", "block Number", receipt.BlockNumber.Uint64(), " block txs", len(block.Transactions()), "blockhash", block.Hash().Hex())
-			return nil
-		}
+		logger.Info("Transaction Success", "block Number", receipt.BlockNumber.Uint64(), "blockhash", receipt.BlockHash.Hex())
+		return nil
 	} else if receipt.Status == types.ReceiptStatusFailed {
 		logger.Warn("TX data  ", "nonce", nonce, " transfer value", value, " gasLimit", gasLimit, " gasPrice", gasPrice, " chainID", chainID)
 		logger.Warn("Transaction Failed", "Block Number", receipt.BlockNumber.Uint64())
-		return err
+		return fmt.Errorf("ReceiptStatusFailed")
 	}
-	return fmt.Errorf("SOMETHING WENT WRONG")
+	return fmt.Errorf("ReceiptStatus:%v", receipt.Status)
 }

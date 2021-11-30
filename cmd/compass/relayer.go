@@ -73,17 +73,3 @@ func handleRegisterCmd(ctx *cli.Context) error {
 
 	return nil
 }
-
-// getDataDir obtains the path to the keystore and returns it as a string
-// func getDataDir(ctx *cli.Context) (string, error) {
-// 	// key directory is datadir/keystore/
-// 	if dir := ctx.String(config.KeystorePathFlag.Name); dir != "" {
-// 		datadir, err := filepath.Abs(dir)
-// 		if err != nil {
-// 			return "", err
-// 		}
-// 		log.Trace(fmt.Sprintf("Using keystore dir: %s", datadir))
-// 		return datadir, nil
-// 	}
-// 	return "", fmt.Errorf("datadir flag not supplied")
-// }
