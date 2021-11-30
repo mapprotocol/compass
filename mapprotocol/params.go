@@ -46,5 +46,5 @@ var (
 	ABIRelayer, _     = abi.JSON(strings.NewReader(RelayerABIJSON))
 
 	ChainTypeETH ChainType = ChainType(RopstenCHainID) // todo change to eth when get online
-	ChainTypeMAP ChainType = ChainType(MainNetChainID) // todo may change?
+	ChainTypeMAP ChainType = ChainType(TestNetChainID) // todo may change?
 )
