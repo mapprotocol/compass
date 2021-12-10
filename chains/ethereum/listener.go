@@ -97,6 +97,14 @@ func (l *listener) pollBlocks() error {
 		l.log.Info("Check Sync Status...", "synced", syncedHeight)
 		l.syncedHeight = syncedHeight
 
+		// when sync to map there must be a 12 block confirmation at least
+		big12 := big.NewInt(12)
+		if l.blockConfirmations.Cmp(big12) == -1 {
+			l.blockConfirmations = big12
+		}
+		// fix the currentBlock Number
+		currentBlock = big.NewInt(0).Sub(currentBlock, l.blockConfirmations)
+
 		if currentBlock.Cmp(l.syncedHeight) == 1 {
 			//sync and start block differs too much perform a fast synced
 			l.log.Info("Perform fast sync to catch up...")
