@@ -14,7 +14,7 @@ var (
 	RpcUrl                 = GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "2", keyInBlockChainMap)].RpcUrl
 	StakingContractAddress = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "2", keyInBlockChainMap)].StakingContractAddress)
 	DataContractAddress    = common.HexToAddress(GetBlockChainMap()[ReadConfigWithCondition("selected_chain", "2", keyInBlockChainMap)].DataContractAddress)
-	ChainId                = big.NewInt(97) // mode
+	ChainId                = big.NewInt(22776) // mode
 
 	SendTransactionValue    = big.NewInt(1000000000000000000)
 	SendTransactionGasLimit = uint64(21000)
@@ -31,14 +31,14 @@ var (
 	ExternalBlockChainMap map[string]Chain
 	internalBlockChainMap = map[string]Chain{
 		"1": {
-			"https://rpc-mainnet.maticvigil.com/",
-			"0x567F5d1Bb4c095E7fD0AC939be1aeb1c661413a8",
-			"0x611A4593f4d4BA964E789a2E4681FA97364F73Cf",
-		},
-		"2": {
 			"https://data-seed-prebsc-1-s1.binance.org:8545/",
 			"0xe2B4C376ca6Aa0a291E221C96D57a57b4Ab41C15",
 			"0xe2B4C376ca6Aa0a291E221C96D57a57b4Ab41C15",
+		},
+		"2": {
+			"http://13.214.151.165:7445/",
+			"0x7E5b958A06095bf4e6864923D8DaD112002555ea",
+			"0x7E5b958A06095bf4e6864923D8DaD112002555ea",
 		},
 	}
 	ExternalBlockChainKey = "externalBlockChain"

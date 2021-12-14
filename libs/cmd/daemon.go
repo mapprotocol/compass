@@ -35,11 +35,12 @@ var (
 			fmt.Println(`   / __(_)__ ____  /  |/  /__ ____    `)
 			fmt.Println(`  _\ \/ / _ ` + "`" + `/ _ \/ /|_/ / _ ` + "`" + `/ _ \   `)
 			fmt.Println(` /___/_/\_, /_//_/_/  /_/\_,_/ .__/   `)
-			fmt.Println(`       /___/                /_/      BSC version`)
+			fmt.Println(`       /___/                /_/      Makalu version`)
 			fmt.Println()
 
 			privateKey := libs.GetKey("")
 			fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+			//println("keystore Addr:",fromAddress.Hex())
 			bindAddress := staking_bsc.BindAddress(fromAddress)
 			if bytes.Equal(bindAddress.Bytes(), common.Address{}.Bytes()) {
 				println("Worker not set！ please set a worker.")
@@ -59,9 +60,9 @@ var (
 			bindBalance := libs.GetBalance(bindAddress)
 			// print info
 			log.Println("Pledge Account: ", bindAddress.Hex())
-			log.Println("Pledge Balance: ", libs.WeiToEther(bindBalance), "BNB")
+			log.Println("Pledge Balance: ", libs.WeiToEther(bindBalance), "MAP")
 			log.Println("Worker Account: ", fromAddress.Hex())
-			log.Println("Worker Balance: ", libs.WeiToEther(balance), "BNB")
+			log.Println("Worker Balance: ", libs.WeiToEther(balance), "MAP")
 			rand.Seed(time.Now().UnixNano())
 			libs.WriteLog(time.Now().Format("-20060102 15:04:05") + ". starting success!")
 			log.Println("Start-up success")
