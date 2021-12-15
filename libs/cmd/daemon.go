@@ -17,6 +17,8 @@ import (
 )
 
 var (
+	// this is the website front end for users
+	frontUrl 	= "https://makalu-relayer.mapdapp.net/#/manage"
 	warnBalance = big.NewInt(1e16)
 	doing       = false
 	signUnit    int
@@ -134,7 +136,7 @@ func doSign(workAddr common.Address, bindAddr common.Address) {
 			staking_bsc.GetData(bindAddr)
 
 		} else {
-			log.Println("The server did not return the result,please check the status at the following website\nhttps://relayer.mapdapp.net/#/manage")
+			log.Println("The server did not return the result,please check the status at the following website\n"+frontUrl)
 			libs.WriteLog(fmt.Sprintf("-%s %d unkown if it worked.", date, nowUnit))
 		}
 		doing = false

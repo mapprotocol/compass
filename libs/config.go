@@ -36,9 +36,9 @@ var (
 			"0xe2B4C376ca6Aa0a291E221C96D57a57b4Ab41C15",
 		},
 		"2": {
-			"http://13.214.151.165:7445/",
-			"0x7E5b958A06095bf4e6864923D8DaD112002555ea",
-			"0x7E5b958A06095bf4e6864923D8DaD112002555ea",
+			"https://poc2-rpc.maplabs.io/",
+			"0x00836e325e520a274e97f776be93b7bf165631ae",
+			"0x00836e325e520a274e97f776be93b7bf165631ae",
 		},
 	}
 	ExternalBlockChainKey = "externalBlockChain"
