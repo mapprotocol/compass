@@ -235,6 +235,7 @@ func (l *listener) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			m = msg.NewSwapTransfer(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, l.msgCh)
 		}
 
+		l.log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index)
 		err = l.router.Send(m)
 		if err != nil {
 			l.log.Error("subscription error: failed to route message", "err", err)
