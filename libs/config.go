@@ -30,7 +30,7 @@ var (
 	blockChainMap         map[string]Chain
 	ExternalBlockChainMap map[string]Chain
 	internalBlockChainMap = map[string]Chain{"1": {
-		"https://rpc-mainnet.maticvigil.com/",
+		"https://polygon-rpc.com/",
 		"0x567F5d1Bb4c095E7fD0AC939be1aeb1c661413a8",
 		"0x611A4593f4d4BA964E789a2E4681FA97364F73Cf",
 	}}

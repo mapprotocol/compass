@@ -2,5 +2,6 @@ sign.log
 .idea
 keystore.json
 target
+build
 /contracts/node_modules/
 runtime
