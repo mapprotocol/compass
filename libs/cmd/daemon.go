@@ -37,12 +37,12 @@ var (
 			fmt.Println(`   / __(_)__ ____  /  |/  /__ ____    `)
 			fmt.Println(`  _\ \/ / _ ` + "`" + `/ _ \/ /|_/ / _ ` + "`" + `/ _ \   `)
 			fmt.Println(` /___/_/\_, /_//_/_/  /_/\_,_/ .__/   `)
-			fmt.Println(`       /___/                /_/      Makalu version`)
+			fmt.Println(`       /___/                /_/      Makalu version 0.1.0`)
 			fmt.Println()
 
 			privateKey := libs.GetKey("")
 			fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
-			//println("keystore Addr:",fromAddress.Hex())
+			println("keystore Addr:",fromAddress.Hex())
 			bindAddress := staking_bsc.BindAddress(fromAddress)
 			if bytes.Equal(bindAddress.Bytes(), common.Address{}.Bytes()) {
 				println("Worker not set！ please set a worker.")
