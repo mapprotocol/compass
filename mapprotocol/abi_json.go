@@ -55,206 +55,267 @@ const HeaderStoreABIJSON = `[
 
 const RelayerABIJSON = `[
   {
-    "name": "Register",
-    "inputs": [
-      {
-        "type": "address",
-        "name": "from",
-        "indexed": true
-      },
-      {
-        "type": "uint256",
-        "name": "value",
-        "indexed": false
-      }
-    ],
-    "anonymous": false,
-    "type": "event"
-  },
-  {
-    "name": "Withdraw",
-    "inputs": [
-      {
-        "type": "address",
-        "name": "from",
-        "indexed": true
-      },
-      {
-        "type": "uint256",
-        "name": "value",
-        "indexed": false
-      }
-    ],
-    "anonymous": false,
-    "type": "event"
-  },
-  {
-    "name": "Unregister",
-    "inputs": [
-      {
-        "type": "address",
-        "name": "from",
-        "indexed": true
-      },
-      {
-        "type": "uint256",
-        "name": "value",
-        "indexed": false
-      }
-    ],
-    "anonymous": false,
-    "type": "event"
-  },
-  {
-    "name": "Append",
-    "inputs": [
-      {
-        "type": "address",
-        "name": "from",
-        "indexed": true
-      },
-      {
-        "type": "uint256",
-        "name": "value",
-        "indexed": false
-      }
-    ],
-    "anonymous": false,
-    "type": "event"
-  },
-  {
-    "name": "register",
-    "outputs": [],
-    "inputs": [
-      {
-        "type": "uint256",
-        "name": "value"
-      }
-    ],
-    "constant": false,
-    "payable": false,
-    "type": "function"
-  },
-  {
-    "name": "append",
-    "outputs": [],
-    "inputs": [
-      {
-        "type": "uint256",
-        "name": "value"
-      }
-    ],
-    "constant": false,
-    "payable": false,
-    "type": "function"
-  },
-  {
-    "name": "getRelayerBalance",
-    "outputs": [
-      {
-        "type": "uint256",
-        "unit": "wei",
-        "name": "registered"
-      },
-      {
-        "type": "uint256",
-        "unit": "wei",
-        "name": "unregistering"
-      },
-      {
-        "type": "uint256",
-        "unit": "wei",
-        "name": "unregistered"
-      }
-    ],
-    "inputs": [
-      {
-        "type": "address",
-        "name": "owner"
-      }
-    ],
-    "constant": true,
-    "payable": false,
-    "type": "function"
-  },
-  {
-    "name": "withdraw",
-    "outputs": [],
-    "inputs": [
-      {
-        "type": "uint256",
-        "unit": "wei",
-        "name": "value"
-      }
-    ],
-    "constant": false,
-    "payable": false,
-    "type": "function"
-  },
-  {
-    "name": "unregister",
-    "outputs": [],
-    "inputs": [
-      {
-        "type": "uint256",
-        "unit": "wei",
-        "name": "value"
-      }
-    ],
-    "constant": false,
-    "payable": false,
-    "type": "function"
-  },
-  {
-    "name": "getPeriodHeight",
-    "outputs": [
-      {
-        "type": "uint256",
-        "name": "start"
-      },
-      {
-        "type": "uint256",
-        "name": "end"
-      },
-      {
-        "type": "bool",
-        "name": "relayer"
-      }
-    ],
-    "inputs": [
-      {
-        "type": "address",
-        "name": "owner"
-      }
-    ],
-    "constant": true,
-    "payable": false,
-    "type": "function"
-  },
-  {
-    "name": "getRelayer",
-    "inputs": [
-      {
-        "type": "address",
-        "name": "owner"
-      }
-    ],
-    "outputs": [
-      {
-        "type": "bool",
-        "name": "register"
-      },
-      {
-        "type": "bool",
-        "name": "relayer"
-      },
-      {
-        "type": "uint256",
-        "name": "epoch"
-      }
-    ],
-    "constant": true,
-    "payable": false,
-    "type": "function"
-  }
-]`
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "Register",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "Unregister",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "Withdraw",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "chainId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "bindAddress",
+          "type": "bytes32"
+        }
+      ],
+      "name": "WorkerSet",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "addr",
+          "type": "address"
+        }
+      ],
+      "name": "address2Bytes",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "_chainIdList",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "_worker",
+          "type": "bytes32"
+        }
+      ],
+      "name": "batchBindingSingleWorker",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "_chainIdList",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "bytes32[]",
+          "name": "_workerList",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "batchBindingWorkers",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "_worker",
+          "type": "bytes32"
+        }
+      ],
+      "name": "bindingWorker",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "b32",
+          "type": "bytes32"
+        }
+      ],
+      "name": "bytes2Address",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "length",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "register",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_relayer",
+          "type": "address"
+        }
+      ],
+      "name": "relayerAmount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_relayer",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "chainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "relayerWorker",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "relayers",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "unregister",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "withdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]`

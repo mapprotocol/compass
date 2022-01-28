@@ -41,6 +41,7 @@ var (
 
 	RelayerAddress  = common.BytesToAddress([]byte("RelayerAddress"))
 	RegisterRelayer = "register"
+	BindWorker 		= "bind"
 
 	ABIHeaderStore, _ = abi.JSON(strings.NewReader(HeaderStoreABIJSON))
 	ABIRelayer, _     = abi.JSON(strings.NewReader(RelayerABIJSON))

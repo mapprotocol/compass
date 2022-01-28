@@ -73,3 +73,59 @@ func handleRegisterCmd(ctx *cli.Context) error {
 
 	return nil
 }
+
+
+// handleBindCmd register an account as a relayer
+func handleBindCmd(ctx *cli.Context) error {
+	relayerAddr := ctx.String(config.Relayer.Name)
+	if relayerAddr == "" {
+		return errors.New("RELAYER ADDRESS MUST BE PROVIDED!")
+	}
+
+	workerAddr := ctx.String(config.Worker.Name)
+	if relayerAddr == "" {
+		return errors.New("WORKER ADDRESS MUST BE PROVIDED!")
+	}
+
+	log.Info("Bind...", "Relayer", relayerAddr, "Worker", workerAddr)
+
+	// get map config
+	cfg, err := config.GetConfig(ctx)
+	if err != nil {
+		return err
+	}
+
+	// construct Map Chain object
+	chainId, err := strconv.Atoi(cfg.MapChain.Id)
+	if err != nil {
+		return err
+	}
+	chainConfig := &core.ChainConfig{
+		Name:           cfg.MapChain.Name,
+		Id:             msg.ChainId(chainId),
+		Endpoint:       cfg.MapChain.Endpoint,
+		From:           relayerAddr,
+		KeystorePath:   cfg.KeystorePath,
+		Insecure:       false,
+		BlockstorePath: ctx.String(config.BlockstorePathFlag.Name),
+		FreshStart:     ctx.Bool(config.FreshStartFlag.Name),
+		LatestBlock:    ctx.Bool(config.LatestBlockFlag.Name),
+		Opts:           cfg.MapChain.Opts,
+	}
+	var m *metrics.ChainMetrics
+
+	logger := log.Root().New("bind", relayerAddr)
+	sysErr := make(chan error)
+	mapChain, err := ethereum.InitializeChain(chainConfig, logger, sysErr, m)
+	if err != nil {
+		return err
+	}
+
+	err = mapprotocol.BindWoerkerWithConn(mapChain.Conn(), workerAddr, logger)
+	if err != nil {
+		return err
+	}
+	log.Info("Bind sucessed...")
+
+	return nil
+}

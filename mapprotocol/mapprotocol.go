@@ -92,6 +92,21 @@ func RegisterRelayerWithConn(conn Connection, value int64, logger log15.Logger) 
 	return nil
 }
 
+func BindWoerkerWithConn(conn Connection, worker string, logger log15.Logger) error {
+	input, err := packInput(ABIRelayer, BindWorker, worker)
+	if err != nil {
+		return err
+	}
+	kp := conn.Keypair()
+	err = sendContractTransaction(conn.Client(), kp.CommonAddress(),
+		RelayerAddress, nil, kp.PrivateKey(), input, logger)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func ethToWei(registerValue int64) *big.Int {
 	baseUnit := big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil)
 	value := big.NewInt(0).Mul(big.NewInt(registerValue), baseUnit)
