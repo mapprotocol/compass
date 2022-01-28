@@ -107,6 +107,18 @@ var (
 	}
 )
 
+var (
+	Relayer = &cli.StringFlag{
+		Name:  "relayer",
+		Usage: "the address of the relayer account",
+	}
+
+	Worker = &cli.StringFlag{
+		Name:  "worker",
+		Usage: "the address of the worker account",
+	}
+)
+
 // Test Setting Flags
 var (
 	TestKeyFlag = &cli.StringFlag{

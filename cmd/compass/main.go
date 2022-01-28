@@ -65,6 +65,11 @@ var registerFlags = []cli.Flag{
 	config.Value,
 }
 
+var bindFlags = []cli.Flag{
+	config.Relayer,
+	config.Worker,
+}
+
 var accountCommand = cli.Command{
 	Name:  "accounts",
 	Usage: "manage bridge keystore",
@@ -117,6 +122,17 @@ var relayerCommand = cli.Command{
 				"\tA path to the keystore must be provided\n" +
 				"\tA path to the config must be provided\n" +
 				"\tUse --account to provide an address of an account.",
+		},
+		{
+			Action: handleBindCmd,
+			Name:   "bind",
+			Usage:  "bind a worker account for relayer",
+			Flags:  bindFlags,
+			Description: "The bind subcommand is used to bind a worker account for relayer.\n" +
+				"\tA path to the keystore must be provided\n" +
+				"\tA path to the config must be provided\n" +
+				"\tUse --relayer to provide the address of relayer.\n" +
+				"\tUse --worker to provide the address of worker.",
 		},
 	},
 }
