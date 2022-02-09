@@ -18,6 +18,6 @@ strip signmap_makalu
 tar czvf signmap_makalu_linux_amd64.tar.gz signmap_makalu
 
 mv signmap_makalu_windows_amd64.exe signmap_makalu.exe
-printf "signmap\\r\\npause" > signmap_makalu.bat
+printf "signmap_makalu\\r\\npause" > signmap_makalu.bat
 zip signmap_makalu_windows_amd64.zip signmap_makalu.exe
 zip -u signmap_makalu_windows_amd64.zip signmap_makalu.bat
