@@ -24,19 +24,19 @@ import (
 // global Map connection; assign at cmd/main
 var GlobalMapConn *ethclient.Client
 
-func packInput(abiHeaderStore abi.ABI, abiMethod string, params ...interface{}) ([]byte, error) {
-	input, err := abiHeaderStore.Pack(abiMethod, params...)
+func packInput(commonAbi abi.ABI, abiMethod string, params ...interface{}) ([]byte, error) {
+	input, err := commonAbi.Pack(abiMethod, params...)
 	if err != nil {
 		return nil, err
 	}
 	return input, nil
 }
 
-func SaveHeaderTxData(marshal []byte) ([]byte, error) {
-	return packInput(ABIHeaderStore,
+func SaveHeaderTxData(src, dest *big.Int, marshal []byte) ([]byte, error) {
+	return packInput(ABIRelayer,
 		SaveHeader,
-		big.NewInt(int64(ChainTypeETH)),
-		big.NewInt(int64(ChainTypeMAP)),
+		src,
+		dest,
 		marshal)
 }
 
@@ -49,18 +49,18 @@ func GetCurrentNumberAbi(from common.Address) (*big.Int, string, error) {
 	if err != nil {
 		return Big0, "", err
 	}
-	input, _ := packInput(ABIHeaderStore, CurNbrAndHash, big.NewInt(int64(ChainTypeETH)))
+	input, _ := packInput(ABIRelayer, CurNbrAndHash, big.NewInt(int64(ChainTypeETH)))
 
 	msg := goeth.CallMsg{
 		From: from,
-		To:   &HeaderStoreAddress,
+		To:   &RelayerAddress,
 		Data: input}
 
 	output, err := GlobalMapConn.CallContract(context.Background(), msg, big.NewInt(0).SetUint64(blockNum))
 	if err != nil {
 		return Big0, "", err
 	}
-	method, _ := ABIHeaderStore.Methods[CurNbrAndHash]
+	method, _ := ABIRelayer.Methods[CurNbrAndHash]
 	ret, err := method.Outputs.Unpack(output)
 	if err != nil {
 		return Big0, "", err
@@ -78,13 +78,13 @@ type Connection interface {
 
 func RegisterRelayerWithConn(conn Connection, value int64, logger log15.Logger) error {
 	amoutnOfwei := ethToWei(value)
-	input, err := packInput(ABIRelayer, RegisterRelayer, amoutnOfwei)
+	input, err := packInput(ABIRelayer, RegisterRelayer)
 	if err != nil {
 		return err
 	}
 	kp := conn.Keypair()
 	err = sendContractTransaction(conn.Client(), kp.CommonAddress(),
-		RelayerAddress, nil, kp.PrivateKey(), input, logger)
+		RelayerAddress, amoutnOfwei, kp.PrivateKey(), input, logger)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,8 @@ func RegisterRelayerWithConn(conn Connection, value int64, logger log15.Logger) 
 }
 
 func BindWoerkerWithConn(conn Connection, worker string, logger log15.Logger) error {
-	input, err := packInput(ABIRelayer, BindWorker, worker)
+	workerAddr := common.HexToAddress(worker)
+	input, err := packInput(ABIRelayer, BindWorker, workerAddr)
 	if err != nil {
 		return err
 	}
@@ -135,7 +136,7 @@ func sendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 	msg := goeth.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Value: value, Data: input}
 	gasLimit, err = client.EstimateGas(context.Background(), msg)
 	if err != nil {
-		logger.Warn("client.EstimateGas failed!")
+		logger.Warn("client.EstimateGas failed!", "err", err)
 	}
 	//log.Info("EstimateGas gasLimit : ", gasLimit)
 	if gasLimit < 1 {
@@ -146,6 +147,7 @@ func sendContractTransaction(client *ethclient.Client, from, toAddress common.Ad
 
 	// Create the transaction, sign it and schedule it for execution
 	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, input)
+	logger.Info("NewTx", "gasLimit", gasLimit, "gasPrice", gasPrice)
 
 	chainID, err := client.ChainID(context.Background())
 	if err != nil {

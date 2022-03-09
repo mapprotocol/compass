@@ -2,6 +2,8 @@
 
 Compass is the Golang implementation of cross-chain communication relayer for MAP Protocol. It currently supports bridging between EVM based chains.
 
+The newly designed compass version contains all the functions required to run the relay node. With this tool, you can run nodes on almost all hardware platforms.
+
 This project is inspired by [ChainSafe/ChainBridge](https://github.com/ChainSafe/ChainBridge)
 
 # Contents
@@ -54,11 +56,10 @@ if everything runs smoothly. it's all set
 
 Building compass requires a [Go](https://github.com/golang/go) compiler(version 1.16 or later)
 
-`make build`: Builds `compass` in `./build`.
+under the root directory of the repo  
 
-**or**
-
-`make install`: Uses `go install` to add `compass` to your GOBIN.
+`make build`: Builds `compass` in `./build`.  
+`make install`: Uses `go install` to add `compass` to your GOBIN.  
 
 # Configuration
 

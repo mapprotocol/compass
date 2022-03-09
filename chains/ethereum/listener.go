@@ -97,10 +97,10 @@ func (l *listener) pollBlocks() error {
 		l.log.Info("Check Sync Status...", "synced", syncedHeight)
 		l.syncedHeight = syncedHeight
 
-		// when sync to map there must be a 12 block confirmation at least
-		big12 := big.NewInt(12)
-		if l.blockConfirmations.Cmp(big12) == -1 {
-			l.blockConfirmations = big12
+		// when sync to map there must be a 20 block confirmation at least
+		big20 := big.NewInt(20)
+		if l.blockConfirmations.Cmp(big20) == -1 {
+			l.blockConfirmations = big20
 		}
 		// fix the currentBlock Number
 		currentBlock = big.NewInt(0).Sub(currentBlock, l.blockConfirmations)
@@ -150,12 +150,16 @@ func (l *listener) pollBlocks() error {
 
 			// Sync headers to Map
 			if l.cfg.syncToMap {
-				l.log.Info("Sync Header to Map Chain", "target", currentBlock)
-				err = l.syncHeaderToMapChain(currentBlock)
-				if err != nil {
-					l.log.Error("Failed to sync header for block", "block", currentBlock, "err", err)
-					retry--
-					continue
+				// sync when catchup
+				offsetCurrentBlock := big.NewInt(0).Sub(currentBlock, l.blockConfirmations)
+				if offsetCurrentBlock.Cmp(l.syncedHeight) == 1 {
+					l.log.Info("Sync Header to Map Chain", "target", currentBlock)
+					err = l.syncHeaderToMapChain(currentBlock)
+					if err != nil {
+						l.log.Error("Failed to sync header for block", "block", currentBlock, "err", err)
+						retry--
+						continue
+					}
 				}
 			}
 

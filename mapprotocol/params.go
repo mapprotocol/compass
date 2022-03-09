@@ -35,16 +35,15 @@ var (
 )
 
 var (
-	HeaderStoreAddress = common.BytesToAddress([]byte("headerstoreAddress"))
-	SaveHeader         = "save"
-	CurNbrAndHash      = "currentNumberAndHash"
-
-	RelayerAddress  = common.BytesToAddress([]byte("RelayerAddress"))
+	// todo using
+	RelayerAddress = common.HexToAddress("0xB864eEe844698de06Dd305CBf729fDD765d9592D")
+	// functions
+	SaveHeader      = "save"
+	CurNbrAndHash   = "currentNumberAndHash"
 	RegisterRelayer = "register"
-	BindWorker 		= "bind"
+	BindWorker      = "bind"
 
-	ABIHeaderStore, _ = abi.JSON(strings.NewReader(HeaderStoreABIJSON))
-	ABIRelayer, _     = abi.JSON(strings.NewReader(RelayerABIJSON))
+	ABIRelayer, _ = abi.JSON(strings.NewReader(RelayerABIJSON))
 
 	ChainTypeETH ChainType = ChainType(RopstenCHainID) // todo change to eth when get online
 	ChainTypeMAP ChainType = ChainType(TestNetChainID) // todo may change?
