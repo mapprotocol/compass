@@ -146,7 +146,7 @@ func (w *writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	return signedTx, nil
 }
 
-// exeSwapMsg executes sync msg, and send tx to the destination blockchain
+// exeSyncMsg executes sync msg, and send tx to the destination blockchain
 func (w *writer) exeSyncMsg(m msg.Message) bool {
 	//return w.callContractWithMsg(,  m)
 	for i := 0; i < TxRetryLimit; i++ {
@@ -164,17 +164,18 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
 
-			// sendtx using abi from atlas
+			src := big.NewInt(int64(m.Source))
+			dest := big.NewInt(int64(m.Destination))
 			marshal, _ := m.Payload[0].([]byte)
 
 			// save header data
-			data, err := mapprotocol.SaveHeaderTxData(marshal)
+			data, err := mapprotocol.SaveHeaderTxData(src, dest, marshal)
 			if err != nil {
 				w.log.Error("Failed to pack abi data", "err", err)
 				w.conn.UnlockOpts()
 				return false
 			}
-			tx, err := w.sendTx(&mapprotocol.HeaderStoreAddress, nil, data)
+			tx, err := w.sendTx(&mapprotocol.RelayerAddress, nil, data)
 
 			w.conn.UnlockOpts()
 
