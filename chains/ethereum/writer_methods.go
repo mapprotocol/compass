@@ -182,6 +182,11 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			if err == nil {
 				// message successfully handled
 				w.log.Info("Sync Header tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
+				// waited till successful mined
+				err = w.blockForPending(tx.Hash())
+				if err != nil {
+					w.log.Warn("blockForPending error", "err", err)
+				}
 				m.DoneCh <- struct{}{}
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
@@ -197,4 +202,22 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 	w.log.Error("Submission of Sync Header transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
 	w.sysErr <- ErrFatalTx
 	return false
+}
+
+// this function will block for the txhash given
+func (w *writer) blockForPending(txHash common.Hash) error {
+	for {
+		_, isPending, err := w.conn.Client().TransactionByHash(context.Background(), txHash)
+		if err != nil {
+			return err
+		}
+
+		if isPending {
+			w.log.Info("tx is pending, please wait...")
+			time.Sleep(time.Millisecond * 900)
+		} else {
+			break
+		}
+	}
+	return nil
 }

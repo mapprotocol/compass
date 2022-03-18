@@ -151,8 +151,7 @@ func (l *listener) pollBlocks() error {
 			// Sync headers to Map
 			if l.cfg.syncToMap {
 				// sync when catchup
-				offsetCurrentBlock := big.NewInt(0).Sub(currentBlock, l.blockConfirmations)
-				if offsetCurrentBlock.Cmp(l.syncedHeight) == 1 {
+				if currentBlock.Cmp(l.syncedHeight) == 1 {
 					l.log.Info("Sync Header to Map Chain", "target", currentBlock)
 					err = l.syncHeaderToMapChain(currentBlock)
 					if err != nil {

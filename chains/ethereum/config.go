@@ -179,16 +179,18 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 	if syncToMap, ok := chainCfg.Opts[SyncToMap]; ok && syncToMap == "true" {
 		config.syncToMap = true
 		delete(chainCfg.Opts, SyncToMap)
+	} else {
+		config.syncToMap = false
+		delete(chainCfg.Opts, SyncToMap)
+	}
 
-		chainId, errr := strconv.Atoi(chainCfg.Opts[gconfig.MapChainID])
+	if mapChainID, ok := chainCfg.Opts[gconfig.MapChainID]; ok {
+		// key exist anyway
+		chainId, errr := strconv.Atoi(mapChainID)
 		if errr != nil {
 			return nil, errr
 		}
 		config.mapChainID = msg.ChainId(chainId)
-		delete(chainCfg.Opts, gconfig.MapChainID)
-	} else {
-		config.syncToMap = false
-		delete(chainCfg.Opts, SyncToMap)
 		delete(chainCfg.Opts, gconfig.MapChainID)
 	}
 
