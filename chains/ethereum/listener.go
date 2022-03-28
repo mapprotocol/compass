@@ -4,6 +4,7 @@
 package ethereum
 
 import (
+	"compass/mapprotocol"
 	"context"
 	"errors"
 	"fmt"
@@ -86,8 +87,8 @@ func (l *listener) pollBlocks() error {
 	var currentBlock = l.cfg.startBlock
 	l.log.Info("Polling Blocks...", "block", currentBlock)
 
-	// check whether needs quick sync
 	if l.cfg.syncToMap {
+		// check whether needs quick sync
 		syncedHeight, _, err := mapprotocol.GetCurrentNumberAbi(ethcommon.HexToAddress(l.cfg.from))
 		if err != nil {
 			l.log.Error("Get synced Height failed")
@@ -148,10 +149,18 @@ func (l *listener) pollBlocks() error {
 				continue
 			}
 
-			// Sync headers to Map
-			if l.cfg.syncToMap {
-				// sync when catchup
+			if l.cfg.id == l.cfg.mapChainID {
+				// mapchain
+				err = l.syncMapHeader(currentBlock)
+				if err != nil {
+					l.log.Error("Failed to sync header for block", "block", currentBlock, "err", err)
+					retry--
+					continue
+				}
+			} else if l.cfg.syncToMap {
+				// Sync headers to Map
 				if currentBlock.Cmp(l.syncedHeight) == 1 {
+					// sync when catchup
 					l.log.Info("Sync Header to Map Chain", "target", currentBlock)
 					err = l.syncHeaderToMapChain(currentBlock)
 					if err != nil {
@@ -227,6 +236,9 @@ func (l *listener) getEventsForBlock(latestBlock *big.Int) (int, error) {
 
 			msgpayload := []interface{}{payload}
 			m = msg.NewSwapWithProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, l.msgCh)
+
+		} else if l.cfg.id == l.cfg.mapChainID {
+			// when sync from map we also need to assemble a tx prove in a different way
 
 		} else {
 			fromChainID, toChainID, payload, err := utils.ParseEthLogIntoSwapArgs(log, l.cfg.bridgeContract)
@@ -335,5 +347,35 @@ func (l *listener) batchSyncHeadersTo(height *big.Int) error {
 	}
 
 	l.log.Info("Batch sync finished", "height", height, "syncHeight", l.syncedHeight)
+	return nil
+}
+
+// syncMapHeader sync map header to every chains registered
+func (l *listener) syncMapHeader(latestBlock *big.Int) error {
+	remainder := latestBlock.Mod(latestBlock, big.NewInt(30000))
+	if remainder.Cmp(mapprotocol.Big0) != 0 {
+		// only sync last block of the epoch
+		return nil
+	}
+	header, err := l.conn.Client().HeaderByNumber(context.Background(), latestBlock)
+	if err != nil {
+		return err
+	}
+	marshal, _ := rlp.EncodeToBytes(*header)
+
+	msgpayload := []interface{}{marshal}
+	for _, cid := range l.cfg.syncChainIDList {
+		m := msg.NewSyncFromMap(l.cfg.mapChainID, cid, msgpayload, l.msgCh)
+		err = l.router.Send(m)
+		if err != nil {
+			l.log.Error("subscription error: failed to route message", "err", err)
+			return nil
+		}
+	}
+
+	err = l.waitUntilMsgHandled(len(l.cfg.syncChainIDList))
+	if err != nil {
+		return err
+	}
 	return nil
 }
