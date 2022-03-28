@@ -37,6 +37,7 @@ var (
 	EGSSpeed              = "egsSpeed"
 	SyncToMap             = "syncToMap"
 	SyncIDList            = "syncIdList"
+	LightNode             = "lightnode"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
@@ -59,7 +60,8 @@ type Config struct {
 	egsSpeed           string // The speed which a transaction should be processed: average, fast, fastest. Default: fast
 	syncToMap          bool   // Whether sync blockchain headers to Map
 	mapChainID         msg.ChainId
-	syncChainIDList    []msg.ChainId // chain ids which map sync to
+	syncChainIDList    []msg.ChainId  // chain ids which map sync to
+	lightNode          common.Address // the lightnode to sync header
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
@@ -200,6 +202,11 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 			return nil, err
 		}
 		delete(chainCfg.Opts, SyncIDList)
+	}
+
+	if lightnode, ok := chainCfg.Opts[LightNode]; ok && lightnode != "" {
+		config.lightNode = common.HexToAddress(lightnode)
+		delete(chainCfg.Opts, LightNode)
 	}
 
 	if len(chainCfg.Opts) != 0 {
