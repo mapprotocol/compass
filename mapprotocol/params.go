@@ -43,7 +43,8 @@ var (
 	RegisterRelayer = "register"
 	BindWorker      = "bind"
 
-	ABIRelayer, _ = abi.JSON(strings.NewReader(RelayerABIJSON))
+	ABIRelayer, _  = abi.JSON(strings.NewReader(RelayerABIJSON))
+	ABILiteNode, _ = abi.JSON(strings.NewReader(LiteABIJSON))
 
 	ChainTypeETH ChainType = ChainType(RopstenCHainID) // todo change to eth when get online
 	ChainTypeMAP ChainType = ChainType(TestNetChainID) // todo may change?

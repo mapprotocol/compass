@@ -221,3 +221,59 @@ func (w *writer) blockForPending(txHash common.Hash) error {
 	}
 	return nil
 }
+
+// exeSyncMapMsg executes sync msg, and send tx to the destination blockchain
+func (w *writer) exeSyncMapMsg(m msg.Message) bool {
+	//return w.callContractWithMsg(,  m)
+	for i := 0; i < TxRetryLimit; i++ {
+		select {
+		case <-w.stop:
+			return false
+		default:
+			err := w.conn.LockAndUpdateOpts()
+			if err != nil {
+				w.log.Error("Failed to update nonce", "err", err)
+				return false
+			}
+			// These store the gas limit and price before a transaction is sent for logging in case of a failure
+			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
+			gasLimit := w.conn.Opts().GasLimit
+			gasPrice := w.conn.Opts().GasPrice
+
+			marshal, _ := m.Payload[0].([]byte)
+
+			// save header data
+			data, err := mapprotocol.SaveHeaderLiteTxData(marshal)
+			if err != nil {
+				w.log.Error("Failed to pack abi data", "err", err)
+				w.conn.UnlockOpts()
+				return false
+			}
+			tx, err := w.sendTx(&mapprotocol.RelayerAddress, nil, data)
+
+			w.conn.UnlockOpts()
+
+			if err == nil {
+				// message successfully handled
+				w.log.Info("Sync MapHeader tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
+				// waited till successful mined
+				err = w.blockForPending(tx.Hash())
+				if err != nil {
+					w.log.Warn("blockForPending error", "err", err)
+				}
+				m.DoneCh <- struct{}{}
+				return true
+			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
+				w.log.Error("Nonce too low, will retry")
+				time.Sleep(TxRetryInterval)
+			} else {
+				w.log.Warn("Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+				m.DoneCh <- struct{}{}
+				return true
+			}
+		}
+	}
+	w.log.Error("Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	w.sysErr <- ErrFatalTx
+	return false
+}
