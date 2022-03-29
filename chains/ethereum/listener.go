@@ -4,7 +4,6 @@
 package ethereum
 
 import (
-	"compass/mapprotocol"
 	"context"
 	"errors"
 	"fmt"

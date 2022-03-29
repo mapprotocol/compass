@@ -40,6 +40,10 @@ func SaveHeaderTxData(src, dest *big.Int, marshal []byte) ([]byte, error) {
 		marshal)
 }
 
+func SaveHeaderLiteTxData(marshal []byte) ([]byte, error) {
+	return packInput(ABILiteNode, SaveHeader, marshal)
+}
+
 func GetCurrentNumberAbi(from common.Address) (*big.Int, string, error) {
 	if GlobalMapConn == nil {
 		return Big0, "", errors.New("Global Map Connection is not assigned!")

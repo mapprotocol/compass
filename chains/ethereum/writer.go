@@ -55,6 +55,8 @@ func (w *writer) ResolveMessage(m msg.Message) bool {
 		return w.exeSwapMsg(m)
 	case msg.SyncToMap:
 		return w.exeSyncMsg(m)
+	case msg.SyncFromMap:
+		return w.exeSyncMapMsg(m)
 	default:
 		w.log.Error("Unknown message type received", "type", m.Type)
 		return false
