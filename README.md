@@ -40,7 +40,7 @@ compass accounts list
 ```
 
 ### 3. Modify the configuration file  
-copy a example configure file from here.  
+copy a example configure file from [here](https://gist.githubusercontent.com/redace85/ccf39dae6d2a5b459765b3493d61472d/raw/c06f901aae5ad53a77c614b4233db5a801cc1f68/config.json).  
 modify the configuration accordingly.  
 fill the accounts for each chain.  
 

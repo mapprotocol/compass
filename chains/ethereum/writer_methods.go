@@ -249,7 +249,7 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 				w.conn.UnlockOpts()
 				return false
 			}
-			tx, err := w.sendTx(&mapprotocol.RelayerAddress, nil, data)
+			tx, err := w.sendTx(&w.cfg.lightNode, nil, data)
 
 			w.conn.UnlockOpts()
 

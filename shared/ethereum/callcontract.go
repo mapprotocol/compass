@@ -204,6 +204,93 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 	return uFromChainID, uToChainID, payloads, nil
 }
 
+type MapTxProve struct {
+	Header      *types.Header
+	Tx          *TxParams
+	Receipt     *types.Receipt
+	Prove       light.NodeList
+	BlockNumber uint64
+	TxIndex     uint
+}
+
+func ParseMapLogIntoSwapWithMapProofArgs(log types.Log, bridgeAddr common.Address, receipts []*types.Receipt, header *types.Header) (uint64, uint64, []byte, error) {
+	token := log.Topics[1].Bytes()
+	from := log.Topics[2].Bytes()
+	to := log.Topics[3].Bytes()
+	// every 32 bytes forms a value
+	var orderHash [32]byte
+	copy(orderHash[:], log.Data[:32])
+	amount := log.Data[32:64]
+
+	fromChainID := log.Data[64:96]
+	toChainID := log.Data[96:128]
+	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
+	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
+
+	// calc tx proof
+	transactionIndex := log.TxIndex
+
+	proof := light.NewNodeSet()
+	key, err := rlp.EncodeToBytes(transactionIndex)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	// assemble trie tree
+	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
+	if err != nil {
+		return 0, 0, nil, err
+	}
+	for i, r := range receipts {
+		key, err := rlp.EncodeToBytes(uint(i))
+		if err != nil {
+			return 0, 0, nil, err
+		}
+		value, err := rlp.EncodeToBytes(r)
+		if err != nil {
+			return 0, 0, nil, err
+		}
+		tr.Update(key, value)
+	}
+
+	tr = atlasDeriveTire(receipts, tr)
+	if err = tr.Prove(key, 0, proof); err != nil {
+		return 0, 0, nil, err
+	}
+
+	txProve := MapTxProve{
+		Header: header,
+		Tx: &TxParams{
+			From:  from,
+			To:    to,
+			Value: big.NewInt(0).SetBytes(amount),
+		},
+		Receipt: receipts[transactionIndex],
+		Prove:   proof.NodeList(),
+	}
+
+	txProofBytes, err := rlp.EncodeToBytes(txProve)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	payloads, err := SwapInArgs.Pack(
+		orderHash,
+		common.BytesToAddress(token),
+		common.BytesToAddress(from),
+		common.BytesToAddress(to),
+		big.NewInt(0).SetBytes(amount),
+		big.NewInt(0).SetBytes(fromChainID),
+		big.NewInt(0).SetBytes(toChainID),
+		bridgeAddr,
+		txProofBytes,
+	)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+	return uFromChainID, uToChainID, payloads, nil
+}
+
 /****** below is some code from atlas/core/types/hashing.go ******/
 
 // deriveBufferPool holds temporary encoder buffers for DeriveSha and TX encoding.
