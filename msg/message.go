@@ -26,6 +26,7 @@ var SwapTransfer TransferType = "SwapTransfer"
 var SyncToMap TransferType = "SyncToMap"
 var SwapWithProof TransferType = "SwapWithProof"
 var SyncFromMap TransferType = "SyncFromMap"
+var SwapWithMapProof TransferType = "SwapWithMapProof"
 
 // Message is used as a generic format to communicate between chains
 type Message struct {
@@ -73,6 +74,16 @@ func NewSyncFromMap(mapChainID, toChainID ChainId, payloads []interface{}, ch ch
 		Source:      mapChainID,
 		Destination: toChainID,
 		Type:        SyncFromMap,
+		Payload:     payloads,
+		DoneCh:      ch,
+	}
+}
+
+func NewSwapWithMapProof(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {
+	return Message{
+		Source:      fromChainID,
+		Destination: toChainID,
+		Type:        SwapWithMapProof,
 		Payload:     payloads,
 		DoneCh:      ch,
 	}

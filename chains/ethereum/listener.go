@@ -238,7 +238,27 @@ func (l *listener) getEventsForBlock(latestBlock *big.Int) (int, error) {
 
 		} else if l.cfg.id == l.cfg.mapChainID {
 			// when sync from map we also need to assemble a tx prove in a different way
+			header, err := l.conn.Client().HeaderByNumber(context.Background(), latestBlock)
+			if err != nil {
+				return 0, fmt.Errorf("unable to query header Logs: %w", err)
+			}
 
+			txsHash, err := getTransactionsHashByBlockNumber(l.conn.Client(), latestBlock)
+			if err != nil {
+				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+			}
+			receipts, err := getReceiptsByTxsHash(l.conn.Client(), txsHash)
+			if err != nil {
+				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			}
+
+			fromChainID, toChainID, payload, err := utils.ParseMapLogIntoSwapWithMapProofArgs(log, l.cfg.bridgeContract, receipts, header)
+			if err != nil {
+				return 0, fmt.Errorf("unable to Parse Log: %w", err)
+			}
+
+			msgpayload := []interface{}{payload}
+			m = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, l.msgCh)
 		} else {
 			fromChainID, toChainID, payload, err := utils.ParseEthLogIntoSwapArgs(log, l.cfg.bridgeContract)
 			if err != nil {
