@@ -10,6 +10,7 @@ This project is inspired by [ChainSafe/ChainBridge](https://github.com/ChainSafe
 
 - [Quick Start](#quick-start)
 - [Building](#building)
+- [Relayer](#relayer)
 - [Configuration](#configuration)
 - [Chain Implementations](#chain-implementations)
 
@@ -60,6 +61,41 @@ under the root directory of the repo
 
 `make build`: Builds `compass` in `./build`.  
 `make install`: Uses `go install` to add `compass` to your GOBIN.  
+
+# Relayer
+
+Users can register as a relayer on our website. but this function is also integrated into compass.  
+after setting some account into the keystore, one can use this account to send transcations.  
+
+The cmd line to send a register tx to the relayer contract on Makalu Block chain is as follow:
+
+```zsh
+./compass relayers register --account '********** the address of the acount in keystore **********'
+```
+
+you need at least 100000 MAP which will be staked into the relayer contract, to become a relayer.
+
+when the register is succeeded, you can bind a worker by its address.  
+and use this worker to send transcations in behave of the relayer to finish all the jobs.  
+the bind function can be called throuth cmd line as follow:
+
+```zsh
+./compass relayers bind --relayer '*** relayer address ***' --worker '*** worker address ***' 
+```
+
+to view more details of a cmd. you can use -h at the end of the cmdline  
+
+```zsh
+./compass relayers -h
+```
+
+```zsh
+./compass relayers register -h
+```
+
+```zsh
+./compass relayers bind -h
+```
 
 # Configuration
 

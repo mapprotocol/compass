@@ -51,6 +51,8 @@ func (w *writer) ResolveMessage(m msg.Message) bool {
 	case msg.SwapTransfer:
 		fallthrough
 	case msg.SwapWithProof:
+		fallthrough
+	case msg.SwapWithMapProof:
 		// same process
 		return w.exeSwapMsg(m)
 	case msg.SyncToMap:
