@@ -1,6 +1,6 @@
 # Compass
 
-Compass is the Golang implementation of cross-chain communication relayer for MAP Protocol. It currently supports bridging between EVM based chains.
+Compass is the Golang implementation of cross-chain communication maintainer for MAP Protocol. It currently supports bridging between EVM based chains.
 
 The newly designed compass version contains all the functions required to run the relay node. With this tool, you can run nodes on almost all hardware platforms.
 
@@ -10,7 +10,7 @@ This project is inspired by [ChainSafe/ChainBridge](https://github.com/ChainSafe
 
 - [Quick Start](#quick-start)
 - [Building](#building)
-- [Relayer](#relayer)
+- [Maintainer](#relayer)
 - [Configuration](#configuration)
 - [Chain Implementations](#chain-implementations)
 
@@ -62,7 +62,7 @@ under the root directory of the repo
 `make build`: Builds `compass` in `./build`.  
 `make install`: Uses `go install` to add `compass` to your GOBIN.  
 
-# Relayer
+# Maintainer
 
 Users can register as a relayer on our website. but this function is also integrated into compass.  
 after setting some account into the keystore, one can use this account to send transcations.  
@@ -106,7 +106,7 @@ the configuration file is a small JSON file.
   "mapchain": {
         "id": "0",                          // Chain ID of the MAP chain
         "endpoint": "ws://<host>:<port>",   // Node endpoint
-        "from": "0xff93...",                // MAP chain address of relayer
+        "from": "0xff93...",                // MAP chain address of maintainer
         "opts": {}                          // MAP Chain configuration options (see below)
     },
   "chains": []                              // List of Chain configurations
@@ -122,7 +122,7 @@ A chain configurations take this form:
     "type": "ethereum",                 // Chain type (only "ethereum" is supported for now)
     "id": "0",                          // Chain ID
     "endpoint": "ws://<host>:<port>",   // Node endpoint
-    "from": "0xff93...",                // On-chain address of relayer
+    "from": "0xff93...",                // On-chain address of maintainer
     "opts": {},                         // Chain-specific configuration options (see below)
 }
 ```
