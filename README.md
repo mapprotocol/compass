@@ -10,7 +10,7 @@ This project is inspired by [ChainSafe/ChainBridge](https://github.com/ChainSafe
 
 - [Quick Start](#quick-start)
 - [Building](#building)
-- [Maintainer](#relayer)
+- [Maintainer](#maintainer)
 - [Configuration](#configuration)
 - [Chain Implementations](#chain-implementations)
 
@@ -64,23 +64,23 @@ under the root directory of the repo
 
 # Maintainer
 
-Users can register as a relayer on our website. but this function is also integrated into compass.  
+Users can register as a maintainer on our website. but this function is also integrated into compass.  
 after setting some account into the keystore, one can use this account to send transcations.  
 
-The cmd line to send a register tx to the relayer contract on Makalu Block chain is as follow:
+The cmd line to send a register tx to the maintainer contract on Makalu Block chain is as follow:
 
 ```zsh
-./compass relayers register --account '********** the address of the acount in keystore **********'
+./compass maintainer register --account '********** the address of the acount in keystore **********'
 ```
 
-you need at least 100000 MAP which will be staked into the relayer contract, to become a relayer.
+you need at least 100000 MAP which will be staked into the maintainer contract, to become a maintainer.
 
 when the register is succeeded, you can bind a worker by its address.  
-and use this worker to send transcations in behave of the relayer to finish all the jobs.  
+and use this worker to send transcations in behave of the maintainer to finish all the jobs.  
 the bind function can be called throuth cmd line as follow:
 
 ```zsh
-./compass relayers bind --relayer '*** relayer address ***' --worker '*** worker address ***' 
+./compass maintainer bind --maintainer '*** maintainer address ***' --worker '*** worker address ***' 
 ```
 
 to view more details of a cmd. you can use -h at the end of the cmdline  
@@ -149,7 +149,7 @@ Ethereum chains support the following additional options:
 ```
 ## Blockstore
 
-The blockstore is used to record the last block the relayer processed, so it can pick up where it left off. 
+The blockstore is used to record the last block the maintainer processed, so it can pick up where it left off. 
 
 If a `startBlock` option is provided (see [Configuration](#configuration)), then the greater of `startBlock` and the latest block in the blockstore is used at startup.
 
