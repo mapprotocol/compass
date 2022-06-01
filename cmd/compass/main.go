@@ -215,14 +215,16 @@ func run(ctx *cli.Context) error {
 	}
 	c := core.NewCore(sysErr, msg.ChainId(mapcid))
 	// merge map chain
-	allChains := make([]config.RawChainConfig, len(cfg.Chains), len(cfg.Chains)+1)
-	copy(allChains, cfg.Chains)
-	allChains = append([]config.RawChainConfig{cfg.MapChain}, allChains...)
+	//allChains := make([]config.RawChainConfig, len(cfg.Chains), len(cfg.Chains)+1)
+	//copy(allChains, cfg.Chains)
+	//allChains = append([]config.RawChainConfig{cfg.MapChain}, allChains...)
+	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
+	allChains = append(cfg.Chains, cfg.MapChain)
 
 	for idx, chain := range allChains {
-		chainId, errr := strconv.Atoi(chain.Id)
-		if errr != nil {
-			return errr
+		chainId, err := strconv.Atoi(chain.Id)
+		if err != nil {
+			return err
 		}
 		// write Map chain id to opts
 		chain.Opts[config.MapChainID] = cfg.MapChain.Id

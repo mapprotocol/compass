@@ -34,18 +34,24 @@ var (
 	RegisterAmount = int64(100) // for test purpose
 )
 
+const (
+	MethodVerifyProofData   = "verifyProofData"
+	MethodUpdateBlockHeader = "updateBlockHeader"
+)
+
 var (
 	// todo using
-	RelayerAddress = common.HexToAddress("0xB864eEe844698de06Dd305CBf729fDD765d9592D")
+	RelayerAddress = common.HexToAddress("0x6d146aD4D4733cd1B74aE5E4867064A27d03ada2")
 	// functions
 	SaveHeader      = "save"
 	CurNbrAndHash   = "currentNumberAndHash"
 	RegisterRelayer = "register"
 	BindWorker      = "bind"
 
-	ABIRelayer, _  = abi.JSON(strings.NewReader(RelayerABIJSON))
-	ABILiteNode, _ = abi.JSON(strings.NewReader(LiteABIJSON))
+	ABIRelayer, _   = abi.JSON(strings.NewReader(RelayerABIJSON))
+	ABILiteNode, _  = abi.JSON(strings.NewReader(LiteABIJSON))
+	ABILightNode, _ = abi.JSON(strings.NewReader(LightNode))
 
-	ChainTypeETH ChainType = ChainType(RopstenCHainID) // todo change to eth when get online
-	ChainTypeMAP ChainType = ChainType(TestNetChainID) // todo may change?
+	ChainTypeETH = ChainType(RopstenCHainID) // todo change to eth when get online
+	ChainTypeMAP = ChainType(TestNetChainID) // todo may change?
 )

@@ -28,12 +28,12 @@ import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/mapprotocol/compass/blockstore"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/neoiss/ethclient"
 )
 
 var _ core.Chain = &Chain{}
@@ -56,7 +56,7 @@ type Connection interface {
 
 type Chain struct {
 	cfg      *core.ChainConfig // The config of the chain
-	conn     Connection        // THe chains connection
+	conn     Connection        // The chains connection
 	listener *listener         // The listener of this chain
 	writer   *writer           // The writer of the chain
 	stop     chan<- int
@@ -174,12 +174,12 @@ func (c *Chain) Stop() {
 	}
 }
 
-// return EthClient for global map connection
+// EthClient return EthClient for global map connection
 func (c *Chain) EthClient() *ethclient.Client {
 	return c.conn.Client()
 }
 
-// return Connection interface for relayer register
+// Conn return Connection interface for relayer register
 func (c *Chain) Conn() Connection {
 	return c.conn
 }
