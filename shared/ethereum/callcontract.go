@@ -17,11 +17,14 @@ import (
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	maptypes "github.com/mapprotocol/atlas/core/types"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/neoiss/ethclient"
 )
 
 var (
 	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-	// function swapIn(bytes32 hash, address token, address from, address to, uint amount, uint fromChainID,uint toChainID)
+	// SwapIn function swapIn(bytes32 hash, address token, address from, address to, uint amount, uint fromChainID,uint toChainID)
 	SwapIn = "swapIn(bytes32,address,address,address,uint256,uint256,uint256,address,bytes)"
 
 	bytesTy, _   = abi.NewType("bytes", "", nil)
@@ -165,7 +168,7 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		tr.Update(key, value)
 	}
 
-	tr = atlasDeriveTire(receipts, tr)
+	tr = DeriveTire(receipts, tr)
 	if err = tr.Prove(key, 0, proof); err != nil {
 		return 0, 0, nil, err
 	}
@@ -205,90 +208,68 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 }
 
 type MapTxProve struct {
-	Header      *types.Header
-	Tx          *TxParams
+	Header      *maptypes.Header
 	Receipt     *types.Receipt
 	Prove       light.NodeList
 	BlockNumber uint64
 	TxIndex     uint
 }
 
-func ParseMapLogIntoSwapWithMapProofArgs(log types.Log, bridgeAddr common.Address, receipts []*types.Receipt, header *types.Header) (uint64, uint64, []byte, error) {
-	token := log.Topics[1].Bytes()
-	from := log.Topics[2].Bytes()
-	to := log.Topics[3].Bytes()
-	// every 32 bytes forms a value
-	var orderHash [32]byte
-	copy(orderHash[:], log.Data[:32])
-	amount := log.Data[32:64]
-
+func ParseMapLogIntoSwapWithMapProofArgs(cli *ethclient.Client, log types.Log, bridgeAddr common.Address, receipts []*types.Receipt, header *maptypes.Header) (uint64, uint64, []byte, error) {
 	fromChainID := log.Data[64:96]
 	toChainID := log.Data[96:128]
 	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 
-	// calc tx proof
-	transactionIndex := log.TxIndex
-
-	proof := light.NewNodeSet()
-	key, err := rlp.EncodeToBytes(transactionIndex)
+	txIndex := log.TxIndex
+	aggPK, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
 	if err != nil {
 		return 0, 0, nil, err
 	}
 
-	// assemble trie tree
-	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-	if err != nil {
-		return 0, 0, nil, err
-	}
-	for i, r := range receipts {
-		key, err := rlp.EncodeToBytes(uint(i))
-		if err != nil {
-			return 0, 0, nil, err
-		}
-		value, err := rlp.EncodeToBytes(r)
-		if err != nil {
-			return 0, 0, nil, err
-		}
-		tr.Update(key, value)
-	}
+	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 
-	tr = atlasDeriveTire(receipts, tr)
-	if err = tr.Prove(key, 0, proof); err != nil {
-		return 0, 0, nil, err
-	}
-
-	txProve := MapTxProve{
-		Header: header,
-		Tx: &TxParams{
-			From:  from,
-			To:    to,
-			Value: big.NewInt(0).SetBytes(amount),
-		},
-		Receipt: receipts[transactionIndex],
-		Prove:   proof.NodeList(),
-	}
-
-	txProofBytes, err := rlp.EncodeToBytes(txProve)
+	proof, err := getProof(receipts, txIndex)
 	if err != nil {
 		return 0, 0, nil, err
 	}
 
-	payloads, err := SwapInArgs.Pack(
-		orderHash,
-		common.BytesToAddress(token),
-		common.BytesToAddress(from),
-		common.BytesToAddress(to),
-		big.NewInt(0).SetBytes(amount),
-		big.NewInt(0).SetBytes(fromChainID),
-		big.NewInt(0).SetBytes(toChainID),
-		bridgeAddr,
-		txProofBytes,
-	)
+	rp := mapprotocol.ReceiptProof{
+		Header:   mapprotocol.ConvertHeader(header),
+		AggPk:    aggPK,
+		Receipt:  receipt,
+		KeyIndex: big.NewInt(int64(txIndex)).Bytes(),
+		Proof:    proof,
+	}
+	payloads, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, rp)
 	if err != nil {
 		return 0, 0, nil, err
 	}
 	return uFromChainID, uToChainID, payloads, nil
+}
+
+func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
+	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
+	if err != nil {
+		return nil, err
+	}
+
+	tr = DeriveTire(receipts, tr)
+	ns := light.NewNodeSet()
+	key, err := rlp.EncodeToBytes(txIndex)
+	if err != nil {
+		return nil, err
+	}
+	if err = tr.Prove(key, 0, ns); err != nil {
+		return nil, err
+	}
+
+	proof := make([][]byte, 0, len(ns.NodeList()))
+	for _, v := range ns.NodeList() {
+		proof = append(proof, v)
+	}
+
+	return proof, nil
 }
 
 /****** below is some code from atlas/core/types/hashing.go ******/
@@ -315,7 +296,7 @@ func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
 	return common.CopyBytes(buf.Bytes())
 }
 
-func atlasDeriveTire(rs types.Receipts, tr *trie.Trie) *trie.Trie {
+func DeriveTire(rs types.Receipts, tr *trie.Trie) *trie.Trie {
 	valueBuf := encodeBufferPool.Get().(*bytes.Buffer)
 	defer encodeBufferPool.Put(valueBuf)
 

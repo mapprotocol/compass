@@ -74,7 +74,6 @@ func handleRegisterCmd(ctx *cli.Context) error {
 	return nil
 }
 
-
 // handleBindCmd register an account as a relayer
 func handleBindCmd(ctx *cli.Context) error {
 	relayerAddr := ctx.String(config.Relayer.Name)
@@ -121,7 +120,7 @@ func handleBindCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	err = mapprotocol.BindWoerkerWithConn(mapChain.Conn(), workerAddr, logger)
+	err = mapprotocol.BindWorkerWithConn(mapChain.Conn(), workerAddr, logger)
 	if err != nil {
 		return err
 	}

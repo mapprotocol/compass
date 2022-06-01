@@ -13,15 +13,14 @@ import (
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
-
 	goeth "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/neoiss/ethclient"
 )
 
-// global Map connection; assign at cmd/main
+// GlobalMapConn global Map connection; assign at cmd/main
 var GlobalMapConn *ethclient.Client
 
 func packInput(commonAbi abi.ABI, abiMethod string, params ...interface{}) ([]byte, error) {
@@ -30,6 +29,10 @@ func packInput(commonAbi abi.ABI, abiMethod string, params ...interface{}) ([]by
 		return nil, err
 	}
 	return input, nil
+}
+
+func PackLightNodeInput(method string, params ...interface{}) ([]byte, error) {
+	return packInput(ABILightNode, method, params)
 }
 
 func SaveHeaderTxData(src, dest *big.Int, marshal []byte) ([]byte, error) {
@@ -96,7 +99,7 @@ func RegisterRelayerWithConn(conn Connection, value int64, logger log15.Logger) 
 	return nil
 }
 
-func BindWoerkerWithConn(conn Connection, worker string, logger log15.Logger) error {
+func BindWorkerWithConn(conn Connection, worker string, logger log15.Logger) error {
 	workerAddr := common.HexToAddress(worker)
 	input, err := packInput(ABIRelayer, BindWorker, workerAddr)
 	if err != nil {

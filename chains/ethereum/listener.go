@@ -148,7 +148,7 @@ func (l *listener) pollBlocks() error {
 				continue
 			}
 
-			if l.cfg.id == l.cfg.mapChainID {
+			if l.cfg.id == l.cfg.mapChainID && len(l.cfg.syncChainIDList) > 0 {
 				// mapchain
 				err = l.syncMapHeader(currentBlock)
 				if err != nil {
@@ -170,6 +170,7 @@ func (l *listener) pollBlocks() error {
 				}
 			}
 
+			// messager
 			// Parse out events
 			count, err := l.getEventsForBlock(currentBlock)
 			if err != nil {
@@ -238,7 +239,7 @@ func (l *listener) getEventsForBlock(latestBlock *big.Int) (int, error) {
 
 		} else if l.cfg.id == l.cfg.mapChainID {
 			// when sync from map we also need to assemble a tx prove in a different way
-			header, err := l.conn.Client().HeaderByNumber(context.Background(), latestBlock)
+			header, err := l.conn.Client().MAPHeaderByNumber(context.Background(), latestBlock)
 			if err != nil {
 				return 0, fmt.Errorf("unable to query header Logs: %w", err)
 			}
@@ -252,7 +253,7 @@ func (l *listener) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
 
-			fromChainID, toChainID, payload, err := utils.ParseMapLogIntoSwapWithMapProofArgs(log, l.cfg.bridgeContract, receipts, header)
+			fromChainID, toChainID, payload, err := utils.ParseMapLogIntoSwapWithMapProofArgs(l.conn.Client(), log, l.cfg.bridgeContract, receipts, header)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
@@ -371,18 +372,27 @@ func (l *listener) batchSyncHeadersTo(height *big.Int) error {
 
 // syncMapHeader sync map header to every chains registered
 func (l *listener) syncMapHeader(latestBlock *big.Int) error {
+	// todo 通过 rpc 查询 epoch size
 	remainder := latestBlock.Mod(latestBlock, big.NewInt(30000))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		// only sync last block of the epoch
 		return nil
 	}
-	header, err := l.conn.Client().HeaderByNumber(context.Background(), latestBlock)
+	header, err := l.conn.Client().MAPHeaderByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return err
 	}
-	marshal, _ := rlp.EncodeToBytes(*header)
 
-	msgpayload := []interface{}{marshal}
+	h := mapprotocol.ConvertHeader(header)
+	aggPK, err := mapprotocol.GetAggPK(l.conn.Client(), header.Number, header.Extra)
+	if err != nil {
+		return err
+	}
+	input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodUpdateBlockHeader, h, aggPK)
+	if err != nil {
+		return err
+	}
+	msgpayload := []interface{}{input}
 	for _, cid := range l.cfg.syncChainIDList {
 		m := msg.NewSyncFromMap(l.cfg.mapChainID, cid, msgpayload, l.msgCh)
 		err = l.router.Send(m)
