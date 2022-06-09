@@ -28,6 +28,8 @@ import (
 var BlockRetryInterval = time.Second * 5
 var BlockRetryLimit = 5
 var ErrFatalPolling = errors.New("listener block polling failed")
+var Maintainer = "maintainer"
+var Messenger = "messenger"
 
 type listener struct {
 	cfg                Config
@@ -42,11 +44,21 @@ type listener struct {
 	blockConfirmations *big.Int
 	msgCh              chan struct{} // wait for msg handles
 	syncedHeight       *big.Int      // used to record syncd height in map chain when sync is on
+	function           string        // Start the corresponding function according to this tag
+}
+
+type ListenOption func(*listener)
+
+func WithFunction(function string) ListenOption {
+	return func(l *listener) {
+		l.function = function
+	}
 }
 
 // NewListener creates and returns a listener
-func NewListener(conn Connection, cfg *Config, log log15.Logger, bs blockstore.Blockstorer, stop <-chan int, sysErr chan<- error, m *metrics.ChainMetrics) *listener {
-	return &listener{
+func NewListener(conn Connection, cfg *Config, log log15.Logger, bs blockstore.Blockstorer, stop <-chan int,
+	sysErr chan<- error, m *metrics.ChainMetrics, ops ...ListenOption) *listener {
+	l := &listener{
 		cfg:                *cfg,
 		conn:               conn,
 		log:                log,
@@ -58,6 +70,10 @@ func NewListener(conn Connection, cfg *Config, log log15.Logger, bs blockstore.B
 		blockConfirmations: cfg.blockConfirmations,
 		msgCh:              make(chan struct{}),
 	}
+	for _, op := range ops {
+		op(l)
+	}
+	return l
 }
 
 // sets the router
@@ -70,7 +86,12 @@ func (l *listener) start() error {
 	l.log.Debug("Starting listener...")
 
 	go func() {
-		err := l.pollBlocks()
+		var err error
+		if l.function == Maintainer {
+			err = l.maintainer()
+		} else {
+			err = l.messenger()
+		}
 		if err != nil {
 			l.log.Error("Polling blocks failed", "err", err)
 		}
@@ -79,10 +100,10 @@ func (l *listener) start() error {
 	return nil
 }
 
-// pollBlocks will poll for the latest block and proceed to parse the associated events as it sees new blocks.
+// maintainer will poll for the latest block and proceed to parse the associated events as it sees new blocks.
 // Polling begins at the block defined in `l.cfg.startBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
-func (l *listener) pollBlocks() error {
+func (l *listener) maintainer() error {
 	var currentBlock = l.cfg.startBlock
 	l.log.Info("Polling Blocks...", "block", currentBlock)
 
@@ -170,6 +191,78 @@ func (l *listener) pollBlocks() error {
 				}
 			}
 
+			//// messager
+			//// Parse out events
+			//count, err := l.getEventsForBlock(currentBlock)
+			//if err != nil {
+			//	l.log.Error("Failed to get events for block", "block", currentBlock, "err", err)
+			//	retry--
+			//	continue
+			//}
+			//
+			//// hold until all messages are handled
+			//l.waitUntilMsgHandled(count)
+
+			// Write to block store. Not a critical operation, no need to retry
+			err = l.blockstore.StoreBlock(currentBlock)
+			if err != nil {
+				l.log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
+			}
+
+			if l.metrics != nil {
+				l.metrics.BlocksProcessed.Inc()
+				l.metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
+			}
+
+			l.latestBlock.Height = big.NewInt(0).Set(latestBlock)
+			l.latestBlock.LastUpdated = time.Now()
+
+			// Goto next block and reset retry counter
+			currentBlock.Add(currentBlock, big.NewInt(1))
+			retry = BlockRetryLimit
+		}
+	}
+}
+
+// messenger will poll for the latest block and sync the log information of transactions in the block
+// Polling begins at the block defined in `l.cfg.startBlock`. Failed attempts to fetch the latest block or parse
+// a block will be retried up to BlockRetryLimit times before continuing to the next block.
+// However，an error in synchronizing the log will cause the entire program to block
+func (l *listener) messenger() error {
+	var currentBlock = l.cfg.startBlock
+	l.log.Info("Polling Blocks...", "block", currentBlock)
+
+	var retry = BlockRetryLimit
+	for {
+		select {
+		case <-l.stop:
+			return errors.New("polling terminated")
+		default:
+			// No more retries, goto next block
+			if retry == 0 {
+				l.log.Error("Polling failed, retries exceeded")
+				l.sysErr <- ErrFatalPolling
+				return nil
+			}
+
+			latestBlock, err := l.conn.LatestBlock()
+			if err != nil {
+				l.log.Error("Unable to get latest block", "block", currentBlock, "err", err)
+				retry--
+				time.Sleep(BlockRetryInterval)
+				continue
+			}
+
+			if l.metrics != nil {
+				l.metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
+			}
+
+			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
+			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(l.blockConfirmations) == -1 {
+				l.log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
+				time.Sleep(BlockRetryInterval)
+				continue
+			}
 			// messager
 			// Parse out events
 			count, err := l.getEventsForBlock(currentBlock)
@@ -180,13 +273,7 @@ func (l *listener) pollBlocks() error {
 			}
 
 			// hold until all messages are handled
-			l.waitUntilMsgHandled(count)
-
-			// Write to block store. Not a critical operation, no need to retry
-			err = l.blockstore.StoreBlock(currentBlock)
-			if err != nil {
-				l.log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
-			}
+			_ = l.waitUntilMsgHandled(count)
 
 			if l.metrics != nil {
 				l.metrics.BlocksProcessed.Inc()

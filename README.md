@@ -86,15 +86,15 @@ the bind function can be called throuth cmd line as follow:
 to view more details of a cmd. you can use -h at the end of the cmdline  
 
 ```zsh
-./compass relayers -h
+./compass maintainer -h
 ```
 
 ```zsh
-./compass relayers register -h
+./compass maintainer register -h
 ```
 
 ```zsh
-./compass relayers bind -h
+./compass maintainer bind -h
 ```
 
 # Configuration
@@ -145,6 +145,8 @@ Ethereum chains support the following additional options:
     "blockConfirmations": "10"       // Number of blocks to wait before processing a block
     "egsApiKey": "xxx..."            // API key for Eth Gas Station (https://www.ethgasstation.info/)
     "egsSpeed": "fast"               // Desired speed for gas price selection, the options are: "average", "fast", "fastest"
+    "lightnode": "0x12345...",       // Address to send transaction
+    "syncToMap": "true",             // Whether sync blockchain headers to Map
 }
 ```
 ## Blockstore
