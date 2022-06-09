@@ -1,6 +1,7 @@
 // Copyright 2021 Compass Systems
 // SPDX-License-Identifier: LGPL-3.0-only
 /*
+package ethereum
 The ethereum package contains the logic for interacting with ethereum chains.
 
 There are 3 major components: the connection, the listener, and the writer.
@@ -18,6 +19,7 @@ Writer
 
 The writer recieves the message and creates a proposals on-chain. Once a proposal is made, the writer then watches for a finalization event and will attempt to execute the proposal if a matching event occurs. The writer skips over any proposals it has already seen.
 */
+
 package ethereum
 
 import (
@@ -84,7 +86,7 @@ func setupBlockstore(cfg *Config, kp *secp256k1.Keypair) (*blockstore.Blockstore
 	return bs, nil
 }
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics) (*Chain, error) {
+func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics, listenOps ...ListenOption) (*Chain, error) {
 	cfg, err := parseChainConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -102,7 +104,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	}
 
 	stop := make(chan int)
-	conn := connection.NewConnection(cfg.endpoint, cfg.http, kp, logger, cfg.gasLimit, cfg.maxGasPrice, cfg.gasMultiplier, cfg.egsApiKey, cfg.egsSpeed)
+	conn := connection.NewConnection(cfg.endpoint, cfg.http, kp, logger, cfg.gasLimit, cfg.maxGasPrice,
+		cfg.gasMultiplier, cfg.egsApiKey, cfg.egsSpeed)
 	err = conn.Connect()
 	if err != nil {
 		return nil, err
@@ -122,7 +125,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	}
 
 	// simplified a little bit
-	listener := NewListener(conn, cfg, logger, bs, stop, sysErr, m)
+	listener := NewListener(conn, cfg, logger, bs, stop, sysErr, m, listenOps...)
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
 
 	return &Chain{
