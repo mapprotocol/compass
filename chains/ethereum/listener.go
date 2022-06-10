@@ -87,10 +87,10 @@ func (l *listener) start() error {
 
 	go func() {
 		var err error
-		if l.function == Maintainer {
-			err = l.maintainer()
-		} else {
+		if l.function == Messenger {
 			err = l.messenger()
+		} else {
+			err = l.maintainer()
 		}
 		if err != nil {
 			l.log.Error("Polling blocks failed", "err", err)

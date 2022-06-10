@@ -97,6 +97,10 @@ to view more details of a cmd. you can use -h at the end of the cmdline
 ./compass maintainer bind -h
 ```
 
+# Messenger
+
+Synchronize the log information of transactions of blocks in each chain according to the information in the configuration file
+
 # Configuration
 
 the configuration file is a small JSON file.  
@@ -147,6 +151,7 @@ Ethereum chains support the following additional options:
     "egsSpeed": "fast"               // Desired speed for gas price selection, the options are: "average", "fast", "fastest"
     "lightnode": "0x12345...",       // Address to send transaction
     "syncToMap": "true",             // Whether sync blockchain headers to Map
+    "syncIdList": "[214]"            // Those chain ids are synchronized to the map，and This configuration can only be used in mapchain
 }
 ```
 ## Blockstore
