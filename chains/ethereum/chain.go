@@ -23,8 +23,9 @@ The writer recieves the message and creates a proposals on-chain. Once a proposa
 package ethereum
 
 import (
-	"github.com/mapprotocol/compass/chains"
 	"math/big"
+
+	"github.com/mapprotocol/compass/chains"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"

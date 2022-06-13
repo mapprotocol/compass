@@ -3,11 +3,12 @@ package ethereum
 import (
 	"context"
 	"errors"
+	"math/big"
+	"time"
+
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/math"
-	"math/big"
-	"time"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"

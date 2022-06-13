@@ -2,11 +2,12 @@ package ethereum
 
 import (
 	"errors"
+	"math/big"
+	"time"
+
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/chains"
-	"math/big"
-	"time"
 )
 
 var BlockRetryInterval = time.Second * 5
