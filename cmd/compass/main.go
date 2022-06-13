@@ -107,11 +107,12 @@ var accountCommand = cli.Command{
 	},
 }
 
-var relayerCommand = cli.Command{
-	Name:  "relayers",
-	Usage: "manage relayer operations",
-	Description: "The relayers command is used to manage relayer on Map chain.\n" +
+var maintainerCommand = cli.Command{
+	Name:  "maintainer",
+	Usage: "manage maintainer operations",
+	Description: "The maintainer command is used to manage maintainer on Map chain.\n" +
 		"\tTo register an account : compass relayers register --account '0x0...'",
+	Action: maintainer,
 	Subcommands: []*cli.Command{
 		{
 			Action: handleRegisterCmd,
@@ -137,13 +138,20 @@ var relayerCommand = cli.Command{
 	},
 }
 
+var messengerCommand = cli.Command{
+	Name:        "messenger",
+	Usage:       "manage messenger operations",
+	Description: "The messenger command is used to sync the log information of transactions in the block",
+	Action:      messenger,
+}
+
 var (
 	Version = "0.0.3"
 )
 
 // init initializes CLI
 func init() {
-	app.Action = run
+	//app.Action = run
 	app.Copyright = "Copyright 2021 MAP Protocol 2021 Authors"
 	app.Name = "compass"
 	app.Usage = "Compass"
@@ -152,7 +160,8 @@ func init() {
 	app.EnableBashCompletion = true
 	app.Commands = []*cli.Command{
 		&accountCommand,
-		&relayerCommand,
+		&maintainerCommand,
+		&messengerCommand,
 	}
 
 	app.Flags = append(app.Flags, cliFlags...)
@@ -181,7 +190,15 @@ func startLogger(ctx *cli.Context) error {
 	return nil
 }
 
-func run(ctx *cli.Context) error {
+func maintainer(ctx *cli.Context) error {
+	return run(ctx, ethereum.MarkOfMaintainer)
+}
+
+func messenger(ctx *cli.Context) error {
+	return run(ctx, ethereum.MarkOfMessenger)
+}
+
+func run(ctx *cli.Context, mark string) error {
 	err := startLogger(ctx)
 	if err != nil {
 		return err
@@ -215,9 +232,6 @@ func run(ctx *cli.Context) error {
 	}
 	c := core.NewCore(sysErr, msg.ChainId(mapcid))
 	// merge map chain
-	//allChains := make([]config.RawChainConfig, len(cfg.Chains), len(cfg.Chains)+1)
-	//copy(allChains, cfg.Chains)
-	//allChains = append([]config.RawChainConfig{cfg.MapChain}, allChains...)
 	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
 	allChains = append(cfg.Chains, cfg.MapChain)
 
@@ -251,7 +265,7 @@ func run(ctx *cli.Context) error {
 
 		if chain.Type == "ethereum" {
 			// only support eth
-			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m)
+			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, mark)
 			if err != nil {
 				return err
 			}

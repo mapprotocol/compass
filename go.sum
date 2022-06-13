@@ -421,7 +421,6 @@ github.com/loinfish/azure-storage-go v0.0.1/go.mod h1:YsT+4v7OqiQBdDsBXv+FFJybzt
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
 github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
-github.com/mapprotocol/atlas v0.5.1-0.20220525123442-b86a1291c582 h1:vr/VN+4mnAkHGpjA6cEv9SjaooPmF7ZmbBK86qf1Vvk=
 github.com/mapprotocol/atlas v0.5.1-0.20220525123442-b86a1291c582/go.mod h1:+8rp2bisFkLOTObsmvfbAdlK7exl73oFaQvhuBNTn3E=
 github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd h1:krkCRyCyN86ZWDsMEDXF6yWdwy1ED8L+L05j3Ef8f1Q=
 github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd/go.mod h1:+8rp2bisFkLOTObsmvfbAdlK7exl73oFaQvhuBNTn3E=
