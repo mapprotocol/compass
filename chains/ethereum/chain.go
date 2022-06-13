@@ -23,6 +23,7 @@ The writer recieves the message and creates a proposals on-chain. Once a proposa
 package ethereum
 
 import (
+	"github.com/mapprotocol/compass/chains"
 	"math/big"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
@@ -57,11 +58,11 @@ type Connection interface {
 }
 
 type Chain struct {
-	cfg      *core.ChainConfig // The config of the chain
-	conn     Connection        // The chains connection
-	listener *listener         // The listener of this chain
-	writer   *writer           // The writer of the chain
-	stop     chan<- int
+	cfg    *core.ChainConfig // The config of the chain
+	conn   Connection        // The chains connection
+	writer *writer           // The writer of the chain
+	stop   chan<- int
+	listen chains.Listener // The listener of this chain
 }
 
 // checkBlockstore queries the blockstore for the latest known block. If the latest block is
@@ -86,7 +87,7 @@ func setupBlockstore(cfg *Config, kp *secp256k1.Keypair) (*blockstore.Blockstore
 	return bs, nil
 }
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics, listenOps ...ListenOption) (*Chain, error) {
+func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics, mark string) (*Chain, error) {
 	cfg, err := parseChainConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -125,25 +126,31 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	}
 
 	// simplified a little bit
-	listener := NewListener(conn, cfg, logger, bs, stop, sysErr, m, listenOps...)
+	var listen chains.Listener
+	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m)
+	if mark == MarkOfMessenger {
+		listen = NewMessenger(cs)
+	} else { // Maintainer is used by default
+		listen = NewMaintainer(cs, bs)
+	}
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
 
 	return &Chain{
-		cfg:      chainCfg,
-		conn:     conn,
-		writer:   writer,
-		listener: listener,
-		stop:     stop,
+		cfg:    chainCfg,
+		conn:   conn,
+		writer: writer,
+		stop:   stop,
+		listen: listen,
 	}, nil
 }
 
 func (c *Chain) SetRouter(r *core.Router) {
 	r.Listen(c.cfg.Id, c.writer)
-	c.listener.setRouter(r)
+	c.listen.SetRouter(r)
 }
 
 func (c *Chain) Start() error {
-	err := c.listener.start()
+	err := c.listen.Sync()
 	if err != nil {
 		return err
 	}
@@ -166,7 +173,7 @@ func (c *Chain) Name() string {
 }
 
 func (c *Chain) LatestBlock() metrics.LatestBlock {
-	return c.listener.latestBlock
+	return c.listen.GetLatestBlock()
 }
 
 // Stop signals to any running routines to exit

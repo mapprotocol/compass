@@ -60,7 +60,7 @@ func handleRegisterCmd(ctx *cli.Context) error {
 
 	logger := log.Root().New("register", accountAddr)
 	sysErr := make(chan error)
-	mapChain, err := ethereum.InitializeChain(chainConfig, logger, sysErr, m)
+	mapChain, err := ethereum.InitializeChain(chainConfig, logger, sysErr, m, ethereum.MarkOfMaintainer)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func handleBindCmd(ctx *cli.Context) error {
 
 	logger := log.Root().New("bind", relayerAddr)
 	sysErr := make(chan error)
-	mapChain, err := ethereum.InitializeChain(chainConfig, logger, sysErr, m)
+	mapChain, err := ethereum.InitializeChain(chainConfig, logger, sysErr, m, ethereum.MarkOfMaintainer)
 	if err != nil {
 		return err
 	}

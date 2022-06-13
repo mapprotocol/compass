@@ -58,10 +58,10 @@ type Config struct {
 	blockConfirmations *big.Int
 	egsApiKey          string // API key for ethgasstation to query gas prices
 	egsSpeed           string // The speed which a transaction should be processed: average, fast, fastest. Default: fast
-	syncToMap          bool   // Whether sync blockchain headers to Map
+	syncToMap          bool   // Whether listen blockchain headers to Map
 	mapChainID         msg.ChainId
-	syncChainIDList    []msg.ChainId  // chain ids which map sync to
-	lightNode          common.Address // the lightnode to sync header
+	syncChainIDList    []msg.ChainId  // chain ids which map listen to
+	lightNode          common.Address // the lightnode to listen header
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
