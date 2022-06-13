@@ -191,14 +191,14 @@ func startLogger(ctx *cli.Context) error {
 }
 
 func maintainer(ctx *cli.Context) error {
-	return run(ctx, ethereum.Maintainer)
+	return run(ctx, ethereum.MarkOfMaintainer)
 }
 
 func messenger(ctx *cli.Context) error {
-	return run(ctx, ethereum.Messenger)
+	return run(ctx, ethereum.MarkOfMessenger)
 }
 
-func run(ctx *cli.Context, function string) error {
+func run(ctx *cli.Context, mark string) error {
 	err := startLogger(ctx)
 	if err != nil {
 		return err
@@ -265,7 +265,7 @@ func run(ctx *cli.Context, function string) error {
 
 		if chain.Type == "ethereum" {
 			// only support eth
-			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, ethereum.WithFunction(function))
+			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, mark)
 			if err != nil {
 				return err
 			}

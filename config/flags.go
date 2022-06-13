@@ -46,16 +46,6 @@ var (
 		Name:  "latest",
 		Usage: "Overrides blockstore and start block, starts from latest block",
 	}
-
-	MaintainerFlag = &cli.BoolFlag{
-		Name:  "maintainer",
-		Usage: "Start maintainer function",
-	}
-
-	MessagerFlag = &cli.BoolFlag{
-		Name:  "messager",
-		Usage: "Start messager function",
-	}
 )
 
 // Metrics flags
