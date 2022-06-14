@@ -6,6 +6,7 @@ package ethereum
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -59,13 +60,14 @@ func (w *writer) callContractWithMsg(addr common.Address, funcSignature string, 
 
 			// sendtx using general method
 			data := utils.ComposeMsgPayloadWithSignature(funcSignature, m.Payload)
-			tx, err := w.sendTx(&addr, nil, data)
+			//tx, err := w.sendTx(&addr, nil, data)
+			err = w.call(&addr, nil, data)
 
 			w.conn.UnlockOpts()
 
 			if err == nil {
 				// message successfully handled
-				w.log.Info("Submitted cross tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "gasPrice", tx.GasPrice().String())
+				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
@@ -144,6 +146,40 @@ func (w *writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 		return nil, err
 	}
 	return signedTx, nil
+}
+
+func (w *writer) call(toAddress *common.Address, value *big.Int, input []byte) error {
+	from := w.conn.Keypair().CommonAddress()
+	output, err := w.conn.Client().CallContract(context.Background(),
+		ethereum.CallMsg{
+			From: from,
+			To:   toAddress,
+			Data: input,
+		},
+		nil,
+	)
+	if err != nil {
+		w.log.Error("", err.Error())
+	}
+
+	resp, err := mapprotocol.ABILightNode.Methods[mapprotocol.MethodVerifyProofData].Outputs.Unpack(output)
+	if err != nil {
+		w.log.Error(err.Error())
+	}
+	ret := struct {
+		Success bool
+		Message string
+	}{}
+
+	err = mapprotocol.ABILightNode.Methods[mapprotocol.MethodVerifyProofData].Outputs.Copy(&ret, resp)
+	if err != nil {
+		return err
+	}
+	if !ret.Success {
+		return fmt.Errorf("verify proof failed, message is (%s)", ret.Message)
+	}
+
+	return nil
 }
 
 // exeSyncMsg executes sync msg, and send tx to the destination blockchain

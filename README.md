@@ -149,7 +149,7 @@ Ethereum chains support the following additional options:
     "blockConfirmations": "10"       // Number of blocks to wait before processing a block
     "egsApiKey": "xxx..."            // API key for Eth Gas Station (https://www.ethgasstation.info/)
     "egsSpeed": "fast"               // Desired speed for gas price selection, the options are: "average", "fast", "fastest"
-    "lightnode": "0x12345...",       // Address to send transaction
+    "lightnode": "0x12345...",       // the lightnode to sync header
     "syncToMap": "true",             // Whether sync blockchain headers to Map
     "syncIdList": "[214]"            // Those chain ids are synchronized to the map，and This configuration can only be used in mapchain
 }
