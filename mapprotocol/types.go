@@ -124,9 +124,9 @@ func GetAggPK(cli *ethclient.Client, number *big.Int, extra []byte) (*G2, error)
 func GetTxReceipt(receipt *ethtypes.Receipt) (*TxReceipt, error) {
 	logs := make([]TxLog, 0, len(receipt.Logs))
 	for _, lg := range receipt.Logs {
-		topics := make([][]byte, 0, len(lg.Topics))
-		for _, tp := range topics {
-			topics = append(topics, tp[:])
+		topics := make([][]byte, len(lg.Topics))
+		for i := range lg.Topics {
+			topics[i] = lg.Topics[i][:]
 		}
 		logs = append(logs, TxLog{
 			Addr:   lg.Address,

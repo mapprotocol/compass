@@ -32,7 +32,7 @@ func packInput(commonAbi abi.ABI, abiMethod string, params ...interface{}) ([]by
 }
 
 func PackLightNodeInput(method string, params ...interface{}) ([]byte, error) {
-	return packInput(ABILightNode, method, params)
+	return packInput(ABILightNode, method, params...)
 }
 
 func SaveHeaderTxData(src, dest *big.Int, marshal []byte) ([]byte, error) {
