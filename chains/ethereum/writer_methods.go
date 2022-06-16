@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -61,7 +62,7 @@ func (w *writer) callContractWithMsg(addr common.Address, funcSignature string, 
 			// sendtx using general method
 			data := utils.ComposeMsgPayloadWithSignature(funcSignature, m.Payload)
 			//tx, err := w.sendTx(&addr, nil, data)
-			err = w.call(&addr, nil, data)
+			err = w.call(&addr, nil, data, mapprotocol.ABILightNode, mapprotocol.MethodVerifyProofData)
 
 			w.conn.UnlockOpts()
 
@@ -148,7 +149,7 @@ func (w *writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	return signedTx, nil
 }
 
-func (w *writer) call(toAddress *common.Address, value *big.Int, input []byte) error {
+func (w *writer) call(toAddress *common.Address, value *big.Int, input []byte, useAbi abi.ABI, method string) error {
 	from := w.conn.Keypair().CommonAddress()
 	output, err := w.conn.Client().CallContract(context.Background(),
 		ethereum.CallMsg{
@@ -162,7 +163,7 @@ func (w *writer) call(toAddress *common.Address, value *big.Int, input []byte) e
 		w.log.Error("", err.Error())
 	}
 
-	resp, err := mapprotocol.ABILightNode.Methods[mapprotocol.MethodVerifyProofData].Outputs.Unpack(output)
+	resp, err := useAbi.Methods[method].Outputs.Unpack(output)
 	if err != nil {
 		w.log.Error(err.Error())
 	}
@@ -171,7 +172,7 @@ func (w *writer) call(toAddress *common.Address, value *big.Int, input []byte) e
 		Message string
 	}{}
 
-	err = mapprotocol.ABILightNode.Methods[mapprotocol.MethodVerifyProofData].Outputs.Copy(&ret, resp)
+	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
 	if err != nil {
 		return err
 	}
