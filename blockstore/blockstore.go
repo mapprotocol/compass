@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 )
 
@@ -35,8 +36,8 @@ type Blockstore struct {
 	relayer  string
 }
 
-func NewBlockstore(path string, chain msg.ChainId, relayer, mark string) (*Blockstore, error) {
-	fileName := getFileName(chain, relayer, mark)
+func NewBlockstore(path string, chain msg.ChainId, relayer string, role mapprotocol.Role) (*Blockstore, error) {
+	fileName := getFileName(chain, relayer, role)
 	if path == "" {
 		def, err := getDefaultPath()
 		if err != nil {
@@ -92,8 +93,8 @@ func (b *Blockstore) TryLoadLatestBlock() (*big.Int, error) {
 	return big.NewInt(0), nil
 }
 
-func getFileName(chain msg.ChainId, relayer, mark string) string {
-	return fmt.Sprintf("%s-%d-%s.block", relayer, chain, mark)
+func getFileName(chain msg.ChainId, relayer string, role mapprotocol.Role) string {
+	return fmt.Sprintf("%s-%d-%s.block", relayer, chain, role)
 }
 
 // getHomePath returns the home directory joined with PathPostfix

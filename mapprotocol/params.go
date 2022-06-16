@@ -41,7 +41,7 @@ const (
 
 var (
 	// todo using
-	RelayerAddress = common.HexToAddress("0x6d146aD4D4733cd1B74aE5E4867064A27d03ada2")
+	RelayerAddress = common.HexToAddress("0x000068656164657273746F726541646472657373")
 	// functions
 	SaveHeader      = "save"
 	CurNbrAndHash   = "currentNumberAndHash"
@@ -54,4 +54,11 @@ var (
 
 	ChainTypeETH = ChainType(RopstenCHainID) // todo change to eth when get online
 	ChainTypeMAP = ChainType(TestNetChainID) // todo may change?
+)
+
+type Role string
+
+var (
+	RoleOfMaintainer Role = "maintainer"
+	RoleOfMessenger  Role = "messenger"
 )
