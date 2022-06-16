@@ -14,8 +14,6 @@ import (
 var BlockRetryInterval = time.Second * 5
 var BlockRetryLimit = 5
 var ErrFatalPolling = errors.New("listener block polling failed")
-var MarkOfMaintainer = "maintainer"
-var MarkOfMessenger = "messenger"
 
 type CommonSync struct {
 	cfg                Config

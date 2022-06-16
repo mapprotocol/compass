@@ -26,6 +26,7 @@ import (
 	"math/big"
 
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/mapprotocol"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
@@ -68,8 +69,8 @@ type Chain struct {
 
 // checkBlockstore queries the blockstore for the latest known block. If the latest block is
 // greater than cfg.startBlock, then cfg.startBlock is replaced with the latest known block.
-func setupBlockstore(cfg *Config, kp *secp256k1.Keypair, mark string) (*blockstore.Blockstore, error) {
-	bs, err := blockstore.NewBlockstore(cfg.blockstorePath, cfg.id, kp.Address(), mark)
+func setupBlockstore(cfg *Config, kp *secp256k1.Keypair, role mapprotocol.Role) (*blockstore.Blockstore, error) {
+	bs, err := blockstore.NewBlockstore(cfg.blockstorePath, cfg.id, kp.Address(), role)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func setupBlockstore(cfg *Config, kp *secp256k1.Keypair, mark string) (*blocksto
 	return bs, nil
 }
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics, mark string) (*Chain, error) {
+func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics, role mapprotocol.Role) (*Chain, error) {
 	cfg, err := parseChainConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -100,7 +101,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	}
 	kp, _ := kpI.(*secp256k1.Keypair)
 
-	bs, err := setupBlockstore(cfg, kp, mark)
+	bs, err := setupBlockstore(cfg, kp, role)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +130,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	// simplified a little bit
 	var listen chains.Listener
 	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
-	if mark == MarkOfMessenger {
+	if role == mapprotocol.RoleOfMessenger {
 		listen = NewMessenger(cs)
 	} else { // Maintainer is used by default
 		listen = NewMaintainer(cs)
