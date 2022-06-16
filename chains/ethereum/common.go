@@ -7,6 +7,7 @@ import (
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
+	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/chains"
 )
 
@@ -27,10 +28,12 @@ type CommonSync struct {
 	latestBlock        metrics.LatestBlock
 	metrics            *metrics.ChainMetrics
 	blockConfirmations *big.Int
+	blockStore         blockstore.Blockstorer
 }
 
 // NewCommonSync creates and returns a listener
-func NewCommonSync(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error, m *metrics.ChainMetrics) *CommonSync {
+func NewCommonSync(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
+	m *metrics.ChainMetrics, bs blockstore.Blockstorer) *CommonSync {
 	return &CommonSync{
 		cfg:                *cfg,
 		conn:               conn,
@@ -41,6 +44,7 @@ func NewCommonSync(conn Connection, cfg *Config, log log15.Logger, stop <-chan i
 		metrics:            m,
 		blockConfirmations: cfg.blockConfirmations,
 		msgCh:              make(chan struct{}),
+		blockStore:         bs,
 	}
 }
 

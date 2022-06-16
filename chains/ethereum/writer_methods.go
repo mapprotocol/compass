@@ -252,9 +252,10 @@ func (w *writer) blockForPending(txHash common.Hash) error {
 		if isPending {
 			w.log.Info("tx is pending, please wait...")
 			time.Sleep(time.Millisecond * 900)
-		} else {
-			break
+			continue
 		}
+		w.log.Info("tx is successful", "tx", txHash)
+		break
 	}
 	return nil
 }

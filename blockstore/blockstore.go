@@ -35,8 +35,8 @@ type Blockstore struct {
 	relayer  string
 }
 
-func NewBlockstore(path string, chain msg.ChainId, relayer string) (*Blockstore, error) {
-	fileName := getFileName(chain, relayer)
+func NewBlockstore(path string, chain msg.ChainId, relayer, mark string) (*Blockstore, error) {
+	fileName := getFileName(chain, relayer, mark)
 	if path == "" {
 		def, err := getDefaultPath()
 		if err != nil {
@@ -92,8 +92,8 @@ func (b *Blockstore) TryLoadLatestBlock() (*big.Int, error) {
 	return big.NewInt(0), nil
 }
 
-func getFileName(chain msg.ChainId, relayer string) string {
-	return fmt.Sprintf("%s-%d.block", relayer, chain)
+func getFileName(chain msg.ChainId, relayer, mark string) string {
+	return fmt.Sprintf("%s-%d-%s.block", relayer, chain, mark)
 }
 
 // getHomePath returns the home directory joined with PathPostfix

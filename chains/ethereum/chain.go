@@ -68,8 +68,8 @@ type Chain struct {
 
 // checkBlockstore queries the blockstore for the latest known block. If the latest block is
 // greater than cfg.startBlock, then cfg.startBlock is replaced with the latest known block.
-func setupBlockstore(cfg *Config, kp *secp256k1.Keypair) (*blockstore.Blockstore, error) {
-	bs, err := blockstore.NewBlockstore(cfg.blockstorePath, cfg.id, kp.Address())
+func setupBlockstore(cfg *Config, kp *secp256k1.Keypair, mark string) (*blockstore.Blockstore, error) {
+	bs, err := blockstore.NewBlockstore(cfg.blockstorePath, cfg.id, kp.Address(), mark)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	}
 	kp, _ := kpI.(*secp256k1.Keypair)
 
-	bs, err := setupBlockstore(cfg, kp)
+	bs, err := setupBlockstore(cfg, kp, mark)
 	if err != nil {
 		return nil, err
 	}
@@ -128,11 +128,11 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 
 	// simplified a little bit
 	var listen chains.Listener
-	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m)
+	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
 	if mark == MarkOfMessenger {
 		listen = NewMessenger(cs)
 	} else { // Maintainer is used by default
-		listen = NewMaintainer(cs, bs)
+		listen = NewMaintainer(cs)
 	}
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
 
