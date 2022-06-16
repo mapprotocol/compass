@@ -31,6 +31,14 @@ func (m *Messenger) Sync() error {
 	var currentBlock = m.cfg.startBlock
 	m.log.Info("Polling Blocks...", "block", currentBlock)
 
+	if m.cfg.syncToMap {
+		// when listen to map there must be a 20 block confirmation at least
+		big20 := big.NewInt(20)
+		if m.blockConfirmations.Cmp(big20) == -1 {
+			m.blockConfirmations = big20
+		}
+	}
+
 	var retry = BlockRetryLimit
 	for {
 		select {
