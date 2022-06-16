@@ -136,6 +136,7 @@ var maintainerCommand = cli.Command{
 				"\tUse --worker to provide the address of worker.",
 		},
 	},
+	Flags: append(app.Flags, cliFlags...),
 }
 
 var messengerCommand = cli.Command{
@@ -143,6 +144,7 @@ var messengerCommand = cli.Command{
 	Usage:       "manage messenger operations",
 	Description: "The messenger command is used to sync the log information of transactions in the block",
 	Action:      messenger,
+	Flags:       append(app.Flags, cliFlags...),
 }
 
 var (
@@ -269,7 +271,7 @@ func run(ctx *cli.Context, mark string) error {
 			if err != nil {
 				return err
 			}
-			if idx == 0 {
+			if idx == len(allChains)-1 {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
 			}
