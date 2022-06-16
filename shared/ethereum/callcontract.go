@@ -234,11 +234,12 @@ func ParseMapLogIntoSwapWithMapProofArgs(cli *ethclient.Client, log types.Log, b
 		return 0, 0, nil, err
 	}
 
+	var key []byte
 	rp := mapprotocol.ReceiptProof{
 		Header:   mapprotocol.ConvertHeader(header),
 		AggPk:    aggPK,
 		Receipt:  receipt,
-		KeyIndex: big.NewInt(int64(txIndex)).Bytes(),
+		KeyIndex: rlp.AppendUint64(key[:0], uint64(txIndex)),
 		Proof:    proof,
 	}
 	payloads, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, rp)
