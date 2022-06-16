@@ -228,6 +228,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 		// only listen last block of the epoch
 		return nil
 	}
+	m.log.Info("sync block ", "current", latestBlock)
 	header, err := m.conn.Client().MAPHeaderByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return err

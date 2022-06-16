@@ -46,7 +46,7 @@ func (w *writer) start() error {
 // A bool is returned to indicate failure/success, this should be ignored except for within tests.
 func (w *writer) ResolveMessage(m msg.Message) bool {
 	w.log.Info("Attempting to resolve message", "type", m.Type, "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
-	w.log = w.log.New("type", m.Type)
+
 	switch m.Type {
 	case msg.SwapTransfer:
 		fallthrough
