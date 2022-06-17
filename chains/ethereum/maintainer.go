@@ -12,27 +12,36 @@ import (
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/mapprotocol"
 )
 
 type Maintainer struct {
 	*CommonSync
-	blockStore   blockstore.Blockstorer
 	syncedHeight *big.Int
 }
 
-func NewMaintainer(cs *CommonSync, bs blockstore.Blockstorer) *Maintainer {
+func NewMaintainer(cs *CommonSync) *Maintainer {
 	return &Maintainer{
 		CommonSync: cs,
-		blockStore: bs,
 	}
 }
 
-// Sync function of Maintainer will poll for the latest block and proceed to parse the associated events as it sees new blocks.
+func (m *Maintainer) Sync() error {
+	m.log.Debug("Starting listener...")
+	go func() {
+		err := m.sync()
+		if err != nil {
+			m.log.Error("Polling blocks failed", "err", err)
+		}
+	}()
+
+	return nil
+}
+
+// sync function of Maintainer will poll for the latest block and proceed to parse the associated events as it sees new blocks.
 // Polling begins at the block defined in `m.cfg.startBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
-func (m *Maintainer) Sync() error {
+func (m Maintainer) sync() error {
 	var currentBlock = m.cfg.startBlock
 	m.log.Info("Polling Blocks...", "block", currentBlock)
 
@@ -211,11 +220,15 @@ func (m *Maintainer) batchSyncHeadersTo(height *big.Int) error {
 // syncMapHeader listen map header to every chains registered
 func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	// todo 通过 rpc 查询 epoch size
-	remainder := latestBlock.Mod(latestBlock, big.NewInt(30000))
+	if latestBlock.Cmp(big.NewInt(0)) == 0 {
+		return nil
+	}
+	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(1000))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		// only listen last block of the epoch
 		return nil
 	}
+	m.log.Info("sync block ", "current", latestBlock)
 	header, err := m.conn.Client().MAPHeaderByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return err

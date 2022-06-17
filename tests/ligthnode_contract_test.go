@@ -38,6 +38,154 @@ func dialConn() *ethclient.Client {
 	return conn
 }
 
+func TestLoadPrivate(t *testing.T) {
+	path := "/Users/t/data/atlas-1/keystore/UTC--2022-06-07T04-22-55.836701000Z--f9803e9021e56e68662351fe43773934c4a276b8"
+	password := ""
+	addr, private := LoadPrivate(path, password)
+	fmt.Println("============================== addr: ", addr)
+	fmt.Printf("============================== private key: %x\n", crypto.FromECDSA(private))
+}
+func TestUpdateHeader(t *testing.T) {
+	cli := dialConn()
+	for i := 1; i < 21; i++ {
+		number := int64(i * 1000)
+		fmt.Println("============================== number: ", number)
+		header, err := cli.MAPHeaderByNumber(context.Background(), big.NewInt(number))
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+
+		h := mapprotocol.ConvertHeader(header)
+		aggPK, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+
+		//printHeader(header)
+		//printAggPK(aggPK)
+		//_ = h
+
+		input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodUpdateBlockHeader, h, aggPK)
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+
+		path := "/Users/xm/Desktop/WL/code/atlas/node-1/keystore/UTC--2022-06-15T07-51-25.301943000Z--e0dc8d7f134d0a79019bef9c2fd4b2013a64fcd6"
+		password := "1234"
+		from, private := LoadPrivate(path, password)
+		if err := SendContractTransaction(cli, from, ContractAddr, nil, private, input); err != nil {
+			t.Fatalf(err.Error())
+		}
+	}
+}
+
+func TestVerifyProofData(t *testing.T) {
+	var (
+		number = big.NewInt(2568)
+		//number       = big.NewInt(4108)
+		//number       = big.NewInt(55342)
+		txIndex uint = 0
+	)
+	cli := dialConn()
+
+	header, err := cli.MAPHeaderByNumber(context.Background(), number)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	txsHash, err := getTransactionsHashByBlockNumber(cli, number)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	receipts, err := getReceiptsByTxsHash(cli, txsHash)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
+
+	proof, err := getProof(receipts, txIndex)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	aggPK, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	var key []byte
+	key = rlp.AppendUint64(key[:0], uint64(txIndex))
+
+	//fmt.Println("============================== number: ", number)
+	//printHeader(header)
+	//printAggPK(aggPK)
+	//printReceipt(receipt)
+	//fmt.Println("============================== KeyIndex: ", "0x"+common.Bytes2Hex(key))
+	//printProof(proof)
+
+	rp := mapprotocol.ReceiptProof{
+		Header:   mapprotocol.ConvertHeader(header),
+		AggPk:    aggPK,
+		Receipt:  receipt,
+		KeyIndex: key,
+		Proof:    proof,
+	}
+
+	input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, rp)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	path := "/Users/t/data/atlas-1/keystore/UTC--2022-06-07T04-22-55.836701000Z--f9803e9021e56e68662351fe43773934c4a276b8"
+	password := ""
+	from, _ := LoadPrivate(path, password)
+	output, err := cli.CallContract(context.Background(), eth.CallMsg{From: from, To: &ContractAddr, Data: input}, nil)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	resp, err := mapprotocol.ABILightNode.Methods[mapprotocol.MethodVerifyProofData].Outputs.Unpack(output)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	ret := struct {
+		Success bool
+		Message string
+	}{}
+	if err := mapprotocol.ABILightNode.Methods[mapprotocol.MethodVerifyProofData].Outputs.Copy(&ret, resp); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	fmt.Printf("============================== success: %v, message: %v\n", ret.Success, ret.Message)
+}
+
+func TestGetLog(t *testing.T) {
+	//number       = big.NewInt(4108)
+	//number       = big.NewInt(55342)
+	query := buildQuery(common.HexToAddress("0xf03aDB732FBa8Fca38C00253B1A1aa72CCA026E6"),
+		utils.SwapOut, big.NewInt(106020), big.NewInt(106020))
+
+	// querying for logs
+	logs, err := dialConn().FilterLogs(context.Background(), query)
+	if err != nil {
+		t.Fatalf("unable to Filter Logs: %s", err)
+	}
+	t.Logf("log len is %v", len(logs))
+}
+
+// buildQuery constructs a query for the bridgeContract by hashing sig to get the event topic
+func buildQuery(contract common.Address, sig utils.EventSig, startBlock *big.Int, endBlock *big.Int) eth.FilterQuery {
+	query := eth.FilterQuery{
+		FromBlock: startBlock,
+		ToBlock:   endBlock,
+		Addresses: []common.Address{contract},
+		Topics: [][]common.Hash{
+			{sig.GetTopic()},
+		},
+	}
+	return query
+}
+
 func SendContractTransaction(client *ethclient.Client, from, toAddress common.Address, value *big.Int, privateKey *ecdsa.PrivateKey, input []byte) error {
 	// Ensure a valid value field and resolve the account nonce
 	nonce, err := client.PendingNonceAt(context.Background(), from)
@@ -125,14 +273,6 @@ func LoadPrivate(path, password string) (common.Address, *ecdsa.PrivateKey) {
 		panic("load privateKey failed")
 	}
 	return addr, priKey
-}
-
-func TestLoadPrivate(t *testing.T) {
-	path := "/Users/t/data/atlas-1/keystore/UTC--2022-06-07T04-22-55.836701000Z--f9803e9021e56e68662351fe43773934c4a276b8"
-	password := ""
-	addr, private := LoadPrivate(path, password)
-	fmt.Println("============================== addr: ", addr)
-	fmt.Printf("============================== private key: %x\n", crypto.FromECDSA(private))
 }
 
 func printHeader(header *maptypes.Header) {
@@ -233,40 +373,6 @@ func printProof(proof [][]byte) {
 	fmt.Println("============================== proof: ", p)
 }
 
-func TestUpdateHeader(t *testing.T) {
-	cli := dialConn()
-	for i := 1; i < 21; i++ {
-		number := int64(i * 1000)
-		fmt.Println("============================== number: ", number)
-		header, err := cli.MAPHeaderByNumber(context.Background(), big.NewInt(number))
-		if err != nil {
-			t.Fatalf(err.Error())
-		}
-
-		h := mapprotocol.ConvertHeader(header)
-		aggPK, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
-		if err != nil {
-			t.Fatalf(err.Error())
-		}
-
-		//printHeader(header)
-		//printAggPK(aggPK)
-		//_ = h
-
-		input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodUpdateBlockHeader, h, aggPK)
-		if err != nil {
-			t.Fatalf(err.Error())
-		}
-
-		path := "/Users/t/data/atlas-1/keystore/UTC--2022-06-07T04-22-55.836701000Z--f9803e9021e56e68662351fe43773934c4a276b8"
-		password := ""
-		from, private := LoadPrivate(path, password)
-		if err := SendContractTransaction(cli, from, ContractAddr, nil, private, input); err != nil {
-			t.Fatalf(err.Error())
-		}
-	}
-}
-
 func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
 	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
 	if err != nil {
@@ -313,84 +419,4 @@ func getReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*typ
 		rs = append(rs, r)
 	}
 	return rs, nil
-}
-
-func TestVerifyProofData(t *testing.T) {
-	var (
-		number = big.NewInt(2568)
-		//number       = big.NewInt(4108)
-		//number       = big.NewInt(55342)
-		txIndex uint = 0
-	)
-	cli := dialConn()
-
-	header, err := cli.MAPHeaderByNumber(context.Background(), number)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	txsHash, err := getTransactionsHashByBlockNumber(cli, number)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	receipts, err := getReceiptsByTxsHash(cli, txsHash)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
-
-	proof, err := getProof(receipts, txIndex)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	aggPK, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	var key []byte
-	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-
-	//fmt.Println("============================== number: ", number)
-	//printHeader(header)
-	//printAggPK(aggPK)
-	//printReceipt(receipt)
-	//fmt.Println("============================== KeyIndex: ", "0x"+common.Bytes2Hex(key))
-	//printProof(proof)
-
-	rp := mapprotocol.ReceiptProof{
-		Header:   mapprotocol.ConvertHeader(header),
-		AggPk:    aggPK,
-		Receipt:  receipt,
-		KeyIndex: key,
-		Proof:    proof,
-	}
-
-	input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, rp)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	path := "/Users/t/data/atlas-1/keystore/UTC--2022-06-07T04-22-55.836701000Z--f9803e9021e56e68662351fe43773934c4a276b8"
-	password := ""
-	from, _ := LoadPrivate(path, password)
-	output, err := cli.CallContract(context.Background(), eth.CallMsg{From: from, To: &ContractAddr, Data: input}, nil)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	resp, err := mapprotocol.ABILightNode.Methods[mapprotocol.MethodVerifyProofData].Outputs.Unpack(output)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	ret := struct {
-		Success bool
-		Message string
-	}{}
-	if err := mapprotocol.ABILightNode.Methods[mapprotocol.MethodVerifyProofData].Outputs.Copy(&ret, resp); err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	fmt.Printf("============================== success: %v, message: %v\n", ret.Success, ret.Message)
 }

@@ -23,11 +23,23 @@ func NewMessenger(cs *CommonSync) *Messenger {
 	}
 }
 
-// Sync function of Messenger will poll for the latest block and listen the log information of transactions in the block
+func (m *Messenger) Sync() error {
+	m.log.Debug("Starting listener...")
+	go func() {
+		err := m.sync()
+		if err != nil {
+			m.log.Error("Polling blocks failed", "err", err)
+		}
+	}()
+
+	return nil
+}
+
+// sync function of Messenger will poll for the latest block and listen the log information of transactions in the block
 // Polling begins at the block defined in `m.cfg.startBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 // However，an error in synchronizing the log will cause the entire program to block
-func (m *Messenger) Sync() error {
+func (m *Messenger) sync() error {
 	var currentBlock = m.cfg.startBlock
 	m.log.Info("Polling Blocks...", "block", currentBlock)
 
@@ -82,6 +94,11 @@ func (m *Messenger) Sync() error {
 			// hold until all messages are handled
 			_ = m.waitUntilMsgHandled(count)
 
+			// Write to block store. Not a critical operation, no need to retry
+			err = m.blockStore.StoreBlock(currentBlock)
+			if err != nil {
+				m.log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
+			}
 			if m.metrics != nil {
 				m.metrics.BlocksProcessed.Inc()
 				m.metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
@@ -138,9 +155,9 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, fmt.Errorf("unable to query header Logs: %w", err)
 			}
 
-			txsHash, err := getTransactionsHashByBlockNumber(m.conn.Client(), latestBlock)
+			txsHash, err := getMapTransactionsHashByBlockNumber(m.conn.Client(), latestBlock)
 			if err != nil {
-				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+				return 0, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
 			}
 			receipts, err := getReceiptsByTxsHash(m.conn.Client(), txsHash)
 			if err != nil {
