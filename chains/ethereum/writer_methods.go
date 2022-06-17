@@ -60,9 +60,10 @@ func (w *writer) callContractWithMsg(addr common.Address, funcSignature string, 
 			gasPrice := w.conn.Opts().GasPrice
 
 			// sendtx using general method
-			data := utils.ComposeMsgPayloadWithSignature(funcSignature, m.Payload)
+			//data := utils.ComposeMsgPayloadWithSignature(funcSignature, m.Payload)
 			//tx, err := w.sendTx(&addr, nil, data)
-			err = w.call(&addr, nil, data, mapprotocol.ABILightNode, mapprotocol.MethodVerifyProofData)
+			//err = w.call(&addr, nil, data, mapprotocol.ABILightNode, mapprotocol.MethodVerifyProofData)
+			err = w.call(&addr, nil, m.Payload[0].([]byte), mapprotocol.ABILightNode, mapprotocol.MethodVerifyProofData)
 
 			w.conn.UnlockOpts()
 
@@ -219,6 +220,7 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			if err == nil {
 				// message successfully handled
 				w.log.Info("Sync Header tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
+				time.Sleep(time.Second * 2)
 				// waited till successful mined
 				err = w.blockForPending(tx.Hash())
 				if err != nil {
