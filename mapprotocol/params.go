@@ -37,6 +37,7 @@ var (
 const (
 	MethodVerifyProofData   = "verifyProofData"
 	MethodUpdateBlockHeader = "updateBlockHeader"
+	MethodOfHeaderHeight    = "headerHeight"
 )
 
 var (
