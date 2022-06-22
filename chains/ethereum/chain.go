@@ -23,7 +23,11 @@ The writer recieves the message and creates a proposals on-chain. Once a proposa
 package ethereum
 
 import (
+	"context"
+	"fmt"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum"
 
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -89,7 +93,8 @@ func setupBlockstore(cfg *Config, kp *secp256k1.Keypair, role mapprotocol.Role) 
 	return bs, nil
 }
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics, role mapprotocol.Role) (*Chain, error) {
+func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
+	role mapprotocol.Role, syncMap map[msg.ChainId]*big.Int) (*Chain, error) {
 	cfg, err := parseChainConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -125,6 +130,41 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 			return nil, err
 		}
 		cfg.startBlock = curr
+	}
+
+	if cfg.lightNode.Hex() != "" && cfg.id != cfg.mapChainID && syncMap != nil { // 请求获取同步的map高度
+		from := common.HexToAddress(cfg.from)
+		input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodOfHeaderHeight)
+		if err != nil {
+			return nil, fmt.Errorf("pack lightNode headerHeight Input failed, err is %v", err.Error())
+		}
+		output, err := conn.Client().CallContract(context.Background(),
+			ethereum.CallMsg{
+				From: from,
+				To:   &cfg.lightNode,
+				Data: input,
+			},
+			nil,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("headerHeight callContract failed, err is %v", err.Error())
+		}
+
+		resp, err := mapprotocol.ABILightNode.Methods[mapprotocol.MethodOfHeaderHeight].Outputs.Unpack(output)
+		if err != nil {
+			return nil, fmt.Errorf("headerHeight unpack failed, err is %v", err.Error())
+		}
+		var height *big.Int
+		err = mapprotocol.ABILightNode.Methods[mapprotocol.MethodOfHeaderHeight].Outputs.Copy(&height, resp)
+		if err != nil {
+			return nil, fmt.Errorf("headerHeight outputs Copy failed, err is %v", err.Error())
+		}
+		syncMap[cfg.id] = height
+	}
+
+	if cfg.id == cfg.mapChainID {
+		cfg.syncMap = syncMap
+		logger.Info("sync height collect ", "set", syncMap)
 	}
 
 	// simplified a little bit

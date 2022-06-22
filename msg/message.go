@@ -30,13 +30,13 @@ var SwapWithMapProof TransferType = "SwapWithMapProof"
 
 // Message is used as a generic format to communicate between chains
 type Message struct {
-	Source       ChainId      // Source where message was initiated
-	Destination  ChainId      // Destination chain of message
-	Type         TransferType // type of bridge transfer
-	DepositNonce Nonce        // Nonce for the deposit
+	Source       ChainId         // Source where message was initiated
+	Destination  ChainId         // Destination chain of message
+	Type         TransferType    // type of bridge transfer
+	DepositNonce Nonce           // Nonce for the deposit
+	Payload      []interface{}   // data associated with event sequence
+	DoneCh       chan<- struct{} // notify message is handled
 	// ResourceId   ResourceId
-	Payload []interface{}   // data associated with event sequence
-	DoneCh  chan<- struct{} // notify message is handled
 }
 
 func NewSwapTransfer(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {

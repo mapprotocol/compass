@@ -879,5 +879,18 @@ const LightNode = `[
 		],
 		"stateMutability": "nonpayable",
 		"type": "function"
-	}
+	},
+	{
+		"inputs": [],
+		"name": "headerHeight",
+		"outputs": [
+		  {
+			"internalType": "uint256",
+			"name": "",
+			"type": "uint256"
+		  }
+		],
+		"stateMutability": "view",
+		"type": "function"
+  	}
 ]`
