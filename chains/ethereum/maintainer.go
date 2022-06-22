@@ -245,6 +245,10 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	}
 	msgpayload := []interface{}{input}
 	for _, cid := range m.cfg.syncChainIDList {
+		if v, ok := m.cfg.syncMap[cid]; ok && latestBlock.Cmp(v) <= 0 { // 只有当latestBlock大于已经同步block的高度时，才会处理
+			m.log.Info("latestBlock less than synchronized headerHeight", "toChainId", cid, "synced height", v, "current height", latestBlock)
+			continue
+		}
 		message := msg.NewSyncFromMap(m.cfg.mapChainID, cid, msgpayload, m.msgCh)
 		err = m.router.Send(message)
 		if err != nil {
