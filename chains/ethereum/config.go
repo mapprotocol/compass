@@ -62,11 +62,11 @@ type Config struct {
 	mapChainID         msg.ChainId
 	syncChainIDList    []msg.ChainId  // chain ids which map sync to
 	lightNode          common.Address // the lightnode to sync header
+	syncMap            map[msg.ChainId]*big.Int
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
 func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
-
 	config := &Config{
 		name:               chainCfg.Name,
 		id:                 chainCfg.Id,

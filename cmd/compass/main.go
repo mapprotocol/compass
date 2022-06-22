@@ -10,6 +10,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 
@@ -236,6 +237,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	// merge map chain
 	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
 	allChains = append(cfg.Chains, cfg.MapChain)
+	syncMap := make(map[msg.ChainId]*big.Int)
 
 	for idx, chain := range allChains {
 		chainId, err := strconv.Atoi(chain.Id)
@@ -267,7 +269,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 
 		if chain.Type == "ethereum" {
 			// only support eth
-			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, role, syncMap)
 			if err != nil {
 				return err
 			}

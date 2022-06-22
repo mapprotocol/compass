@@ -280,15 +280,6 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
 
-			//marshal, _ := m.Payload[0].([]byte)
-
-			// save header data
-			//data, err := mapprotocol.SaveHeaderLiteTxData(marshal)
-			//if err != nil {
-			//	w.log.Error("Failed to pack abi data", "err", err)
-			//	w.conn.UnlockOpts()
-			//	return false
-			//}
 			tx, err := w.sendTx(&w.cfg.lightNode, nil, m.Payload[0].([]byte))
 
 			w.conn.UnlockOpts()
