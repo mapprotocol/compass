@@ -76,6 +76,10 @@ var (
 		Name:  "secp256k1",
 		Usage: "Specify account/key type as secp256k1.",
 	}
+	Ed25519Flag = &cli.BoolFlag{
+		Name:  "ed25519",
+		Usage: "Specify account/key type as near.",
+	}
 )
 
 var (

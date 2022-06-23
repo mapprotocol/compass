@@ -88,7 +88,7 @@ func ReadFromFileAndDecrypt(filename string, password []byte, keytype string) (c
 	}
 
 	if keytype != keydata.Type {
-		return nil, fmt.Errorf("Keystore type and Chain type mismatched. Expected Keystore file of type %s, got type %s", keytype, keydata.Type)
+		return nil, fmt.Errorf("Keystore type and Chain type mismatched. Expected Keystore file of type %s, got type %s ", keytype, keydata.Type)
 	}
 
 	return DecryptKeypair(keydata.PublicKey, keydata.Ciphertext, password, keydata.Type)
