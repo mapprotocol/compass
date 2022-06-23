@@ -18,6 +18,19 @@ type Listener interface {
 	GetLatestBlock() metrics.LatestBlock
 }
 
+const (
+	Near     = "near"
+	Ethereum = "ethereum"
+)
+
+var (
+	NearChainId = map[msg.ChainId]struct{}{
+		1313161556: {},
+		1313161555: {},
+		1313161554: {},
+	}
+)
+
 //type Writer interface {
 //	ResolveMessage(message msg.Message) bool
 //}

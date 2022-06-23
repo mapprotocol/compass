@@ -28,9 +28,17 @@ import (
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
-var ContractAddr = common.HexToAddress("0x66701EA0eDd1035f0acEB938E6ff00414119fDaf")
+var ContractAddr = common.HexToAddress("0xA7D3A66013DE32f0a44C92E337Af22C4344a2d62")
 
 func dialConn() *ethclient.Client {
+	conn, err := ethclient.Dial("https://ropsten.infura.io/v3/8cce6b470ad44fb5a3621aa34243647f")
+	if err != nil {
+		log.Fatalf("Failed to connect to the atlas: %v", err)
+	}
+	return conn
+}
+
+func dialMapConn() *ethclient.Client {
 	conn, err := ethclient.Dial("http://18.142.54.137:7445")
 	if err != nil {
 		log.Fatalf("Failed to connect to the atlas: %v", err)
@@ -81,12 +89,12 @@ func TestUpdateHeader(t *testing.T) {
 
 func TestVerifyProofData(t *testing.T) {
 	var (
-		number = big.NewInt(2568)
+		number = big.NewInt(106020)
 		//number       = big.NewInt(4108)
 		//number       = big.NewInt(55342)
 		txIndex uint = 0
 	)
-	cli := dialConn()
+	cli := dialMapConn()
 
 	header, err := cli.MAPHeaderByNumber(context.Background(), number)
 	if err != nil {
@@ -135,10 +143,10 @@ func TestVerifyProofData(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	path := "/Users/t/data/atlas-1/keystore/UTC--2022-06-07T04-22-55.836701000Z--f9803e9021e56e68662351fe43773934c4a276b8"
-	password := ""
+	path := "/Users/xm/Desktop/WL/code/atlas/node-1/keystore/UTC--2022-06-15T07-51-25.301943000Z--e0dc8d7f134d0a79019bef9c2fd4b2013a64fcd6"
+	password := "1234"
 	from, _ := LoadPrivate(path, password)
-	output, err := cli.CallContract(context.Background(), eth.CallMsg{From: from, To: &ContractAddr, Data: input}, nil)
+	output, err := dialConn().CallContract(context.Background(), eth.CallMsg{From: from, To: &ContractAddr, Data: input}, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
