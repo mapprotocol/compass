@@ -112,33 +112,5 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 		return nil
 	}
 	m.log.Info("sync block ", "current", latestBlock)
-	//header, err := mapprotocol.GlobalMapConn.MAPHeaderByNumber(context.Background(), latestBlock)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//h := mapprotocol.ConvertHeader(header)
-	//aggPK, err := mapprotocol.GetAggPK(m.conn.Client(), header.Number, header.Extra)
-	//if err != nil {
-	//	return err
-	//}
-	//input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodUpdateBlockHeader, h, aggPK)
-	//if err != nil {
-	//	return err
-	//}
-	//msgpayload := []interface{}{input}
-	//for _, cid := range m.cfg.syncChainIDList {
-	//	message := msg.NewSyncFromMap(m.cfg.mapChainID, cid, msgpayload, m.msgCh)
-	//	err = m.router.Send(message)
-	//	if err != nil {
-	//		m.log.Error("subscription error: failed to route message", "err", err)
-	//		return nil
-	//	}
-	//}
-	//
-	//err = m.waitUntilMsgHandled(len(m.cfg.syncChainIDList))
-	//if err != nil {
-	//	return err
-	//}
 	return nil
 }

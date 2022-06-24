@@ -248,9 +248,11 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 		return err
 	}
 	msgpayload := []interface{}{input}
+	waitCount := len(m.cfg.syncChainIDList)
 	for _, cid := range m.cfg.syncChainIDList {
 		if v, ok := m.cfg.syncMap[cid]; ok && latestBlock.Cmp(v) <= 0 { // 只有当latestBlock大于已经同步block的高度时，才会处理
-			m.log.Info("latestBlock less than synchronized headerHeight", "toChainId", cid, "synced height", v, "current height", latestBlock)
+			waitCount--
+			m.log.Debug("latestBlock less than synchronized headerHeight", "toChainId", cid, "synced height", v, "current height", latestBlock)
 			continue
 		}
 		if _, ok := chains.NearChainId[cid]; ok {
@@ -276,7 +278,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 		}
 	}
 
-	err = m.waitUntilMsgHandled(len(m.cfg.syncChainIDList))
+	err = m.waitUntilMsgHandled(waitCount)
 	if err != nil {
 		return err
 	}
