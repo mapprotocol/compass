@@ -162,9 +162,16 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		syncMap[cfg.id] = height
 	}
 
-	if cfg.id == cfg.mapChainID {
+	if cfg.id == cfg.mapChainID && role == mapprotocol.RoleOfMaintainer {
 		cfg.syncMap = syncMap
 		logger.Info("sync height collect ", "set", syncMap)
+		for cId, height := range cfg.syncMap {
+			if height.Cmp(cfg.startBlock) == -1 { // When the synchronized height is less than the local starting height, use height
+				logger.Info("sync height less than local startBlock height", "chainId", cId, "startHeight",
+					cfg.startBlock, "syncHeight", height)
+				cfg.startBlock = big.NewInt(height.Int64())
+			}
+		}
 	}
 
 	// simplified a little bit
