@@ -235,7 +235,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	}
 
 	h := mapprotocol.ConvertHeader(header)
-	aggPK, err := mapprotocol.GetAggPK(m.conn.Client(), header.Number, header.Extra)
+	aggPK, err := mapprotocol.GetAggPK(m.conn.Client(), new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return err
 	}

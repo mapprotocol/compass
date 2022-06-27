@@ -222,7 +222,7 @@ func ParseMapLogIntoSwapWithMapProofArgs(cli *ethclient.Client, log types.Log, b
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 
 	txIndex := log.TxIndex
-	aggPK, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
+	aggPK, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return 0, 0, nil, err
 	}
