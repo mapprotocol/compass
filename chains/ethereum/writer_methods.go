@@ -249,9 +249,9 @@ func (w *writer) blockForPending(txHash common.Hash) error {
 	for {
 		_, isPending, err := w.conn.Client().TransactionByHash(context.Background(), txHash)
 		if err != nil {
-			w.log.Info("blockForPending tx is temporary not found", "err is not found?", errors.Is(err, errors.New("not found")))
+			w.log.Info("blockForPending tx is temporary not found", "err is not found?", errors.Is(err, errors.New("not found")), "err", err)
 			if strings.Index(err.Error(), "not found") != -1 {
-				w.log.Info("tx is temporary not found, please wait...")
+				w.log.Info("tx is temporary not found, please wait...", "tx", txHash)
 				time.Sleep(time.Millisecond * 900)
 				continue
 			}
