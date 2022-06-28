@@ -2,17 +2,21 @@ package ethereum
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	atypes "github.com/mapprotocol/atlas/core/types"
+	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/math"
-
-	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/mapprotocol"
 )
 
 type Maintainer struct {
@@ -244,10 +248,27 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 		return err
 	}
 	msgpayload := []interface{}{input}
+	waitCount := len(m.cfg.syncChainIDList)
 	for _, cid := range m.cfg.syncChainIDList {
 		if v, ok := m.cfg.syncMap[cid]; ok && latestBlock.Cmp(v) <= 0 { // 只有当latestBlock大于已经同步block的高度时，才会处理
-			m.log.Info("latestBlock less than synchronized headerHeight", "toChainId", cid, "synced height", v, "current height", latestBlock)
+			waitCount--
+			m.log.Debug("latestBlock less than synchronized headerHeight", "toChainId", cid, "synced height", v, "current height", latestBlock)
 			continue
+		}
+		if _, ok := chains.NearChainId[cid]; ok {
+			param := map[string]interface{}{
+				"header": convertNearNeedHeader(header),
+				"agg_pk": map[string]interface{}{
+					"xr": "0x" + common.Bytes2Hex(aggPK.Xr.Bytes()),
+					"xi": "0x" + common.Bytes2Hex(aggPK.Xi.Bytes()),
+					"yi": "0x" + common.Bytes2Hex(aggPK.Yi.Bytes()),
+					"yr": "0x" + common.Bytes2Hex(aggPK.Yr.Bytes()),
+				},
+			}
+			data, _ := json.Marshal(param)
+			msgpayload = []interface{}{data}
+		} else {
+			msgpayload = []interface{}{input}
 		}
 		message := msg.NewSyncFromMap(m.cfg.mapChainID, cid, msgpayload, m.msgCh)
 		err = m.router.Send(message)
@@ -257,9 +278,47 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 		}
 	}
 
-	err = m.waitUntilMsgHandled(len(m.cfg.syncChainIDList))
+	err = m.waitUntilMsgHandled(waitCount)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+type Header struct {
+	ParentHash  common.Hash       `json:"parentHash"       gencodec:"required"`
+	Coinbase    common.Address    `json:"coinbase"            gencodec:"required"`
+	Root        common.Hash       `json:"root"         gencodec:"required"`
+	TxHash      common.Hash       `json:"txHash" gencodec:"required"`
+	ReceiptHash common.Hash       `json:"receiptHash"     gencodec:"required"`
+	Bloom       atypes.Bloom      `json:"bloom"        gencodec:"required"`
+	Number      *hexutil.Big      `json:"number"           gencodec:"required"`
+	GasLimit    hexutil.Uint64    `json:"gasLimit"         gencodec:"required"`
+	GasUsed     hexutil.Uint64    `json:"gasUsed"          gencodec:"required"`
+	Time        hexutil.Uint64    `json:"time"        gencodec:"required"`
+	Extra       hexutil.Bytes     `json:"extra"        gencodec:"required"`
+	MixDigest   common.Hash       `json:"minDigest"`
+	Nonce       atypes.BlockNonce `json:"nonce"`
+	BaseFee     *hexutil.Big      `json:"baseFee" rlp:"optional"`
+	Hash        common.Hash       `json:"hash"`
+}
+
+func convertNearNeedHeader(h *atypes.Header) *Header {
+	var enc Header
+	enc.ParentHash = h.ParentHash
+	enc.Coinbase = h.Coinbase
+	enc.Root = h.Root
+	enc.TxHash = h.TxHash
+	enc.ReceiptHash = h.ReceiptHash
+	enc.Bloom = h.Bloom
+	enc.Number = (*hexutil.Big)(h.Number)
+	enc.GasLimit = hexutil.Uint64(h.GasLimit)
+	enc.GasUsed = hexutil.Uint64(h.GasUsed)
+	enc.Time = hexutil.Uint64(h.Time)
+	enc.Extra = h.Extra
+	enc.MixDigest = h.MixDigest
+	enc.Nonce = h.Nonce
+	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
+	enc.Hash = h.Hash()
+	return &enc
 }

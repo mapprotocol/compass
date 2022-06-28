@@ -14,6 +14,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/mapprotocol/compass/chains/near"
+
+	"github.com/mapprotocol/compass/chains"
+
 	"strconv"
 
 	"github.com/ChainSafe/chainbridge-utils/metrics/health"
@@ -45,6 +49,7 @@ var generateFlags = []cli.Flag{
 	config.PasswordFlag,
 	config.Sr25519Flag,
 	config.Secp256k1Flag,
+	config.Ed25519Flag,
 	config.SubkeyNetworkFlag,
 }
 
@@ -57,6 +62,7 @@ var importFlags = []cli.Flag{
 	config.PrivateKeyFlag,
 	config.Sr25519Flag,
 	config.Secp256k1Flag,
+	config.Ed25519Flag,
 	config.PasswordFlag,
 	config.SubkeyNetworkFlag,
 }
@@ -247,16 +253,18 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		// write Map chain id to opts
 		chain.Opts[config.MapChainID] = cfg.MapChain.Id
 		chainConfig := &core.ChainConfig{
-			Name:           chain.Name,
-			Id:             msg.ChainId(chainId),
-			Endpoint:       chain.Endpoint,
-			From:           chain.From,
-			KeystorePath:   ks,
-			Insecure:       insecure,
-			BlockstorePath: ctx.String(config.BlockstorePathFlag.Name),
-			FreshStart:     ctx.Bool(config.FreshStartFlag.Name),
-			LatestBlock:    ctx.Bool(config.LatestBlockFlag.Name),
-			Opts:           chain.Opts,
+			Name:             chain.Name,
+			Id:               msg.ChainId(chainId),
+			Endpoint:         chain.Endpoint,
+			From:             chain.From,
+			Network:          chain.Network,
+			KeystorePath:     ks,
+			NearKeystorePath: chain.KeystorePath,
+			Insecure:         insecure,
+			BlockstorePath:   ctx.String(config.BlockstorePathFlag.Name),
+			FreshStart:       ctx.Bool(config.FreshStartFlag.Name),
+			LatestBlock:      ctx.Bool(config.LatestBlockFlag.Name),
+			Opts:             chain.Opts,
 		}
 		var newChain core.Chain
 		var m *metrics.ChainMetrics
@@ -267,7 +275,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			m = metrics.NewChainMetrics(chain.Name)
 		}
 
-		if chain.Type == "ethereum" {
+		if chain.Type == chains.Ethereum {
 			// only support eth
 			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, role, syncMap)
 			if err != nil {
@@ -276,6 +284,11 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			if idx == len(allChains)-1 {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
+			}
+		} else if chain.Type == chains.Near {
+			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role, syncMap)
+			if err != nil {
+				return err
 			}
 		} else {
 			return errors.New("unrecognized Chain Type")

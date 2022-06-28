@@ -26,10 +26,14 @@ There are 5 keys currenty supported: Alice, Bob, Charlie, Dave, and Eve.
 package keystore
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto"
+	"github.com/eteu-technologies/near-api-go/pkg/types"
+	"github.com/eteu-technologies/near-api-go/pkg/types/key"
 )
 
 const EthChain = "ethereum"
@@ -77,4 +81,41 @@ func KeypairFromAddress(addr, chainType, path string, insecure bool) (crypto.Key
 	}
 
 	return kp, nil
+}
+
+func NearKeyPairFrom(networkName, path string, id types.AccountID) (kp key.KeyPair, err error) {
+	var creds struct {
+		AccountID  types.AccountID     `json:"account_id"`
+		PublicKey  key.Base58PublicKey `json:"public_key"`
+		PrivateKey key.KeyPair         `json:"private_key"`
+	}
+
+	home := path
+	if home == "" {
+		home, err = os.UserHomeDir()
+		if err != nil {
+			return
+		}
+		fmt.Println("near keyPairFrom home is ", home)
+	}
+
+	credsFile := filepath.Join(home, ".near-credentials", networkName, fmt.Sprintf("%s.json", id))
+
+	var cf *os.File
+	if cf, err = os.Open(credsFile); err != nil {
+		return
+	}
+	defer cf.Close()
+
+	if err = json.NewDecoder(cf).Decode(&creds); err != nil {
+		return
+	}
+
+	if creds.PublicKey.String() != creds.PrivateKey.PublicKey.String() {
+		err = fmt.Errorf("inconsistent public key, %s != %s", creds.PublicKey.String(), creds.PrivateKey.PublicKey.String())
+		return
+	}
+	kp = creds.PrivateKey
+
+	return
 }
