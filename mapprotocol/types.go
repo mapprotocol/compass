@@ -2,13 +2,14 @@ package mapprotocol
 
 import (
 	"context"
+	"math/big"
+
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/atlas/consensus/istanbul/validator"
 	"github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/atlas/helper/bls"
 	"github.com/neoiss/ethclient"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 )
