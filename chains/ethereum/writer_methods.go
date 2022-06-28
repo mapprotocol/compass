@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -248,6 +249,12 @@ func (w *writer) blockForPending(txHash common.Hash) error {
 	for {
 		_, isPending, err := w.conn.Client().TransactionByHash(context.Background(), txHash)
 		if err != nil {
+			w.log.Info("blockForPending tx is temporary not found", "err is not found?", errors.Is(err, errors.New("not found")))
+			if strings.Index(err.Error(), "not found") != -1 {
+				w.log.Info("tx is temporary not found, please wait...")
+				time.Sleep(time.Millisecond * 900)
+				continue
+			}
 			return err
 		}
 
