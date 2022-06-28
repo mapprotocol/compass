@@ -220,26 +220,26 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 
 			if err == nil {
 				// message successfully handled
-				w.log.Info("Sync Header tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
+				w.log.Info("Sync Header to map tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
 				time.Sleep(time.Second * 2)
 				// waited till successful mined
 				err = w.blockForPending(tx.Hash())
 				if err != nil {
-					w.log.Warn("blockForPending error", "err", err)
+					w.log.Warn("Sync Header to map blockForPending error", "err", err)
 				}
 				m.DoneCh <- struct{}{}
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
-				w.log.Error("Nonce too low, will retry")
+				w.log.Error("Sync Header to map Nonce too low, will retry")
 				time.Sleep(TxRetryInterval)
 			} else {
-				w.log.Warn("Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+				w.log.Warn("Sync Header to map Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			}
 		}
 	}
-	w.log.Error("Submission of Sync Header transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	w.log.Error("Sync Header to map Submission of Sync Header transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
 	w.sysErr <- ErrFatalTx
 	return false
 }
@@ -293,25 +293,25 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 
 			if err == nil {
 				// message successfully handled
-				w.log.Info("Sync MapHeader tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
+				w.log.Info("Sync Map Header to other chain tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
 				// waited till successful mined
 				err = w.blockForPending(tx.Hash())
 				if err != nil {
-					w.log.Warn("blockForPending error", "err", err)
+					w.log.Warn("Sync Map Header to other chain blockForPending error", "err", err)
 				}
 				m.DoneCh <- struct{}{}
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
-				w.log.Error("Nonce too low, will retry")
+				w.log.Error("Sync Map Header to other chain Nonce too low, will retry")
 				time.Sleep(TxRetryInterval)
 			} else {
-				w.log.Warn("Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+				w.log.Warn("Sync Map Header to other chain Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			}
 		}
 	}
-	w.log.Error("Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	w.log.Error("Sync Map Header to other chain Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
 	w.sysErr <- ErrFatalTx
 	return false
 }
