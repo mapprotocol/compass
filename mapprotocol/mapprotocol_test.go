@@ -8,7 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/neoiss/ethclient"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
 func dialConn() *ethclient.Client {

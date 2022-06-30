@@ -18,7 +18,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/mapprotocol/compass/connections/ethereum/egs"
-	"github.com/neoiss/ethclient"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
 var BlockRetryInterval = time.Second * 5

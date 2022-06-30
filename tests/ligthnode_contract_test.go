@@ -22,7 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
-	"github.com/neoiss/ethclient"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 
 	"github.com/mapprotocol/compass/mapprotocol"
 	utils "github.com/mapprotocol/compass/shared/ethereum"

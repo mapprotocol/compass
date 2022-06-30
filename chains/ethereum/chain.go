@@ -42,7 +42,7 @@ import (
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/msg"
-	"github.com/neoiss/ethclient"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
 var _ core.Chain = &Chain{}
