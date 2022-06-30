@@ -17,7 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/neoiss/ethclient"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
 const DefaultGasLimit = 6721975

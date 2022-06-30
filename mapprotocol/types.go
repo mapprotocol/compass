@@ -9,7 +9,7 @@ import (
 	"github.com/mapprotocol/atlas/consensus/istanbul/validator"
 	"github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/atlas/helper/bls"
-	"github.com/neoiss/ethclient"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 
 	"github.com/ethereum/go-ethereum/common"
 )
