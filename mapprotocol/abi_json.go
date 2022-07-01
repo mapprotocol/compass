@@ -875,6 +875,11 @@ const LightNode = `[
 				"internalType": "string",
 				"name": "message",
 				"type": "string"
+			},
+			{
+				 "internalType":"bytes",
+				 "name":"logsHash",
+				 "type":"bytes"
 			}
 		],
 		"stateMutability": "nonpayable",
