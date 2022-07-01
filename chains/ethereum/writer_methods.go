@@ -5,7 +5,6 @@ package ethereum
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
+	"github.com/pkg/errors"
 )
 
 // Number of blocks to wait for an finalization event
@@ -167,16 +167,17 @@ func (w *writer) call(toAddress *common.Address, value *big.Int, input []byte, u
 
 	resp, err := useAbi.Methods[method].Outputs.Unpack(output)
 	if err != nil {
-		w.log.Error(err.Error())
+		w.log.Error("proof call failed ", "err", err.Error())
 	}
 	ret := struct {
-		Success bool
-		Message string
+		Success  bool
+		Message  string
+		LogsHash []byte
 	}{}
 
 	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "proof copy failed")
 	}
 	if !ret.Success {
 		return fmt.Errorf("verify proof failed, message is (%s)", ret.Message)
