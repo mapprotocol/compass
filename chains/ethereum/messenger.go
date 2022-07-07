@@ -117,7 +117,7 @@ func (m *Messenger) sync() error {
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	m.log.Debug("Querying block for events", "block", latestBlock)
-	query := m.buildQuery(m.cfg.bridgeContract, utils.SwapOut, latestBlock, latestBlock)
+	query := m.buildQuery(m.cfg.bridgeContract, utils.MapTransferOut, latestBlock, latestBlock)
 
 	// querying for logs
 	logs, err := m.conn.Client().FilterLogs(context.Background(), query)
@@ -139,7 +139,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-
 			fromChainID, toChainID, payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, m.cfg.bridgeContract, receipts)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
@@ -147,14 +146,12 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 
 			msgpayload := []interface{}{payload}
 			message = msg.NewSwapWithProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
-
 		} else if m.cfg.id == m.cfg.mapChainID {
 			// when listen from map we also need to assemble a tx prove in a different way
 			header, err := m.conn.Client().MAPHeaderByNumber(context.Background(), latestBlock)
 			if err != nil {
 				return 0, fmt.Errorf("unable to query header Logs: %w", err)
 			}
-
 			txsHash, err := getMapTransactionsHashByBlockNumber(m.conn.Client(), latestBlock)
 			if err != nil {
 				return 0, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
@@ -163,9 +160,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-
-			fromChainID, toChainID, payload, err := utils.ParseMapLogIntoSwapWithMapProofArgs(m.conn.Client(),
-				log, m.cfg.bridgeContract, receipts, header)
+			fromChainID, toChainID, payload, err := utils.ParseMapLogIntoSwapWithProofArgsV2(m.conn.Client(), log, receipts, header)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
