@@ -6,8 +6,13 @@ package utils
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
+	"fmt"
 	"math/big"
 	"sync"
+
+	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/msg"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -213,6 +218,110 @@ type MapTxProve struct {
 	Prove       light.NodeList
 	BlockNumber uint64
 	TxIndex     uint
+}
+
+func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, receipts []*types.Receipt, header *maptypes.Header) (uint64, uint64, []byte, error) {
+	fromChainID := log.Data[:32]
+	toChainID := log.Data[32:64]
+	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
+	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
+	amount := log.Data[96:128]
+	realAmount := binary.BigEndian.Uint64(amount[len(amount)-8:])
+	fmt.Printf("ParseMapLogIntoSwapWithProofArgsV2 ---------------- ,amount(%v), uFromChainID(%v),uToChainID(%v) \n", realAmount, uFromChainID, uToChainID)
+
+	txIndex := log.TxIndex
+	aggPK, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
+	proof, err := getProof(receipts, txIndex)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	var key []byte
+	key = rlp.AppendUint64(key[:0], uint64(txIndex))
+	if _, ok := chains.NearChainId[msg.ChainId(uToChainID)]; !ok {
+		rp := mapprotocol.ReceiptProof{
+			Header:   mapprotocol.ConvertHeader(header),
+			AggPk:    aggPK,
+			Receipt:  receipt,
+			KeyIndex: key,
+			Proof:    proof,
+		}
+
+		payloads, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, rp)
+		if err != nil {
+			return 0, 0, nil, err
+		}
+
+		return uFromChainID, uToChainID, payloads, nil
+	}
+
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	err = binary.Write(bytesBuffer, binary.LittleEndian, uint64(txIndex))
+	if err != nil {
+		return 0, 0, nil, err
+	}
+	// return
+	nProof := make([]string, 0, len(proof))
+	for _, p := range proof {
+		nProof = append(nProof, "0x"+common.Bytes2Hex(p))
+	}
+	m := map[string]interface{}{
+		"header": mapprotocol.ConvertNearNeedHeader(header),
+		"agg_pk": map[string]interface{}{
+			"xr": "0x" + common.Bytes2Hex(aggPK.Xr.Bytes()),
+			"xi": "0x" + common.Bytes2Hex(aggPK.Xi.Bytes()),
+			"yi": "0x" + common.Bytes2Hex(aggPK.Yi.Bytes()),
+			"yr": "0x" + common.Bytes2Hex(aggPK.Yr.Bytes()),
+		},
+		"key_index": key,
+		"receipt":   ConvertNearReceipt(receipt),
+		"proof":     nProof,
+	}
+
+	data, _ := json.Marshal(m)
+	fmt.Println("---------------------- ", string(data))
+	return uFromChainID, uToChainID, data, nil
+}
+
+type TxReceipt struct {
+	ReceiptType       *big.Int `json:"receipt_type"`
+	PostStateOrStatus string   `json:"post_state_or_status"`
+	CumulativeGasUsed *big.Int `json:"cumulative_gas_used"`
+	Bloom             string   `json:"bloom"`
+	Logs              []TxLog  `json:"logs"`
+}
+
+type TxLog struct {
+	Addr   common.Address `json:"addr"`
+	Topics []string       `json:"topics"`
+	Data   string         `json:"data"`
+}
+
+func ConvertNearReceipt(h *mapprotocol.TxReceipt) *TxReceipt {
+	logs := make([]TxLog, 0, len(h.Logs))
+	for _, log := range h.Logs {
+		topics := make([]string, 0, len(log.Topics))
+		for _, t := range log.Topics {
+			topics = append(topics, "0x"+common.Bytes2Hex(t))
+		}
+		logs = append(logs, TxLog{
+			Addr:   log.Addr,
+			Topics: topics,
+			Data:   "0x" + common.Bytes2Hex(log.Data),
+		})
+	}
+	return &TxReceipt{
+		ReceiptType:       h.ReceiptType,
+		PostStateOrStatus: "0x" + common.Bytes2Hex(h.PostStateOrStatus),
+		CumulativeGasUsed: h.CumulativeGasUsed,
+		Bloom:             "0x" + common.Bytes2Hex(h.Bloom),
+		Logs:              logs,
+	}
 }
 
 func ParseMapLogIntoSwapWithMapProofArgs(cli *ethclient.Client, log types.Log, bridgeAddr common.Address, receipts []*types.Receipt, header *maptypes.Header) (uint64, uint64, []byte, error) {

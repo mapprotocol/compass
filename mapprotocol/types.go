@@ -4,6 +4,8 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/atlas/consensus/istanbul/validator"
@@ -153,4 +155,42 @@ func StatusEncoding(r *ethtypes.Receipt) []byte {
 		return receiptStatusSuccessfulRLP
 	}
 	return r.PostState
+}
+
+type NearNeedHeader struct {
+	ParentHash  common.Hash      `json:"parentHash"       gencodec:"required"`
+	Coinbase    common.Address   `json:"coinbase"            gencodec:"required"`
+	Root        common.Hash      `json:"root"         gencodec:"required"`
+	TxHash      common.Hash      `json:"txHash" gencodec:"required"`
+	ReceiptHash common.Hash      `json:"receiptHash"     gencodec:"required"`
+	Bloom       types.Bloom      `json:"bloom"        gencodec:"required"`
+	Number      *hexutil.Big     `json:"number"           gencodec:"required"`
+	GasLimit    hexutil.Uint64   `json:"gasLimit"         gencodec:"required"`
+	GasUsed     hexutil.Uint64   `json:"gasUsed"          gencodec:"required"`
+	Time        hexutil.Uint64   `json:"time"        gencodec:"required"`
+	Extra       hexutil.Bytes    `json:"extra"        gencodec:"required"`
+	MixDigest   common.Hash      `json:"minDigest"`
+	Nonce       types.BlockNonce `json:"nonce"`
+	BaseFee     *hexutil.Big     `json:"baseFee" rlp:"optional"`
+	Hash        common.Hash      `json:"hash"`
+}
+
+func ConvertNearNeedHeader(h *types.Header) *NearNeedHeader {
+	var enc NearNeedHeader
+	enc.ParentHash = h.ParentHash
+	enc.Coinbase = h.Coinbase
+	enc.Root = h.Root
+	enc.TxHash = h.TxHash
+	enc.ReceiptHash = h.ReceiptHash
+	enc.Bloom = h.Bloom
+	enc.Number = (*hexutil.Big)(h.Number)
+	enc.GasLimit = hexutil.Uint64(h.GasLimit)
+	enc.GasUsed = hexutil.Uint64(h.GasUsed)
+	enc.Time = hexutil.Uint64(h.Time)
+	enc.Extra = h.Extra
+	enc.MixDigest = h.MixDigest
+	enc.Nonce = h.Nonce
+	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
+	enc.Hash = h.Hash()
+	return &enc
 }
