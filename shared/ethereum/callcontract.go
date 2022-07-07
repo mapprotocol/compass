@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"sync"
 
@@ -225,9 +224,9 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 	toChainID := log.Data[32:64]
 	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
-	amount := log.Data[96:128]
-	realAmount := binary.BigEndian.Uint64(amount[len(amount)-8:])
-	fmt.Printf("ParseMapLogIntoSwapWithProofArgsV2 ---------------- ,amount(%v), uFromChainID(%v),uToChainID(%v) \n", realAmount, uFromChainID, uToChainID)
+	//amount := log.Data[96:128]
+	//realAmount := binary.BigEndian.Uint64(amount[len(amount)-8:])
+	//fmt.Printf("ParseMapLogIntoSwapWithProofArgsV2 ---------------- ,amount(%v), uFromChainID(%v),uToChainID(%v) \n", realAmount, uFromChainID, uToChainID)
 
 	txIndex := log.TxIndex
 	aggPK, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
@@ -278,13 +277,12 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 			"yi": "0x" + common.Bytes2Hex(aggPK.Yi.Bytes()),
 			"yr": "0x" + common.Bytes2Hex(aggPK.Yr.Bytes()),
 		},
-		"key_index": key,
+		"key_index": "0x" + common.Bytes2Hex(key),
 		"receipt":   ConvertNearReceipt(receipt),
 		"proof":     nProof,
 	}
 
 	data, _ := json.Marshal(m)
-	fmt.Println("---------------------- ", string(data))
 	return uFromChainID, uToChainID, data, nil
 }
 
@@ -297,9 +295,9 @@ type TxReceipt struct {
 }
 
 type TxLog struct {
-	Addr   common.Address `json:"addr"`
-	Topics []string       `json:"topics"`
-	Data   string         `json:"data"`
+	Address common.Address `json:"address"`
+	Topics  []string       `json:"topics"`
+	Data    string         `json:"data"`
 }
 
 func ConvertNearReceipt(h *mapprotocol.TxReceipt) *TxReceipt {
@@ -310,9 +308,9 @@ func ConvertNearReceipt(h *mapprotocol.TxReceipt) *TxReceipt {
 			topics = append(topics, "0x"+common.Bytes2Hex(t))
 		}
 		logs = append(logs, TxLog{
-			Addr:   log.Addr,
-			Topics: topics,
-			Data:   "0x" + common.Bytes2Hex(log.Data),
+			Address: log.Addr,
+			Topics:  topics,
+			Data:    "0x" + common.Bytes2Hex(log.Data),
 		})
 	}
 	return &TxReceipt{
