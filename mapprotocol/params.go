@@ -42,12 +42,12 @@ const (
 
 var (
 	// todo using
-	RelayerAddress = common.HexToAddress("0x000068656164657273746F726541646472657373")
-	// functions
-	SaveHeader      = "save"
-	CurNbrAndHash   = "currentNumberAndHash"
-	RegisterRelayer = "register"
-	BindWorker      = "bind"
+	RelayerAddress    = common.HexToAddress("0x000068656164657273746F726541646472657373")
+	SaveHeader        = "save"
+	UpdateBlockHeader = "updateBlockHeader"
+	CurNbrAndHash     = "currentNumberAndHash"
+	RegisterRelayer   = "register"
+	BindWorker        = "bind"
 
 	ABIRelayer, _   = abi.JSON(strings.NewReader(RelayerABIJSON))
 	ABILiteNode, _  = abi.JSON(strings.NewReader(LiteABIJSON))
