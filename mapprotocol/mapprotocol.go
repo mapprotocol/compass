@@ -35,12 +35,10 @@ func PackLightNodeInput(method string, params ...interface{}) ([]byte, error) {
 	return packInput(ABILightNode, method, params...)
 }
 
-func SaveHeaderTxData(src, dest *big.Int, marshal []byte) ([]byte, error) {
+func SaveHeaderTxData(params ...interface{}) ([]byte, error) {
 	return packInput(ABIRelayer,
-		SaveHeader,
-		src,
-		dest,
-		marshal)
+		UpdateBlockHeader,
+		params...)
 }
 
 func SaveHeaderLiteTxData(marshal []byte) ([]byte, error) {

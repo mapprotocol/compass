@@ -4,6 +4,8 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/light"
+
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/atlas/consensus/istanbul/validator"
@@ -63,6 +65,21 @@ type ReceiptProof struct {
 	Receipt  *TxReceipt
 	KeyIndex []byte
 	Proof    [][]byte
+}
+
+type NewReceiptProof struct {
+	Router   common.Address
+	Coin     common.Address
+	SrcChain *big.Int
+	DstChain *big.Int
+	TxProve  []byte
+}
+
+type TxProve struct {
+	Receipt     *ethtypes.Receipt
+	Prove       light.NodeList
+	BlockNumber uint64
+	TxIndex     uint
 }
 
 func ConvertHeader(header *types.Header) *BlockHeader {

@@ -64,7 +64,7 @@ func (w *writer) callContractWithMsg(addr common.Address, funcSignature string, 
 			//data := utils.ComposeMsgPayloadWithSignature(funcSignature, m.Payload)
 			//tx, err := w.sendTx(&addr, nil, data)
 			//err = w.call(&addr, nil, data, mapprotocol.ABILightNode, mapprotocol.MethodVerifyProofData)
-			err = w.call(&addr, nil, m.Payload[0].([]byte), mapprotocol.ABILightNode, mapprotocol.MethodVerifyProofData)
+			err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.ABILightNode, mapprotocol.MethodVerifyProofData)
 
 			w.conn.UnlockOpts()
 
@@ -151,7 +151,7 @@ func (w *writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	return signedTx, nil
 }
 
-func (w *writer) call(toAddress *common.Address, value *big.Int, input []byte, useAbi abi.ABI, method string) error {
+func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) error {
 	from := w.conn.Keypair().CommonAddress()
 	output, err := w.conn.Client().CallContract(context.Background(),
 		ethereum.CallMsg{
@@ -208,8 +208,18 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			dest := big.NewInt(int64(m.Destination))
 			marshal, _ := m.Payload[0].([]byte)
 
+			param := struct {
+				From    *big.Int
+				To      *big.Int
+				Headers []byte
+			}{
+				From:    src,
+				To:      dest,
+				Headers: marshal,
+			}
+
 			// save header data
-			data, err := mapprotocol.SaveHeaderTxData(src, dest, marshal)
+			data, err := mapprotocol.SaveHeaderTxData(param)
 			if err != nil {
 				w.log.Error("Failed to pack abi data", "err", err)
 				w.conn.UnlockOpts()
