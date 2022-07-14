@@ -59,7 +59,8 @@ func GetCurrentNumberAbi(from common.Address) (*big.Int, string, error) {
 	msg := goeth.CallMsg{
 		From: from,
 		To:   &RelayerAddress,
-		Data: input}
+		Data: input,
+	}
 
 	output, err := GlobalMapConn.CallContract(context.Background(), msg, big.NewInt(0).SetUint64(blockNum))
 	if err != nil {

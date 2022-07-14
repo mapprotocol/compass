@@ -292,17 +292,17 @@ const RelayerABIJSON = `[
     "type": "function"
   },
   {
-		"inputs": [
-			{
-				"internalType": "bytes",
-				"name": "_blackHeader",
-				"type": "bytes"
-			}
-		],
-		"name": "updateBlockHeader",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
+	   "inputs": [
+		  {
+			 "internalType": "bytes",
+			 "name": "blockHeader",
+			 "type": "bytes"
+		  }
+	   ],
+	   "name": "updateBlockHeader",
+	   "outputs": [],
+	   "stateMutability": "nonpayable",
+	   "type": "function"
   },
   {
     "inputs": [
