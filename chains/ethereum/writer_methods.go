@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/rlp"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -218,8 +220,14 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 				Headers: marshal,
 			}
 
+			bytes, err := rlp.EncodeToBytes(param)
+			if err != nil {
+				w.log.Error("rlp EncodeToBytes failed ", "err", err)
+				return false
+			}
+
 			// save header data
-			data, err := mapprotocol.SaveHeaderTxData(param)
+			data, err := mapprotocol.SaveHeaderTxData(bytes)
 			if err != nil {
 				w.log.Error("Failed to pack abi data", "err", err)
 				w.conn.UnlockOpts()

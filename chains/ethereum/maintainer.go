@@ -104,7 +104,7 @@ func (m Maintainer) sync() error {
 
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.blockConfirmations) == -1 {
-				m.log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
+				m.log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
 				time.Sleep(BlockRetryInterval)
 				continue
 			}
@@ -121,7 +121,7 @@ func (m Maintainer) sync() error {
 				// Sync headers to Map
 				if currentBlock.Cmp(m.syncedHeight) == 1 {
 					// listen when catchup
-					m.log.Info("Sync Header to Map Chain", "target", currentBlock)
+					m.log.Info("Sync Header to Map Chain", "current", currentBlock)
 					err = m.syncHeaderToMapChain(currentBlock)
 					if err != nil {
 						m.log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
