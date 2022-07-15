@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/msg"
 
@@ -140,8 +142,13 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 	copy(orderHash[:], log.Data[:32])
 	amount := log.Data[32:64]
 
-	fromChainID := log.Data[64:96]
-	toChainID := log.Data[96:128]
+	//fromChainID := log.Data[64:96]
+	//toChainID := log.Data[96:128]
+	//uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
+	//uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
+
+	fromChainID := log.Data[:32]
+	toChainID := log.Data[32:64]
 	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 
@@ -177,6 +184,13 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
+	//txProve := mapprotocol.TxProve{
+	//	Receipt:     receipts[transactionIndex],
+	//	Prove:       proof.NodeList(),
+	//	BlockNumber: blockNumber,
+	//	TxIndex:     transactionIndex,
+	//}
+
 	txProve := TxProve{
 		Tx: &TxParams{
 			From:  from,
@@ -194,17 +208,26 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
-	payloads, err := SwapInArgs.Pack(
-		orderHash,
-		common.BytesToAddress(token),
-		common.BytesToAddress(from),
-		common.BytesToAddress(to),
-		big.NewInt(0).SetBytes(amount),
-		big.NewInt(0).SetBytes(fromChainID),
-		big.NewInt(0).SetBytes(toChainID),
-		bridgeAddr,
-		txProofBytes,
-	)
+	rp := mapprotocol.NewReceiptProof{
+		Router:   bridgeAddr,
+		Coin:     common.BytesToAddress(token),
+		SrcChain: big.NewInt(0).SetBytes(fromChainID),
+		DstChain: big.NewInt(0).SetBytes(toChainID),
+		TxProve:  txProofBytes,
+	}
+
+	//payloads, err := SwapInArgs.Pack(
+	//	orderHash,
+	//	common.BytesToAddress(token),
+	//	common.BytesToAddress(from),
+	//	common.BytesToAddress(to),
+	//	big.NewInt(0).SetBytes(amount),
+	//	big.NewInt(0).SetBytes(fromChainID),
+	//	big.NewInt(0).SetBytes(toChainID),
+	//	bridgeAddr,
+	//	txProofBytes,
+	//)
+	payloads, err := rlp.EncodeToBytes(rp)
 	if err != nil {
 		return 0, 0, nil, err
 	}
@@ -219,7 +242,8 @@ type MapTxProve struct {
 	TxIndex     uint
 }
 
-func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, receipts []*types.Receipt, header *maptypes.Header) (uint64, uint64, []byte, error) {
+func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
+	header *maptypes.Header) (uint64, uint64, []byte, error) {
 	fromChainID := log.Data[:32]
 	toChainID := log.Data[32:64]
 	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
@@ -251,9 +275,14 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 			Proof:    proof,
 		}
 
-		payloads, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, rp)
+		pack, err := mapprotocol.ABIEncodeReceipt.Methods["getBytes"].Inputs.Pack(rp)
 		if err != nil {
-			return 0, 0, nil, err
+			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
+		}
+
+		payloads, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, pack)
+		if err != nil {
+			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
 		}
 
 		return uFromChainID, uToChainID, payloads, nil

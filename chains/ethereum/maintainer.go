@@ -51,7 +51,7 @@ func (m Maintainer) sync() error {
 		// check whether needs quick listen
 		syncedHeight, _, err := mapprotocol.GetCurrentNumberAbi(ethcommon.HexToAddress(m.cfg.from))
 		if err != nil {
-			m.log.Error("Get synced Height failed")
+			m.log.Error("Get synced Height failed", "err", err)
 			return err
 		}
 
