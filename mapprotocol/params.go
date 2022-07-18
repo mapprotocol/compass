@@ -43,6 +43,7 @@ const (
 var (
 	// todo using
 	RelayerAddress    = common.HexToAddress("0x000068656164657273746F726541646472657373")
+	Eth2MapTmpAddress = common.HexToAddress("0x0000000000747856657269667941646472657373")
 	SaveHeader        = "save"
 	UpdateBlockHeader = "updateBlockHeader"
 	CurNbrAndHash     = "currentNumberAndHash"
@@ -52,6 +53,7 @@ var (
 	ABIRelayer, _       = abi.JSON(strings.NewReader(RelayerABIJSON))
 	ABILiteNode, _      = abi.JSON(strings.NewReader(LiteABIJSON))
 	ABILightNode, _     = abi.JSON(strings.NewReader(LightNode))
+	Verify, _           = abi.JSON(strings.NewReader(VerifyAbi))
 	ABIEncodeReceipt, _ = abi.JSON(strings.NewReader(EncodeReceiptABI))
 
 	ChainTypeETH = ChainType(RopstenCHainID) // todo change to eth when get online

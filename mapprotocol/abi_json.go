@@ -725,7 +725,8 @@ const LightNode = `[
   	}
 ]`
 
-var EncodeReceiptABI = `[
+var (
+	EncodeReceiptABI = `[
 {
         "inputs":[
             {
@@ -911,3 +912,36 @@ var EncodeReceiptABI = `[
         "type":"function"
     }
 ]`
+
+	VerifyAbi = `[
+		{
+		  "inputs": [
+			 {
+				"internalType": "bytes",
+				"name": "receiptProof",
+				"type": "bytes"
+			 }
+		  ],
+		  "name": "verifyProofData",
+		  "outputs": [
+			 {
+				"internalType": "bool",
+				"name": "success",
+				"type": "bool"
+			 },
+			 {
+				"internalType": "string",
+				"name": "message",
+				"type": "string"
+			 },
+			 {
+				"internalType": "bytes",
+				"name": "logs",
+				"type": "bytes"
+			 }
+		  ],
+		  "stateMutability": "nonpayable",
+		  "type": "function"
+	   }
+	]`
+)

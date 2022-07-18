@@ -16,6 +16,7 @@ import (
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *writer) exeSwapMsg(m msg.Message) bool {
 	return w.callContractWithMsg(w.cfg.bridgeContract, m)
+	// return w.callContractWithMsg(mapprotocol.Eth2MapTmpAddress, m) // local test eth -> map
 }
 
 // callContractWithMsg call contract using address and function signature with message info
@@ -86,6 +87,9 @@ func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	}
 	if !ret.Success {
 		return fmt.Errorf("verify proof failed, message is (%s)", ret.Message)
+	}
+	if ret.Success == true {
+		w.log.Info("mcs verify log success", "success", ret.Success, "msg", ret.Message)
 	}
 
 	return nil
