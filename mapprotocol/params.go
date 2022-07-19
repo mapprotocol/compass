@@ -13,20 +13,6 @@ import (
 
 type ChainType uint64
 
-// Map Chain ID
-const (
-	MainNetChainID    uint64 = 177
-	TestNetChainID    uint64 = 212
-	DevNetChainID     uint64 = 213
-	SingleNodeChainID uint64 = 214
-)
-
-// ETH Chain ID
-const (
-	ETHChainID     uint64 = 1
-	RopstenCHainID uint64 = 3
-)
-
 // common varible
 var (
 	Big0           = big.NewInt(0)
@@ -38,26 +24,24 @@ const (
 	MethodVerifyProofData   = "verifyProofData"
 	MethodUpdateBlockHeader = "updateBlockHeader"
 	MethodOfHeaderHeight    = "headerHeight"
+	MethodOfTransferIn      = "transferIn"
 )
 
 var (
-	// todo using
-	RelayerAddress    = common.HexToAddress("0x000068656164657273746F726541646472657373")
-	Eth2MapTmpAddress = common.HexToAddress("0x0000000000747856657269667941646472657373")
+	RelayerAddress = common.HexToAddress("0x000068656164657273746F726541646472657373")
+	// Eth2MapTmpAddress = common.HexToAddress("0x0000000000747856657269667941646472657373")
 	SaveHeader        = "save"
 	UpdateBlockHeader = "updateBlockHeader"
 	CurNbrAndHash     = "currentNumberAndHash"
 	RegisterRelayer   = "register"
 	BindWorker        = "bind"
 
-	ABIRelayer, _       = abi.JSON(strings.NewReader(RelayerABIJSON))
-	ABILiteNode, _      = abi.JSON(strings.NewReader(LiteABIJSON))
-	ABILightNode, _     = abi.JSON(strings.NewReader(LightNode))
-	Verify, _           = abi.JSON(strings.NewReader(VerifyAbi))
-	ABIEncodeReceipt, _ = abi.JSON(strings.NewReader(EncodeReceiptABI))
-
-	ChainTypeETH = ChainType(RopstenCHainID) // todo change to eth when get online
-	ChainTypeMAP = ChainType(TestNetChainID) // todo may change?
+	ABIRelayer, _           = abi.JSON(strings.NewReader(RelayerABIJSON))
+	ABILiteNode, _          = abi.JSON(strings.NewReader(LiteABIJSON))
+	ABILightNode, _         = abi.JSON(strings.NewReader(LightNode))
+	Verify, _               = abi.JSON(strings.NewReader(VerifyAbi))
+	Eth2MapTransferInAbi, _ = abi.JSON(strings.NewReader(Eth2MapTransferIn))
+	ABIEncodeReceipt, _     = abi.JSON(strings.NewReader(EncodeReceiptABI))
 )
 
 type Role string

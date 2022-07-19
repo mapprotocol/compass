@@ -16,7 +16,7 @@ import (
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *writer) exeSwapMsg(m msg.Message) bool {
 	return w.callContractWithMsg(w.cfg.bridgeContract, m)
-	// return w.callContractWithMsg(mapprotocol.Eth2MapTmpAddress, m) // local test eth -> map
+	//return w.callContractWithMsg(mapprotocol.Eth2MapTmpAddress, m) // local test eth -> map
 }
 
 // callContractWithMsg call contract using address and function signature with message info
@@ -35,7 +35,7 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
-			err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.ABILightNode, mapprotocol.MethodVerifyProofData)
+			err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn)
 			w.conn.UnlockOpts()
 
 			if err == nil {
@@ -68,12 +68,14 @@ func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 		nil,
 	)
 	if err != nil {
-		w.log.Error("", err.Error())
+		w.log.Error("mcs callContract failed", "err", err.Error())
+		return err
 	}
 
 	resp, err := useAbi.Methods[method].Outputs.Unpack(output)
 	if err != nil {
 		w.log.Error("proof call failed ", "err", err.Error())
+		return err
 	}
 	ret := struct {
 		Success  bool
@@ -81,6 +83,7 @@ func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 		LogsHash []byte
 	}{}
 
+	w.log.Info("verify ", "back resp len", len(resp), "resp", resp)
 	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
 	if err != nil {
 		return errors.Wrap(err, "proof copy failed")
