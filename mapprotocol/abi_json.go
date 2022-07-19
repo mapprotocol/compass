@@ -944,4 +944,28 @@ var (
 		  "type": "function"
 	   }
 	]`
+
+	Eth2MapTransferIn = `
+	[
+		{
+			"inputs":[
+				{
+					"internalType":"uint256",
+					"name":"",
+					"type":"uint256"
+				},
+				{
+					"internalType":"bytes",
+					"name":"receiptProof",
+					"type":"bytes"
+				}
+			],
+			"name":"transferIn",
+			"outputs":[
+		
+			],
+			"stateMutability":"nonpayable",
+			"type":"function"
+		}
+	]`
 )

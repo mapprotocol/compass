@@ -49,7 +49,7 @@ func (m Maintainer) sync() error {
 
 	if m.cfg.syncToMap {
 		// check whether needs quick listen
-		syncedHeight, _, err := mapprotocol.GetCurrentNumberAbi(ethcommon.HexToAddress(m.cfg.from))
+		syncedHeight, _, err := mapprotocol.GetCurrentNumberAbi(ethcommon.HexToAddress(m.cfg.from), m.cfg.id)
 		if err != nil {
 			m.log.Error("Get synced Height failed", "err", err)
 			return err
@@ -248,7 +248,8 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	msgpayload := []interface{}{input}
 	waitCount := len(m.cfg.syncChainIDList)
 	for _, cid := range m.cfg.syncChainIDList {
-		if v, ok := m.cfg.syncMap[cid]; ok && latestBlock.Cmp(v) <= 0 { // 只有当latestBlock大于已经同步block的高度时，才会处理
+		// Only when the latestblock is greater than the height of the synchronized block, the synchronization is performed
+		if v, ok := m.cfg.syncMap[cid]; ok && latestBlock.Cmp(v) <= 0 {
 			waitCount--
 			m.log.Debug("latestBlock less than synchronized headerHeight", "toChainId", cid, "synced height", v, "current height", latestBlock)
 			continue
