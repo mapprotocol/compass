@@ -968,4 +968,45 @@ var (
 			"type":"function"
 		}
 	]`
+
+	DecodeLog = `
+	[
+		{
+			"inputs": [
+				{
+					"internalType": "bytes",
+					"name": "logsHash",
+					"type": "bytes"
+				}
+			],
+			"name": "decodeTxLog",
+			"outputs": [
+				{
+				"components": [
+				{
+				"internalType": "address",
+				"name": "addr",
+				"type": "address"
+				},
+				{
+				"internalType": "bytes[]",
+				"name": "topics",
+				"type": "bytes[]"
+				},
+				{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+				}
+				],
+				"internalType": "struct ILightNodePoint.txLog[]",
+				"name": "_txLogs",
+				"type": "tuple[]"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+			}
+	]
+	`
 )
