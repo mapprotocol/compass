@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethereum/go-ethereum/rlp"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -15,8 +17,8 @@ import (
 
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *writer) exeSwapMsg(m msg.Message) bool {
-	return w.callContractWithMsg(w.cfg.bridgeContract, m)
-	//return w.callContractWithMsg(mapprotocol.Eth2MapTmpAddress, m) // local test eth -> map
+	//return w.callContractWithMsg(w.cfg.bridgeContract, m)
+	return w.callContractWithMsg(mapprotocol.Eth2MapTmpAddress, m) // local test eth -> map
 }
 
 // callContractWithMsg call contract using address and function signature with message info
@@ -35,7 +37,25 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
-			err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn)
+			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn)
+			_, err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.Verify, mapprotocol.MethodVerifyProofData)
+			fmt.Println("第一次触发, err is ", err)
+			time.Sleep(3 * time.Second)
+
+			//if err == nil {
+			//	input, err := mapprotocol.PackDecodeInput(mapprotocol.MethodOfDecodeTxLog, logs)
+			//	if err != nil {
+			//		fmt.Println("第一次触发 decode log, pack input failed , err is ", err)
+			//		return false
+			//	}
+			//	_, err = w.call(&w.cfg.bridgeContract, input, mapprotocol.Decode, mapprotocol.MethodOfDecodeTxLog)
+			//	fmt.Println("第一次触发 decode log, err is ", err)
+			//	if err != nil {
+			//		return false
+			//	}
+			//}
+			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn)
+			//fmt.Println("第二次触发, err is ", nil)
 			w.conn.UnlockOpts()
 
 			if err == nil {
@@ -57,7 +77,7 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 	return false
 }
 
-func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) error {
+func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) ([]byte, error) {
 	from := w.conn.Keypair().CommonAddress()
 	output, err := w.conn.Client().CallContract(context.Background(),
 		ethereum.CallMsg{
@@ -69,31 +89,55 @@ func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	)
 	if err != nil {
 		w.log.Error("mcs callContract failed", "err", err.Error())
-		return err
+		return nil, err
 	}
 
 	resp, err := useAbi.Methods[method].Outputs.Unpack(output)
 	if err != nil {
 		w.log.Error("proof call failed ", "err", err.Error())
-		return err
+		return nil, err
+	}
+
+	if method == mapprotocol.MethodOfDecodeTxLog {
+		//ret := struct {
+		//	Address common.Address
+		//	Topics  []byte
+		//	Data    []byte
+		//}
+
+		txLog := make([]struct {
+			Address common.Address
+			Topics  []byte
+			Data    []byte
+		}, 0)
+		err = useAbi.Methods[method].Outputs.Copy(&txLog, resp)
+		if err != nil {
+			return nil, errors.Wrap(err, "decode copy failed")
+		}
+
+		fmt.Println("ret -------------", txLog)
+		return nil, nil
 	}
 	ret := struct {
-		Success  bool
-		Message  string
-		LogsHash []byte
+		Success bool
+		Message string
+		Logs    []byte
 	}{}
 
 	w.log.Info("verify ", "back resp len", len(resp), "resp", resp)
 	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
 	if err != nil {
-		return errors.Wrap(err, "proof copy failed")
+		return nil, errors.Wrap(err, "proof copy failed")
 	}
 	if !ret.Success {
-		return fmt.Errorf("verify proof failed, message is (%s)", ret.Message)
+		return nil, fmt.Errorf("verify proof failed, message is (%s)", ret.Message)
 	}
 	if ret.Success == true {
 		w.log.Info("mcs verify log success", "success", ret.Success, "msg", ret.Message)
+		tmp, _ := rlp.EncodeToBytes(ret.Logs)
+		w.log.Info("mcs verify log success", "logs", common.Bytes2Hex(tmp))
+		// 发送到map的合约，验证log
 	}
 
-	return nil
+	return ret.Logs, nil
 }

@@ -25,11 +25,12 @@ const (
 	MethodUpdateBlockHeader = "updateBlockHeader"
 	MethodOfHeaderHeight    = "headerHeight"
 	MethodOfTransferIn      = "transferIn"
+	MethodOfDecodeTxLog     = "decodeTxLog"
 )
 
 var (
-	RelayerAddress = common.HexToAddress("0x000068656164657273746F726541646472657373")
-	// Eth2MapTmpAddress = common.HexToAddress("0x0000000000747856657269667941646472657373")
+	RelayerAddress    = common.HexToAddress("0x000068656164657273746F726541646472657373")
+	Eth2MapTmpAddress = common.HexToAddress("0x0000000000747856657269667941646472657373")
 	SaveHeader        = "save"
 	UpdateBlockHeader = "updateBlockHeader"
 	CurNbrAndHash     = "currentNumberAndHash"
@@ -40,6 +41,7 @@ var (
 	ABILiteNode, _          = abi.JSON(strings.NewReader(LiteABIJSON))
 	ABILightNode, _         = abi.JSON(strings.NewReader(LightNode))
 	Verify, _               = abi.JSON(strings.NewReader(VerifyAbi))
+	Decode, _               = abi.JSON(strings.NewReader(DecodeLog))
 	Eth2MapTransferInAbi, _ = abi.JSON(strings.NewReader(Eth2MapTransferIn))
 	ABIEncodeReceipt, _     = abi.JSON(strings.NewReader(EncodeReceiptABI))
 )
