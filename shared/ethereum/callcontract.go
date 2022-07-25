@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"sync"
 
@@ -134,43 +133,7 @@ type TxProve struct {
 	TxIndex     uint
 }
 
-func printLog(log types.Log) {
-	m := make([][]byte, 3)
-	a, err := rlp.EncodeToBytes(log.Address)
-	//a, err := rlp.EncodeToBytes("0x" + log.Address.Hex())
-	if err != nil {
-		fmt.Println("---------- 1 ", err)
-		return
-	}
-	m[0] = a
-	fmt.Println("address ======= ", log.Address)
-	t, err := rlp.EncodeToBytes(log.Topics)
-	if err != nil {
-		fmt.Println("---------- 2 ", err)
-		return
-	}
-	m[1] = t
-	//fmt.Println("Topics ======= ", "0x"+common.Bytes2Hex(t))
-	//fmt.Println("logHash ======= ", log.TxHash)
-	d, err := rlp.EncodeToBytes(log.Data)
-	if err != nil {
-		fmt.Println("---------- 3 ", err)
-		return
-	}
-	m[2] = d
-	//fmt.Println("Data ======= ", "0x"+common.Bytes2Hex(log.Data))
-	mm, err := rlp.EncodeToBytes(m)
-	if err != nil {
-		fmt.Println("---------- 1 ", err)
-		return
-	}
-	fmt.Println("Data ======= ", "0x"+common.Bytes2Hex(mm))
-}
-
 func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, receipts []*types.Receipt) (uint64, uint64, []byte, error) {
-	printLog(log)
-	//return 0, 0, nil, nil
-
 	token := log.Topics[1].Bytes()
 	fromChainID := log.Data[:32]
 	toChainID := log.Data[32:64]
@@ -229,40 +192,18 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		TxProve:  txProofBytes,
 	}
 
-	printToMapReceipt(&rp)
-
 	payloads, err := rlp.EncodeToBytes(rp)
 	if err != nil {
 		return 0, 0, nil, err
 	}
 
-	//pack, err := mapprotocol.Eth2MapTransferInPackInput(mapprotocol.MethodOfTransferIn, big.NewInt(0), payloads)
-	pack, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, payloads)
+	pack, err := mapprotocol.Eth2MapTransferInPackInput(mapprotocol.MethodOfTransferIn, big.NewInt(0), payloads)
+	//pack, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, payloads)
 	if err != nil {
 		return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 	}
-	//fmt.Println("--------------------", common.Bytes2Hex(pack))
 
 	return uFromChainID, uToChainID, pack, nil
-}
-
-func printToMapReceipt(r *mapprotocol.NewReceiptProof) {
-	type receipt struct {
-		Router   common.Address
-		Coin     common.Address
-		SrcChain *big.Int
-		DstChain *big.Int
-		TxProve  string
-	}
-
-	rr := receipt{
-		Router:   r.Router,
-		Coin:     r.Coin,
-		SrcChain: r.SrcChain,
-		DstChain: r.DstChain,
-		TxProve:  common.Bytes2Hex(r.TxProve),
-	}
-	fmt.Printf("============================== Receipt: %+v\n", rr)
 }
 
 type MapTxProve struct {
@@ -279,11 +220,6 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 	toChainID := log.Data[32:64]
 	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
-	//amount := log.Data[96:128]
-	//realAmount := binary.BigEndian.Uint64(amount[len(amount)-8:])
-	//fmt.Printf("ParseMapLogIntoSwapWithProofArgsV2 ---------------- , uFromChainID(%v),uToChainID(%v),realAmount(%v),len(%v) \n",
-	//	uFromChainID, uToChainID, realAmount, len(log.Data))
-
 	txIndex := log.TxIndex
 	aggPK, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
@@ -307,19 +243,12 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 			Proof:    proof,
 		}
 
-		printHeader(header)
-		printAggPK(aggPK)
-		printReceipt(receipt)
-		printProof(proof)
-		fmt.Println("==================== keyIndex", "0x"+common.Bytes2Hex(key))
-
 		pack, err := mapprotocol.ABIEncodeReceipt.Methods["getBytes"].Inputs.Pack(rp)
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
 
 		payloads, err := mapprotocol.Eth2MapTransferInPackInput(mapprotocol.MethodOfTransferIn, big.NewInt(0), pack)
-		//payloads, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
 		}
@@ -352,104 +281,6 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 
 	data, _ := json.Marshal(m)
 	return uFromChainID, uToChainID, data, nil
-}
-
-func printHeader(header *maptypes.Header) {
-	type blockHeader struct {
-		ParentHash  string
-		Coinbase    string
-		Root        string
-		TxHash      string
-		ReceiptHash string
-		Bloom       string
-		Number      *big.Int
-		GasLimit    *big.Int
-		GasUsed     *big.Int
-		Time        *big.Int
-		ExtraData   string
-		MixDigest   string
-		Nonce       string
-		BaseFee     *big.Int
-	}
-	h := blockHeader{
-		ParentHash:  "0x" + common.Bytes2Hex(header.ParentHash[:]),
-		Coinbase:    header.Coinbase.String(),
-		Root:        "0x" + common.Bytes2Hex(header.Root[:]),
-		TxHash:      "0x" + common.Bytes2Hex(header.TxHash[:]),
-		ReceiptHash: "0x" + common.Bytes2Hex(header.ReceiptHash[:]),
-		Bloom:       "0x" + common.Bytes2Hex(header.Bloom[:]),
-		Number:      header.Number,
-		GasLimit:    new(big.Int).SetUint64(header.GasLimit),
-		GasUsed:     new(big.Int).SetUint64(header.GasUsed),
-		Time:        new(big.Int).SetUint64(header.Time),
-		ExtraData:   "0x" + common.Bytes2Hex(header.Extra),
-		MixDigest:   "0x" + common.Bytes2Hex(header.MixDigest[:]),
-		Nonce:       "0x" + common.Bytes2Hex(header.Nonce[:]),
-		BaseFee:     header.BaseFee,
-	}
-	fmt.Printf("============================== header: %+v\n", h)
-}
-
-func printAggPK(aggPk *mapprotocol.G2) {
-	type G2Str struct {
-		xr string
-		xi string
-		yr string
-		yi string
-	}
-	g2 := G2Str{
-		xr: "0x" + common.Bytes2Hex(aggPk.Xr.Bytes()),
-		xi: "0x" + common.Bytes2Hex(aggPk.Xi.Bytes()),
-		yr: "0x" + common.Bytes2Hex(aggPk.Yr.Bytes()),
-		yi: "0x" + common.Bytes2Hex(aggPk.Yi.Bytes()),
-	}
-	fmt.Printf("============================== aggPk: %+v\n", g2)
-}
-
-func printReceipt(r *mapprotocol.TxReceipt) {
-	type txLog struct {
-		Addr   common.Address
-		Topics []string
-		Data   string
-	}
-
-	type receipt struct {
-		ReceiptType       *big.Int
-		PostStateOrStatus string
-		CumulativeGasUsed *big.Int
-		Bloom             string
-		Logs              []txLog
-	}
-
-	logs := make([]txLog, 0, len(r.Logs))
-	for _, lg := range r.Logs {
-		topics := make([]string, 0, len(lg.Topics))
-		for _, tp := range lg.Topics {
-			topics = append(topics, "0x"+common.Bytes2Hex(tp))
-		}
-		logs = append(logs, txLog{
-			Addr:   lg.Addr,
-			Topics: topics,
-			Data:   "0x" + common.Bytes2Hex(lg.Data),
-		})
-	}
-
-	rr := receipt{
-		ReceiptType:       r.ReceiptType,
-		PostStateOrStatus: "0x" + common.Bytes2Hex(r.PostStateOrStatus),
-		CumulativeGasUsed: r.CumulativeGasUsed,
-		Bloom:             "0x" + common.Bytes2Hex(r.Bloom),
-		Logs:              logs,
-	}
-	fmt.Printf("============================== Receipt: %+v\n", rr)
-}
-
-func printProof(proof [][]byte) {
-	p := make([]string, 0, len(proof))
-	for _, v := range proof {
-		p = append(p, "0x"+common.Bytes2Hex(v))
-	}
-	fmt.Println("============================== proof: ", p)
 }
 
 type TxReceipt struct {
