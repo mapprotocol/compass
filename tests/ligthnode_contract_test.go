@@ -21,12 +21,28 @@ import (
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/go-redis/redis/v8"
 	maptypes "github.com/mapprotocol/atlas/core/types"
-	"github.com/mapprotocol/compass/pkg/ethclient"
-
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
+
+func Test_Redis(t *testing.T) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "46.137.199.126:6379",
+		Password: "", // 密码
+		DB:       0,  // 数据库
+		PoolSize: 20, // 连接池大小
+	})
+
+	ping := rdb.Ping(context.Background())
+	result, err := ping.Result()
+	if err != nil {
+		t.Fatalf("err is %v", err)
+	}
+	t.Log("redis result is ", result)
+}
 
 var ContractAddr = common.HexToAddress("0xA7D3A66013DE32f0a44C92E337Af22C4344a2d62")
 
