@@ -6,8 +6,14 @@ package utils
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"math/big"
 	"sync"
+
+	"github.com/pkg/errors"
+
+	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/msg"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -129,15 +135,8 @@ type TxProve struct {
 
 func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, receipts []*types.Receipt) (uint64, uint64, []byte, error) {
 	token := log.Topics[1].Bytes()
-	from := log.Topics[2].Bytes()
-	to := log.Topics[3].Bytes()
-	// every 32 bytes forms a value
-	var orderHash [32]byte
-	copy(orderHash[:], log.Data[:32])
-	amount := log.Data[32:64]
-
-	fromChainID := log.Data[64:96]
-	toChainID := log.Data[96:128]
+	fromChainID := log.Data[:32]
+	toChainID := log.Data[32:64]
 	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 
@@ -173,12 +172,7 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
-	txProve := TxProve{
-		Tx: &TxParams{
-			From:  from,
-			To:    to,
-			Value: big.NewInt(0).SetBytes(amount),
-		},
+	txProve := mapprotocol.TxProve{
 		Receipt:     receipts[transactionIndex],
 		Prove:       proof.NodeList(),
 		BlockNumber: blockNumber,
@@ -190,21 +184,26 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
-	payloads, err := SwapInArgs.Pack(
-		orderHash,
-		common.BytesToAddress(token),
-		common.BytesToAddress(from),
-		common.BytesToAddress(to),
-		big.NewInt(0).SetBytes(amount),
-		big.NewInt(0).SetBytes(fromChainID),
-		big.NewInt(0).SetBytes(toChainID),
-		bridgeAddr,
-		txProofBytes,
-	)
+	rp := mapprotocol.NewReceiptProof{
+		Router:   bridgeAddr,
+		Coin:     common.BytesToAddress(token),
+		SrcChain: big.NewInt(0).SetUint64(uFromChainID),
+		DstChain: big.NewInt(0).SetUint64(uToChainID),
+		TxProve:  txProofBytes,
+	}
+
+	payloads, err := rlp.EncodeToBytes(rp)
 	if err != nil {
 		return 0, 0, nil, err
 	}
-	return uFromChainID, uToChainID, payloads, nil
+
+	pack, err := mapprotocol.Eth2MapTransferInPackInput(mapprotocol.MethodOfTransferIn, big.NewInt(0), payloads)
+	//pack, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, payloads)
+	if err != nil {
+		return 0, 0, nil, errors.Wrap(err, "getBytes failed")
+	}
+
+	return uFromChainID, uToChainID, pack, nil
 }
 
 type MapTxProve struct {
@@ -215,12 +214,12 @@ type MapTxProve struct {
 	TxIndex     uint
 }
 
-func ParseMapLogIntoSwapWithMapProofArgs(cli *ethclient.Client, log types.Log, bridgeAddr common.Address, receipts []*types.Receipt, header *maptypes.Header) (uint64, uint64, []byte, error) {
-	fromChainID := log.Data[64:96]
-	toChainID := log.Data[96:128]
+func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
+	header *maptypes.Header) (uint64, uint64, []byte, error) {
+	fromChainID := log.Data[:32]
+	toChainID := log.Data[32:64]
 	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
-
 	txIndex := log.TxIndex
 	aggPK, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
@@ -228,25 +227,96 @@ func ParseMapLogIntoSwapWithMapProofArgs(cli *ethclient.Client, log types.Log, b
 	}
 
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
-
 	proof, err := getProof(receipts, txIndex)
 	if err != nil {
 		return 0, 0, nil, err
 	}
 
 	var key []byte
-	rp := mapprotocol.ReceiptProof{
-		Header:   mapprotocol.ConvertHeader(header),
-		AggPk:    aggPK,
-		Receipt:  receipt,
-		KeyIndex: rlp.AppendUint64(key[:0], uint64(txIndex)),
-		Proof:    proof,
+	key = rlp.AppendUint64(key[:0], uint64(txIndex))
+	if _, ok := chains.NearChainId[msg.ChainId(uToChainID)]; !ok {
+		rp := mapprotocol.ReceiptProof{
+			Header:   mapprotocol.ConvertHeader(header),
+			AggPk:    aggPK,
+			Receipt:  receipt,
+			KeyIndex: key,
+			Proof:    proof,
+		}
+
+		pack, err := mapprotocol.ABIEncodeReceipt.Methods["getBytes"].Inputs.Pack(rp)
+		if err != nil {
+			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
+		}
+
+		payloads, err := mapprotocol.Eth2MapTransferInPackInput(mapprotocol.MethodOfTransferIn, big.NewInt(0), pack)
+		if err != nil {
+			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
+		}
+
+		return uFromChainID, uToChainID, payloads, nil
 	}
-	payloads, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, rp)
+
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	err = binary.Write(bytesBuffer, binary.LittleEndian, uint64(txIndex))
 	if err != nil {
 		return 0, 0, nil, err
 	}
-	return uFromChainID, uToChainID, payloads, nil
+	// return
+	nProof := make([]string, 0, len(proof))
+	for _, p := range proof {
+		nProof = append(nProof, "0x"+common.Bytes2Hex(p))
+	}
+	m := map[string]interface{}{
+		"header": mapprotocol.ConvertNearNeedHeader(header),
+		"agg_pk": map[string]interface{}{
+			"xr": "0x" + common.Bytes2Hex(aggPK.Xr.Bytes()),
+			"xi": "0x" + common.Bytes2Hex(aggPK.Xi.Bytes()),
+			"yi": "0x" + common.Bytes2Hex(aggPK.Yi.Bytes()),
+			"yr": "0x" + common.Bytes2Hex(aggPK.Yr.Bytes()),
+		},
+		"key_index": "0x" + common.Bytes2Hex(key),
+		"receipt":   ConvertNearReceipt(receipt),
+		"proof":     nProof,
+	}
+
+	data, _ := json.Marshal(m)
+	return uFromChainID, uToChainID, data, nil
+}
+
+type TxReceipt struct {
+	ReceiptType       *big.Int `json:"receipt_type"`
+	PostStateOrStatus string   `json:"post_state_or_status"`
+	CumulativeGasUsed *big.Int `json:"cumulative_gas_used"`
+	Bloom             string   `json:"bloom"`
+	Logs              []TxLog  `json:"logs"`
+}
+
+type TxLog struct {
+	Address common.Address `json:"address"`
+	Topics  []string       `json:"topics"`
+	Data    string         `json:"data"`
+}
+
+func ConvertNearReceipt(h *mapprotocol.TxReceipt) *TxReceipt {
+	logs := make([]TxLog, 0, len(h.Logs))
+	for _, log := range h.Logs {
+		topics := make([]string, 0, len(log.Topics))
+		for _, t := range log.Topics {
+			topics = append(topics, "0x"+common.Bytes2Hex(t))
+		}
+		logs = append(logs, TxLog{
+			Address: log.Addr,
+			Topics:  topics,
+			Data:    "0x" + common.Bytes2Hex(log.Data),
+		})
+	}
+	return &TxReceipt{
+		ReceiptType:       h.ReceiptType,
+		PostStateOrStatus: "0x" + common.Bytes2Hex(h.PostStateOrStatus),
+		CumulativeGasUsed: h.CumulativeGasUsed,
+		Bloom:             "0x" + common.Bytes2Hex(h.Bloom),
+		Logs:              logs,
+	}
 }
 
 func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {

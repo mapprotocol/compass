@@ -11,6 +11,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/mapprotocol/compass/msg"
+
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
 	goeth "github.com/ethereum/go-ethereum"
@@ -35,33 +37,44 @@ func PackLightNodeInput(method string, params ...interface{}) ([]byte, error) {
 	return packInput(ABILightNode, method, params...)
 }
 
-func SaveHeaderTxData(src, dest *big.Int, marshal []byte) ([]byte, error) {
+func PackVerifyInput(method string, params ...interface{}) ([]byte, error) {
+	return packInput(Verify, method, params...)
+}
+
+func PackDecodeInput(method string, params ...interface{}) ([]byte, error) {
+	return packInput(Decode, method, params...)
+}
+
+func Eth2MapTransferInPackInput(method string, params ...interface{}) ([]byte, error) {
+	return packInput(Eth2MapTransferInAbi, method, params...)
+}
+
+func SaveHeaderTxData(params ...interface{}) ([]byte, error) {
 	return packInput(ABIRelayer,
-		SaveHeader,
-		src,
-		dest,
-		marshal)
+		UpdateBlockHeader,
+		params...)
 }
 
 func SaveHeaderLiteTxData(marshal []byte) ([]byte, error) {
 	return packInput(ABILiteNode, SaveHeader, marshal)
 }
 
-func GetCurrentNumberAbi(from common.Address) (*big.Int, string, error) {
+func GetCurrentNumberAbi(from common.Address, chainId msg.ChainId) (*big.Int, string, error) {
 	if GlobalMapConn == nil {
-		return Big0, "", errors.New("Global Map Connection is not assigned!")
+		return Big0, "", errors.New(" Global Map Connection is not assigned!")
 	}
 
 	blockNum, err := GlobalMapConn.BlockNumber(context.Background())
 	if err != nil {
 		return Big0, "", err
 	}
-	input, _ := packInput(ABIRelayer, CurNbrAndHash, big.NewInt(int64(ChainTypeETH)))
+	input, _ := packInput(ABIRelayer, CurNbrAndHash, big.NewInt(int64(chainId)))
 
 	msg := goeth.CallMsg{
 		From: from,
 		To:   &RelayerAddress,
-		Data: input}
+		Data: input,
+	}
 
 	output, err := GlobalMapConn.CallContract(context.Background(), msg, big.NewInt(0).SetUint64(blockNum))
 	if err != nil {

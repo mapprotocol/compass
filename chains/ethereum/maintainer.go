@@ -9,10 +9,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	atypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
@@ -51,9 +49,9 @@ func (m Maintainer) sync() error {
 
 	if m.cfg.syncToMap {
 		// check whether needs quick listen
-		syncedHeight, _, err := mapprotocol.GetCurrentNumberAbi(ethcommon.HexToAddress(m.cfg.from))
+		syncedHeight, _, err := mapprotocol.GetCurrentNumberAbi(ethcommon.HexToAddress(m.cfg.from), m.cfg.id)
 		if err != nil {
-			m.log.Error("Get synced Height failed")
+			m.log.Error("Get synced Height failed", "err", err)
 			return err
 		}
 
@@ -106,7 +104,7 @@ func (m Maintainer) sync() error {
 
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.blockConfirmations) == -1 {
-				m.log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
+				m.log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
 				time.Sleep(BlockRetryInterval)
 				continue
 			}
@@ -123,7 +121,7 @@ func (m Maintainer) sync() error {
 				// Sync headers to Map
 				if currentBlock.Cmp(m.syncedHeight) == 1 {
 					// listen when catchup
-					m.log.Info("Sync Header to Map Chain", "target", currentBlock)
+					m.log.Info("Sync Header to Map Chain", "current", currentBlock)
 					err = m.syncHeaderToMapChain(currentBlock)
 					if err != nil {
 						m.log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
@@ -147,7 +145,6 @@ func (m Maintainer) sync() error {
 			m.latestBlock.Height = big.NewInt(0).Set(latestBlock)
 			m.latestBlock.LastUpdated = time.Now()
 
-			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
 			retry = BlockRetryLimit
 		}
@@ -250,14 +247,15 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	msgpayload := []interface{}{input}
 	waitCount := len(m.cfg.syncChainIDList)
 	for _, cid := range m.cfg.syncChainIDList {
-		if v, ok := m.cfg.syncMap[cid]; ok && latestBlock.Cmp(v) <= 0 { // 只有当latestBlock大于已经同步block的高度时，才会处理
+		// Only when the latestblock is greater than the height of the synchronized block, the synchronization is performed
+		if v, ok := m.cfg.syncMap[cid]; ok && latestBlock.Cmp(v) <= 0 {
 			waitCount--
 			m.log.Debug("latestBlock less than synchronized headerHeight", "toChainId", cid, "synced height", v, "current height", latestBlock)
 			continue
 		}
 		if _, ok := chains.NearChainId[cid]; ok {
 			param := map[string]interface{}{
-				"header": convertNearNeedHeader(header),
+				"header": mapprotocol.ConvertNearNeedHeader(header),
 				"agg_pk": map[string]interface{}{
 					"xr": "0x" + common.Bytes2Hex(aggPK.Xr.Bytes()),
 					"xi": "0x" + common.Bytes2Hex(aggPK.Xi.Bytes()),
@@ -283,42 +281,4 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 		return err
 	}
 	return nil
-}
-
-type Header struct {
-	ParentHash  common.Hash       `json:"parentHash"       gencodec:"required"`
-	Coinbase    common.Address    `json:"coinbase"            gencodec:"required"`
-	Root        common.Hash       `json:"root"         gencodec:"required"`
-	TxHash      common.Hash       `json:"txHash" gencodec:"required"`
-	ReceiptHash common.Hash       `json:"receiptHash"     gencodec:"required"`
-	Bloom       atypes.Bloom      `json:"bloom"        gencodec:"required"`
-	Number      *hexutil.Big      `json:"number"           gencodec:"required"`
-	GasLimit    hexutil.Uint64    `json:"gasLimit"         gencodec:"required"`
-	GasUsed     hexutil.Uint64    `json:"gasUsed"          gencodec:"required"`
-	Time        hexutil.Uint64    `json:"time"        gencodec:"required"`
-	Extra       hexutil.Bytes     `json:"extra"        gencodec:"required"`
-	MixDigest   common.Hash       `json:"minDigest"`
-	Nonce       atypes.BlockNonce `json:"nonce"`
-	BaseFee     *hexutil.Big      `json:"baseFee" rlp:"optional"`
-	Hash        common.Hash       `json:"hash"`
-}
-
-func convertNearNeedHeader(h *atypes.Header) *Header {
-	var enc Header
-	enc.ParentHash = h.ParentHash
-	enc.Coinbase = h.Coinbase
-	enc.Root = h.Root
-	enc.TxHash = h.TxHash
-	enc.ReceiptHash = h.ReceiptHash
-	enc.Bloom = h.Bloom
-	enc.Number = (*hexutil.Big)(h.Number)
-	enc.GasLimit = hexutil.Uint64(h.GasLimit)
-	enc.GasUsed = hexutil.Uint64(h.GasUsed)
-	enc.Time = hexutil.Uint64(h.Time)
-	enc.Extra = h.Extra
-	enc.MixDigest = h.MixDigest
-	enc.Nonce = h.Nonce
-	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
-	enc.Hash = h.Hash()
-	return &enc
 }
