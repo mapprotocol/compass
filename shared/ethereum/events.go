@@ -15,8 +15,11 @@ func (es EventSig) GetTopic() common.Hash {
 }
 
 const (
-	//event LogSwapOut(bytes32 hash, address indexed token, address indexed from, address indexed to, uint amount, uint fromChainID, uint toChainID);
+	// SwapOut LogSwapOut(bytes32 hash, address indexed token, address indexed from, address indexed to, uint amount, uint fromChainID, uint toChainID);
 	SwapOut EventSig = "LogSwapOut(bytes32,address,address,address,uint256,uint256,uint256)"
+	// MapTransferOut event mapTransferOut(address indexed token, address indexed from, bytes32 indexed orderId, uint fromChain, uint toChain, bytes to, uint amount, bytes toChainToken);
+	MapTransferOut         EventSig = "mapTransferOut(address,address,bytes32,uint256,uint256,bytes,uint256,bytes)"
+	ValidatorVoteActivated EventSig = "ValidatorVoteActivated(address,address,uint256)"
 )
 
 type ProposalStatus int

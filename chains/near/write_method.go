@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
@@ -27,6 +26,7 @@ const (
 	AbiMethodOfUpdateBlockHeader = "update_block_header"
 	AbiMethodOfNew               = "new"
 	AbiMethodOfGetHeaderHeight   = "get_header_height"
+	AbiMethodOfTransferIn        = "transfer_in"
 )
 
 var (
@@ -48,7 +48,7 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 				return false
 			}
 
-			txHash, err := w.sendTx(w.cfg.lightNode, nil, m.Payload[0].([]byte))
+			txHash, err := w.sendTx(w.cfg.lightNode, AbiMethodOfUpdateBlockHeader, m.Payload[0].([]byte))
 			w.conn.UnlockOpts()
 			if err == nil {
 				// message successfully handled
@@ -73,8 +73,43 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 	return false
 }
 
+// exeSwapMsg executes swap msg, and send tx to the destination blockchain
+func (w *writer) exeSwapMsg(m msg.Message) bool {
+	for i := 0; i < TxRetryLimit; i++ {
+		select {
+		case <-w.stop:
+			return false
+		default:
+			err := w.conn.LockAndUpdateOpts()
+			if err != nil {
+				w.log.Error("Failed to update nonce", "err", err)
+				return false
+			}
+
+			// sendtx using general method
+			txHash, err := w.sendTx(w.cfg.bridgeContract.Hex(), AbiMethodOfTransferIn, m.Payload[0].([]byte))
+			w.conn.UnlockOpts()
+			if err == nil {
+				// message successfully handled
+				w.log.Info("Submitted cross tx execution", "txHash", txHash.String(), "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
+				m.DoneCh <- struct{}{}
+				return true
+			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
+				w.log.Error("Nonce too low, will retry")
+				time.Sleep(TxRetryInterval)
+			} else {
+				w.log.Warn("Execution failed, tx may already be complete", "err", err)
+				time.Sleep(TxRetryInterval)
+			}
+		}
+	}
+	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	w.sysErr <- ErrFatalTx
+	return false
+}
+
 // sendTx send tx to an address with value and input data
-func (w *writer) sendTx(toAddress string, value *big.Int, input []byte) (hash.CryptoHash, error) {
+func (w *writer) sendTx(toAddress string, method string, input []byte) (hash.CryptoHash, error) {
 	w.log.Debug("sendTx", "input", string(input))
 	ctx := client.ContextWithKeyPair(context.Background(), *w.conn.Keypair())
 	res, err := w.conn.Client().TransactionSendAwait(
@@ -82,8 +117,8 @@ func (w *writer) sendTx(toAddress string, value *big.Int, input []byte) (hash.Cr
 		w.cfg.from,
 		toAddress,
 		[]action.Action{
-			action.NewFunctionCall(AbiMethodOfUpdateBlockHeader, input, near.NewFunctionCallGas,
-				types.Balance{}), // todo deposit
+			action.NewFunctionCall(method, input, near.NewFunctionCallGas,
+				types.Balance{}),
 		},
 		client.WithLatestBlock(),
 		client.WithKeyPair(*w.conn.Keypair()),
