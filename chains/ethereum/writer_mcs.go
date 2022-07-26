@@ -2,19 +2,19 @@ package ethereum
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/msg"
 )
 
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *writer) exeSwapMsg(m msg.Message) bool {
-	//return w.callContractWithMsg(w.cfg.bridgeContract, m)
-	return w.callContractWithMsg(mapprotocol.Eth2MapTmpAddress, m) // local test eth -> map
+	return w.callContractWithMsg(w.cfg.bridgeContract, m)
+	//return w.callContractWithMsg(mapprotocol.Eth2MapTmpAddress, m) // local test eth -> map
 }
 
 // callContractWithMsg call contract using address and function signature with message info
@@ -33,12 +33,12 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
-			err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn)
+			mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
 			w.conn.UnlockOpts()
 
 			if err == nil {
 				// message successfully handled
-				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
+				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "mcsTx", mcsTx.Hash())
 				m.DoneCh <- struct{}{}
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
@@ -55,20 +55,66 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 	return false
 }
 
-func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) error {
+// sendTx send tx to an address with value and input data
+func (w *writer) sendMcsTx(toAddress *common.Address, value *big.Int, input []byte) (*types.Transaction, error) {
+	gasPrice := w.conn.Opts().GasPrice
+	nonce := w.conn.Opts().Nonce
 	from := w.conn.Keypair().CommonAddress()
-	_, err := w.conn.Client().CallContract(context.Background(),
-		ethereum.CallMsg{
-			From: from,
-			To:   toAddress,
-			Data: input,
-		},
-		nil,
-	)
+
+	msg := ethereum.CallMsg{
+		From:     from,
+		To:       toAddress,
+		GasPrice: gasPrice,
+		Value:    value,
+		Data:     input,
+	}
+	w.log.Debug("eth CallMsg", "msg", msg)
+	gasLimit, err := w.conn.Client().EstimateGas(context.Background(), msg)
 	if err != nil {
-		w.log.Error("mcs callContract failed", "err", err.Error())
-		return err
+		w.log.Error("EstimateGas failed", "error:", err.Error())
+		return nil, err
 	}
 
-	return nil
+	// td interface
+	var td types.TxData
+	// EIP-1559
+	if gasPrice != nil {
+		// legacy branch
+		td = &types.LegacyTx{
+			Nonce:    nonce.Uint64(),
+			Value:    value,
+			To:       toAddress,
+			Gas:      gasLimit,
+			GasPrice: gasPrice,
+			Data:     input,
+		}
+	} else {
+		// london branch
+		td = &types.DynamicFeeTx{
+			Nonce:     nonce.Uint64(),
+			Value:     value,
+			To:        toAddress,
+			Gas:       gasLimit,
+			GasTipCap: w.conn.Opts().GasTipCap,
+			GasFeeCap: w.conn.Opts().GasFeeCap,
+			Data:      input,
+		}
+	}
+
+	tx := types.NewTx(td)
+	chainID := big.NewInt(int64(w.cfg.id))
+	privateKey := w.conn.Keypair().PrivateKey()
+
+	signedTx, err := types.SignTx(tx, types.NewLondonSigner(chainID), privateKey)
+	if err != nil {
+		w.log.Error("SignTx failed", "error:", err.Error())
+		return nil, err
+	}
+
+	err = w.conn.Client().SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		w.log.Error("SendTransaction failed", "error:", err.Error())
+		return nil, err
+	}
+	return signedTx, nil
 }
