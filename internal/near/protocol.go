@@ -1,6 +1,6 @@
 package near
 
-import "github.com/eteu-technologies/near-api-go/pkg/types"
+import "github.com/mapprotocol/near-api-go/pkg/types"
 
 var (
 	NewFunctionCallGas types.Gas = 30 * 10000000000000

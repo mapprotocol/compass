@@ -3,14 +3,12 @@ package near
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/big"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
-	nearclient "github.com/eteu-technologies/near-api-go/pkg/client"
-	"github.com/eteu-technologies/near-api-go/pkg/client/block"
-	"github.com/eteu-technologies/near-api-go/pkg/types/key"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/atlas/accounts/abi/bind"
 	"github.com/mapprotocol/compass/blockstore"
@@ -21,6 +19,9 @@ import (
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
+	"github.com/mapprotocol/near-api-go/pkg/types/key"
 	"github.com/pkg/errors"
 )
 
@@ -114,7 +115,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		}
 
 		if res.Error != nil {
-			return nil, errors.Wrap(res.Error, "call near lightNode to get headerHeight resp exist error")
+			return nil, fmt.Errorf("call near lightNode to get headerHeight resp exist error(%v)", *res.Error)
 		}
 
 		result := &near.Result{}

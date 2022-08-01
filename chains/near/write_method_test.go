@@ -6,13 +6,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/eteu-technologies/near-api-go/pkg/client/block"
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
 
-	"github.com/eteu-technologies/near-api-go/pkg/client"
-	nearclient "github.com/eteu-technologies/near-api-go/pkg/client"
-	"github.com/eteu-technologies/near-api-go/pkg/types"
-	"github.com/eteu-technologies/near-api-go/pkg/types/action"
 	"github.com/mapprotocol/compass/keystore"
+	"github.com/mapprotocol/near-api-go/pkg/client"
+	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
+	"github.com/mapprotocol/near-api-go/pkg/types"
+	"github.com/mapprotocol/near-api-go/pkg/types/action"
 )
 
 var (
