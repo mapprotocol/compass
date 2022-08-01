@@ -18,9 +18,10 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd
-	github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5 // indirect
+	github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/prometheus/client_golang v1.4.1

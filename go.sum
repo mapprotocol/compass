@@ -439,8 +439,6 @@ github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd h1:krkCRyCyN86
 github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd/go.mod h1:+8rp2bisFkLOTObsmvfbAdlK7exl73oFaQvhuBNTn3E=
 github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5 h1:jxUzl2Aeh929pD4g43s5PhiCGCR9gDGF26gMNHOFJBY=
 github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5/go.mod h1:5UbxScOB/xumHSVu0QDatqT8ccm4n/mHWbX+4OjggKk=
-github.com/mapprotocol/near-api-go v0.0.1 h1:nYinLfSNIPYgxCQLOgug1eOYMq99xmn/dTriqXVmlco=
-github.com/mapprotocol/near-api-go v0.0.1/go.mod h1:yNWEYxhMGw0rIAaJfNnDsOG3dHs/y85RDiUGKVGy+oc=
 github.com/matryer/moq v0.0.0-20190312154309-6cfb0558e1bd/go.mod h1:9ELz6aaclSIGnZBoaSLZ3NAl1VTufbOrXBPvtcy6WiQ=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.0/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
