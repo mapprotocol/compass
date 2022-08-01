@@ -191,8 +191,6 @@ github.com/eteu-technologies/borsh-go v0.3.2/go.mod h1:WK4tVIecqMGB9WXrvULSeEe3P
 github.com/eteu-technologies/golang-uint128 v1.1.1-eteu/go.mod h1:5Vr5yDsJV9eBl44ziSgt1xDZbVfJv4+IpqnUf0wa8t4=
 github.com/eteu-technologies/golang-uint128 v1.1.2-eteu h1:hEc9sN76qbV0l40GUq2lMyBDXZlTkts7cLCd+3vHkao=
 github.com/eteu-technologies/golang-uint128 v1.1.2-eteu/go.mod h1:5Vr5yDsJV9eBl44ziSgt1xDZbVfJv4+IpqnUf0wa8t4=
-github.com/eteu-technologies/near-api-go v0.0.1 h1:nYinLfSNIPYgxCQLOgug1eOYMq99xmn/dTriqXVmlco=
-github.com/eteu-technologies/near-api-go v0.0.1/go.mod h1:yNWEYxhMGw0rIAaJfNnDsOG3dHs/y85RDiUGKVGy+oc=
 github.com/ethereum/go-ethereum v1.9.17/go.mod h1:kihoiSg74VC4dZAXMkmoWp70oQabz48BJg1tuzricFc=
 github.com/ethereum/go-ethereum v1.10.4/go.mod h1:nEE0TP5MtxGzOMd7egIrbPJMQBnhVU3ELNxhBglIzhg=
 github.com/ethereum/go-ethereum v1.10.10 h1:Ft2GcLQrr2M89l49g9NoqgNtJZ9AahzMb7N6VXKZy5U=
@@ -439,6 +437,10 @@ github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63/go.mod h1:C1wdFJiN
 github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd h1:krkCRyCyN86ZWDsMEDXF6yWdwy1ED8L+L05j3Ef8f1Q=
 github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd/go.mod h1:+8rp2bisFkLOTObsmvfbAdlK7exl73oFaQvhuBNTn3E=
+github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5 h1:jxUzl2Aeh929pD4g43s5PhiCGCR9gDGF26gMNHOFJBY=
+github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5/go.mod h1:5UbxScOB/xumHSVu0QDatqT8ccm4n/mHWbX+4OjggKk=
+github.com/mapprotocol/near-api-go v0.0.1 h1:nYinLfSNIPYgxCQLOgug1eOYMq99xmn/dTriqXVmlco=
+github.com/mapprotocol/near-api-go v0.0.1/go.mod h1:yNWEYxhMGw0rIAaJfNnDsOG3dHs/y85RDiUGKVGy+oc=
 github.com/matryer/moq v0.0.0-20190312154309-6cfb0558e1bd/go.mod h1:9ELz6aaclSIGnZBoaSLZ3NAl1VTufbOrXBPvtcy6WiQ=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.0/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=

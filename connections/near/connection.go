@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/ChainSafe/log15"
-	nearclient "github.com/eteu-technologies/near-api-go/pkg/client"
-	"github.com/eteu-technologies/near-api-go/pkg/client/block"
-	"github.com/eteu-technologies/near-api-go/pkg/types/key"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/atlas/accounts/abi/bind"
+	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
+	"github.com/mapprotocol/near-api-go/pkg/types/key"
 )
 
 var BlockRetryInterval = time.Second * 5
@@ -60,13 +60,11 @@ func (c *Connection) Connect() error {
 		return err
 	}
 
-	response, err := client.NetworkStatusValidators(context.Background())
+	resp, err := client.NetworkStatusValidators(context.Background())
 	if err != nil {
 		return err
 	}
-	if response.Error != nil {
-		return response.Error
-	}
+	c.log.Info("near connection success", "chainId", resp.ChainID)
 
 	c.conn = &client
 	return nil

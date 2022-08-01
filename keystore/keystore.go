@@ -32,8 +32,8 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto"
-	"github.com/eteu-technologies/near-api-go/pkg/types"
-	"github.com/eteu-technologies/near-api-go/pkg/types/key"
+	"github.com/mapprotocol/near-api-go/pkg/types"
+	"github.com/mapprotocol/near-api-go/pkg/types/key"
 )
 
 const EthChain = "ethereum"
