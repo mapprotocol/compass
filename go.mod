@@ -9,7 +9,6 @@ require (
 	github.com/btcsuite/btcd v0.22.1 // indirect
 	github.com/centrifuge/go-substrate-rpc-client v2.0.0+incompatible // indirect
 	github.com/edsrzf/mmap-go v1.1.0 // indirect
-	github.com/eteu-technologies/near-api-go v0.0.1
 	github.com/ethereum/go-ethereum v1.10.10
 	github.com/fjl/memsize v0.0.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
@@ -19,6 +18,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd
+	github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/pkg/errors v0.9.1

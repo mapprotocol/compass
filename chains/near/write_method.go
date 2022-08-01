@@ -9,13 +9,13 @@ import (
 
 	"github.com/mapprotocol/compass/internal/near"
 
-	"github.com/eteu-technologies/near-api-go/pkg/types"
+	"github.com/mapprotocol/near-api-go/pkg/types"
 
-	"github.com/eteu-technologies/near-api-go/pkg/client"
-	"github.com/eteu-technologies/near-api-go/pkg/types/action"
+	"github.com/mapprotocol/near-api-go/pkg/client"
+	"github.com/mapprotocol/near-api-go/pkg/types/action"
 
-	"github.com/eteu-technologies/near-api-go/pkg/types/hash"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/near-api-go/pkg/types/hash"
 )
 
 const (
