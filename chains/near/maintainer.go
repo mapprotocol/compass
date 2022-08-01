@@ -8,7 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/eteu-technologies/near-api-go/pkg/client/block"
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -111,7 +111,7 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMapChain listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
-	characteristic := block.BlockID(uint(latestBlock.Uint64()))
+	characteristic := block.BlockID(latestBlock.Uint64())
 	block, err := m.conn.Client().BlockDetails(context.Background(), characteristic)
 	if err != nil {
 		return err
