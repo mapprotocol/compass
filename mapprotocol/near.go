@@ -17,7 +17,7 @@ const (
 
 const (
 	HashOfTransferOut = "2ef1cdf83614a69568ed2c96a275dd7fb2e63a464aa3a0ffe79f55d538c8b3b5"
-	HashOfDepositOut  = "150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377\n\n"
+	HashOfDepositOut  = "150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377"
 )
 
 var NearEventType = []string{TransferOut, DepositOut}
