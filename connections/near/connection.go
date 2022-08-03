@@ -64,8 +64,8 @@ func (c *Connection) Connect() error {
 	if err != nil {
 		return err
 	}
-	c.log.Info("near connection success", "chainId", resp.ChainID)
 
+	c.log.Info("Connecting success near chain...", "chainId", resp.ChainID)
 	c.conn = &client
 	return nil
 }

@@ -208,3 +208,75 @@ func ConvertNearNeedHeader(h *types.Header) *NearNeedHeader {
 	enc.Hash = h.Hash()
 	return &enc
 }
+
+type NearReceiptProof struct {
+	BlockHeaderLite  BlockHeaderLite    `json:"block_header_lite"`
+	BlockProof       []BlockProof       `json:"block_proof"`
+	OutcomeProof     OutcomeProof       `json:"outcome_proof"`
+	OutcomeRootProof []OutcomeRootProof `json:"outcome_root_proof"`
+}
+
+type InnerLite struct {
+	BlockMerkleRoot  string `json:"block_merkle_root"`
+	EpochID          string `json:"epoch_id"`
+	Height           int    `json:"height"`
+	NextBpHash       string `json:"next_bp_hash"`
+	NextEpochID      string `json:"next_epoch_id"`
+	OutcomeRoot      string `json:"outcome_root"`
+	PrevStateRoot    string `json:"prev_state_root"`
+	Timestamp        int64  `json:"timestamp"`
+	TimestampNanosec string `json:"timestamp_nanosec"`
+}
+
+type BlockHeaderLite struct {
+	InnerLite     InnerLite `json:"inner_lite"`
+	InnerRestHash string    `json:"inner_rest_hash"`
+	PrevBlockHash string    `json:"prev_block_hash"`
+}
+
+type BlockProof struct {
+	Direction string `json:"direction"`
+	Hash      string `json:"hash"`
+}
+
+type GasProfile struct {
+	Cost         string `json:"cost"`
+	CostCategory string `json:"cost_category"`
+	GasUsed      string `json:"gas_used"`
+}
+
+type Metadata struct {
+	GasProfile []GasProfile `json:"gas_profile"`
+	Version    int          `json:"version"`
+}
+
+type Status struct {
+	SuccessValue string `json:"SuccessValue"`
+}
+
+type Outcome struct {
+	ExecutorID  string        `json:"executor_id"`
+	GasBurnt    int64         `json:"gas_burnt"`
+	Logs        []interface{} `json:"logs"`
+	Metadata    Metadata      `json:"metadata"`
+	ReceiptIds  []string      `json:"receipt_ids"`
+	Status      Status        `json:"status"`
+	TokensBurnt string        `json:"tokens_burnt"`
+}
+
+type Proof struct {
+	Direction string `json:"direction"`
+	Hash      string `json:"hash"`
+}
+
+type OutcomeProof struct {
+	BlockHash string  `json:"block_hash"`
+	ID        string  `json:"id"`
+	Outcome   Outcome `json:"outcome"`
+	Proof     []Proof `json:"proof"`
+}
+
+type OutcomeRootProof struct {
+	Direction string `json:"direction"`
+	Hash      string `json:"hash"`
+}

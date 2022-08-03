@@ -9,10 +9,13 @@ import (
 	"io/ioutil"
 	"log"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	eth "github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -21,27 +24,172 @@ import (
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/go-redis/redis/v8"
 	maptypes "github.com/mapprotocol/atlas/core/types"
+	"github.com/mapprotocol/compass/internal/near"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
+	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
 )
 
-func Test_Redis(t *testing.T) {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     "46.137.199.126:6379",
-		Password: "", // 密码
-		DB:       0,  // 数据库
-		PoolSize: 20, // 连接池大小
-	})
-
-	ping := rdb.Ping(context.Background())
-	result, err := ping.Result()
+func Test_NearMcs(t *testing.T) {
+	bytes, err := ioutil.ReadFile("./json.txt")
 	if err != nil {
-		t.Fatalf("err is %v", err)
+		t.Fatalf("readFile failed err is %v", err)
 	}
-	t.Log("redis result is ", result)
+	data := mapprotocol.StreamerMessage{}
+	err = json.Unmarshal(bytes, &data)
+	if err != nil {
+		t.Fatalf("unMarshal failed, err %v", err)
+	}
+	target := make([]mapprotocol.IndexerExecutionOutcomeWithReceipt, 0)
+	for _, shard := range data.Shards {
+		for _, outcome := range shard.ReceiptExecutionOutcomes {
+			if outcome.ExecutionOutcome.Outcome.ExecutorID != "mcs.pandarr.testnet" { // 合约地址
+				continue
+			}
+			if len(outcome.ExecutionOutcome.Outcome.Logs) == 0 {
+				continue
+			}
+			//fmt.Printf("blockHash ---- %+v\n", outcome.ExecutionOutcome.BlockHash)
+			//fmt.Printf("id ---- %+v \n", outcome.ExecutionOutcome.ID)
+			//fmt.Printf("proof ---- %+v\n", outcome.ExecutionOutcome.Proof)
+			//fmt.Printf("outcome ---- %+v\n", outcome.ExecutionOutcome.Outcome.Logs)
+			for _, ls := range outcome.ExecutionOutcome.Outcome.Logs {
+				splits := strings.Split(ls, ":")
+				if len(splits) != 2 {
+					continue
+				}
+				if !ExistInSlice(splits[0], mapprotocol.NearEventType) {
+					continue
+				}
+				//if !strings.HasPrefix(ls, mapprotocol.HashOfTransferOut) && !strings.HasPrefix(ls, mapprotocol.HashOfDepositOut) {
+				//	continue
+				//}
+			}
+
+			target = append(target, outcome)
+		}
+		//fmt.Println()
+	}
+
+	if len(target) == 0 {
+		t.Logf("data is %+v", data)
+		return
+	}
+
+	cli, err := nearclient.NewClient("https://archival-rpc.testnet.near.org")
+	if err != nil {
+		t.Fatalf("unMarshal failed, err %v", err)
+	}
+	for _, tg := range target {
+		t.Logf("tg %+v", tg)
+		blk, err := cli.NextLightClientBlock(context.Background(), tg.ExecutionOutcome.BlockHash)
+		if err != nil {
+			t.Errorf("NextLightClientBlock failed, err %v", err)
+		}
+
+		clientHead, err := cli.BlockDetails(context.Background(), block.BlockID(blk.InnerLite.Height))
+		if err != nil {
+			t.Errorf("BlockDetails failed, err %v", err)
+		}
+
+		fmt.Printf("clientHead hash is %v \n", clientHead.Header.Hash)
+
+		proof, err := cli.LightClientProof(context.Background(), nearclient.Receipt{
+			ReceiptID:       tg.ExecutionOutcome.ID,
+			ReceiverID:      tg.Receipt.ReceiverID,
+			LightClientHead: clientHead.Header.Hash,
+		})
+		if err != nil {
+			t.Errorf("LightClientProof failed, err %v", err)
+		}
+
+		d, _ := json.Marshal(blk)
+		p, _ := json.Marshal(proof)
+		t.Logf("block %+v, \n proof %+v \n", string(d), string(p))
+
+		blkBytes := near.Borshify(blk)
+		t.Logf("blockBytes, 0x%v", common.Bytes2Hex(blkBytes))
+		proofBytes, err := near.BorshifyOutcomeProof(proof)
+		if err != nil {
+			t.Fatalf("borshifyOutcomeProof failed, err is %v", proofBytes)
+		}
+		t.Logf("proofBytes, 0x%v", common.Bytes2Hex(proofBytes))
+
+		input, err := mapprotocol.NearGetBytes.Methods["getBytes"].Inputs.Pack(blkBytes, proofBytes)
+		if err != nil {
+			t.Fatalf("getBytes failed, err is %v", err)
+		}
+
+		err = call(input, mapprotocol.NearVerify, mapprotocol.MethodVerifyProofData)
+		if err != nil {
+			t.Fatalf("call failed, err is %v", err)
+		}
+	}
+	//t.Logf("data is %+v", data)
+}
+
+func call(input []byte, useAbi abi.ABI, method string) error {
+	to := common.HexToAddress("0xa44b62879B9FfE422615CBccB993E090D93fD0eE")
+	count := 0
+	for {
+		count++
+		if count == 5 {
+			return errors.New("retry is full")
+		}
+		outPut, err := dialMapConn().CallContract(context.Background(),
+			ethereum.CallMsg{
+				From: common.HexToAddress("0x36b77597430cc2C0DD090c67f77f67Fc28195b5D"),
+				To:   &to,
+				Data: input,
+			},
+			nil,
+		)
+		if err != nil {
+			if strings.Index(err.Error(), "read: connection reset by peer") != -1 {
+				log.Printf("err is : %s, will retry \n", err)
+				time.Sleep(time.Second * 5)
+				continue
+			}
+			return err
+		}
+
+		resp, err := useAbi.Methods[method].Outputs.Unpack(outPut)
+		if err != nil {
+			return err
+		}
+
+		ret := struct {
+			Success bool
+			Message string
+			Logs    []byte
+		}{}
+
+		err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
+		if err != nil {
+			return err
+		}
+		if !ret.Success {
+			return fmt.Errorf("verify proof failed, message is (%s)", ret.Message)
+		}
+		if ret.Success == true {
+			log.Println("mcs verify log success", "success", ret.Success)
+			log.Println("mcs verify log success", "logs", "0x"+common.Bytes2Hex(ret.Logs))
+			return nil
+		}
+	}
+}
+
+func ExistInSlice(target string, dst []string) bool {
+	for _, d := range dst {
+		if target == d {
+			return true
+		}
+	}
+
+	return false
 }
 
 var ContractAddr = common.HexToAddress("0xA7D3A66013DE32f0a44C92E337Af22C4344a2d62")

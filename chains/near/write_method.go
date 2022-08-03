@@ -8,13 +8,10 @@ import (
 	"time"
 
 	"github.com/mapprotocol/compass/internal/near"
-
-	"github.com/mapprotocol/near-api-go/pkg/types"
-
-	"github.com/mapprotocol/near-api-go/pkg/client"
-	"github.com/mapprotocol/near-api-go/pkg/types/action"
-
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/near-api-go/pkg/client"
+	"github.com/mapprotocol/near-api-go/pkg/types"
+	"github.com/mapprotocol/near-api-go/pkg/types/action"
 	"github.com/mapprotocol/near-api-go/pkg/types/hash"
 )
 

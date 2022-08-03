@@ -1,9 +1,17 @@
 package near
 
 import (
-	"errors"
+	"context"
+	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
+
+	"github.com/mapprotocol/compass/mapprotocol"
+
+	rds "github.com/go-redis/redis/v8"
+	"github.com/mapprotocol/compass/pkg/redis"
+	"github.com/pkg/errors"
 )
 
 type Messenger struct {
@@ -36,14 +44,6 @@ func (m *Messenger) sync() error {
 	var currentBlock = m.cfg.startBlock
 	m.log.Info("Polling Blocks...", "block", currentBlock)
 
-	if m.cfg.syncToMap {
-		// when listen to map there must be a 20 block confirmation at least
-		big20 := big.NewInt(20)
-		if m.blockConfirmations.Cmp(big20) == -1 {
-			m.blockConfirmations = big20
-		}
-	}
-
 	var retry = BlockRetryLimit
 	for {
 		select {
@@ -75,6 +75,7 @@ func (m *Messenger) sync() error {
 			if err != nil {
 				m.log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				retry--
+				time.Sleep(BlockRetryInterval)
 				continue
 			}
 
@@ -97,11 +98,41 @@ func (m *Messenger) sync() error {
 			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
 			retry = BlockRetryLimit
+			time.Sleep(BlockRetryInterval)
 		}
 	}
 }
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
+	// querying for logs
+	ctx := context.Background()
+	cmd := redis.GetClient().RPop(ctx, redis.ListKey)
+	result, err := cmd.Result()
+	if err != nil && !errors.Is(err, rds.Nil) {
+		return 0, errors.Wrap(err, "lPop failed")
+	}
+
+	if err != nil && errors.Is(err, rds.Nil) {
+		return 0, nil
+	}
+	fmt.Printf("收到的数据， %v \n", result)
+
+	data := mapprotocol.StreamerMessage{}
+	err = json.Unmarshal([]byte(result), &data)
+	if err != nil {
+		return 0, errors.Wrap(err, "unmarshal failed")
+	}
+
+	m.log.Info("获取的消息", "msg", data)
+
+	// step2:组装 struct
+	//proof := mapprotocol.NearReceiptProof{
+	//	BlockHeaderLite:  mapprotocol.BlockHeaderLite{},
+	//	BlockProof:       nil,
+	//	OutcomeProof:     mapprotocol.OutcomeProof{},
+	//	OutcomeRootProof: nil,
+	//}
+
 	return 0, nil
 }

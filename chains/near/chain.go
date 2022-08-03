@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
@@ -131,7 +130,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	var listen chains.Listener
 	cs := NewCommonListen(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMessenger {
-		listen = NewMessenger(cs) // todo 修改这里 ---------------------
+		listen = NewMessenger(cs)
 	} else { // Maintainer is used by default
 		listen = NewMaintainer(cs)
 	}
@@ -148,7 +147,6 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 
 func (c *Chain) SetRouter(r *core.Router) {
 	r.Listen(c.cfg.Id, c.writer)
-	log.Println("Chain setRouter ----------------- ", c.listen)
 	c.listen.SetRouter(r)
 }
 

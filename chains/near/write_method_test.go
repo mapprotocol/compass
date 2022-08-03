@@ -6,11 +6,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/mapprotocol/near-api-go/pkg/client/block"
-
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/near-api-go/pkg/client"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
 	"github.com/mapprotocol/near-api-go/pkg/types"
 	"github.com/mapprotocol/near-api-go/pkg/types/action"
 )
@@ -162,7 +161,7 @@ func Test_get_sync_header_height(t *testing.T) {
 	}
 
 	if res.Error != nil {
-		t.Fatalf("request back resp, exist error, err is %v", res.Error.Error())
+		t.Fatalf("request back resp, exist error, err is %v", res.Error)
 	}
 
 	result := &Result{}

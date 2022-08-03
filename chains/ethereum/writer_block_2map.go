@@ -2,6 +2,7 @@ package ethereum
 
 import (
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/rlp"
@@ -55,9 +56,7 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 				return false
 			}
 			tx, err := w.sendTx(&mapprotocol.RelayerAddress, nil, data)
-
 			w.conn.UnlockOpts()
-
 			if err == nil {
 				// message successfully handled
 				w.log.Info("Sync Header to map tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
@@ -71,6 +70,9 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Sync Header to map Nonce too low, will retry")
+				time.Sleep(TxRetryInterval)
+			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
+				w.log.Error("Sync Header to map encounter EOF, will retry")
 				time.Sleep(TxRetryInterval)
 			} else {
 				w.log.Warn("Sync Header to map Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
