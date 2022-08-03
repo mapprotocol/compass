@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
@@ -14,7 +15,6 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	connection "github.com/mapprotocol/compass/connections/near"
 	"github.com/mapprotocol/compass/core"
-	"github.com/mapprotocol/compass/internal/near"
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
@@ -117,13 +117,14 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 			return nil, fmt.Errorf("call near lightNode to get headerHeight resp exist error(%v)", *res.Error)
 		}
 
-		result := &near.Result{}
+		result := big.NewInt(0)
 		err = json.Unmarshal(res.Result, result)
 		if err != nil {
+			log.Printf("result ------------ %v \n", string(res.Result))
 			return nil, errors.Wrap(err, "near lightNode headerHeight resp json marshal failed")
 		}
-		height, _ := new(big.Int).SetString(string(result.Result), 10)
-		syncMap[cfg.id] = height
+		//height, _ := new(big.Int).SetString(string(result.Result), 10)
+		syncMap[cfg.id] = result
 	}
 
 	// simplified a little bit
