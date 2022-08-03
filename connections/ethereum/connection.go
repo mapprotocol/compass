@@ -43,10 +43,8 @@ type Connection struct {
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
-func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int, gasMultiplier *big.Float, gsnApiKey, gsnSpeed string) *Connection {
-	// tmp
-	// pkstr := ethcommon.Bytes2Hex(ethcrypto.FromECDSA(kp.PrivateKey()))
-	// fmt.Println("pk:" + pkstr)
+func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
+	gasMultiplier *big.Float, gsnApiKey, gsnSpeed string) *Connection {
 	return &Connection{
 		endpoint:      endpoint,
 		http:          http,
@@ -238,6 +236,7 @@ func (c *Connection) LockAndUpdateOpts() error {
 				return err
 			}
 		}
+		c.log.Info("LockAndUpdateOpts ", "head.BaseFee", head.BaseFee)
 	} else {
 		var gasPrice *big.Int
 		gasPrice, err = c.SafeEstimateGas(context.TODO())
@@ -248,6 +247,7 @@ func (c *Connection) LockAndUpdateOpts() error {
 		c.opts.GasPrice = gasPrice
 	}
 
+	c.log.Info("LockAndUpdateOpts ", "gas", c.opts.GasPrice)
 	nonce, err := c.conn.PendingNonceAt(context.Background(), c.opts.From)
 	if err != nil {
 		c.optsLock.Unlock()

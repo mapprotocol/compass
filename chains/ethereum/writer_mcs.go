@@ -34,6 +34,8 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
 			mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
+			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.Verify, mapprotocol.MethodVerifyProofData)
+			w.log.Info("send transaction", "addr", addr)
 			w.conn.UnlockOpts()
 
 			if err == nil {
@@ -54,6 +56,50 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 	w.sysErr <- ErrFatalTx
 	return false
 }
+
+//func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) error {
+//	from := w.conn.Keypair().CommonAddress()
+//	outPut, err := w.conn.Client().CallContract(context.Background(),
+//		ethereum.CallMsg{
+//			From: from,
+//			To:   toAddress,
+//			Data: input,
+//		},
+//		nil,
+//	)
+//	if err != nil {
+//		w.log.Error("mcs callContract failed", "err", err.Error())
+//		return err
+//	}
+//
+//	resp, err := useAbi.Methods[method].Outputs.Unpack(outPut)
+//	if err != nil {
+//		w.log.Error("proof call failed ", "err", err.Error())
+//		return err
+//	}
+//
+//	ret := struct {
+//		Success bool
+//		Message string
+//		Logs    []byte
+//	}{}
+//
+//	w.log.Info("verify ", "back resp len", len(resp), "resp", resp)
+//	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
+//	if err != nil {
+//		return errors.Wrap(err, "proof copy failed")
+//	}
+//	if !ret.Success {
+//		return fmt.Errorf("verify proof failed, message is (%s)", ret.Message)
+//	}
+//	if ret.Success == true {
+//		w.log.Info("mcs verify log success", "success", ret.Success)
+//		//tmp, _ := rlp.EncodeToBytes(ret.Logs)
+//		w.log.Info("mcs verify log success", "logs", "0x"+common.Bytes2Hex(ret.Logs))
+//	}
+//
+//	return nil
+//}
 
 // sendTx send tx to an address with value and input data
 func (w *writer) sendMcsTx(toAddress *common.Address, value *big.Int, input []byte) (*types.Transaction, error) {

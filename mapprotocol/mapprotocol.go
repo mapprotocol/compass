@@ -41,10 +41,6 @@ func PackVerifyInput(method string, params ...interface{}) ([]byte, error) {
 	return packInput(Verify, method, params...)
 }
 
-func PackDecodeInput(method string, params ...interface{}) ([]byte, error) {
-	return packInput(Decode, method, params...)
-}
-
 func Eth2MapTransferInPackInput(method string, params ...interface{}) ([]byte, error) {
 	return packInput(Eth2MapTransferInAbi, method, params...)
 }

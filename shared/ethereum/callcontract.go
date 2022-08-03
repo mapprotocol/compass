@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -30,8 +30,6 @@ import (
 
 var (
 	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-	// SwapIn function swapIn(bytes32 hash, address token, address from, address to, uint amount, uint fromChainID,uint toChainID)
-	SwapIn = "swapIn(bytes32,address,address,address,uint256,uint256,uint256,address,bytes)"
 
 	bytesTy, _   = abi.NewType("bytes", "", nil)
 	bytes32Ty, _ = abi.NewType("bytes32", "", nil)
@@ -77,16 +75,6 @@ var (
 		},
 	}
 )
-
-func ComposeMsgPayloadWithSignature(sig string, msgPayload []interface{}) []byte {
-	// signature
-	sigbytes := crypto.Keccak256Hash([]byte(sig))
-
-	var data []byte
-	data = append(data, sigbytes[:4]...)
-	data = append(data, msgPayload[0].([]byte)...)
-	return data
-}
 
 func ParseEthLogIntoSwapArgs(log types.Log, bridgeAddr common.Address) (uint64, uint64, []byte, error) {
 	token := log.Topics[1].Bytes()
@@ -184,6 +172,7 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
+	fmt.Println("--------- ", bridgeAddr)
 	rp := mapprotocol.NewReceiptProof{
 		Router:   bridgeAddr,
 		Coin:     common.BytesToAddress(token),
@@ -198,7 +187,7 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 	}
 
 	pack, err := mapprotocol.Eth2MapTransferInPackInput(mapprotocol.MethodOfTransferIn, big.NewInt(0), payloads)
-	//pack, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, payloads)
+	//pack, err := mapprotocol.PackVerifyInput(mapprotocol.MethodVerifyProofData, payloads)
 	if err != nil {
 		return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 	}

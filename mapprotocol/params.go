@@ -25,7 +25,10 @@ const (
 	MethodUpdateBlockHeader = "updateBlockHeader"
 	MethodOfHeaderHeight    = "headerHeight"
 	MethodOfTransferIn      = "transferIn"
-	MethodOfDecodeTxLog     = "decodeTxLog"
+)
+
+const (
+	NearMethodOfReceiptProof = ""
 )
 
 var (
@@ -41,7 +44,8 @@ var (
 	ABILiteNode, _          = abi.JSON(strings.NewReader(LiteABIJSON))
 	ABILightNode, _         = abi.JSON(strings.NewReader(LightNode))
 	Verify, _               = abi.JSON(strings.NewReader(VerifyAbi))
-	Decode, _               = abi.JSON(strings.NewReader(DecodeLog))
+	NearVerify, _           = abi.JSON(strings.NewReader(NearVerifyAbi))
+	NearGetBytes, _         = abi.JSON(strings.NewReader(NearGetBytesAbi))
 	Eth2MapTransferInAbi, _ = abi.JSON(strings.NewReader(Eth2MapTransferIn))
 	ABIEncodeReceipt, _     = abi.JSON(strings.NewReader(EncodeReceiptABI))
 )

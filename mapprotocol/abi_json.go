@@ -912,7 +912,6 @@ var (
         "type":"function"
     }
 ]`
-
 	VerifyAbi = `[
 		{
 		  "inputs": [
@@ -944,7 +943,6 @@ var (
 		  "type": "function"
 	   }
 	]`
-
 	Eth2MapTransferIn = `
 	[
 		{
@@ -968,45 +966,63 @@ var (
 			"type":"function"
 		}
 	]`
-
-	DecodeLog = `
-	[
+	NearVerifyAbi = `[
 		{
-			"inputs": [
+			"inputs":[
 				{
+					"internalType":"bytes",
+					"name":"_receiptProof",
+					"type":"bytes"
+				}
+			],
+			"name":"verifyProofData",
+			"outputs":[
+				{
+					"internalType":"bool",
+					"name":"success",
+					"type":"bool"
+				},
+				{
+					"internalType":"string",
+					"name":"message",
+					"type":"string"
+				},
+				{
+					"internalType":"bytes",
+					"name":"logsHash",
+					"type":"bytes"
+				}
+			],
+			"stateMutability":"nonpayable",
+			"type":"function"
+		}
+	]`
+	NearGetBytesAbi = `
+		[
+			{
+				"inputs": [
+				  {
 					"internalType": "bytes",
-					"name": "logsHash",
+					"name": "block",
 					"type": "bytes"
-				}
-			],
-			"name": "decodeTxLog",
-			"outputs": [
-				{
-				"components": [
-				{
-				"internalType": "address",
-				"name": "addr",
-				"type": "address"
-				},
-				{
-				"internalType": "bytes[]",
-				"name": "topics",
-				"type": "bytes[]"
-				},
-				{
-				"internalType": "bytes",
-				"name": "data",
-				"type": "bytes"
-				}
+				  },
+				  {
+					"internalType": "bytes",
+					"name": "proof",
+					"type": "bytes"
+				  }
 				],
-				"internalType": "struct ILightNodePoint.txLog[]",
-				"name": "_txLogs",
-				"type": "tuple[]"
-				}
-			],
-			"stateMutability": "view",
-			"type": "function"
-			}
-	]
+				"name": "getBytes",
+				"outputs": [
+				  {
+					"internalType": "bytes",
+					"name": "",
+					"type": "bytes"
+				  }
+				],
+				"stateMutability": "view",
+				"type": "function"
+			  }
+		]
 	`
 )
