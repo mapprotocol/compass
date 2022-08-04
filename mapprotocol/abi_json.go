@@ -725,6 +725,59 @@ const LightNode = `[
   	}
 ]`
 
+const LightNodeInterfaceABI = `[
+	{
+		"inputs": [],
+		"name": "headerHeight",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "_blockHeader",
+				"type": "bytes"
+			}
+		],
+		"name": "updateBlockHeader",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "_receiptProof",
+				"type": "bytes"
+			}
+		],
+		"name": "verifyProofData",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "success",
+				"type": "bool"
+			},
+			{
+				"internalType": "bytes",
+				"name": "logs",
+				"type": "bytes"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]`
+
 var (
 	EncodeReceiptABI = `[
 {

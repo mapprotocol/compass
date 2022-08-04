@@ -6,13 +6,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/mapprotocol/near-api-go/pkg/client/block"
-
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/mapprotocol/compass/internal/near"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
 )
 
 type Maintainer struct {
@@ -111,48 +108,29 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMapChain listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
-	characteristic := block.BlockID(latestBlock.Uint64())
-	block, err := m.conn.Client().BlockDetails(context.Background(), characteristic)
+
+	blockDetails, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(latestBlock.Uint64()))
 	if err != nil {
+		m.log.Error("failed to get block", "err", err, "number", latestBlock.Uint64())
+		return err
+	}
+	lightBlock, err := m.conn.Client().NextLightClientBlock(context.Background(), blockDetails.Header.Hash)
+	if err != nil {
+		m.log.Error("failed to get next light client block", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
+		return err
+	}
+	input, err := mapprotocol.PackUpdateBlockHeaderInput(near.Borshify(lightBlock))
+	if err != nil {
+		m.log.Error("failed to pack block header", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
 		return err
 	}
 
-	//var chains = []types.Header{{
-	//	ParentHash:     types.NewHash([]byte(block.Header.PrevHash.String())),
-	//	Number:         types.BlockNumber(block.Header.Height),
-	//	StateRoot:      types.Hash{},
-	//	ExtrinsicsRoot: types.Hash{},
-	//	Digest:         nil,
-	//}}
-	var chains = []types.Header{{
-		ParentHash:  common.HexToHash(block.Header.PrevHash.String()),
-		UncleHash:   common.Hash{},
-		Coinbase:    common.Address{},
-		Root:        common.Hash{},
-		TxHash:      common.HexToHash(block.Header.Hash.String()),
-		ReceiptHash: common.Hash{},
-		Bloom:       types.Bloom{},
-		Difficulty:  nil,
-		Number:      nil,
-		GasLimit:    0,
-		GasUsed:     0,
-		Time:        0,
-		Extra:       nil,
-		MixDigest:   common.Hash{},
-		Nonce:       types.BlockNonce{},
-		BaseFee:     nil,
-	}}
-	marshal, _ := rlp.EncodeToBytes(chains)
-
-	msgpayload := []interface{}{marshal}
-	message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, msgpayload, m.msgCh)
-
+	message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, []interface{}{input}, m.msgCh)
 	err = m.router.Send(message)
 	if err != nil {
 		m.log.Error("subscription error: failed to route message", "err", err)
 		return nil
 	}
-
 	err = m.waitUntilMsgHandled(1)
 	if err != nil {
 		return err
