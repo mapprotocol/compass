@@ -1476,7 +1476,7 @@ var (
 				"outputs": [
 				  {
 					"internalType": "bytes",
-					"name": "",
+					"name": "_receiptProof",
 					"type": "bytes"
 				  }
 				],

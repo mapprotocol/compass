@@ -10,12 +10,10 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum/common"
 	gconfig "github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/connections/ethereum/egs"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/msg"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
 const DefaultGasLimit = 6721975
@@ -48,7 +46,7 @@ type Config struct {
 	keystorePath       string      // Location of keyfiles
 	blockstorePath     string
 	freshStart         bool // Disables loading from blockstore at start
-	bridgeContract     common.Address
+	bridgeContract     string
 	gasLimit           *big.Int
 	maxGasPrice        *big.Int
 	gasMultiplier      *big.Float
@@ -73,7 +71,7 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		blockstorePath:     chainCfg.BlockstorePath,
 		freshStart:         chainCfg.FreshStart,
 		endpoint:           chainCfg.Endpoint,
-		bridgeContract:     utils.ZeroAddress,
+		bridgeContract:     "",
 		gasLimit:           big.NewInt(DefaultGasLimit),
 		maxGasPrice:        big.NewInt(DefaultGasPrice),
 		gasMultiplier:      big.NewFloat(DefaultGasMultiplier),
@@ -85,7 +83,7 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 	}
 
 	if contract, ok := chainCfg.Opts[BridgeOpt]; ok && contract != "" {
-		config.bridgeContract = common.HexToAddress(contract)
+		config.bridgeContract = contract
 		delete(chainCfg.Opts, BridgeOpt)
 	} else {
 		return nil, fmt.Errorf("must provide opts.bridge field for ethereum config")

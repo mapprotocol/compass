@@ -84,7 +84,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			}
 
 			// sendtx using general method
-			txHash, err := w.sendTx(w.cfg.bridgeContract.Hex(), AbiMethodOfTransferIn, m.Payload[0].([]byte))
+			txHash, err := w.sendTx(w.cfg.bridgeContract, AbiMethodOfTransferIn, m.Payload[0].([]byte))
 			w.conn.UnlockOpts()
 			if err == nil {
 				// message successfully handled
