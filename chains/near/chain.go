@@ -9,7 +9,6 @@ import (
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/atlas/accounts/abi/bind"
 	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/chains"
@@ -32,7 +31,7 @@ type Connection interface {
 	LockAndUpdateOpts() error
 	UnlockOpts()
 	Client() *nearclient.Client
-	EnsureHasBytecode(address common.Address) error
+	EnsureHasBytecode(address string) error
 	LatestBlock() (*big.Int, error)
 	WaitForBlock(block *big.Int, delay *big.Int) error
 	Close()

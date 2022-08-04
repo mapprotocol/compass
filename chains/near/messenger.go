@@ -4,8 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
+	"strings"
 	"time"
+
+	"github.com/mapprotocol/compass/msg"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/internal/near"
+	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
 
 	"github.com/mapprotocol/compass/mapprotocol"
 
@@ -57,18 +66,6 @@ func (m *Messenger) sync() error {
 				return nil
 			}
 
-			latestBlock, err := m.conn.LatestBlock()
-			if err != nil {
-				m.log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				retry--
-				time.Sleep(BlockRetryInterval)
-				continue
-			}
-
-			if m.metrics != nil {
-				m.metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
-			}
-
 			// messager
 			// Parse out events
 			count, err := m.getEventsForBlock(currentBlock)
@@ -89,10 +86,8 @@ func (m *Messenger) sync() error {
 			}
 			if m.metrics != nil {
 				m.metrics.BlocksProcessed.Inc()
-				m.metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
 			}
 
-			m.latestBlock.Height = big.NewInt(0).Set(latestBlock)
 			m.latestBlock.LastUpdated = time.Now()
 
 			// Goto next block and reset retry counter
@@ -105,12 +100,13 @@ func (m *Messenger) sync() error {
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
+	log.Println("--------------- ", m.cfg.bridgeContract)
 	// querying for logs
 	ctx := context.Background()
 	cmd := redis.GetClient().RPop(ctx, redis.ListKey)
 	result, err := cmd.Result()
 	if err != nil && !errors.Is(err, rds.Nil) {
-		return 0, errors.Wrap(err, "lPop failed")
+		return 0, errors.Wrap(err, "rPop failed")
 	}
 
 	if err != nil && errors.Is(err, rds.Nil) {
@@ -121,18 +117,93 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	data := mapprotocol.StreamerMessage{}
 	err = json.Unmarshal([]byte(result), &data)
 	if err != nil {
-		return 0, errors.Wrap(err, "unmarshal failed")
+		return 0, errors.Wrap(err, "")
+	}
+	target := make([]mapprotocol.IndexerExecutionOutcomeWithReceipt, 0)
+	for _, shard := range data.Shards {
+		for _, outcome := range shard.ReceiptExecutionOutcomes {
+			if outcome.ExecutionOutcome.Outcome.ExecutorID != m.cfg.bridgeContract { //  "mcs.pandarr.testnet" { // 合约地址
+				continue
+			}
+			if len(outcome.ExecutionOutcome.Outcome.Logs) == 0 {
+				continue
+			}
+			for _, ls := range outcome.ExecutionOutcome.Outcome.Logs {
+				splits := strings.Split(ls, ":")
+				if len(splits) != 2 {
+					continue
+				}
+				if !existInSlice(splits[0], mapprotocol.NearEventType) {
+					continue
+				}
+				m.log.Info("find one log", "log", ls)
+				//if !strings.HasPrefix(ls, mapprotocol.HashOfTransferOut) && !strings.HasPrefix(ls, mapprotocol.HashOfDepositOut) {
+				//	continue
+				//}
+			}
+
+			target = append(target, outcome)
+		}
+		//fmt.Println()
+	}
+
+	if len(target) == 0 {
+		return 0, nil
 	}
 
 	m.log.Info("获取的消息", "msg", data)
+	for _, tg := range target {
+		blk, err := m.conn.Client().NextLightClientBlock(context.Background(), tg.ExecutionOutcome.BlockHash)
+		if err != nil {
+			return 0, errors.Wrap(err, "nextLightClientBlock failed")
+		}
 
-	// step2:组装 struct
-	//proof := mapprotocol.NearReceiptProof{
-	//	BlockHeaderLite:  mapprotocol.BlockHeaderLite{},
-	//	BlockProof:       nil,
-	//	OutcomeProof:     mapprotocol.OutcomeProof{},
-	//	OutcomeRootProof: nil,
-	//}
+		clientHead, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(blk.InnerLite.Height))
+		if err != nil {
+			m.log.Error("BlockDetails failed, err %v", err)
+		}
 
-	return 0, nil
+		proof, err := m.conn.Client().LightClientProof(context.Background(), nearclient.Receipt{
+			ReceiptID:       tg.ExecutionOutcome.ID,
+			ReceiverID:      tg.Receipt.ReceiverID,
+			LightClientHead: clientHead.Header.Hash,
+		})
+		if err != nil {
+			m.log.Error("LightClientProof failed, err %v", err)
+		}
+
+		blkBytes := near.Borshify(blk)
+		m.log.Info("blockBytes, 0x%v", common.Bytes2Hex(blkBytes))
+		proofBytes, err := near.BorshifyOutcomeProof(proof)
+		if err != nil {
+			return 0, errors.Wrap(err, "borshifyOutcomeProof failed")
+		}
+		m.log.Info("proofBytes", "0x"+common.Bytes2Hex(proofBytes))
+
+		all, err := mapprotocol.NearGetBytes.Methods["getBytes"].Inputs.Pack(blkBytes, proofBytes)
+		if err != nil {
+			return 0, errors.Wrap(err, "getBytes failed")
+		}
+		fmt.Println("请求参数 ---------- ", "0x"+common.Bytes2Hex(all))
+		input, err := mapprotocol.NearVerify.Methods[mapprotocol.MethodVerifyProofData].Inputs.Pack(all)
+		if err != nil {
+			return 0, errors.Wrap(err, "verifyProof failed")
+		}
+
+		msgpayload := []interface{}{input}
+		message := msg.NewSwapWithProof(msg.ChainId(1313161555), msg.ChainId(212), msgpayload, m.msgCh)
+		m.log.Info("Event found")
+		err = m.router.Send(message)
+	}
+	return len(target), nil
+}
+
+func existInSlice(target string, dst []string) bool {
+	for _, d := range dst {
+		if target == d {
+			return true
+		}
+	}
+
+	return false
 }

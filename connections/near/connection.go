@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/log15"
-	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/atlas/accounts/abi/bind"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
@@ -132,7 +131,7 @@ func (c *Connection) LatestBlock() (*big.Int, error) {
 }
 
 // EnsureHasBytecode asserts if contract code exists at the specified address
-func (c *Connection) EnsureHasBytecode(addr ethcommon.Address) error {
+func (c *Connection) EnsureHasBytecode(addr string) error {
 	return nil
 }
 
