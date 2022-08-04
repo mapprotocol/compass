@@ -37,12 +37,12 @@ func (m *Maintainer) Sync() error {
 
 // sync function of Maintainer will poll for the latest block and proceed to parse the associated events as it sees new blocks.
 // Polling begins at the block defined in `m.cfg.startBlock`. Failed attempts to fetch the latest block or parse
-// a block will be retried up to BlockRetryLimit times before continuing to the next block.
+// a block will be retried up to RetryLimit times before continuing to the next block.
 func (m Maintainer) sync() error {
 	var currentBlock = m.cfg.startBlock
 	m.log.Info("Polling Blocks...", "block", currentBlock)
 
-	var retry = BlockRetryLimit
+	var retry = RetryLimit
 	for {
 		select {
 		case <-m.stop:
@@ -59,7 +59,7 @@ func (m Maintainer) sync() error {
 			if err != nil {
 				m.log.Error("Unable to get latest block", "block", currentBlock, "err", err)
 				retry--
-				time.Sleep(BlockRetryInterval)
+				time.Sleep(RetryInterval)
 				continue
 			}
 
@@ -70,7 +70,7 @@ func (m Maintainer) sync() error {
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.blockConfirmations) == -1 {
 				m.log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
-				time.Sleep(BlockRetryInterval)
+				time.Sleep(RetryInterval)
 				continue
 			}
 
@@ -101,7 +101,7 @@ func (m Maintainer) sync() error {
 
 			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			retry = BlockRetryLimit
+			retry = RetryLimit
 		}
 	}
 }

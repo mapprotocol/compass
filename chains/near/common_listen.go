@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	BlockRetryInterval = time.Second * 5
-	BlockRetryLimit    = 5
-	ErrFatalPolling    = errors.New("listener block polling failed")
+	RetryInterval   = time.Second * 5
+	RetryLimit      = 5
+	ErrFatalPolling = errors.New("listener block polling failed")
 )
 
 type CommonListen struct {
