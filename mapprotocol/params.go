@@ -48,6 +48,7 @@ var (
 	NearGetBytes, _         = abi.JSON(strings.NewReader(NearGetBytesAbi))
 	Eth2MapTransferInAbi, _ = abi.JSON(strings.NewReader(Eth2MapTransferIn))
 	ABIEncodeReceipt, _     = abi.JSON(strings.NewReader(EncodeReceiptABI))
+	LightNodeInterface, _   = abi.JSON(strings.NewReader(LightNodeInterfaceABI))
 )
 
 type Role string

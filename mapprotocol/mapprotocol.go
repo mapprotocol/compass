@@ -55,6 +55,28 @@ func SaveHeaderLiteTxData(marshal []byte) ([]byte, error) {
 	return packInput(ABILiteNode, SaveHeader, marshal)
 }
 
+func PackUpdateBlockHeaderInput(header []byte) ([]byte, error) {
+	return packInput(LightNodeInterface, MethodUpdateBlockHeader, header)
+}
+
+func PackHeaderHeightInput() ([]byte, error) {
+	return packInput(LightNodeInterface, MethodOfHeaderHeight)
+}
+
+func UnpackHeaderHeightOutput(output []byte) (*big.Int, error) {
+	outputs := LightNodeInterface.Methods[MethodOfHeaderHeight].Outputs
+	unpack, err := outputs.Unpack(output)
+	if err != nil {
+		return big.NewInt(0), err
+	}
+
+	height := new(big.Int)
+	if err := outputs.Copy(&height, unpack); err != nil {
+		return big.NewInt(0), err
+	}
+	return height, nil
+}
+
 func GetCurrentNumberAbi(from common.Address, chainId msg.ChainId) (*big.Int, string, error) {
 	if GlobalMapConn == nil {
 		return Big0, "", errors.New(" Global Map Connection is not assigned!")
