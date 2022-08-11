@@ -3,23 +3,18 @@ package near
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"log"
 	"math/big"
 	"strings"
 	"time"
 
-	"github.com/mapprotocol/compass/msg"
-
-	"github.com/ethereum/go-ethereum/common"
+	rds "github.com/go-redis/redis/v8"
 	"github.com/mapprotocol/compass/internal/near"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/redis"
+	"github.com/mapprotocol/near-api-go/pkg/client"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
-
-	"github.com/mapprotocol/compass/mapprotocol"
-
-	rds "github.com/go-redis/redis/v8"
-	"github.com/mapprotocol/compass/pkg/redis"
 	"github.com/pkg/errors"
 )
 
@@ -47,13 +42,13 @@ func (m *Messenger) Sync() error {
 
 // sync function of Messenger will poll for the latest block and listen the log information of transactions in the block
 // Polling begins at the block defined in `m.cfg.startBlock`. Failed attempts to fetch the latest block or parse
-// a block will be retried up to BlockRetryLimit times before continuing to the next block.
+// a block will be retried up to RetryLimit times before continuing to the next block.
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
 	var currentBlock = m.cfg.startBlock
 	m.log.Info("Polling Blocks...", "block", currentBlock)
 
-	var retry = BlockRetryLimit
+	var retry = RetryLimit
 	for {
 		select {
 		case <-m.stop:
@@ -72,7 +67,7 @@ func (m *Messenger) sync() error {
 			if err != nil {
 				m.log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				retry--
-				time.Sleep(BlockRetryInterval)
+				time.Sleep(RetryInterval)
 				continue
 			}
 
@@ -92,15 +87,14 @@ func (m *Messenger) sync() error {
 
 			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			retry = BlockRetryLimit
-			time.Sleep(BlockRetryInterval)
+			retry = RetryLimit
+			time.Sleep(RetryInterval)
 		}
 	}
 }
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
-	log.Println("--------------- ", m.cfg.bridgeContract)
 	// querying for logs
 	ctx := context.Background()
 	cmd := redis.GetClient().RPop(ctx, redis.ListKey)
@@ -112,98 +106,116 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	if err != nil && errors.Is(err, rds.Nil) {
 		return 0, nil
 	}
-	fmt.Printf("收到的数据， %v \n", result)
 
 	data := mapprotocol.StreamerMessage{}
 	err = json.Unmarshal([]byte(result), &data)
 	if err != nil {
-		return 0, errors.Wrap(err, "")
+		return 0, errors.Wrap(err, "json marshal failed")
 	}
 	target := make([]mapprotocol.IndexerExecutionOutcomeWithReceipt, 0)
 	for _, shard := range data.Shards {
 		for _, outcome := range shard.ReceiptExecutionOutcomes {
-			if outcome.ExecutionOutcome.Outcome.ExecutorID != m.cfg.bridgeContract { //  "mcs.pandarr.testnet" { // 合约地址
+			if outcome.ExecutionOutcome.Outcome.ExecutorID != m.cfg.bridgeContract {
 				continue
 			}
 			if len(outcome.ExecutionOutcome.Outcome.Logs) == 0 {
 				continue
 			}
 			for _, ls := range outcome.ExecutionOutcome.Outcome.Logs {
-				splits := strings.Split(ls, ":")
-				if len(splits) != 2 {
+				if !strings.HasPrefix(ls, mapprotocol.HashOfTransferOut) && !strings.HasPrefix(ls, mapprotocol.HashOfDepositOut) {
 					continue
 				}
-				if !existInSlice(splits[0], mapprotocol.NearEventType) {
-					continue
-				}
-				m.log.Info("find one log", "log", ls)
-				//if !strings.HasPrefix(ls, mapprotocol.HashOfTransferOut) && !strings.HasPrefix(ls, mapprotocol.HashOfDepositOut) {
-				//	continue
-				//}
 			}
-
+			m.log.Info("Event found")
 			target = append(target, outcome)
 		}
-		//fmt.Println()
 	}
 
 	if len(target) == 0 {
 		return 0, nil
 	}
 
-	m.log.Info("获取的消息", "msg", data)
+	ret, err := m.makeMessage(target)
+	if err != nil {
+		cmd := redis.GetClient().RPush(context.Background(), redis.ListKey, result)
+		_, err = cmd.Result()
+		if err != nil {
+			m.log.Error("make message failed, retry insert failed", "err", err)
+		}
+	}
+
+	return ret, nil
+}
+
+func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWithReceipt) (int, error) {
+	ret := 0
 	for _, tg := range target {
-		blk, err := m.conn.Client().NextLightClientBlock(context.Background(), tg.ExecutionOutcome.BlockHash)
-		if err != nil {
-			return 0, errors.Wrap(err, "nextLightClientBlock failed")
-		}
+		var (
+			err        error
+			retryCount = 0
+			blk        client.LightClientBlockView
+			proof      client.RpcLightClientExecutionProofResponse
+		)
+		for {
+			retryCount++
+			if retryCount == RetryLimit {
+				return 0, errors.New("make message, retries exceeded")
+			}
+			blk, err = m.conn.Client().NextLightClientBlock(context.Background(), tg.ExecutionOutcome.BlockHash)
+			if err != nil {
+				m.log.Warn("get nextLightClientBlock failed, will retry", "err", err)
+				time.Sleep(RetryInterval)
+				continue
+			}
 
-		clientHead, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(blk.InnerLite.Height))
-		if err != nil {
-			m.log.Error("BlockDetails failed, err %v", err)
-		}
+			clientHead, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(blk.InnerLite.Height))
+			if err != nil {
+				m.log.Warn("get blockDetails failed, will retry", "err", err)
+				time.Sleep(RetryInterval)
+				continue
+			}
 
-		proof, err := m.conn.Client().LightClientProof(context.Background(), nearclient.Receipt{
-			ReceiptID:       tg.ExecutionOutcome.ID,
-			ReceiverID:      tg.Receipt.ReceiverID,
-			LightClientHead: clientHead.Header.Hash,
-		})
-		if err != nil {
-			m.log.Error("LightClientProof failed, err %v", err)
+			proof, err = m.conn.Client().LightClientProof(context.Background(), nearclient.Receipt{
+				ReceiptID:       tg.ExecutionOutcome.ID,
+				ReceiverID:      tg.Receipt.ReceiverID,
+				LightClientHead: clientHead.Header.Hash,
+			})
+			if err != nil {
+				m.log.Warn("get lightClientProof failed, will retry", "err", err)
+				time.Sleep(RetryInterval)
+				continue
+			}
+			break
 		}
 
 		blkBytes := near.Borshify(blk)
-		m.log.Info("blockBytes, 0x%v", common.Bytes2Hex(blkBytes))
 		proofBytes, err := near.BorshifyOutcomeProof(proof)
 		if err != nil {
 			return 0, errors.Wrap(err, "borshifyOutcomeProof failed")
 		}
-		m.log.Info("proofBytes", "0x"+common.Bytes2Hex(proofBytes))
 
 		all, err := mapprotocol.NearGetBytes.Methods["getBytes"].Inputs.Pack(blkBytes, proofBytes)
 		if err != nil {
-			return 0, errors.Wrap(err, "getBytes failed")
+			return 0, errors.Wrap(err, "getBytes pack failed")
 		}
-		fmt.Println("请求参数 ---------- ", "0x"+common.Bytes2Hex(all))
-		input, err := mapprotocol.NearVerify.Methods[mapprotocol.MethodVerifyProofData].Inputs.Pack(all)
+
+		input, err := mapprotocol.NearVerify.Pack(mapprotocol.MethodVerifyProofData, all)
 		if err != nil {
-			return 0, errors.Wrap(err, "verifyProof failed")
+			return 0, errors.Wrap(err, "verifyProof pack failed")
+		}
+
+		// get fromChainId and toChainId
+		logs := strings.SplitN(tg.ExecutionOutcome.Outcome.Logs[0], ":", 2)
+		out := near.TransferOut{}
+		err = json.Unmarshal([]byte(logs[1]), &out)
+		if err != nil {
+			return 0, errors.Wrap(err, "logs format failed")
 		}
 
 		msgpayload := []interface{}{input}
-		message := msg.NewSwapWithProof(msg.ChainId(1313161555), msg.ChainId(212), msgpayload, m.msgCh)
-		m.log.Info("Event found")
+		message := msg.NewSwapWithProof(msg.ChainId(out.FromChain.Uint64()), m.cfg.mapChainID, msgpayload, m.msgCh)
 		err = m.router.Send(message)
+		ret++
 	}
-	return len(target), nil
-}
-
-func existInSlice(target string, dst []string) bool {
-	for _, d := range dst {
-		if target == d {
-			return true
-		}
-	}
-
-	return false
+	return ret, nil
 }

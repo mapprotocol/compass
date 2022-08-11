@@ -131,10 +131,10 @@ func GetAggPK(cli *ethclient.Client, number *big.Int, extra []byte) (*G2, error)
 
 	aggPKBytes := bls.AggregatePK(pks).Marshal()
 	return &G2{
-		Xr: new(big.Int).SetBytes(aggPKBytes[32:64]),
 		Xi: new(big.Int).SetBytes(aggPKBytes[:32]),
-		Yr: new(big.Int).SetBytes(aggPKBytes[96:128]),
+		Xr: new(big.Int).SetBytes(aggPKBytes[32:64]),
 		Yi: new(big.Int).SetBytes(aggPKBytes[64:96]),
+		Yr: new(big.Int).SetBytes(aggPKBytes[96:128]),
 	}, nil
 }
 

@@ -11,11 +11,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/pkg/errors"
-
-	"github.com/mapprotocol/compass/chains"
-	"github.com/mapprotocol/compass/msg"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -24,8 +19,11 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
+	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -122,9 +120,8 @@ type TxProve struct {
 }
 
 func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, receipts []*types.Receipt) (uint64, uint64, []byte, error) {
-	token := log.Topics[1].Bytes()
-	fromChainID := log.Data[:32]
-	toChainID := log.Data[32:64]
+	fromChainID := log.Data[96:128]
+	toChainID := log.Data[128:160]
 	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 
@@ -172,10 +169,9 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
-	fmt.Println("--------- ", bridgeAddr)
 	rp := mapprotocol.NewReceiptProof{
 		Router:   bridgeAddr,
-		Coin:     common.BytesToAddress(token),
+		Coin:     bridgeAddr, // common.BytesToAddress(token),
 		SrcChain: big.NewInt(0).SetUint64(uFromChainID),
 		DstChain: big.NewInt(0).SetUint64(uToChainID),
 		TxProve:  txProofBytes,
@@ -205,8 +201,8 @@ type MapTxProve struct {
 
 func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
 	header *maptypes.Header) (uint64, uint64, []byte, error) {
-	fromChainID := log.Data[:32]
-	toChainID := log.Data[32:64]
+	fromChainID := log.Data[96:128]
+	toChainID := log.Data[128:160]
 	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
@@ -250,7 +246,7 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 	if err != nil {
 		return 0, 0, nil, err
 	}
-	// return
+
 	nProof := make([]string, 0, len(proof))
 	for _, p := range proof {
 		nProof = append(nProof, "0x"+common.Bytes2Hex(p))
@@ -269,6 +265,7 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 	}
 
 	data, _ := json.Marshal(m)
+	fmt.Printf("map2near message %v \n", string(data))
 	return uFromChainID, uToChainID, data, nil
 }
 
