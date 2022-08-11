@@ -6,11 +6,15 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/mapprotocol/compass/internal/near"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
 )
+
+var NearEpochSize = big.NewInt(43200)
 
 type Maintainer struct {
 	*CommonListen
@@ -108,6 +112,22 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMapChain listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
+	input, err := mapprotocol.PackHeaderHeightInput()
+	if err != nil {
+		m.log.Error("failed to pack update header height input", "err", err)
+		return err
+	}
+	height, err := mapprotocol.HeaderHeight(mapprotocol.NearLightNodeContractOnMAP, input)
+	if err != nil {
+		m.log.Error("failed to get near header height on map", "err", err, "input", common.Bytes2Hex(input))
+		return err
+	}
+
+	gap := new(big.Int).Sub(NearEpochSize, new(big.Int).Sub(latestBlock, height)).Int64()
+	if gap > 0 {
+		time.Sleep(time.Duration(gap/10) * time.Second)
+		return nil
+	}
 
 	blockDetails, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(latestBlock.Uint64()))
 	if err != nil {
@@ -119,9 +139,9 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 		m.log.Error("failed to get next light client block", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
 		return err
 	}
-	input, err := mapprotocol.PackUpdateBlockHeaderInput(near.Borshify(lightBlock))
+	input, err = mapprotocol.PackUpdateBlockHeaderInput(near.Borshify(lightBlock))
 	if err != nil {
-		m.log.Error("failed to pack block header", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
+		m.log.Error("failed to pack update block header input", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
 		return err
 	}
 

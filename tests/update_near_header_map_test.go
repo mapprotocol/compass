@@ -2,12 +2,12 @@ package tests
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum"
+	"github.com/mapprotocol/compass/internal/near"
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/internal/near"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/near-api-go/pkg/client"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"

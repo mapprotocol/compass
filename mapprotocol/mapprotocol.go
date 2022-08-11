@@ -109,6 +109,18 @@ func GetCurrentNumberAbi(from common.Address, chainId msg.ChainId) (*big.Int, st
 	return height, hash.String(), nil
 }
 
+func HeaderHeight(to common.Address, input []byte) (*big.Int, error) {
+	output, err := GlobalMapConn.CallContract(context.Background(), goeth.CallMsg{From: ZeroAddress, To: &to, Data: input}, nil)
+	if err != nil {
+		return nil, err
+	}
+	height, err := UnpackHeaderHeightOutput(output)
+	if err != nil {
+		return nil, err
+	}
+	return height, nil
+}
+
 type Connection interface {
 	Keypair() *secp256k1.Keypair
 	Client() *ethclient.Client
