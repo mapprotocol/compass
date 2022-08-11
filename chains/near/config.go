@@ -24,6 +24,7 @@ const DefaultGasMultiplier = 1
 // Chain specific options
 var (
 	BridgeOpt             = "bridge"
+	RedisOpt              = "redis"
 	MaxGasPriceOpt        = "maxGasPrice"
 	GasLimitOpt           = "gasLimit"
 	GasMultiplier         = "gasMultiplier"
@@ -59,6 +60,7 @@ type Config struct {
 	mapChainID         msg.ChainId
 	syncChainIDList    []msg.ChainId // chain ids which map sync to
 	lightNode          string        // the lightnode to sync header
+	redisUrl           string
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
@@ -80,6 +82,7 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		blockConfirmations: big.NewInt(0),
 		egsApiKey:          "",
 		egsSpeed:           "",
+		redisUrl:           "",
 	}
 
 	if contract, ok := chainCfg.Opts[BridgeOpt]; ok && contract != "" {
@@ -87,6 +90,11 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		delete(chainCfg.Opts, BridgeOpt)
 	} else {
 		return nil, fmt.Errorf("must provide opts.bridge field for ethereum config")
+	}
+
+	if v, ok := chainCfg.Opts[RedisOpt]; ok && v != "" {
+		config.redisUrl = v
+		delete(chainCfg.Opts, RedisOpt)
 	}
 
 	if gasPrice, ok := chainCfg.Opts[MaxGasPriceOpt]; ok {
