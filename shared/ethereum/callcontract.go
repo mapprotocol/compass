@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"sync"
 
@@ -182,7 +181,7 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
-	pack, err := mapprotocol.Eth2MapTransferInPackInput(mapprotocol.MethodOfTransferIn, big.NewInt(0), payloads)
+	pack, err := mapprotocol.Eth2MapTransferInPackInput(mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(uFromChainID), payloads)
 	//pack, err := mapprotocol.PackVerifyInput(mapprotocol.MethodVerifyProofData, payloads)
 	if err != nil {
 		return 0, 0, nil, errors.Wrap(err, "getBytes failed")
@@ -264,8 +263,10 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 		"proof":     nProof,
 	}
 
-	data, _ := json.Marshal(m)
-	fmt.Printf("map2near message %v \n", string(data))
+	data, _ := json.Marshal(map[string]interface{}{
+		"receipt_proof": m,
+	})
+	//fmt.Printf("map2near message %v \n", string(data))
 	return uFromChainID, uToChainID, data, nil
 }
 

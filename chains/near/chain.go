@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/big"
+
+	"github.com/mapprotocol/compass/pkg/redis"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
@@ -105,7 +106,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		cfg.startBlock = curr
 	}
 
-	if cfg.lightNode != "" && cfg.id != cfg.mapChainID && syncMap != nil { // 请求获取同步的map 高度
+	if cfg.lightNode != "" && syncMap != nil && role == mapprotocol.RoleOfMaintainer { // 请求获取同步的map 高度
 		res, err := conn.Client().ContractViewCallFunction(context.Background(), cfg.lightNode, AbiMethodOfGetHeaderHeight,
 			"e30=", block.FinalityFinal())
 		if err != nil {
@@ -119,10 +120,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		result := big.NewInt(0)
 		err = json.Unmarshal(res.Result, result)
 		if err != nil {
-			log.Printf("result ------------ %v \n", string(res.Result))
 			return nil, errors.Wrap(err, "near lightNode headerHeight resp json marshal failed")
 		}
-		//height, _ := new(big.Int).SetString(string(result.Result), 10)
 		syncMap[cfg.id] = result
 	}
 
@@ -130,6 +129,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	var listen chains.Listener
 	cs := NewCommonListen(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMessenger {
+		redis.Init(cfg.redisUrl)
 		listen = NewMessenger(cs)
 	} else { // Maintainer is used by default
 		listen = NewMaintainer(cs)
