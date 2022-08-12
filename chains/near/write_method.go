@@ -126,9 +126,9 @@ func (w *writer) sendTx(toAddress string, method string, input []byte) (hash.Cry
 	if err != nil {
 		return hash.CryptoHash{}, fmt.Errorf("failed to do txn: %w", err)
 	}
+	w.log.Debug("sendTx success", "res", res)
 	if len(res.Status.Failure) != 0 {
 		return hash.CryptoHash{}, fmt.Errorf("back resp failed, err is %s", string(res.Status.Failure))
 	}
-	w.log.Debug("sendTx success", "res", res)
 	return res.Transaction.Hash, nil
 }

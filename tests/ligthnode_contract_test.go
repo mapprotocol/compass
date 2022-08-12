@@ -13,8 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mapprotocol/compass/pkg/redis"
-
 	"github.com/mapprotocol/compass/internal/near"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
@@ -37,11 +35,12 @@ import (
 )
 
 func Test_Redis(t *testing.T) {
-	bytes, err := ioutil.ReadFile("./json.txt")
-	if err != nil {
-		t.Fatalf("readFile failed err is %v", err)
-	}
-	redis.GetClient().LPush(context.Background(), redis.ListKey, string(bytes))
+	fmt.Println("0x" + common.Bytes2Hex([]byte("mcs_token_0")))
+	//bytes, err := ioutil.ReadFile("./json.txt")
+	//if err != nil {
+	//	t.Fatalf("readFile failed err is %v", err)
+	//}
+	//redis.GetClient().LPush(context.Background(), redis.ListKey, string(bytes))
 }
 
 func Test_NearMcs(t *testing.T) {

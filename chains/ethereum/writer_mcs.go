@@ -10,15 +10,13 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
 )
 
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *writer) exeSwapMsg(m msg.Message) bool {
-	//return w.callContractWithMsg(w.cfg.bridgeContract, m)
-	return w.callContractWithMsg(mapprotocol.Eth2MapTmpAddress, m) // local test eth -> map
+	return w.callContractWithMsg(w.cfg.bridgeContract, m)
 }
 
 // callContractWithMsg call contract using address and function signature with message info
@@ -37,16 +35,13 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
-			//mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
-			input, _ := mapprotocol.NearVerify.Pack(mapprotocol.MethodOfHeaderHeight)
-			err = w.call(&addr, input, mapprotocol.NearVerify, mapprotocol.MethodOfHeaderHeight)
-			err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.NearVerify, mapprotocol.MethodVerifyProofData)
+			mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
 			w.log.Info("send transaction", "addr", addr)
 			w.conn.UnlockOpts()
 
 			if err == nil {
 				// message successfully handled
-				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "mcsTx") // , mcsTx.Hash())
+				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "mcsTx", mcsTx.Hash())
 				m.DoneCh <- struct{}{}
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
