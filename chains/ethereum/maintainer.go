@@ -146,12 +146,7 @@ func (m Maintainer) sync() error {
 			m.latestBlock.Height = big.NewInt(0).Set(latestBlock)
 			m.latestBlock.LastUpdated = time.Now()
 
-			if currentBlock.Uint64() == 343001 {
-				currentBlock.Add(currentBlock, big.NewInt(999))
-			} else {
-				currentBlock.Add(currentBlock, big.NewInt(1000))
-			}
-			//currentBlock.Add(currentBlock, big.NewInt(1))
+			currentBlock.Add(currentBlock, big.NewInt(1))
 			retry = BlockRetryLimit
 		}
 	}

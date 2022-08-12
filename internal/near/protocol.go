@@ -24,7 +24,7 @@ type TransferOut struct {
 	OrderId      []byte  `json:"order_id"`
 	FromChain    big.Int `json:"from_chain"`
 	ToChain      big.Int `json:"to_chain"`
-	To           string  `json:"to"`
+	To           []byte  `json:"to"`
 	Amount       big.Int `json:"amount"`
 	ToChainToken string  `json:"to_chain_token"`
 }
