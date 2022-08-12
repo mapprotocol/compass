@@ -199,7 +199,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			return 0, errors.Wrap(err, "getBytes pack failed")
 		}
 
-		input, err := mapprotocol.NearVerify.Pack(mapprotocol.MethodVerifyProofData, all)
+		input, err := mapprotocol.Eth2MapTransferInAbi.Pack(mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(uint64(m.cfg.id)), all)
 		if err != nil {
 			return 0, errors.Wrap(err, "verifyProof pack failed")
 		}

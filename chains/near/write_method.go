@@ -107,15 +107,18 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 
 // sendTx send tx to an address with value and input data
 func (w *writer) sendTx(toAddress string, method string, input []byte) (hash.CryptoHash, error) {
-	w.log.Debug("sendTx", "input", string(input))
+	w.log.Info("sendTx", "toAddress", toAddress)
 	ctx := client.ContextWithKeyPair(context.Background(), *w.conn.Keypair())
+	b := types.Balance{}
+	if method == AbiMethodOfTransferIn {
+		b, _ = types.BalanceFromString(near.Deposit)
+	}
 	res, err := w.conn.Client().TransactionSendAwait(
 		ctx,
 		w.cfg.from,
 		toAddress,
 		[]action.Action{
-			action.NewFunctionCall(method, input, near.NewFunctionCallGas,
-				types.Balance{}),
+			action.NewFunctionCall(method, input, near.NewFunctionCallGas, b),
 		},
 		client.WithLatestBlock(),
 		client.WithKeyPair(*w.conn.Keypair()),
