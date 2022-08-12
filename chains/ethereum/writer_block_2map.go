@@ -1,16 +1,15 @@
 package ethereum
 
 import (
-	"math/big"
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 )
 
 // exeSyncMsg executes sync msg, and send tx to the destination blockchain
+// the current function is only responsible for sending messages and is not responsible for processing data formats，
 func (w *writer) exeSyncMsg(m msg.Message) bool {
 	//return w.callContractWithMsg(,  m)
 	for i := 0; i < TxRetryLimit; i++ {
@@ -28,34 +27,15 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
 
-			src := big.NewInt(int64(m.Source))
-			dest := big.NewInt(int64(m.Destination))
 			marshal, _ := m.Payload[0].([]byte)
-
-			param := struct {
-				From    *big.Int
-				To      *big.Int
-				Headers []byte
-			}{
-				From:    src,
-				To:      dest,
-				Headers: marshal,
-			}
-
-			bytes, err := rlp.EncodeToBytes(param)
-			if err != nil {
-				w.log.Error("rlp EncodeToBytes failed ", "err", err)
-				return false
-			}
-
 			// save header data
-			data, err := mapprotocol.SaveHeaderTxData(bytes)
+			data, err := mapprotocol.SaveHeaderTxData(marshal)
 			if err != nil {
 				w.log.Error("Failed to pack abi data", "err", err)
 				w.conn.UnlockOpts()
 				return false
 			}
-			tx, err := w.sendTx(&mapprotocol.RelayerAddress, nil, data)
+			tx, err := w.sendTx(&w.cfg.lightNode, nil, data)
 			w.conn.UnlockOpts()
 			if err == nil {
 				// message successfully handled
