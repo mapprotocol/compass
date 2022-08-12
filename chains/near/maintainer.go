@@ -117,7 +117,7 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 		m.log.Error("failed to pack update header height input", "err", err)
 		return err
 	}
-	height, err := mapprotocol.HeaderHeight(mapprotocol.NearLightNodeContractOnMAP, input)
+	height, err := mapprotocol.HeaderHeight(common.HexToAddress(m.cfg.lightNode), input)
 	if err != nil {
 		m.log.Error("failed to get near header height on map", "err", err, "input", common.Bytes2Hex(input))
 		return err

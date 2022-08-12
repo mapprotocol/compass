@@ -53,10 +53,6 @@ var (
 	LightNodeInterface, _   = abi.JSON(strings.NewReader(LightNodeInterfaceABI))
 )
 
-var (
-	NearLightNodeContractOnMAP = common.HexToAddress("0xeA9066b735dA0ad462B269711be8e39fe7156d15")
-)
-
 type Role string
 
 var (
