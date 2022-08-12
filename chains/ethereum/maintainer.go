@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -162,16 +163,18 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
-	chains := []types.Header{*header}
-	marshal, _ := rlp.EncodeToBytes(chains)
-
-	msgpayload := []interface{}{marshal}
+	enc, err := rlpEthereumHeaders(m.cfg.id, m.cfg.mapChainID, []types.Header{*header})
+	if err != nil {
+		m.log.Error("failed to rlp ethereum headers", "err", err)
+		return err
+	}
+	msgpayload := []interface{}{enc}
 	message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, msgpayload, m.msgCh)
 
 	err = m.router.Send(message)
 	if err != nil {
 		m.log.Error("subscription error: failed to route message", "err", err)
-		return nil
+		return err
 	}
 
 	err = m.waitUntilMsgHandled(1)
@@ -201,10 +204,14 @@ func (m *Maintainer) batchSyncHeadersTo(height *big.Int) error {
 			chains = append(chains, *header)
 		}
 
-		marshal, _ := rlp.EncodeToBytes(chains)
-		msgpayload := []interface{}{marshal}
+		enc, err := rlpEthereumHeaders(m.cfg.id, m.cfg.mapChainID, chains)
+		if err != nil {
+			m.log.Error("failed to rlp ethereum headers", "err", err)
+			return err
+		}
+		msgpayload := []interface{}{enc}
 		message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, msgpayload, m.msgCh)
-		err := m.router.Send(message)
+		err = m.router.Send(message)
 		if err != nil {
 			m.log.Error("subscription error: failed to route message", "err", err)
 			return err
@@ -286,4 +293,27 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 		return err
 	}
 	return nil
+}
+
+func rlpEthereumHeaders(source, destination msg.ChainId, headers []types.Header) ([]byte, error) {
+	h, err := rlp.EncodeToBytes(headers)
+	if err != nil {
+		return nil, fmt.Errorf("rpl encode ethereum headers error: %v", err)
+	}
+
+	params := struct {
+		From    *big.Int
+		To      *big.Int
+		Headers []byte
+	}{
+		From:    big.NewInt(int64(source)),
+		To:      big.NewInt(int64(destination)),
+		Headers: h,
+	}
+
+	enc, err := rlp.EncodeToBytes(params)
+	if err != nil {
+		return nil, fmt.Errorf("rpl encode params error: %v", err)
+	}
+	return enc, nil
 }
