@@ -8,6 +8,7 @@ import (
 
 var (
 	NewFunctionCallGas types.Gas = 30 * 10000000000000
+	Deposit                      = "0.3"
 )
 
 type Result struct {
