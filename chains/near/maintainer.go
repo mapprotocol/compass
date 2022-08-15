@@ -68,13 +68,6 @@ func (m *Maintainer) Sync() error {
 // Polling begins at the block defined in `m.cfg.startBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to RetryLimit times before continuing to the next block.
 func (m Maintainer) sync() error {
-	height, err := m.getHeight()
-	if err != nil {
-		return err
-	}
-	var currentBlock = height
-	m.log.Info("Polling Blocks...", "block", currentBlock)
-
 	var retry = RetryLimit
 	for {
 		select {
@@ -90,39 +83,25 @@ func (m Maintainer) sync() error {
 
 			latestBlock, err := m.conn.LatestBlock()
 			if err != nil {
-				m.log.Error("Unable to get latest block", "block", currentBlock, "err", err)
+				m.log.Error("Unable to get latest block", "block", latestBlock, "err", err)
 				retry--
 				time.Sleep(RetryInterval)
 				continue
 			}
-			fmt.Println("latestBlock ---------- ", latestBlock)
 
 			if m.metrics != nil {
 				m.metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
-			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
-			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.blockConfirmations) == -1 {
-				m.log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
-				time.Sleep(RetryInterval)
-				continue
-			}
-
 			if m.cfg.syncToMap {
 				// listen when catchup
-				m.log.Info("Sync Header to Map Chain", "target", currentBlock)
-				err = m.syncHeaderToMapChain(currentBlock)
+				m.log.Info("Sync Header to Map Chain", "target", latestBlock)
+				err = m.syncHeaderToMapChain(latestBlock)
 				if err != nil {
-					m.log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
+					m.log.Error("Failed to listen header for block", "block", latestBlock, "err", err)
 					retry--
 					continue
 				}
-			}
-
-			// Write to block store. Not a critical operation, no need to retry
-			err = m.blockStore.StoreBlock(currentBlock)
-			if err != nil {
-				m.log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
 
 			if m.metrics != nil {
@@ -132,9 +111,6 @@ func (m Maintainer) sync() error {
 
 			m.latestBlock.Height = big.NewInt(0).Set(latestBlock)
 			m.latestBlock.LastUpdated = time.Now()
-
-			// Goto next block and reset retry counter
-			currentBlock.Add(currentBlock, big.NewInt(43200))
 			retry = RetryLimit
 		}
 	}
@@ -146,38 +122,42 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
-	gap := new(big.Int).Sub(NearEpochSize, new(big.Int).Sub(latestBlock, height)).Int64()
+	if latestBlock.Cmp(height) == -1 {
+		return nil
+	}
+
+	blocks := new(big.Int).Sub(latestBlock, height)
+	gap := new(big.Int).Sub(NearEpochSize, blocks).Int64()
 	if gap > 0 {
-		//fmt.Println("---------------- sleep ", gap, "----", "latestBlock", latestBlock)
-		//time.Sleep(time.Duration(gap/10) * time.Second)
+		m.log.Info("wait for the next light client block to be generated", "target", new(big.Int).Add(height, NearEpochSize).Uint64())
+		time.Sleep(time.Duration(gap/10) * time.Second)
 		return nil
 	}
 
-	blockDetails, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(latestBlock.Uint64()))
-	if err != nil {
-		m.log.Error("failed to get block", "err", err, "number", latestBlock.Uint64())
-		return err
-	}
-	lightBlock, err := m.conn.Client().NextLightClientBlock(context.Background(), blockDetails.Header.Hash)
-	if err != nil {
-		m.log.Error("failed to get next light client block", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
-		return err
-	}
-	//input, err := mapprotocol.PackUpdateBlockHeaderInput(near.Borshify(lightBlock))
-	//if err != nil {
-	//	m.log.Error("failed to pack update block header input", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
-	//	return err
-	//}
+	count := new(big.Int).Div(blocks, NearEpochSize).Uint64()
+	number := height
+	for i := uint64(0); i < count; i++ {
+		blockDetails, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(number.Add(number, NearEpochSize).Uint64()))
+		if err != nil {
+			m.log.Error("failed to get block", "err", err, "number", latestBlock.Uint64())
+			return err
+		}
+		lightBlock, err := m.conn.Client().NextLightClientBlock(context.Background(), blockDetails.Header.Hash)
+		if err != nil {
+			m.log.Error("failed to get next light client block", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
+			return err
+		}
 
-	message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, []interface{}{near.Borshify(lightBlock)}, m.msgCh)
-	err = m.router.Send(message)
-	if err != nil {
-		m.log.Error("subscription error: failed to route message", "err", err)
-		return nil
-	}
-	err = m.waitUntilMsgHandled(1)
-	if err != nil {
-		return err
+		message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, []interface{}{near.Borshify(lightBlock)}, m.msgCh)
+		err = m.router.Send(message)
+		if err != nil {
+			m.log.Error("subscription error: failed to route message", "err", err)
+			return nil
+		}
+		err = m.waitUntilMsgHandled(1)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
