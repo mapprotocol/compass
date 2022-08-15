@@ -219,6 +219,7 @@ func (m *Maintainer) batchSyncHeadersTo(height *big.Int) error {
 
 		m.syncedHeight = m.syncedHeight.Add(m.syncedHeight, loop)
 		m.log.Info("Headers synced...", "height", m.syncedHeight)
+		time.Sleep(time.Second * 1)
 	}
 
 	m.log.Info("Batch listen finished", "height", height, "syncHeight", m.syncedHeight)

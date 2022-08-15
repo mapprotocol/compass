@@ -2,10 +2,11 @@ package tests
 
 import (
 	"context"
-	"github.com/ethereum/go-ethereum"
-	"github.com/mapprotocol/compass/internal/near"
 	"math/big"
 	"testing"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/mapprotocol/compass/internal/near"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -14,19 +15,19 @@ import (
 )
 
 var (
-	from         = common.HexToAddress("0xd9b31120b910c7d239a03062ab1d9403f30fb7d5")
-	contractAddr = common.HexToAddress("0xeA9066b735dA0ad462B269711be8e39fe7156d15")
+	from         = common.HexToAddress("0xec3e016916ba9f10762e33e03e8556409d096fb4")
+	contractAddr = common.HexToAddress("0x3CE319B86ad4CC0623F7039C48978c1A2c6cF8eB")
 )
 
 var (
-	ksPath     = "/Users/t/data/atlas-1/keystore/UTC--2022-07-11T07-25-34.126829000Z--d9b31120b910c7d239a03062ab1d9403f30fb7d5"
+	ksPath     = "/Users/xm/Desktop/WL/code/atlas/node-1/keystore/UTC--2022-06-20T13-03-52.445629000Z--ec3e016916ba9f10762e33e03e8556409d096fb4"
 	ksPassword = ""
 )
 
 func TestUpdateNearHeaderToMAP(t *testing.T) {
 	h := headerHeight(t)
 	t.Log("height: ", h)
-	cli, err := client.NewClient("https://archival-rpc.mainnet.near.org")
+	cli, err := client.NewClient("https://archival-rpc.testnet.near.org")
 	if err != nil {
 		t.Fatal(err)
 	}
