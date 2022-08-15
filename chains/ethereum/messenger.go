@@ -165,7 +165,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
-			msgpayload := []interface{}{payload}
+			msgpayload := []interface{}{payload, log.Index}
 			message = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
 		} else {
 			fromChainID, toChainID, payload, err := utils.ParseEthLogIntoSwapArgs(log, m.cfg.bridgeContract)

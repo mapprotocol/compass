@@ -25,8 +25,7 @@ const DefaultGasMultiplier = 1
 
 // Chain specific options
 var (
-	BridgeOpt = "bridge"
-	//GenericHandlerOpt     = "genericHandler"
+	BridgeOpt             = "bridge"
 	MaxGasPriceOpt        = "maxGasPrice"
 	GasLimitOpt           = "gasLimit"
 	GasMultiplier         = "gasMultiplier"
@@ -92,11 +91,6 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 	} else {
 		return nil, fmt.Errorf("must provide opts.bridge field for ethereum config")
 	}
-
-	// if contract, ok := chainCfg.Opts[GenericHandlerOpt]; ok {
-	// 	config.genericHandlerContract = common.HexToAddress(contract)
-	// 	delete(chainCfg.Opts, GenericHandlerOpt)
-	// }
 
 	if gasPrice, ok := chainCfg.Opts[MaxGasPriceOpt]; ok {
 		price := big.NewInt(0)
@@ -206,12 +200,11 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 
 	if lightnode, ok := chainCfg.Opts[LightNode]; ok && lightnode != "" {
 		config.lightNode = common.HexToAddress(lightnode)
-		delete(chainCfg.Opts, LightNode)
 	}
 
-	if len(chainCfg.Opts) != 0 {
-		return nil, fmt.Errorf("unknown Opts Encountered: %#v", chainCfg.Opts)
-	}
+	//if len(chainCfg.Opts) != 0 {
+	//	return nil, fmt.Errorf("unknown Opts Encountered: %#v", chainCfg.Opts)
+	//}
 
 	return config, nil
 }

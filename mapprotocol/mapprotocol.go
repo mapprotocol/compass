@@ -23,7 +23,10 @@ import (
 )
 
 // GlobalMapConn global Map connection; assign at cmd/main
-var GlobalMapConn *ethclient.Client
+var (
+	GlobalMapConn    *ethclient.Client
+	LightNodeAddress string
+)
 
 func packInput(commonAbi abi.ABI, abiMethod string, params ...interface{}) ([]byte, error) {
 	input, err := commonAbi.Pack(abiMethod, params...)

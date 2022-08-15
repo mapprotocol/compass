@@ -3,8 +3,11 @@ package near
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"time"
+
+	log "github.com/ChainSafe/log15"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -16,14 +19,36 @@ import (
 
 var NearEpochSize = big.NewInt(43200)
 
+type GetHeight func() (*big.Int, error)
+
+func CreateGetHeight(lightNode common.Address) GetHeight {
+	return func() (*big.Int, error) {
+		input, err := mapprotocol.PackHeaderHeightInput()
+		if err != nil {
+			log.Error("failed to pack update header height input", "err", err)
+			return nil, err
+		}
+
+		height, err := mapprotocol.HeaderHeight(lightNode, input)
+		if err != nil {
+			log.Error("failed to get near header height on map", "err", err, "input", common.Bytes2Hex(input))
+			return nil, err
+		}
+		fmt.Println("-------- m.cfg.lightNode", lightNode, "height", height)
+		return height, nil
+	}
+}
+
 type Maintainer struct {
 	*CommonListen
 	syncedHeight *big.Int
+	getHeight    GetHeight
 }
 
-func NewMaintainer(cs *CommonListen) *Maintainer {
+func NewMaintainer(cs *CommonListen, getHeight GetHeight) *Maintainer {
 	return &Maintainer{
 		CommonListen: cs,
+		getHeight:    getHeight,
 	}
 }
 
@@ -43,7 +68,11 @@ func (m *Maintainer) Sync() error {
 // Polling begins at the block defined in `m.cfg.startBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to RetryLimit times before continuing to the next block.
 func (m Maintainer) sync() error {
-	var currentBlock = m.cfg.startBlock
+	height, err := m.getHeight()
+	if err != nil {
+		return err
+	}
+	var currentBlock = height
 	m.log.Info("Polling Blocks...", "block", currentBlock)
 
 	var retry = RetryLimit
@@ -66,6 +95,7 @@ func (m Maintainer) sync() error {
 				time.Sleep(RetryInterval)
 				continue
 			}
+			fmt.Println("latestBlock ---------- ", latestBlock)
 
 			if m.metrics != nil {
 				m.metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
@@ -104,7 +134,7 @@ func (m Maintainer) sync() error {
 			m.latestBlock.LastUpdated = time.Now()
 
 			// Goto next block and reset retry counter
-			currentBlock.Add(currentBlock, big.NewInt(1))
+			currentBlock.Add(currentBlock, big.NewInt(43200))
 			retry = RetryLimit
 		}
 	}
@@ -112,20 +142,14 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMapChain listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
-	input, err := mapprotocol.PackHeaderHeightInput()
+	height, err := m.getHeight()
 	if err != nil {
-		m.log.Error("failed to pack update header height input", "err", err)
 		return err
 	}
-	height, err := mapprotocol.HeaderHeight(common.HexToAddress(m.cfg.lightNode), input)
-	if err != nil {
-		m.log.Error("failed to get near header height on map", "err", err, "input", common.Bytes2Hex(input))
-		return err
-	}
-
 	gap := new(big.Int).Sub(NearEpochSize, new(big.Int).Sub(latestBlock, height)).Int64()
 	if gap > 0 {
-		time.Sleep(time.Duration(gap/10) * time.Second)
+		//fmt.Println("---------------- sleep ", gap, "----", "latestBlock", latestBlock)
+		//time.Sleep(time.Duration(gap/10) * time.Second)
 		return nil
 	}
 
@@ -139,13 +163,13 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 		m.log.Error("failed to get next light client block", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
 		return err
 	}
-	input, err = mapprotocol.PackUpdateBlockHeaderInput(near.Borshify(lightBlock))
-	if err != nil {
-		m.log.Error("failed to pack update block header input", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
-		return err
-	}
+	//input, err := mapprotocol.PackUpdateBlockHeaderInput(near.Borshify(lightBlock))
+	//if err != nil {
+	//	m.log.Error("failed to pack update block header input", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
+	//	return err
+	//}
 
-	message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, []interface{}{input}, m.msgCh)
+	message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, []interface{}{near.Borshify(lightBlock)}, m.msgCh)
 	err = m.router.Send(message)
 	if err != nil {
 		m.log.Error("subscription error: failed to route message", "err", err)
