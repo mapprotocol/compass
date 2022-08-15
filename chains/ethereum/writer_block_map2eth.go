@@ -85,9 +85,10 @@ func (w *writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 		Data:     input,
 	}
 	w.log.Debug("eth CallMsg", "msg", msg)
+	w.log.Debug("eth CallMsg", "toAddress", toAddress)
 	gasLimit, err := w.conn.Client().EstimateGas(context.Background(), msg)
 	if err != nil {
-		w.log.Error("EstimateGas failed", "error:", err.Error())
+		w.log.Error("EstimateGas failed sendTx", "error:", err.Error())
 		return nil, err
 	}
 
