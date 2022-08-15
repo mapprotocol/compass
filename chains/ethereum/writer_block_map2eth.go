@@ -56,6 +56,9 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 				}
 				m.DoneCh <- struct{}{}
 				return true
+			} else if strings.Index(err.Error(), "EOF") != -1 {
+				w.log.Error("Sync Header to map encounter EOF, will retry")
+				time.Sleep(TxRetryInterval)
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Sync Map Header to other chain Nonce too low, will retry")
 				time.Sleep(TxRetryInterval)

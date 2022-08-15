@@ -55,6 +55,9 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry")
 				time.Sleep(TxRetryInterval)
+			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
+				w.log.Error("Sync Header to map encounter EOF, will retry")
+				time.Sleep(TxRetryInterval)
 			} else {
 				if strings.Index(err.Error(), "EOF") != -1 { // // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 					continue
@@ -93,6 +96,9 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry")
+				time.Sleep(TxRetryInterval)
+			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
+				w.log.Error("Sync Header to map encounter EOF, will retry")
 				time.Sleep(TxRetryInterval)
 			} else {
 				w.log.Warn("Execution failed, tx may already be complete", "err", err)

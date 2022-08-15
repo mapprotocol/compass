@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/mapprotocol/compass/pkg/redis"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
@@ -132,7 +134,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		redis.Init(cfg.redisUrl)
 		listen = NewMessenger(cs)
 	} else { // Maintainer is used by default
-		listen = NewMaintainer(cs)
+		fn := CreateGetHeight(common.HexToAddress(mapprotocol.LightNodeAddress))
+		listen = NewMaintainer(cs, fn)
 	}
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
 

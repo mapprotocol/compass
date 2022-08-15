@@ -242,7 +242,8 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	c := core.NewCore(sysErr, msg.ChainId(mapcid))
 	// merge map chain
 	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
-	allChains = append(cfg.Chains, cfg.MapChain)
+	allChains = append(allChains, cfg.MapChain)
+	allChains = append(allChains, cfg.Chains...)
 	syncMap := make(map[msg.ChainId]*big.Int)
 
 	for idx, chain := range allChains {
@@ -281,9 +282,10 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			if err != nil {
 				return err
 			}
-			if idx == len(allChains)-1 {
+			if idx == 0 {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
+				mapprotocol.LightNodeAddress = chainConfig.Opts[ethereum.LightNode]
 			}
 		} else if chain.Type == chains.Near {
 			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role, syncMap)

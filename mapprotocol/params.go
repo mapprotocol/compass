@@ -29,13 +29,9 @@ const (
 	MethodOfTransferIn      = "transferIn"
 )
 
-const (
-	NearMethodOfReceiptProof = ""
-)
-
 var (
 	RelayerAddress    = common.HexToAddress("0x000068656164657273746F726541646472657373")
-	Eth2MapTmpAddress = common.HexToAddress("0x0000000000747856657269667941646472657373")
+	Eth2MapTmpAddress = common.HexToAddress("0x3CE319B86ad4CC0623F7039C48978c1A2c6cF8eB")
 	SaveHeader        = "save"
 	UpdateBlockHeader = "updateBlockHeader"
 	CurNbrAndHash     = "currentNumberAndHash"

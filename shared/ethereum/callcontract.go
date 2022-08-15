@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -265,8 +266,9 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 
 	data, _ := json.Marshal(map[string]interface{}{
 		"receipt_proof": m,
+		"index":         log.Index,
 	})
-	//fmt.Printf("map2near message %v \n", string(data))
+	fmt.Printf("map2near message %v \n", string(data))
 	return uFromChainID, uToChainID, data, nil
 }
 
