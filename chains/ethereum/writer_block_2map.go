@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/mapprotocol/compass/mapprotocol"
+
 	"github.com/mapprotocol/compass/msg"
 )
 
@@ -53,6 +54,9 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 				time.Sleep(TxRetryInterval)
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry")
+				time.Sleep(TxRetryInterval)
+			} else if strings.Index(err.Error(), "max fee per gas less than block base fee") != -1 {
+				w.log.Error("gas maybe less than base fee, will retry")
 				time.Sleep(TxRetryInterval)
 			} else {
 				w.log.Warn("Sync Header to map Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
