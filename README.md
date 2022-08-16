@@ -16,7 +16,6 @@ This project is inspired by [ChainSafe/ChainBridge](https://github.com/ChainSafe
 
 # Quick Start  
 
-### 1. Get the executable  
 the recommanded way to get the executable is to download it from the release page.  
 
 >if you want to build it from the source code,check the [building](#building) section below.  
