@@ -55,6 +55,8 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			} else {
 				w.log.Warn("Execution failed, tx may already be complete", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 				time.Sleep(TxRetryInterval)
+				m.DoneCh <- struct{}{}
+				return true
 			}
 		}
 	}
