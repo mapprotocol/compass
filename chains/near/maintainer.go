@@ -135,18 +135,23 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 	}
 
 	count := new(big.Int).Div(blocks, NearEpochSize).Uint64()
-	number := height
+	number := height.Uint64()
 	for i := uint64(0); i < count; i++ {
-		blockDetails, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(number.Add(number, NearEpochSize).Uint64()))
+		blockDetails, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(number))
 		if err != nil {
-			m.log.Error("failed to get block", "err", err, "number", latestBlock.Uint64())
+			m.log.Error("failed to get block", "err", err, "number", number)
 			return err
 		}
+		m.log.Info("get block complete", "number", number, "hash", blockDetails.Header.Hash)
+
 		lightBlock, err := m.conn.Client().NextLightClientBlock(context.Background(), blockDetails.Header.Hash)
 		if err != nil {
-			m.log.Error("failed to get next light client block", "err", err, "number", latestBlock.Uint64(), "hash", blockDetails.Header.Hash)
+			m.log.Error("failed to get next light client block", "err", err, "number", lightBlock.InnerLite.Height, "hash", lightBlock.NextBlockInnerHash)
 			return err
 		}
+		m.log.Info("get next light client block complete", "number", number, "hash", blockDetails.Header.Hash)
+
+		number = lightBlock.InnerLite.Height
 
 		message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, []interface{}{near.Borshify(lightBlock)}, m.msgCh)
 		err = m.router.Send(message)
