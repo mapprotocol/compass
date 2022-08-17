@@ -149,7 +149,7 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 			m.log.Error("failed to get next light client block", "err", err, "number", lightBlock.InnerLite.Height, "hash", lightBlock.NextBlockInnerHash)
 			return err
 		}
-		m.log.Info("get next light client block complete", "number", number, "hash", blockDetails.Header.Hash)
+		m.log.Info("get next light client block complete", "number", lightBlock.InnerLite.Height, "hash", lightBlock.NextBlockInnerHash)
 
 		number = lightBlock.InnerLite.Height
 
