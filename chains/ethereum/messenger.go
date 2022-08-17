@@ -167,14 +167,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 
 			msgpayload := []interface{}{payload, log.Index}
 			message = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
-		} else {
-			fromChainID, toChainID, payload, err := utils.ParseEthLogIntoSwapArgs(log, m.cfg.bridgeContract)
-			if err != nil {
-				return 0, fmt.Errorf("unable to Parse SwapArgs Log: %w", err)
-			}
-
-			msgpayload := []interface{}{payload}
-			message = msg.NewSwapTransfer(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
 		}
 
 		m.log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index)

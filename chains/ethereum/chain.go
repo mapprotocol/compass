@@ -160,6 +160,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 			return nil, fmt.Errorf("headerHeight outputs Copy failed, err is %v", err.Error())
 		}
 		syncMap[cfg.id] = height
+		logger.Info("map to other chain, sync height collect ", "set", syncMap)
 	}
 
 	if cfg.id == cfg.mapChainID && role == mapprotocol.RoleOfMaintainer {
