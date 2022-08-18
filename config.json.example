@@ -1,0 +1,32 @@
+{
+  "mapchain": {
+    "id": "212",
+    "endpoint": "http://18.142.54.137:7445",
+    "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
+    "opts": {
+      "bridge": "0x0ac4611305254cdd257beC56CB79CBeC720Cd02D",
+      "lightnode": "0x000068656164657273746F726541646472657373",
+      "http": "true",
+      "gasLimit": "4000000000000",
+      "maxGasPrice": "2000000000000",
+      "syncIdList": "[34434]"
+    }
+  },
+  "chains": [
+    {
+      "name": "pri-eth",
+      "type": "ethereum",
+      "id": "34434",
+      "endpoint": "http://18.138.248.113:8545",
+      "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
+      "opts": {
+        "bridge": "0xcfc80beddb70f12af6da768fc30e396889dfce26",
+        "lightnode": "0x80Be41aEBFdaDBD58a65aa549cB266dAFb6b8304",
+        "http": "true",
+        "gasLimit": "400000000000",
+        "maxGasPrice": "200000000000",
+        "syncToMap": "true"
+      }
+    }
+  ]
+}
