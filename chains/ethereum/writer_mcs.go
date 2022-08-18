@@ -20,7 +20,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 	return w.callContractWithMsg(w.cfg.bridgeContract, m)
 }
 
-// callContractWithMsg call contract using address and function signature with message info
+// callContractWithMsg contract using address and function signature with message info
 func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 	for i := 0; i < TxRetryLimit; i++ {
 		select {
@@ -92,11 +92,11 @@ func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 		Logs    []byte
 	}{}
 
-	w.log.Info("verify ", "back resp len", len(resp), "resp", resp)
 	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
 	if err != nil {
 		return errors.Wrap(err, "proof copy failed")
 	}
+
 	if !ret.Success {
 		return fmt.Errorf("verify proof failed, message is (%s)", ret.Message)
 	}

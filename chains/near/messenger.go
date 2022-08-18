@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	rds "github.com/go-redis/redis/v8"
 	"github.com/mapprotocol/compass/internal/near"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -206,7 +204,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			return 0, errors.Wrap(err, "getBytes pack failed")
 		}
 
-		m.log.Info("near2map的参数", "all", "0x"+common.Bytes2Hex(all))
+		//m.log.Info("near2map的参数", "all", "0x"+common.Bytes2Hex(all))
 		input, err := mapprotocol.Eth2MapTransferInAbi.Pack(mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(uint64(m.cfg.id)), all)
 		if err != nil {
 			return 0, errors.Wrap(err, "transferIn pack failed")
@@ -215,7 +213,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 		//if err != nil {
 		//	return 0, errors.Wrap(err, "verifyProof pack failed")
 		//}
-		m.log.Info("near2map的参数，transferIn打包", "input", "0x"+common.Bytes2Hex(input))
+		//m.log.Info("near2map的参数，transferIn打包", "input", "0x"+common.Bytes2Hex(input))
 		// get fromChainId and toChainId
 		logs := strings.SplitN(tg.ExecutionOutcome.Outcome.Logs[0], ":", 2)
 		out := near.TransferOut{}

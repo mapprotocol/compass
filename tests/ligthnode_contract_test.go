@@ -34,6 +34,16 @@ import (
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
+func Test_Key(t *testing.T) {
+	var key []byte
+	key = rlp.AppendUint64(key[:0], uint64(0))
+	fmt.Println("index=0,length=3,hex=", "0x"+common.Bytes2Hex(key2Hex(key, 3)))
+	fmt.Println("index=0,length=1,hex=", "0x"+common.Bytes2Hex(key2Hex(key, 1)))
+	var key1 []byte
+	key1 = rlp.AppendUint64(key1[:0], uint64(190))
+	fmt.Println("index=190,length=5,hex=", "0x"+common.Bytes2Hex(key2Hex(key1, 5)))
+}
+
 func Test_Redis(t *testing.T) {
 	//redis.Init("redis://:F6U3gV0L6Xwyw1Ko@46.137.199.126:6379/0")
 	fmt.Println("0x" + common.Bytes2Hex([]byte("mcs_token_0")))
@@ -617,4 +627,28 @@ func getReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*typ
 		rs = append(rs, r)
 	}
 	return rs, nil
+}
+
+func keyBytesToHex(str []byte) []byte {
+	l := len(str)*2 + 1
+	var nibbles = make([]byte, l)
+	for i, b := range str {
+		nibbles[i*2] = b / 16
+		nibbles[i*2+1] = b % 16
+	}
+	//nibbles[l-1] = 16
+	return nibbles
+}
+
+func key2Hex(str []byte, proofLength int) []byte {
+	ret := make([]byte, 0)
+	if len(ret)+1 == proofLength {
+		ret = append(ret, str...)
+	} else {
+		for _, b := range str {
+			ret = append(ret, b/16)
+			ret = append(ret, b%16)
+		}
+	}
+	return ret
 }
