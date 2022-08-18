@@ -40,14 +40,48 @@ compass accounts list
 ```
 
 ### 3. Modify the configuration file  
-copy a example configure file from [here](https://gist.githubusercontent.com/redace85/ccf39dae6d2a5b459765b3493d61472d/raw/c06f901aae5ad53a77c614b4233db5a801cc1f68/config.json).  
+copy a example configure file from
+```json
+{
+  "mapchain": {
+    "id": "212",
+    "endpoint": "http://18.142.54.137:7445",
+    "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
+    "opts": {
+      "bridge": "0x0ac4611305254cdd257beC56CB79CBeC720Cd02D",
+      "lightnode": "0x000068656164657273746F726541646472657373",
+      "http": "true",
+      "gasLimit": "4000000000000",
+      "maxGasPrice": "2000000000000",
+      "syncIdList": "[34434]"
+    }
+  },
+  "chains": [
+    {
+      "name": "pri-eth",
+      "type": "ethereum",
+      "id": "34434",
+      "endpoint": "http://18.138.248.113:8545",
+      "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
+      "opts": {
+        "bridge": "0xcfc80beddb70f12af6da768fc30e396889dfce26",
+        "lightnode": "0x80Be41aEBFdaDBD58a65aa549cB266dAFb6b8304",
+        "http": "true",
+        "gasLimit": "400000000000",
+        "maxGasPrice": "200000000000",
+        "syncToMap": "true"
+      }
+    }
+  ]
+}
+```
 modify the configuration accordingly.  
 fill the accounts for each chain.  
 
 ### 4. Running the executable  
 lauch and keep the executable runing simply by run:
 ```zsh
-compass
+compass maintainer --blockstore ./block-eth-map --config ./config-mcs-erh-map.json
 ```
 you will be asked to input the password to unlock your account.(which you have inputed at step 2)
 if everything runs smoothly. it's all set
@@ -63,42 +97,21 @@ under the root directory of the repo
 
 # Maintainer
 
-Users can register as a maintainer on our website. but this function is also integrated into compass.  
-after setting some account into the keystore, one can use this account to send transcations.  
+Synchronize the information of blocks in each chain according to the information in the configuration file
 
-The cmd line to send a register tx to the maintainer contract on Makalu Block chain is as follow:
-
+Start with the following command:
 ```zsh
-./compass maintainer register --account '********** the address of the acount in keystore **********'
-```
-
-you need at least 100000 MAP which will be staked into the maintainer contract, to become a maintainer.
-
-when the register is succeeded, you can bind a worker by its address.  
-and use this worker to send transcations in behave of the maintainer to finish all the jobs.  
-the bind function can be called throuth cmd line as follow:
-
-```zsh
-./compass maintainer bind --maintainer '*** maintainer address ***' --worker '*** worker address ***' 
-```
-
-to view more details of a cmd. you can use -h at the end of the cmdline  
-
-```zsh
-./compass maintainer -h
-```
-
-```zsh
-./compass maintainer register -h
-```
-
-```zsh
-./compass maintainer bind -h
+compass maintainer --blockstore ./block-eth-map --config ./config.json
 ```
 
 # Messenger
 
 Synchronize the log information of transactions of blocks in each chain according to the information in the configuration file
+
+Start with the following command:
+```zsh
+compass messenger --blockstore ./block-eth-map --config ./config.json
+```
 
 # Configuration
 
