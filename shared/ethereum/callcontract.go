@@ -219,12 +219,13 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
+	ek := key2Hex(key, len(proof))
 	if _, ok := chains.NearChainId[msg.ChainId(uToChainID)]; !ok {
 		rp := mapprotocol.ReceiptProof{
 			Header:   mapprotocol.ConvertHeader(header),
 			AggPk:    aggPK,
 			Receipt:  receipt,
-			KeyIndex: key,
+			KeyIndex: ek,
 			Proof:    proof,
 		}
 
@@ -232,7 +233,8 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
-
+		//fmt.Println("hex ======= ", "0x"+common.Bytes2Hex(pack))
+		//payloads, err := mapprotocol.PackVerifyInput(mapprotocol.MethodVerifyProofData, pack)
 		payloads, err := mapprotocol.Eth2MapTransferInPackInput(mapprotocol.MethodOfTransferIn, big.NewInt(0), pack)
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
@@ -270,6 +272,19 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 	})
 	fmt.Printf("map2near message %v \n", string(data))
 	return uFromChainID, uToChainID, data, nil
+}
+
+func key2Hex(str []byte, proofLength int) []byte {
+	ret := make([]byte, 0)
+	if len(ret)+1 == proofLength {
+		ret = append(ret, str...)
+	} else {
+		for _, b := range str {
+			ret = append(ret, b/16)
+			ret = append(ret, b%16)
+		}
+	}
+	return ret
 }
 
 type TxReceipt struct {

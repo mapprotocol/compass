@@ -98,7 +98,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				w.log.Error("Sync Header to map encounter EOF, will retry", "err", err)
 				time.Sleep(TxRetryInterval)
 			} else if strings.Index(err.Error(), "the event with order id") != -1 && strings.Index(err.Error(), "is used") != -1 {
-				w.log.Info("Execution failed, tx may already be complete")
+				w.log.Info("Execution failed, tx may already be complete", "back", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else {

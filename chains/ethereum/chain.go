@@ -165,7 +165,6 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 
 	if cfg.id == cfg.mapChainID && role == mapprotocol.RoleOfMaintainer {
 		cfg.syncMap = syncMap
-		logger.Info("map to other chain, sync height collect ", "set", syncMap)
 		minHeight := big.NewInt(0)
 		for cId, height := range cfg.syncMap {
 			if minHeight.Cmp(height) == -1 {
