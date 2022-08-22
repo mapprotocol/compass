@@ -139,13 +139,13 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-			fromChainID, toChainID, payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, m.cfg.bridgeContract, receipts)
+			fromChainID, _, payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, m.cfg.bridgeContract, receipts)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
 			msgpayload := []interface{}{payload}
-			message = msg.NewSwapWithProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
+			message = msg.NewSwapWithProof(msg.ChainId(fromChainID), m.cfg.mapChainID, msgpayload, m.msgCh)
 		} else if m.cfg.id == m.cfg.mapChainID {
 			// when listen from map we also need to assemble a tx prove in a different way
 			header, err := m.conn.Client().MAPHeaderByNumber(context.Background(), latestBlock)
