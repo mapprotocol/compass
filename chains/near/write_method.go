@@ -59,9 +59,9 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 				w.log.Error("Sync Header to map encounter EOF, will retry")
 				time.Sleep(TxRetryInterval)
 			} else {
-				w.log.Warn("Execution failed ", "err", err)
-				m.DoneCh <- struct{}{}
-				return true
+				w.log.Warn("Execution failed will retry", "err", err)
+				//m.DoneCh <- struct{}{}
+				//return true
 			}
 		}
 	}

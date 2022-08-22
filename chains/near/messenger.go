@@ -139,7 +139,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 
 	ret, err := m.makeMessage(target)
 	if err != nil {
-		//m.log.Info("make message failed", "err", err)
+		m.log.Error("make message failed", "err", err)
 		cmd := redis.GetClient().RPush(context.Background(), redis.ListKey, result)
 		_, err = cmd.Result()
 		if err != nil {
@@ -204,8 +204,16 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			return 0, errors.Wrap(err, "getBytes pack failed")
 		}
 
+		// get fromChainId and toChainId
+		logs := strings.SplitN(tg.ExecutionOutcome.Outcome.Logs[0], ":", 2)
+		out := near.TransferOut{}
+		err = json.Unmarshal([]byte(logs[1]), &out)
+		if err != nil {
+			return 0, errors.Wrap(err, "logs format failed")
+		}
+
 		//m.log.Info("near2map的参数", "all", "0x"+common.Bytes2Hex(all))
-		input, err := mapprotocol.Eth2MapTransferInAbi.Pack(mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(uint64(m.cfg.id)), all)
+		input, err := mapprotocol.Eth2MapTransferInAbi.Pack(mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(out.FromChain.Uint64()), all)
 		if err != nil {
 			return 0, errors.Wrap(err, "transferIn pack failed")
 		}
@@ -214,13 +222,6 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 		//	return 0, errors.Wrap(err, "verifyProof pack failed")
 		//}
 		//m.log.Info("near2map的参数，transferIn打包", "input", "0x"+common.Bytes2Hex(input))
-		// get fromChainId and toChainId
-		logs := strings.SplitN(tg.ExecutionOutcome.Outcome.Logs[0], ":", 2)
-		out := near.TransferOut{}
-		err = json.Unmarshal([]byte(logs[1]), &out)
-		if err != nil {
-			return 0, errors.Wrap(err, "logs format failed")
-		}
 
 		msgpayload := []interface{}{input}
 		message := msg.NewSwapWithProof(msg.ChainId(out.FromChain.Uint64()), m.cfg.mapChainID, msgpayload, m.msgCh)

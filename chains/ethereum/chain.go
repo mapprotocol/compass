@@ -132,7 +132,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		cfg.startBlock = curr
 	}
 
-	if cfg.lightNode.Hex() != "" && cfg.id != cfg.mapChainID && syncMap != nil { // 请求获取同步的map高度
+	if cfg.id != cfg.mapChainID && syncMap != nil && role == mapprotocol.RoleOfMaintainer { // 请求获取同步的map高度
 		from := common.HexToAddress(cfg.from)
 		input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodOfHeaderHeight)
 		if err != nil {
