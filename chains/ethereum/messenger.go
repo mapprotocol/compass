@@ -7,9 +7,10 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/mapprotocol/compass/msg"
+
 	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
@@ -117,7 +118,7 @@ func (m *Messenger) sync() error {
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	m.log.Debug("Querying block for events", "block", latestBlock)
-	query := m.buildQuery(m.cfg.bridgeContract, utils.MapTransferOut, latestBlock, latestBlock)
+	query := m.buildQuery(m.cfg.mcsContract, m.cfg.events, latestBlock, latestBlock)
 
 	// querying for logs
 	logs, err := m.conn.Client().FilterLogs(context.Background(), query)
@@ -139,7 +140,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-			fromChainID, _, payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, m.cfg.bridgeContract, receipts)
+			fromChainID, _, payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, m.cfg.mcsContract, receipts)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
@@ -180,14 +181,16 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 }
 
 // buildQuery constructs a query for the bridgeContract by hashing sig to get the event topic
-func (m *Messenger) buildQuery(contract ethcommon.Address, sig utils.EventSig, startBlock *big.Int, endBlock *big.Int) eth.FilterQuery {
+func (m *Messenger) buildQuery(contract ethcommon.Address, sig []utils.EventSig, startBlock *big.Int, endBlock *big.Int) eth.FilterQuery {
+	topics := make([]ethcommon.Hash, 0, len(sig))
+	for _, s := range sig {
+		topics = append(topics, s.GetTopic())
+	}
 	query := eth.FilterQuery{
 		FromBlock: startBlock,
 		ToBlock:   endBlock,
 		Addresses: []ethcommon.Address{contract},
-		Topics: [][]ethcommon.Hash{
-			{sig.GetTopic()},
-		},
+		Topics:    [][]ethcommon.Hash{topics},
 	}
 	return query
 }

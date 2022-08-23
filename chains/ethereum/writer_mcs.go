@@ -17,7 +17,7 @@ import (
 
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *writer) exeSwapMsg(m msg.Message) bool {
-	return w.callContractWithMsg(w.cfg.bridgeContract, m)
+	return w.callContractWithMsg(w.cfg.mcsContract, m)
 }
 
 // callContractWithMsg contract using address and function signature with message info

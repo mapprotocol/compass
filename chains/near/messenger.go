@@ -117,7 +117,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	target := make([]mapprotocol.IndexerExecutionOutcomeWithReceipt, 0)
 	for _, shard := range data.Shards {
 		for _, outcome := range shard.ReceiptExecutionOutcomes {
-			if outcome.ExecutionOutcome.Outcome.ExecutorID != m.cfg.bridgeContract {
+			if outcome.ExecutionOutcome.Outcome.ExecutorID != m.cfg.mcsContract {
 				continue
 			}
 			if len(outcome.ExecutionOutcome.Outcome.Logs) == 0 {

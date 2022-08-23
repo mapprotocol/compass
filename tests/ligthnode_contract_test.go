@@ -372,8 +372,9 @@ func TestVerifyProofData(t *testing.T) {
 func TestGetLog(t *testing.T) {
 	//number       = big.NewInt(4108)
 	//number       = big.NewInt(55342)
+	var MapTransferOut utils.EventSig = "mapTransferOut(bytes,bytes,bytes32,uint256,uint256,bytes,uint256,bytes)"
 	query := buildQuery(common.HexToAddress("0xf03aDB732FBa8Fca38C00253B1A1aa72CCA026E6"),
-		utils.SwapOut, big.NewInt(106020), big.NewInt(106020))
+		MapTransferOut, big.NewInt(106020), big.NewInt(106020))
 
 	// querying for logs
 	logs, err := dialConn().FilterLogs(context.Background(), query)

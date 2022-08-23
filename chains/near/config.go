@@ -23,7 +23,7 @@ const DefaultGasMultiplier = 1
 
 // Chain specific options
 var (
-	BridgeOpt             = "bridge"
+	McsOpt                = "mcs"
 	RedisOpt              = "redis"
 	MaxGasPriceOpt        = "maxGasPrice"
 	GasLimitOpt           = "gasLimit"
@@ -47,7 +47,7 @@ type Config struct {
 	keystorePath       string      // Location of keyfiles
 	blockstorePath     string
 	freshStart         bool // Disables loading from blockstore at start
-	bridgeContract     string
+	mcsContract        string
 	gasLimit           *big.Int
 	maxGasPrice        *big.Int
 	gasMultiplier      *big.Float
@@ -73,7 +73,7 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		blockstorePath:     chainCfg.BlockstorePath,
 		freshStart:         chainCfg.FreshStart,
 		endpoint:           chainCfg.Endpoint,
-		bridgeContract:     "",
+		mcsContract:        "",
 		gasLimit:           big.NewInt(DefaultGasLimit),
 		maxGasPrice:        big.NewInt(DefaultGasPrice),
 		gasMultiplier:      big.NewFloat(DefaultGasMultiplier),
@@ -85,9 +85,9 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		redisUrl:           "",
 	}
 
-	if contract, ok := chainCfg.Opts[BridgeOpt]; ok && contract != "" {
-		config.bridgeContract = contract
-		delete(chainCfg.Opts, BridgeOpt)
+	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
+		config.mcsContract = contract
+		delete(chainCfg.Opts, McsOpt)
 	} else {
 		return nil, fmt.Errorf("must provide opts.bridge field for ethereum config")
 	}

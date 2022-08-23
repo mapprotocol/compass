@@ -48,7 +48,7 @@ copy a example configure file from
     "endpoint": "http://18.142.54.137:7445",
     "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
     "opts": {
-      "bridge": "0x0ac4611305254cdd257beC56CB79CBeC720Cd02D",
+      "mcs": "0x0ac4611305254cdd257beC56CB79CBeC720Cd02D",
       "lightnode": "0x000068656164657273746F726541646472657373",
       "http": "true",
       "gasLimit": "4000000000000",
@@ -64,7 +64,7 @@ copy a example configure file from
       "endpoint": "http://18.138.248.113:8545",
       "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
       "opts": {
-        "bridge": "0xcfc80beddb70f12af6da768fc30e396889dfce26",
+        "mcs": "0xcfc80beddb70f12af6da768fc30e396889dfce26",
         "lightnode": "0x80Be41aEBFdaDBD58a65aa549cB266dAFb6b8304",
         "http": "true",
         "gasLimit": "400000000000",
@@ -152,18 +152,19 @@ Ethereum chains support the following additional options:
 
 ```
 {
-    "bridge": "0x12345...",          // Address of the bridge contract (required)
-    "maxGasPrice": "0x1234",         // Gas price for transactions (default: 20000000000)
-    "gasLimit": "0x1234",            // Gas limit for transactions (default: 6721975)
-    "gasMultiplier": "1.25",         // Multiplies the gas price by the supplied value (default: 1)
-    "http": "true",                  // Whether the chain connection is ws or http (default: false)
-    "startBlock": "1234",            // The block to start processing events from (default: 0)
-    "blockConfirmations": "10"       // Number of blocks to wait before processing a block
-    "egsApiKey": "xxx..."            // API key for Eth Gas Station (https://www.ethgasstation.info/)
-    "egsSpeed": "fast"               // Desired speed for gas price selection, the options are: "average", "fast", "fastest"
-    "lightnode": "0x12345...",       // the lightnode to sync header
-    "syncToMap": "true",             // Whether sync blockchain headers to Map
-    "syncIdList": "[214]"            // Those chain ids are synchronized to the map，and This configuration can only be used in mapchain
+    "mcs": "0x12345...",                                    // Address of the bridge contract (required)
+    "maxGasPrice": "0x1234",                                // Gas price for transactions (default: 20000000000)
+    "gasLimit": "0x1234",                                   // Gas limit for transactions (default: 6721975)
+    "gasMultiplier": "1.25",                                // Multiplies the gas price by the supplied value (default: 1)
+    "http": "true",                                         // Whether the chain connection is ws or http (default: false)
+    "startBlock": "1234",                                   // The block to start processing events from (default: 0)
+    "blockConfirmations": "10"                              // Number of blocks to wait before processing a block
+    "egsApiKey": "xxx..."                                   // API key for Eth Gas Station (https://www.ethgasstation.info/)
+    "egsSpeed": "fast"                                      // Desired speed for gas price selection, the options are: "average", "fast", "fastest"
+    "lightnode": "0x12345...",                              // the lightnode to sync header
+    "syncToMap": "true",                                    // Whether sync blockchain headers to Map
+    "syncIdList": "[214]"                                   // Those chain ids are synchronized to the map，and This configuration can only be used in mapchain
+    "event": "mapTransferOut(...)|depositOutToken(...)",    // MCS events monitored by the program, multiple with | interval
 }
 ```
 ## Blockstore
