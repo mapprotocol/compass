@@ -95,7 +95,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		return nil, err
 	}
 
-	err = conn.EnsureHasBytecode(cfg.bridgeContract)
+	err = conn.EnsureHasBytecode(cfg.mcsContract)
 	if err != nil {
 		return nil, err
 	}
