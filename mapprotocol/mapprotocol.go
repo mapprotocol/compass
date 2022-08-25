@@ -6,9 +6,14 @@ package mapprotocol
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
+
+	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
+
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
@@ -76,6 +81,27 @@ func Map2OtherHeight(fromUser string, lightNode common.Address, client *ethclien
 			return nil, fmt.Errorf("headerHeight outputs Copy failed, err is %v", err.Error())
 		}
 		return height, nil
+	}
+}
+
+func Map2NearHeight(lightNode string, client *nearclient.Client) GetHeight {
+	return func() (*big.Int, error) {
+		res, err := client.ContractViewCallFunction(context.Background(), lightNode, "get_header_height",
+			"e30=", block.FinalityFinal())
+		if err != nil {
+			return nil, errors.Wrap(err, "call near lightNode to get headerHeight failed")
+		}
+
+		if res.Error != nil {
+			return nil, fmt.Errorf("call near lightNode to get headerHeight resp exist error(%v)", *res.Error)
+		}
+
+		result := big.NewInt(0)
+		err = json.Unmarshal(res.Result, result)
+		if err != nil {
+			return nil, errors.Wrap(err, "near lightNode headerHeight resp json marshal failed")
+		}
+		return result, nil
 	}
 }
 

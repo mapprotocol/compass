@@ -92,7 +92,7 @@ func setupBlockstore(cfg *Config, kp *secp256k1.Keypair, role mapprotocol.Role) 
 }
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role, syncMap map[msg.ChainId]*big.Int) (*Chain, error) {
+	role mapprotocol.Role) (*Chain, error) {
 	cfg, err := parseChainConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -130,17 +130,15 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		cfg.startBlock = curr
 	}
 
-	if role == mapprotocol.RoleOfMaintainer {
-		if cfg.id != cfg.mapChainID && syncMap != nil { // 请求获取同步的map高度
-			fn := mapprotocol.Map2OtherHeight(cfg.from, cfg.lightNode, conn.Client())
-			height, err := fn()
-			if err != nil {
-				return nil, errors.Wrap(err, "get headerHeight failed")
-			}
-			logger.Info("map2Other Current situation", "chain", cfg.name, "height", height)
-			mapprotocol.SyncOtherMap[cfg.id] = height
-			mapprotocol.HeightQueryCollections[cfg.id] = fn
+	if role == mapprotocol.RoleOfMaintainer && cfg.id != cfg.mapChainID { // 请求获取同步的map高度
+		fn := mapprotocol.Map2OtherHeight(cfg.from, cfg.lightNode, conn.Client())
+		height, err := fn()
+		if err != nil {
+			return nil, errors.Wrap(err, "get headerHeight failed")
 		}
+		logger.Info("map2Other Current situation", "chain", cfg.name, "height", height)
+		mapprotocol.SyncOtherMap[cfg.id] = height
+		mapprotocol.HeightQueryCollections[cfg.id] = fn
 	}
 
 	// simplified a little bit
