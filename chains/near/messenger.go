@@ -124,7 +124,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				continue
 			}
 			for _, ls := range outcome.ExecutionOutcome.Outcome.Logs {
-				if !strings.HasPrefix(ls, mapprotocol.HashOfTransferOut) && !strings.HasPrefix(ls, mapprotocol.HashOfDepositOut) {
+				if !m.match(ls) {
 					continue
 				}
 			}
@@ -150,10 +150,20 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	return ret, nil
 }
 
+func (m *Messenger) match(log string) bool {
+	for _, e := range m.cfg.events {
+		if strings.HasPrefix(log, e) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWithReceipt) (int, error) {
 	ret := 0
 	for _, tg := range target {
-		m.log.Info("makeMessage 收到一条数据", "tg", tg)
+		m.log.Debug("makeMessage 收到一条数据", "tg", tg)
 		time.Sleep(time.Second * 3)
 		var (
 			err        error

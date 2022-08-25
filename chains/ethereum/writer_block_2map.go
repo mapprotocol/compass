@@ -30,7 +30,7 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 
 			marshal, _ := m.Payload[0].([]byte)
 			// save header data
-			data, err := mapprotocol.SaveHeaderTxData(marshal)
+			data, err := mapprotocol.PackInput(mapprotocol.ABIRelayer, mapprotocol.MethodUpdateBlockHeader, marshal)
 			if err != nil {
 				w.log.Error("Failed to pack abi data", "err", err)
 				w.conn.UnlockOpts()

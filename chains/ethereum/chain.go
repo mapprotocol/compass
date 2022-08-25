@@ -23,11 +23,9 @@ The writer recieves the message and creates a proposals on-chain. Once a proposa
 package ethereum
 
 import (
-	"context"
-	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum"
+	"github.com/pkg/errors"
 
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -134,47 +132,14 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 
 	if role == mapprotocol.RoleOfMaintainer {
 		if cfg.id != cfg.mapChainID && syncMap != nil { // 请求获取同步的map高度
-			from := common.HexToAddress(cfg.from)
-			input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodOfHeaderHeight)
+			fn := mapprotocol.Map2OtherHeight(cfg.from, cfg.lightNode, conn.Client())
+			height, err := fn()
 			if err != nil {
-				return nil, fmt.Errorf("pack lightNode headerHeight Input failed, err is %v", err.Error())
+				return nil, errors.Wrap(err, "get headerHeight failed")
 			}
-			output, err := conn.Client().CallContract(context.Background(),
-				ethereum.CallMsg{
-					From: from,
-					To:   &cfg.lightNode,
-					Data: input,
-				},
-				nil,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("headerHeight callContract failed, err is %v", err.Error())
-			}
-
-			resp, err := mapprotocol.ABILightNode.Methods[mapprotocol.MethodOfHeaderHeight].Outputs.Unpack(output)
-			if err != nil {
-				return nil, fmt.Errorf("headerHeight unpack failed, err is %v", err.Error())
-			}
-			var height *big.Int
-			err = mapprotocol.ABILightNode.Methods[mapprotocol.MethodOfHeaderHeight].Outputs.Copy(&height, resp)
-			if err != nil {
-				return nil, fmt.Errorf("headerHeight outputs Copy failed, err is %v", err.Error())
-			}
-			syncMap[cfg.id] = height
-			logger.Info("map to other chain, sync height collect ", "set", syncMap)
-		} else if cfg.id == cfg.mapChainID {
-			cfg.syncMap = syncMap
-			minHeight := big.NewInt(0)
-			for cId, height := range cfg.syncMap {
-				if minHeight.Cmp(height) == -1 {
-					logger.Info("map to other chain find min sync height ", "chainId", cId, "syncedHeight",
-						minHeight, "currentHeight", height)
-					minHeight = height
-				}
-			}
-			if cfg.startBlock.Cmp(minHeight) != 0 { // When the synchronized height is less than or more than the local starting height, use height
-				cfg.startBlock = big.NewInt(minHeight.Int64() + 1)
-			}
+			logger.Info("map2Other Current situation", "chain", cfg.name, "height", height)
+			mapprotocol.SyncOtherMap[cfg.id] = height
+			mapprotocol.HeightQueryCollections[cfg.id] = fn
 		}
 	}
 
@@ -183,7 +148,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMessenger {
 		listen = NewMessenger(cs)
-		logger.Info("chain listen", "chain", cfg.name, "event", cfg.events)
+		logger.Info("listen event", "chain", cfg.name, "event", cfg.events)
 	} else { // Maintainer is used by default
 		listen = NewMaintainer(cs)
 	}

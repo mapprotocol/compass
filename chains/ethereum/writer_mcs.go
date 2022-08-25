@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mapprotocol/compass/mapprotocol"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -27,6 +29,20 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 		case <-w.stop:
 			return false
 		default:
+			// 先请求下orderId是否已经存在
+			if len(m.Payload) > 1 {
+				orderId := m.Payload[1].([]byte)
+				exits, err := w.checkOrderId(&addr, orderId, mapprotocol.OrderList, mapprotocol.MethodOfOrderList)
+				if err != nil {
+					w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
+				}
+				if exits {
+					w.log.Info("mcs orderId existing, abandon request", "orderId", common.Bytes2Hex(orderId))
+					m.DoneCh <- struct{}{}
+					return true
+				}
+			}
+
 			err := w.conn.LockAndUpdateOpts()
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
@@ -42,7 +58,7 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			w.conn.UnlockOpts()
 
 			if err == nil {
-				// message successfully handled
+				// message successfully handled]
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "mcsTx", mcsTx.Hash())
 				m.DoneCh <- struct{}{}
 				return true
@@ -171,4 +187,40 @@ func (w *writer) sendMcsTx(toAddress *common.Address, value *big.Int, input []by
 		return nil, err
 	}
 	return signedTx, nil
+}
+
+func (w *writer) checkOrderId(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) (bool, error) {
+	var fixedOrderId [32]byte
+	for idx, v := range input {
+		fixedOrderId[idx] = v
+	}
+	data, err := mapprotocol.PackInput(useAbi, method, fixedOrderId)
+	if err != nil {
+		return false, err
+	}
+	from := w.conn.Keypair().CommonAddress()
+	outPut, err := w.conn.Client().CallContract(context.Background(),
+		ethereum.CallMsg{
+			From: from,
+			To:   toAddress,
+			Data: data,
+		},
+		nil,
+	)
+	if err != nil {
+		return false, errors.Wrap(err, "callContract failed")
+	}
+
+	resp, err := useAbi.Methods[method].Outputs.Unpack(outPut)
+	if err != nil {
+		return false, errors.Wrap(err, "output Unpack failed")
+	}
+
+	var exist bool
+	err = useAbi.Methods[method].Outputs.Copy(&exist, resp)
+	if err != nil {
+		return false, errors.Wrap(err, "checkOrderId output copy failed")
+	}
+
+	return exist, nil
 }
