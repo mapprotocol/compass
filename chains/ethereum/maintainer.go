@@ -3,7 +3,6 @@ package ethereum
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/pkg/errors"
 	"github.com/pkg/math"
 )
 
@@ -75,6 +75,19 @@ func (m Maintainer) sync() error {
 				m.log.Error("Fast batch listen failed")
 				return err
 			}
+		}
+	} else if m.cfg.id == m.cfg.mapChainID {
+		minHeight := big.NewInt(0)
+		for cId, height := range mapprotocol.SyncOtherMap {
+			if minHeight.Cmp(height) == -1 {
+				m.log.Info("map to other chain find min sync height ", "chainId", cId,
+					"syncedHeight", minHeight, "currentHeight", height)
+				minHeight = height
+			}
+		}
+		if m.cfg.startBlock.Cmp(minHeight) != 0 { // When the synchronized height is less than or more than the local starting height, use height
+			currentBlock = big.NewInt(minHeight.Int64() + 1)
+			m.log.Info("map2other chain", "initial height", currentBlock)
 		}
 	}
 
@@ -154,6 +167,19 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMapChain listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
+	// It is checked whether the latest height is higher than the current height
+	syncedHeight, _, err := mapprotocol.GetCurrentNumberAbi(ethcommon.HexToAddress(m.cfg.from), m.cfg.id)
+	if err != nil {
+		m.log.Error("Get synced Height failed", "err", err)
+		return err
+	}
+	// If the current block is lower than the latest height, it will not be synchronized
+	if latestBlock.Cmp(syncedHeight) <= 0 {
+		m.log.Info("currentBlock less than synchronized headerHeight", "synced height", syncedHeight,
+			"current height", latestBlock)
+		return nil
+	}
+
 	header, err := m.conn.Client().HeaderByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return err
@@ -228,7 +254,6 @@ func (m *Maintainer) batchSyncHeadersTo(height *big.Int) error {
 
 // syncMapHeader listen map header to every chains registered
 func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
-	// todo 通过 rpc 查询 epoch size
 	if latestBlock.Cmp(big.NewInt(0)) == 0 {
 		return nil
 	}
@@ -248,7 +273,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
-	input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodUpdateBlockHeader, h, aggPK)
+	input, err := mapprotocol.PackInput(mapprotocol.ABILightNode, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
 	if err != nil {
 		return err
 	}
@@ -256,10 +281,24 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	waitCount := len(m.cfg.syncChainIDList)
 	for _, cid := range m.cfg.syncChainIDList {
 		// Only when the latestblock is greater than the height of the synchronized block, the synchronization is performed
-		if v, ok := m.cfg.syncMap[cid]; ok && latestBlock.Cmp(v) <= 0 {
+		if v, ok := mapprotocol.SyncOtherMap[cid]; ok && latestBlock.Cmp(v) <= 0 {
 			waitCount--
-			m.log.Debug("latestBlock less than synchronized headerHeight", "toChainId", cid, "synced height", v, "current height", latestBlock)
+			m.log.Info("currentBlock less than synchronized headerHeight", "toChainId", cid, "synced height", v,
+				"current height", latestBlock)
 			continue
+		}
+		// Query the latest height for comparison
+		if fn, ok := mapprotocol.HeightQueryCollections[cid]; ok {
+			height, err := fn()
+			if err != nil {
+				return errors.Wrap(err, "get headerHeight failed")
+			}
+			if latestBlock.Cmp(height) <= 0 {
+				waitCount--
+				m.log.Info("currentBlock less than latest synchronized headerHeight", "toChainId", cid, "synced height", height,
+					"current height", latestBlock)
+				continue
+			}
 		}
 		if _, ok := chains.NearChainId[cid]; ok {
 			param := map[string]interface{}{

@@ -3,13 +3,8 @@ package near
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"time"
-
-	log "github.com/ChainSafe/log15"
-
-	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/mapprotocol/compass/internal/near"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -19,33 +14,13 @@ import (
 
 var NearEpochSize = big.NewInt(43200)
 
-type GetHeight func() (*big.Int, error)
-
-func CreateGetHeight(lightNode common.Address) GetHeight {
-	return func() (*big.Int, error) {
-		input, err := mapprotocol.PackHeaderHeightInput()
-		if err != nil {
-			log.Error("failed to pack update header height input", "err", err)
-			return nil, err
-		}
-
-		height, err := mapprotocol.HeaderHeight(lightNode, input)
-		if err != nil {
-			log.Error("failed to get near header height on map", "err", err, "input", common.Bytes2Hex(input))
-			return nil, err
-		}
-		fmt.Println("-------- m.cfg.lightNode", lightNode, "height", height)
-		return height, nil
-	}
-}
-
 type Maintainer struct {
 	*CommonListen
 	syncedHeight *big.Int
-	getHeight    GetHeight
+	getHeight    mapprotocol.GetHeight
 }
 
-func NewMaintainer(cs *CommonListen, getHeight GetHeight) *Maintainer {
+func NewMaintainer(cs *CommonListen, getHeight mapprotocol.GetHeight) *Maintainer {
 	return &Maintainer{
 		CommonListen: cs,
 		getHeight:    getHeight,

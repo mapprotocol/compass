@@ -211,8 +211,6 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		for _, s := range vs {
 			config.events = append(config.events, utils.EventSig(s))
 		}
-	} else {
-		return nil, fmt.Errorf("must provide opts.bridge field for ethereum config")
 	}
 
 	//if len(chainCfg.Opts) != 0 {

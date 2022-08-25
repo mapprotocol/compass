@@ -275,7 +275,7 @@ func TestUpdateHeader(t *testing.T) {
 		//printAggPK(aggPK)
 		//_ = h
 
-		input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodUpdateBlockHeader, h, aggPK)
+		input, err := mapprotocol.PackInput(mapprotocol.ABILightNode, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
 		if err != nil {
 			t.Fatalf(err.Error())
 		}
@@ -341,7 +341,7 @@ func TestVerifyProofData(t *testing.T) {
 		Proof:    proof,
 	}
 
-	input, err := mapprotocol.PackLightNodeInput(mapprotocol.MethodVerifyProofData, rp)
+	input, err := mapprotocol.PackInput(mapprotocol.ABILightNode, mapprotocol.MethodVerifyProofData, rp)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

@@ -134,8 +134,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		redis.Init(cfg.redisUrl)
 		listen = NewMessenger(cs)
 	} else { // Maintainer is used by default
-		fn := CreateGetHeight(common.HexToAddress(mapprotocol.LightNodeAddress))
-		listen = NewMaintainer(cs, fn)
+		listen = NewMaintainer(cs, mapprotocol.Other2MapHeight(common.HexToAddress(mapprotocol.LightNodeAddress)))
 	}
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
 

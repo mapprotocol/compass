@@ -130,6 +130,9 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	for _, log := range logs {
 		// evm event to msg
 		var message msg.Message
+		// getOrderId
+		orderId := log.Data[64:96]
+		fmt.Println("------------- orderId", ethcommon.Bytes2Hex(orderId))
 		if m.cfg.syncToMap {
 			// when syncToMap we need to assemble a tx proof
 			txsHash, err := getTransactionsHashByBlockNumber(m.conn.Client(), latestBlock)
@@ -145,7 +148,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
-			msgpayload := []interface{}{payload}
+			msgpayload := []interface{}{payload, orderId}
 			message = msg.NewSwapWithProof(msg.ChainId(fromChainID), m.cfg.mapChainID, msgpayload, m.msgCh)
 		} else if m.cfg.id == m.cfg.mapChainID {
 			// when listen from map we also need to assemble a tx prove in a different way
@@ -166,7 +169,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
-			msgpayload := []interface{}{payload, log.Index}
+			msgpayload := []interface{}{payload, orderId}
 			message = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
 		}
 

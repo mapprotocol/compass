@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 
 	gconfig "github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/connections/ethereum/egs"
@@ -36,6 +37,7 @@ var (
 	SyncToMap             = "syncToMap"
 	SyncIDList            = "syncIdList"
 	LightNode             = "lightnode"
+	Event                 = "event"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
@@ -61,6 +63,7 @@ type Config struct {
 	syncChainIDList    []msg.ChainId // chain ids which map sync to
 	lightNode          string        // the lightnode to sync header
 	redisUrl           string
+	events             []string
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
@@ -206,6 +209,14 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 	if lightNode, ok := chainCfg.Opts[LightNode]; ok && lightNode != "" {
 		config.lightNode = lightNode
 		delete(chainCfg.Opts, LightNode)
+	}
+
+	if v, ok := chainCfg.Opts[Event]; ok && v != "" {
+		vs := strings.Split(v, "|")
+		for _, s := range vs {
+			config.events = append(config.events, s)
+		}
+		delete(chainCfg.Opts, Event)
 	}
 
 	if len(chainCfg.Opts) != 0 {

@@ -27,18 +27,15 @@ const (
 	MethodUpdateBlockHeader = "updateBlockHeader"
 	MethodOfHeaderHeight    = "headerHeight"
 	MethodOfTransferIn      = "transferIn"
+	MethodOfCurNbrAndHash   = "currentNumberAndHash"
+	MethodOfRegister        = "register"
+	MethodOfBindWorker      = "bind"
+	MethodOfOrderList       = "orderList"
 )
 
 var (
-	RelayerAddress    = common.HexToAddress("0x000068656164657273746F726541646472657373")
-	SaveHeader        = "save"
-	UpdateBlockHeader = "updateBlockHeader"
-	CurNbrAndHash     = "currentNumberAndHash"
-	RegisterRelayer   = "register"
-	BindWorker        = "bind"
-
+	RelayerAddress          = common.HexToAddress("0x000068656164657273746F726541646472657373")
 	ABIRelayer, _           = abi.JSON(strings.NewReader(RelayerABIJSON))
-	ABILiteNode, _          = abi.JSON(strings.NewReader(LiteABIJSON))
 	ABILightNode, _         = abi.JSON(strings.NewReader(LightNode))
 	Verify, _               = abi.JSON(strings.NewReader(VerifyAbi))
 	NearVerify, _           = abi.JSON(strings.NewReader(NearVerifyAbi))
@@ -46,6 +43,7 @@ var (
 	Eth2MapTransferInAbi, _ = abi.JSON(strings.NewReader(Eth2MapTransferIn))
 	ABIEncodeReceipt, _     = abi.JSON(strings.NewReader(EncodeReceiptABI))
 	LightNodeInterface, _   = abi.JSON(strings.NewReader(LightNodeInterfaceABI))
+	OrderList, _            = abi.JSON(strings.NewReader(OrderListAbi))
 )
 
 type Role string
