@@ -10,7 +10,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"net/http"
 	"os"
 
@@ -244,7 +243,6 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
 	allChains = append(allChains, cfg.MapChain)
 	allChains = append(allChains, cfg.Chains...)
-	syncMap := make(map[msg.ChainId]*big.Int)
 
 	for idx, chain := range allChains {
 		chainId, err := strconv.Atoi(chain.Id)
@@ -278,7 +276,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 
 		if chain.Type == chains.Ethereum {
 			// only support eth
-			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, role, syncMap)
+			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, role)
 			if err != nil {
 				return err
 			}
@@ -288,7 +286,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 				mapprotocol.LightNodeAddress = chainConfig.Opts[ethereum.LightNode]
 			}
 		} else if chain.Type == chains.Near {
-			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role, syncMap)
+			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role)
 			if err != nil {
 				return err
 			}

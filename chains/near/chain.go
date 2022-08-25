@@ -1,9 +1,6 @@
 package near
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -21,7 +18,6 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
-	"github.com/mapprotocol/near-api-go/pkg/client/block"
 	"github.com/mapprotocol/near-api-go/pkg/types/key"
 	"github.com/pkg/errors"
 )
@@ -71,7 +67,7 @@ func setupBlockstore(cfg *Config, kp *key.KeyPair, role mapprotocol.Role) (*bloc
 }
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role, syncMap map[msg.ChainId]*big.Int) (*Chain, error) {
+	role mapprotocol.Role) (*Chain, error) {
 	cfg, err := parseChainConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -108,23 +104,15 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		cfg.startBlock = curr
 	}
 
-	if cfg.lightNode != "" && syncMap != nil && role == mapprotocol.RoleOfMaintainer { // 请求获取同步的map 高度
-		res, err := conn.Client().ContractViewCallFunction(context.Background(), cfg.lightNode, AbiMethodOfGetHeaderHeight,
-			"e30=", block.FinalityFinal())
+	if role == mapprotocol.RoleOfMaintainer && cfg.id != cfg.mapChainID { // 请求获取同步的map高度
+		fn := mapprotocol.Map2NearHeight(cfg.lightNode, conn.Client())
+		height, err := fn()
 		if err != nil {
-			return nil, errors.Wrap(err, "call near lightNode to get headerHeight failed")
+			return nil, errors.Wrap(err, "near get headerHeight failed")
 		}
-
-		if res.Error != nil {
-			return nil, fmt.Errorf("call near lightNode to get headerHeight resp exist error(%v)", *res.Error)
-		}
-
-		result := big.NewInt(0)
-		err = json.Unmarshal(res.Result, result)
-		if err != nil {
-			return nil, errors.Wrap(err, "near lightNode headerHeight resp json marshal failed")
-		}
-		syncMap[cfg.id] = result
+		logger.Info("map2near Current situation", "chain", cfg.name, "height", height)
+		mapprotocol.SyncOtherMap[cfg.id] = height
+		mapprotocol.HeightQueryCollections[cfg.id] = fn
 	}
 
 	// simplified a little bit
