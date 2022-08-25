@@ -1,9 +1,6 @@
-use crate::config::{init_lake_config, PROJECT_CONFIG, update_synced_block_height,
-                    redis_publisher, INDEXER, init_redis_pusher};
+use crate::config::{init_lake_config, PROJECT_CONFIG, update_synced_block_height, redis_publisher, INDEXER, REDIS};
 use futures::StreamExt;
 use serde_json::json;
-use std::process::exit;
-use std::time::Duration;
 use near_lake_framework::near_indexer_primitives::views::{ExecutionOutcomeWithIdView, ExecutionStatusView};
 
 pub async fn indexer_stream_from_s3() {
@@ -21,7 +18,7 @@ pub async fn indexer_stream_from_s3() {
 pub async fn handle_streamer_message(
     streamer_message: near_lake_framework::near_indexer_primitives::StreamerMessage,
 ) {
-    println!("⛏ Block height {:?}", streamer_message.block.header.height);
+    tracing::info!("Block height {}", streamer_message.block.header.height);
 
     let mut publish = false;
     'outer: for shard in &streamer_message.shards {
@@ -33,20 +30,27 @@ pub async fn handle_streamer_message(
         }
     }
 
-    if !publish {
-        return;
+    if publish {
+        let json = json!(streamer_message).to_string();
+        redis_publisher().lpush(json).await;
+        update_synced_block_height(streamer_message.block.header.height).await;
+
+        tracing::info!(
+            target: INDEXER,
+            "Save {} / shards {}",
+            streamer_message.block.header.height,
+            streamer_message.shards.len()
+        );
+    } else {
+        if streamer_message.block.header.height % 100 == 0 {
+            update_synced_block_height(streamer_message.block.header.height).await;
+            tracing::info!(
+                target: REDIS,
+                "Update synced block height {}",
+                streamer_message.block.header.height
+            )
+        }
     }
-
-    let json = json!(streamer_message).to_string();
-    redis_publisher().lpush(json).await;
-    update_synced_block_height(streamer_message.block.header.height).await;
-
-    tracing::info!(
-        target: INDEXER,
-        "Save {} / shards {}",
-        streamer_message.block.header.height,
-        streamer_message.shards.len()
-    );
 }
 
 pub fn is_valid_receipt(execution_outcome: &ExecutionOutcomeWithIdView) -> bool {

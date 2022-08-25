@@ -4,7 +4,7 @@ near-lake-s3 is used to sync the certain blocks from AWS S3 buckets to redis ser
 ## How to build?
 
 ```shell
-./build.sh
+cargo build --release
 ```
 
 The binary file "near-lake-s3" will be generated in ./target/release.
