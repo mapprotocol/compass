@@ -1,10 +1,7 @@
 use std::thread::sleep;
-use crate::config::PROJECT_CONFIG;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use std::time::Duration;
-use futures::SinkExt;
-use serde_json::Value;
-use redis::{Client, RedisError, Commands, AsyncCommands};
+use redis::{Client, AsyncCommands};
 use redis::aio::ConnectionManager;
 
 pub struct RedisPusher {
@@ -30,7 +27,7 @@ impl RedisPusher {
             if result.is_ok() {
                 break;
             } else {
-                println!("push msg {} to list {} failed with error {}, retry...", msg, &self.list_key, result.err().unwrap());
+                tracing::warn!("push msg {} to list {} failed with error {}, retry...", msg, &self.list_key, result.err().unwrap());
                 sleep(Duration::from_secs(3))
             }
         }
@@ -42,7 +39,7 @@ impl RedisPusher {
             if result.is_ok() {
                 break;
             } else {
-                println!("set key {} to value {} failed with error {}, retry...", key, value, result.err().unwrap());
+                tracing::warn!("set key {} to value {} failed with error {}, retry...", key, value, result.err().unwrap());
                 sleep(Duration::from_secs(3))
             }
         }
@@ -55,12 +52,12 @@ impl RedisPusher {
                 return Some(result.unwrap());
             } else {
                 if let Ok(ret)  = self.conn.exists::<&str, i32>(key).await {
-                    println!(" check if key {} exists: {}...", key, ret);
+                    tracing::info!(" check if key {} exists: {}...", key, ret);
                     if ret == 0 {
                         return None;
                     }
                 }
-                println!("get value of key {} failed with error {}, retry...", key, result.err().unwrap());
+                tracing::warn!("get value of key {} failed with error {}, retry...", key, result.err().unwrap());
                 sleep(Duration::from_secs(3))
             }
         }
