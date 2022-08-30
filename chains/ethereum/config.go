@@ -93,7 +93,7 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		config.mcsContract = common.HexToAddress(contract)
 		delete(chainCfg.Opts, McsOpt)
 	} else {
-		return nil, fmt.Errorf("must provide opts.bridge field for ethereum config")
+		return nil, fmt.Errorf("must provide opts.mcs field for ethereum config")
 	}
 
 	if gasPrice, ok := chainCfg.Opts[MaxGasPriceOpt]; ok {
