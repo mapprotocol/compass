@@ -21,4 +21,5 @@ type Result struct {
 type TransferOut struct {
 	FromChain big.Int `json:"from_chain"`
 	ToChain   big.Int `json:"to_chain"`
+	OrderId   string  `json:"order_id"`
 }

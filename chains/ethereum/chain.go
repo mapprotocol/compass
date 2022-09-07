@@ -131,14 +131,14 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	}
 
 	if role == mapprotocol.RoleOfMaintainer && cfg.id != cfg.mapChainID { // 请求获取同步的map高度
-		fn := mapprotocol.Map2OtherHeight(cfg.from, cfg.lightNode, conn.Client())
+		fn := mapprotocol.Map2EthHeight(cfg.from, cfg.lightNode, conn.Client())
 		height, err := fn()
 		if err != nil {
 			return nil, errors.Wrap(err, "get headerHeight failed")
 		}
 		logger.Info("map2Other Current situation", "chain", cfg.name, "height", height)
 		mapprotocol.SyncOtherMap[cfg.id] = height
-		mapprotocol.HeightQueryCollections[cfg.id] = fn
+		mapprotocol.Map2OtherHeight[cfg.id] = fn
 	}
 
 	// simplified a little bit

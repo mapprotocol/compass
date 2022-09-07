@@ -29,30 +29,31 @@ import (
 
 // GlobalMapConn global Map connection; assign at cmd/main
 var (
-	GlobalMapConn          *ethclient.Client
-	LightNodeAddress       string
-	SyncOtherMap           = make(map[msg.ChainId]*big.Int)
-	HeightQueryCollections = make(map[msg.ChainId]GetHeight)
+	GlobalMapConn   *ethclient.Client
+	SyncOtherMap    = make(map[msg.ChainId]*big.Int)
+	Map2OtherHeight = make(map[msg.ChainId]GetHeight)
+	Get2MapHeight   = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }
 )
 
 type GetHeight func() (*big.Int, error)
 
-func Other2MapHeight(lightNode common.Address) GetHeight {
-	return func() (*big.Int, error) {
-		input, err := PackHeaderHeightInput()
+func InitOtherChain2MapHeight(lightNode common.Address) {
+	Get2MapHeight = func(chainId msg.ChainId) (*big.Int, error) {
+		fmt.Println("get height param ", big.NewInt(int64(chainId)))
+		input, err := PackInput(LightManger, MethodOfHeaderHeight, big.NewInt(int64(chainId)))
 		if err != nil {
-			return nil, errors.Wrap(err, "PackHeaderHeightInput failed")
+			return nil, errors.Wrap(err, "get other2map packInput failed")
 		}
 
 		height, err := HeaderHeight(lightNode, input)
 		if err != nil {
-			return nil, errors.Wrap(err, "get HeaderHeight failed")
+			return nil, errors.Wrap(err, "get other2map headerHeight failed")
 		}
 		return height, nil
 	}
 }
 
-func Map2OtherHeight(fromUser string, lightNode common.Address, client *ethclient.Client) GetHeight {
+func Map2EthHeight(fromUser string, lightNode common.Address, client *ethclient.Client) GetHeight {
 	return func() (*big.Int, error) {
 		from := common.HexToAddress(fromUser)
 		input, err := PackInput(ABILightNode, MethodOfHeaderHeight)
@@ -115,10 +116,6 @@ func PackInput(commonAbi abi.ABI, abiMethod string, params ...interface{}) ([]by
 
 func PackUpdateBlockHeaderInput(header []byte) ([]byte, error) {
 	return PackInput(LightNodeInterface, MethodUpdateBlockHeader, header)
-}
-
-func PackHeaderHeightInput() ([]byte, error) {
-	return PackInput(LightNodeInterface, MethodOfHeaderHeight)
 }
 
 func UnpackHeaderHeightOutput(output []byte) (*big.Int, error) {

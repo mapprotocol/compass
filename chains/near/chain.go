@@ -3,8 +3,6 @@ package near
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/mapprotocol/compass/pkg/redis"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
@@ -112,7 +110,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		}
 		logger.Info("map2near Current situation", "chain", cfg.name, "height", height)
 		mapprotocol.SyncOtherMap[cfg.id] = height
-		mapprotocol.HeightQueryCollections[cfg.id] = fn
+		mapprotocol.Map2OtherHeight[cfg.id] = fn
 	}
 
 	// simplified a little bit
@@ -122,7 +120,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		redis.Init(cfg.redisUrl)
 		listen = NewMessenger(cs)
 	} else { // Maintainer is used by default
-		listen = NewMaintainer(cs, mapprotocol.Other2MapHeight(common.HexToAddress(mapprotocol.LightNodeAddress)))
+		listen = NewMaintainer(cs)
 	}
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
 
