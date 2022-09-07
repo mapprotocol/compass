@@ -59,7 +59,7 @@ func updateNearHeader(data []byte, t *testing.T) {
 }
 
 func headerHeight(t *testing.T) *big.Int {
-	input, err := mapprotocol.PackHeaderHeightInput()
+	input, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodOfHeaderHeight)
 	if err != nil {
 		t.Fatal(err)
 	}

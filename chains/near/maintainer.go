@@ -17,13 +17,11 @@ var NearEpochSize = big.NewInt(43200)
 type Maintainer struct {
 	*CommonListen
 	syncedHeight *big.Int
-	getHeight    mapprotocol.GetHeight
 }
 
-func NewMaintainer(cs *CommonListen, getHeight mapprotocol.GetHeight) *Maintainer {
+func NewMaintainer(cs *CommonListen) *Maintainer {
 	return &Maintainer{
 		CommonListen: cs,
-		getHeight:    getHeight,
 	}
 }
 
@@ -93,7 +91,7 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMapChain listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
-	height, err := m.getHeight()
+	height, err := mapprotocol.Get2MapHeight(m.cfg.id)
 	if err != nil {
 		return err
 	}
@@ -111,6 +109,7 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 
 	count := new(big.Int).Div(blocks, NearEpochSize).Uint64()
 	number := height.Uint64()
+	id := big.NewInt(0).SetUint64(uint64(m.cfg.id))
 	for i := uint64(0); i < count; i++ {
 		blockDetails, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(number))
 		if err != nil {
@@ -128,7 +127,7 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 
 		number = lightBlock.InnerLite.Height
 
-		message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, []interface{}{near.Borshify(lightBlock)}, m.msgCh)
+		message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, []interface{}{id, near.Borshify(lightBlock)}, m.msgCh)
 		err = m.router.Send(message)
 		if err != nil {
 			m.log.Error("subscription error: failed to route message", "err", err)

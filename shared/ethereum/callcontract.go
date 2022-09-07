@@ -74,37 +74,6 @@ var (
 	}
 )
 
-func ParseEthLogIntoSwapArgs(log types.Log, bridgeAddr common.Address) (uint64, uint64, []byte, error) {
-	token := log.Topics[1].Bytes()
-	from := log.Topics[2].Bytes()
-	to := log.Topics[3].Bytes()
-	// every 32 bytes forms a value
-	var orderHash [32]byte
-	copy(orderHash[:], log.Data[:32])
-	amount := log.Data[32:64]
-
-	fromChainID := log.Data[64:96]
-	toChainID := log.Data[96:128]
-	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
-	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
-
-	payloads, err := SwapInArgs.Pack(
-		orderHash,
-		common.BytesToAddress(token),
-		common.BytesToAddress(from),
-		common.BytesToAddress(to),
-		big.NewInt(0).SetBytes(amount),
-		big.NewInt(0).SetBytes(fromChainID),
-		big.NewInt(0).SetBytes(toChainID),
-		bridgeAddr,
-		[]byte{},
-	)
-	if err != nil {
-		return 0, 0, nil, err
-	}
-	return uFromChainID, uToChainID, payloads, nil
-}
-
 type TxParams struct {
 	From  []byte
 	To    []byte
@@ -182,6 +151,8 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
+	fmt.Println("eth2map 参数", "0x"+common.Bytes2Hex(payloads))
+	fmt.Println("eth2map 参数", new(big.Int).SetUint64(uFromChainID))
 	pack, err := mapprotocol.PackInput(mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(uFromChainID), payloads)
 	//pack, err := mapprotocol.PackInput(mapprotocol.Verify, mapprotocol.MethodVerifyProofData, payloads)
 	if err != nil {
@@ -233,6 +204,8 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
+		fmt.Println("map2Eth transfer in", "0x"+common.Bytes2Hex(pack))
+		fmt.Println("map2Eth transfer in", big.NewInt(0).SetUint64(uFromChainID))
 		//payloads, err := mapprotocol.PackInput(mapprotocol.Verify, mapprotocol.MethodVerifyProofData, pack)
 		payloads, err := mapprotocol.PackInput(mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn, big.NewInt(0).SetUint64(uFromChainID), pack)
 		if err != nil {

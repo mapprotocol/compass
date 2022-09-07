@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/mapprotocol/compass/chains/near"
 
 	"github.com/mapprotocol/compass/chains"
@@ -283,7 +285,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			if idx == 0 {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
-				mapprotocol.LightNodeAddress = chainConfig.Opts[ethereum.LightNode]
+				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
 			}
 		} else if chain.Type == chains.Near {
 			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role)

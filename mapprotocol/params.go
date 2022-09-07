@@ -37,13 +37,13 @@ var (
 	RelayerAddress          = common.HexToAddress("0x000068656164657273746F726541646472657373")
 	ABIRelayer, _           = abi.JSON(strings.NewReader(RelayerABIJSON))
 	ABILightNode, _         = abi.JSON(strings.NewReader(LightNode))
-	Verify, _               = abi.JSON(strings.NewReader(VerifyAbi))
 	NearVerify, _           = abi.JSON(strings.NewReader(NearVerifyAbi))
 	NearGetBytes, _         = abi.JSON(strings.NewReader(NearGetBytesAbi))
 	Eth2MapTransferInAbi, _ = abi.JSON(strings.NewReader(Eth2MapTransferIn))
 	ABIEncodeReceipt, _     = abi.JSON(strings.NewReader(EncodeReceiptABI))
 	LightNodeInterface, _   = abi.JSON(strings.NewReader(LightNodeInterfaceABI))
 	OrderList, _            = abi.JSON(strings.NewReader(OrderListAbi))
+	LightManger, _          = abi.JSON(strings.NewReader(LightMangerAbi))
 )
 
 type Role string

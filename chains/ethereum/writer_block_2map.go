@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"math/big"
 	"strings"
 	"time"
 
@@ -21,18 +22,20 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			err := w.conn.LockAndUpdateOpts()
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
-				return false
+				time.Sleep(TxRetryInterval)
+				continue
 			}
 			// These store the gas limit and price before a transaction is sent for logging in case of a failure
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
 
-			marshal, _ := m.Payload[0].([]byte)
+			id, _ := m.Payload[0].(*big.Int)
+			marshal, _ := m.Payload[1].([]byte)
 			// save header data
-			data, err := mapprotocol.PackInput(mapprotocol.ABIRelayer, mapprotocol.MethodUpdateBlockHeader, marshal)
+			data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, id, marshal)
 			if err != nil {
-				w.log.Error("Failed to pack abi data", "err", err)
+				w.log.Error("block2Map Failed to pack abi data", "err", err)
 				w.conn.UnlockOpts()
 				return false
 			}

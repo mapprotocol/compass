@@ -945,4 +945,46 @@ var (
 		  "type": "function"
 		}
 	]`
+
+	LightMangerAbi = `[
+		{
+			"inputs":[
+				{
+					"internalType":"uint256",
+					"name":"_chainId",
+					"type":"uint256"
+				},
+				{
+					"internalType":"bytes",
+					"name":"_blockHeader",
+					"type":"bytes"
+				}
+			],
+			"name":"updateBlockHeader",
+			"outputs":[
+		
+			],
+			"stateMutability":"nonpayable",
+			"type":"function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "_chainId",
+					"type": "uint256"
+				}
+			],
+			"name": "headerHeight",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		}
+	]`
 )

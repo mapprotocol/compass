@@ -189,7 +189,8 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 		m.log.Error("failed to rlp ethereum headers", "err", err)
 		return err
 	}
-	msgpayload := []interface{}{enc}
+	id := big.NewInt(0).SetUint64(uint64(m.cfg.id))
+	msgpayload := []interface{}{id, enc}
 	message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, msgpayload, m.msgCh)
 
 	err = m.router.Send(message)
@@ -209,10 +210,11 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 func (m *Maintainer) batchSyncHeadersTo(height *big.Int) error {
 	// batch
 	var batch = big.NewInt(20)
-	chains := make([]types.Header, batch.Int64())
+	headers := make([]types.Header, 0, 20)
 	var heightDiff = big.NewInt(0)
+	id := big.NewInt(0).SetUint64(uint64(m.cfg.id))
 	for m.syncedHeight.Cmp(height) == -1 {
-		chains = chains[:0]
+		headers = headers[:0]
 		heightDiff.Sub(height, m.syncedHeight)
 		loop := math.MinBigInt(batch, heightDiff)
 		for i := int64(1); i <= loop.Int64(); i++ {
@@ -222,15 +224,15 @@ func (m *Maintainer) batchSyncHeadersTo(height *big.Int) error {
 			if err != nil {
 				return err
 			}
-			chains = append(chains, *header)
+			headers = append(headers, *header)
 		}
 
-		enc, err := rlpEthereumHeaders(m.cfg.id, m.cfg.mapChainID, chains)
+		enc, err := rlpEthereumHeaders(m.cfg.id, m.cfg.mapChainID, headers)
 		if err != nil {
 			m.log.Error("failed to rlp ethereum headers", "err", err)
 			return err
 		}
-		msgpayload := []interface{}{enc}
+		msgpayload := []interface{}{id, enc}
 		message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, msgpayload, m.msgCh)
 		err = m.router.Send(message)
 		if err != nil {
@@ -288,7 +290,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 			continue
 		}
 		// Query the latest height for comparison
-		if fn, ok := mapprotocol.HeightQueryCollections[cid]; ok {
+		if fn, ok := mapprotocol.Map2OtherHeight[cid]; ok {
 			height, err := fn()
 			if err != nil {
 				return errors.Wrap(err, "get headerHeight failed")
@@ -331,7 +333,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 }
 
 func rlpEthereumHeaders(source, destination msg.ChainId, headers []types.Header) ([]byte, error) {
-	h, err := rlp.EncodeToBytes(headers)
+	h, err := rlp.EncodeToBytes(&headers)
 	if err != nil {
 		return nil, fmt.Errorf("rpl encode ethereum headers error: %v", err)
 	}
