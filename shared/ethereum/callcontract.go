@@ -151,8 +151,8 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
-	fmt.Println("eth2map 参数", "0x"+common.Bytes2Hex(payloads))
-	fmt.Println("eth2map 参数", new(big.Int).SetUint64(uFromChainID))
+	//fmt.Println("eth2map 参数", "0x"+common.Bytes2Hex(payloads))
+	//fmt.Println("eth2map 参数", new(big.Int).SetUint64(uFromChainID))
 	pack, err := mapprotocol.PackInput(mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(uFromChainID), payloads)
 	//pack, err := mapprotocol.PackInput(mapprotocol.Verify, mapprotocol.MethodVerifyProofData, payloads)
 	if err != nil {
@@ -204,8 +204,8 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
-		fmt.Println("map2Eth transfer in", "0x"+common.Bytes2Hex(pack))
-		fmt.Println("map2Eth transfer in", big.NewInt(0).SetUint64(uFromChainID))
+		//fmt.Println("map2Eth transfer in", "0x"+common.Bytes2Hex(pack))
+		//fmt.Println("map2Eth transfer in", big.NewInt(0).SetUint64(uFromChainID))
 		//payloads, err := mapprotocol.PackInput(mapprotocol.Verify, mapprotocol.MethodVerifyProofData, pack)
 		payloads, err := mapprotocol.PackInput(mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn, big.NewInt(0).SetUint64(uFromChainID), pack)
 		if err != nil {

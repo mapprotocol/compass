@@ -42,7 +42,6 @@ func (m *Messenger) Sync() error {
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
 	var currentBlock = m.cfg.startBlock
-	m.log.Info("Polling Blocks...", "block", currentBlock)
 
 	if m.cfg.syncToMap {
 		// when listen to map there must be a 20 block confirmation at least
@@ -132,7 +131,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		var message msg.Message
 		// getOrderId
 		orderId := log.Data[64:96]
-		fmt.Println("------------- orderId", ethcommon.Bytes2Hex(orderId))
 		if m.cfg.syncToMap {
 			// when syncToMap we need to assemble a tx proof
 			txsHash, err := getTransactionsHashByBlockNumber(m.conn.Client(), latestBlock)
@@ -173,7 +171,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			message = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
 		}
 
-		m.log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index)
+		m.log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
 		err = m.router.Send(message)
 		if err != nil {
 			m.log.Error("subscription error: failed to route message", "err", err)

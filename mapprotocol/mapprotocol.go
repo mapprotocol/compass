@@ -37,18 +37,18 @@ var (
 
 type GetHeight func() (*big.Int, error)
 
-func InitOtherChain2MapHeight(lightNode common.Address) {
+func InitOtherChain2MapHeight(lightManager common.Address) {
 	Get2MapHeight = func(chainId msg.ChainId) (*big.Int, error) {
-		fmt.Println("get height param ", big.NewInt(int64(chainId)))
 		input, err := PackInput(LightManger, MethodOfHeaderHeight, big.NewInt(int64(chainId)))
 		if err != nil {
 			return nil, errors.Wrap(err, "get other2map packInput failed")
 		}
 
-		height, err := HeaderHeight(lightNode, input)
+		height, err := HeaderHeight(lightManager, input)
 		if err != nil {
 			return nil, errors.Wrap(err, "get other2map headerHeight failed")
 		}
+		fmt.Println("get height param ", big.NewInt(int64(chainId)), "current synced height is", height)
 		return height, nil
 	}
 }
@@ -114,10 +114,6 @@ func PackInput(commonAbi abi.ABI, abiMethod string, params ...interface{}) ([]by
 	return input, nil
 }
 
-func PackUpdateBlockHeaderInput(header []byte) ([]byte, error) {
-	return PackInput(LightNodeInterface, MethodUpdateBlockHeader, header)
-}
-
 func UnpackHeaderHeightOutput(output []byte) (*big.Int, error) {
 	outputs := LightNodeInterface.Methods[MethodOfHeaderHeight].Outputs
 	unpack, err := outputs.Unpack(output)
@@ -130,38 +126,6 @@ func UnpackHeaderHeightOutput(output []byte) (*big.Int, error) {
 		return big.NewInt(0), err
 	}
 	return height, nil
-}
-
-func GetCurrentNumberAbi(from common.Address, chainId msg.ChainId) (*big.Int, string, error) {
-	if GlobalMapConn == nil {
-		return Big0, "", errors.New(" Global Map Connection is not assigned!")
-	}
-
-	blockNum, err := GlobalMapConn.BlockNumber(context.Background())
-	if err != nil {
-		return Big0, "", err
-	}
-	input, _ := PackInput(ABIRelayer, MethodOfCurNbrAndHash, big.NewInt(int64(chainId)))
-
-	msg := goeth.CallMsg{
-		From: from,
-		To:   &RelayerAddress,
-		Data: input,
-	}
-
-	output, err := GlobalMapConn.CallContract(context.Background(), msg, big.NewInt(0).SetUint64(blockNum))
-	if err != nil {
-		return Big0, "", err
-	}
-	method, _ := ABIRelayer.Methods[MethodOfCurNbrAndHash]
-	ret, err := method.Outputs.Unpack(output)
-	if err != nil {
-		return Big0, "", err
-	}
-	height := ret[0].(*big.Int)
-	hash := common.BytesToHash(ret[1].([]byte))
-
-	return height, hash.String(), nil
 }
 
 func HeaderHeight(to common.Address, input []byte) (*big.Int, error) {
