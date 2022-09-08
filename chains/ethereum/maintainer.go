@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/compass/chains"
@@ -50,7 +49,7 @@ func (m Maintainer) sync() error {
 
 	if m.cfg.syncToMap {
 		// check whether needs quick listen
-		syncedHeight, _, err := mapprotocol.GetCurrentNumberAbi(ethcommon.HexToAddress(m.cfg.from), m.cfg.id)
+		syncedHeight, err := mapprotocol.Get2MapHeight(m.cfg.id)
 		if err != nil {
 			m.log.Error("Get synced Height failed", "err", err)
 			return err
@@ -168,7 +167,7 @@ func (m Maintainer) sync() error {
 // syncHeaderToMapChain listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 	// It is checked whether the latest height is higher than the current height
-	syncedHeight, _, err := mapprotocol.GetCurrentNumberAbi(ethcommon.HexToAddress(m.cfg.from), m.cfg.id)
+	syncedHeight, err := mapprotocol.Get2MapHeight(m.cfg.id)
 	if err != nil {
 		m.log.Error("Get synced Height failed", "err", err)
 		return err

@@ -46,7 +46,6 @@ func (m *Messenger) Sync() error {
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
 	var currentBlock = m.cfg.startBlock
-	m.log.Info("Polling Blocks...", "block", currentBlock)
 
 	var retry = RetryLimit
 	for {
@@ -223,6 +222,8 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 		}
 
 		//m.log.Info("near2map的参数", "all", "0x"+common.Bytes2Hex(all))
+		//m.log.Info("near2map的参数", "orderId", out.OrderId)
+		//m.log.Info("near2map的参数", "chainId", new(big.Int).SetUint64(out.FromChain.Uint64()))
 		input, err := mapprotocol.Eth2MapTransferInAbi.Pack(mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(out.FromChain.Uint64()), all)
 		if err != nil {
 			return 0, errors.Wrap(err, "transferIn pack failed")
