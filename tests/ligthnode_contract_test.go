@@ -148,19 +148,19 @@ func Test_NearMcs(t *testing.T) {
 		}
 		t.Logf("proofBytes, 0x%v", common.Bytes2Hex(proofBytes))
 
-		all, err := mapprotocol.NearGetBytes.Methods["getBytes"].Inputs.Pack(blkBytes, proofBytes)
+		all, err := mapprotocol.Near.Methods["getBytes"].Inputs.Pack(blkBytes, proofBytes)
 		if err != nil {
 			t.Fatalf("getBytes failed, err is %v", err)
 		}
 
-		input, err := mapprotocol.NearVerify.Pack(mapprotocol.MethodVerifyProofData, all)
+		input, err := mapprotocol.Near.Pack(mapprotocol.MethodVerifyProofData, all)
 		if err != nil {
 			t.Fatalf("getBytes failed, err is %v", err)
 		}
 
 		fmt.Println("请求参数 ---------- ", "0x"+common.Bytes2Hex(all))
 		fmt.Println("请求参数 ---------- input ", "0x"+common.Bytes2Hex(input))
-		err = call(input, mapprotocol.NearVerify, mapprotocol.MethodVerifyProofData)
+		err = call(input, mapprotocol.Near, mapprotocol.MethodVerifyProofData)
 		if err != nil {
 			t.Fatalf("call failed, err is %v", err)
 		}
@@ -275,7 +275,7 @@ func TestUpdateHeader(t *testing.T) {
 		//printAggPK(aggPK)
 		//_ = h
 
-		input, err := mapprotocol.PackInput(mapprotocol.ABILightNode, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
+		input, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
 		if err != nil {
 			t.Fatalf(err.Error())
 		}
@@ -341,7 +341,7 @@ func TestVerifyProofData(t *testing.T) {
 		Proof:    proof,
 	}
 
-	input, err := mapprotocol.PackInput(mapprotocol.ABILightNode, mapprotocol.MethodVerifyProofData, rp)
+	input, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, rp)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -353,7 +353,7 @@ func TestVerifyProofData(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	resp, err := mapprotocol.ABILightNode.Methods[mapprotocol.MethodVerifyProofData].Outputs.Unpack(output)
+	resp, err := mapprotocol.Near.Methods[mapprotocol.MethodVerifyProofData].Outputs.Unpack(output)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -362,7 +362,7 @@ func TestVerifyProofData(t *testing.T) {
 		Success bool
 		Message string
 	}{}
-	if err := mapprotocol.ABILightNode.Methods[mapprotocol.MethodVerifyProofData].Outputs.Copy(&ret, resp); err != nil {
+	if err := mapprotocol.LightManger.Methods[mapprotocol.MethodVerifyProofData].Outputs.Copy(&ret, resp); err != nil {
 		t.Fatalf(err.Error())
 	}
 
