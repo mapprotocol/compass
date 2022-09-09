@@ -283,7 +283,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
-	input, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
+	input, err := mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
 	if err != nil {
 		return err
 	}
