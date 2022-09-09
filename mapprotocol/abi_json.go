@@ -929,4 +929,118 @@ const (
 		}
 	]
 	`
+	Map2OtherAbi = `[
+	{
+		"inputs": [
+			{
+				"components": [
+					{
+						"internalType": "bytes",
+						"name": "parentHash",
+						"type": "bytes"
+					},
+					{
+						"internalType": "address",
+						"name": "coinbase",
+						"type": "address"
+					},
+					{
+						"internalType": "bytes",
+						"name": "root",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bytes",
+						"name": "txHash",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bytes",
+						"name": "receiptHash",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bytes",
+						"name": "bloom",
+						"type": "bytes"
+					},
+					{
+						"internalType": "uint256",
+						"name": "number",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "gasLimit",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "gasUsed",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "time",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bytes",
+						"name": "extraData",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bytes",
+						"name": "mixDigest",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bytes",
+						"name": "nonce",
+						"type": "bytes"
+					},
+					{
+						"internalType": "uint256",
+						"name": "baseFee",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct ILightNode.blockHeader",
+				"name": "bh",
+				"type": "tuple"
+			},
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "xr",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "xi",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "yr",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "yi",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct IBLSPoint.G2",
+				"name": "aggPk",
+				"type": "tuple"
+			}
+		],
+		"name": "updateBlockHeader",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+	]`
 )

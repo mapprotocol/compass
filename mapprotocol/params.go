@@ -44,6 +44,7 @@ var (
 	Bsc, _         = abi.JSON(strings.NewReader(BscAbiJson))
 	Near, _        = abi.JSON(strings.NewReader(NearAbiJson))
 	LightManger, _ = abi.JSON(strings.NewReader(LightMangerAbi))
+	Map2Other, _   = abi.JSON(strings.NewReader(Map2OtherAbi))
 	ABIRelayer, _  = abi.JSON(strings.NewReader(RelayerABIJSON))
 	Height, _      = abi.JSON(strings.NewReader(HeightAbiJson))
 )
