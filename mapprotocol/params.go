@@ -45,6 +45,7 @@ var (
 	Near, _        = abi.JSON(strings.NewReader(NearAbiJson))
 	LightManger, _ = abi.JSON(strings.NewReader(LightMangerAbi))
 	ABIRelayer, _  = abi.JSON(strings.NewReader(RelayerABIJSON))
+	Height, _      = abi.JSON(strings.NewReader(HeightAbiJson))
 )
 
 type Role string

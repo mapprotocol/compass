@@ -134,7 +134,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		fn := mapprotocol.Map2EthHeight(cfg.from, cfg.lightNode, conn.Client())
 		height, err := fn()
 		if err != nil {
-			return nil, errors.Wrap(err, "get headerHeight failed")
+			return nil, errors.Wrap(err, "eth get init headerHeight failed")
 		}
 		logger.Info("map2Other Current situation", "chain", cfg.name, "height", height)
 		mapprotocol.SyncOtherMap[cfg.id] = height
