@@ -802,19 +802,6 @@ const (
 	BscAbiJson = `
 	[
 		{
-		  "inputs": [],
-		  "name": "headerHeight",
-		  "outputs": [
-			{
-			  "internalType": "uint256",
-			  "name": "",
-			  "type": "uint256"
-			}
-		  ],
-		  "stateMutability": "view",
-		  "type": "function"
-		},
-		{
 			"inputs": [
 				{
 				  "internalType": "bytes",
@@ -922,6 +909,23 @@ const (
 			],
 			"stateMutability": "pure",
 			"type": "function"
+		}
+	]
+	`
+	HeightAbiJson = `
+	[
+		{
+		  "inputs": [],
+		  "name": "headerHeight",
+		  "outputs": [
+			{
+			  "internalType": "uint256",
+			  "name": "",
+			  "type": "uint256"
+			}
+		  ],
+		  "stateMutability": "view",
+		  "type": "function"
 		}
 	]
 	`

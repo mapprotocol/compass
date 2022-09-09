@@ -130,8 +130,8 @@ func (m Maintainer) sync() error {
 					retry--
 					continue
 				}
-			} else if m.cfg.syncToMap {
-				if m.cfg.id == 97 { // bsc 同步逻辑
+			} else if m.cfg.syncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
+				if m.cfg.id == 56 { // bsc 同步逻辑
 
 				} else {
 					// Sync headers to Map
@@ -293,7 +293,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 		// Only when the latestblock is greater than the height of the synchronized block, the synchronization is performed
 		if v, ok := mapprotocol.SyncOtherMap[cid]; ok && latestBlock.Cmp(v) <= 0 {
 			waitCount--
-			m.log.Info("currentBlock less than synchronized headerHeight", "toChainId", cid, "synced height", v,
+			m.log.Info("map to other current less than synchronized headerHeight", "toChainId", cid, "synced height", v,
 				"current height", latestBlock)
 			continue
 		}
