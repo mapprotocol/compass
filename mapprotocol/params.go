@@ -27,7 +27,6 @@ const (
 	MethodUpdateBlockHeader = "updateBlockHeader"
 	MethodOfHeaderHeight    = "headerHeight"
 	MethodOfTransferIn      = "transferIn"
-	MethodOfCurNbrAndHash   = "currentNumberAndHash"
 	MethodOfRegister        = "register"
 	MethodOfBindWorker      = "bind"
 	MethodOfOrderList       = "orderList"
@@ -41,7 +40,6 @@ var (
 	NearGetBytes, _         = abi.JSON(strings.NewReader(NearGetBytesAbi))
 	Eth2MapTransferInAbi, _ = abi.JSON(strings.NewReader(Eth2MapTransferIn))
 	ABIEncodeReceipt, _     = abi.JSON(strings.NewReader(EncodeReceiptABI))
-	LightNodeInterface, _   = abi.JSON(strings.NewReader(LightNodeInterfaceABI))
 	OrderList, _            = abi.JSON(strings.NewReader(OrderListAbi))
 	LightManger, _          = abi.JSON(strings.NewReader(LightMangerAbi))
 )
