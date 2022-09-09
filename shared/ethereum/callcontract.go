@@ -151,7 +151,7 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
-	pack, err := mapprotocol.PackInput(mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(uFromChainID), payloads)
+	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(uFromChainID), payloads)
 	//pack, err := mapprotocol.PackInput(mapprotocol.NearVerify, mapprotocol.MethodVerifyProofData, payloads)
 	if err != nil {
 		return 0, 0, nil, errors.Wrap(err, "transferIn pack failed")
@@ -198,14 +198,11 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 			Proof:    proof,
 		}
 
-		pack, err := mapprotocol.ABIEncodeReceipt.Methods["getBytes"].Inputs.Pack(rp)
+		pack, err := mapprotocol.Mcs.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp)
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
-		//fmt.Println("map2Eth transfer in", "0x"+common.Bytes2Hex(pack))
-		//fmt.Println("map2Eth transfer in", big.NewInt(0).SetUint64(uFromChainID))
-		//payloads, err := mapprotocol.PackInput(mapprotocol.Verify, mapprotocol.MethodVerifyProofData, pack)
-		payloads, err := mapprotocol.PackInput(mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn, big.NewInt(0).SetUint64(uFromChainID), pack)
+		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfTransferIn, big.NewInt(0).SetUint64(uFromChainID), pack)
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
 		}

@@ -56,7 +56,7 @@ func InitOtherChain2MapHeight(lightManager common.Address) {
 func Map2EthHeight(fromUser string, lightNode common.Address, client *ethclient.Client) GetHeight {
 	return func() (*big.Int, error) {
 		from := common.HexToAddress(fromUser)
-		input, err := PackInput(ABILightNode, MethodOfHeaderHeight)
+		input, err := PackInput(LightManger, MethodOfHeaderHeight)
 		if err != nil {
 			return nil, fmt.Errorf("pack lightNode headerHeight Input failed, err is %v", err.Error())
 		}
@@ -72,16 +72,7 @@ func Map2EthHeight(fromUser string, lightNode common.Address, client *ethclient.
 			return nil, fmt.Errorf("headerHeight callContract failed, err is %v", err.Error())
 		}
 
-		resp, err := ABILightNode.Methods[MethodOfHeaderHeight].Outputs.Unpack(output)
-		if err != nil {
-			return nil, fmt.Errorf("headerHeight unpack failed, err is %v", err.Error())
-		}
-		var height *big.Int
-		err = ABILightNode.Methods[MethodOfHeaderHeight].Outputs.Copy(&height, resp)
-		if err != nil {
-			return nil, fmt.Errorf("headerHeight outputs Copy failed, err is %v", err.Error())
-		}
-		return height, nil
+		return UnpackHeaderHeightOutput(output)
 	}
 }
 

@@ -208,7 +208,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			return 0, errors.Wrap(err, "borshifyOutcomeProof failed")
 		}
 
-		all, err := mapprotocol.NearGetBytes.Methods["getBytes"].Inputs.Pack(blkBytes, proofBytes)
+		all, err := mapprotocol.Near.Methods["getBytes"].Inputs.Pack(blkBytes, proofBytes)
 		if err != nil {
 			return 0, errors.Wrap(err, "getBytes pack failed")
 		}
@@ -221,18 +221,10 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			return 0, errors.Wrap(err, "logs format failed")
 		}
 
-		//m.log.Info("near2map的参数", "all", "0x"+common.Bytes2Hex(all))
-		//m.log.Info("near2map的参数", "orderId", out.OrderId)
-		//m.log.Info("near2map的参数", "chainId", new(big.Int).SetUint64(out.FromChain.Uint64()))
-		input, err := mapprotocol.Eth2MapTransferInAbi.Pack(mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(out.FromChain.Uint64()), all)
+		input, err := mapprotocol.Mcs.Pack(mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(out.FromChain.Uint64()), all)
 		if err != nil {
 			return 0, errors.Wrap(err, "transferIn pack failed")
 		}
-		//input, err := mapprotocol.NearVerify.Pack(mapprotocol.MethodVerifyProofData, all)
-		//if err != nil {
-		//	return 0, errors.Wrap(err, "verifyProof pack failed")
-		//}
-		//m.log.Info("near2map的参数，transferIn打包", "input", "0x"+common.Bytes2Hex(input))
 
 		msgpayload := []interface{}{input}
 		message := msg.NewSwapWithProof(msg.ChainId(out.FromChain.Uint64()), m.cfg.mapChainID, msgpayload, m.msgCh)

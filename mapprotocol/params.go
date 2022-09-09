@@ -11,17 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-type ChainType uint64
-
-// common varible
-var (
-	Big0           = big.NewInt(0)
-	Big1           = big.NewInt(1)
-	RegisterAmount = int64(100) // for test purpose
-)
-
-var ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-
 const (
 	MethodVerifyProofData   = "verifyProofData"
 	MethodUpdateBlockHeader = "updateBlockHeader"
@@ -30,18 +19,32 @@ const (
 	MethodOfRegister        = "register"
 	MethodOfBindWorker      = "bind"
 	MethodOfOrderList       = "orderList"
+	MethodOfGetBytes        = "getBytes"
+)
+
+const (
+	EpochOfMap = 1000
+	EpochOfBsc = 200
+)
+
+// common varible
+var (
+	Big0           = big.NewInt(0)
+	Big1           = big.NewInt(1)
+	RegisterAmount = int64(100) // for test purpose
 )
 
 var (
-	RelayerAddress          = common.HexToAddress("0x000068656164657273746F726541646472657373")
-	ABIRelayer, _           = abi.JSON(strings.NewReader(RelayerABIJSON))
-	ABILightNode, _         = abi.JSON(strings.NewReader(LightNode))
-	NearVerify, _           = abi.JSON(strings.NewReader(NearVerifyAbi))
-	NearGetBytes, _         = abi.JSON(strings.NewReader(NearGetBytesAbi))
-	Eth2MapTransferInAbi, _ = abi.JSON(strings.NewReader(Eth2MapTransferIn))
-	ABIEncodeReceipt, _     = abi.JSON(strings.NewReader(EncodeReceiptABI))
-	OrderList, _            = abi.JSON(strings.NewReader(OrderListAbi))
-	LightManger, _          = abi.JSON(strings.NewReader(LightMangerAbi))
+	ZeroAddress    = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	RelayerAddress = common.HexToAddress("0x000068656164657273746F726541646472657373")
+)
+
+var (
+	Mcs, _         = abi.JSON(strings.NewReader(McsAbi))
+	Bsc, _         = abi.JSON(strings.NewReader(BscAbiJson))
+	Near, _        = abi.JSON(strings.NewReader(NearAbiJson))
+	LightManger, _ = abi.JSON(strings.NewReader(LightMangerAbi))
+	ABIRelayer, _  = abi.JSON(strings.NewReader(RelayerABIJSON))
 )
 
 type Role string

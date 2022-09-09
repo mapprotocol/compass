@@ -32,7 +32,7 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			// 先请求下orderId是否已经存在
 			if len(m.Payload) > 1 {
 				orderId := m.Payload[1].([]byte)
-				exits, err := w.checkOrderId(&addr, orderId, mapprotocol.OrderList, mapprotocol.MethodOfOrderList)
+				exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
 				if err != nil {
 					w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
 				}

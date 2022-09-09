@@ -131,11 +131,11 @@ func (m Maintainer) sync() error {
 					continue
 				}
 			} else if m.cfg.syncToMap {
-				// Sync headers to Map
-				if currentBlock.Cmp(m.syncedHeight) == 1 {
-					// listen when catchup
-					m.log.Info("Sync Header to Map Chain", "current", currentBlock)
-					err = m.syncHeaderToMapChain(currentBlock)
+				if m.cfg.id == 97 { // bsc 同步逻辑
+
+				} else {
+					// Sync headers to Map
+					err = m.syncHeaderToMap(currentBlock)
 					if err != nil {
 						m.log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 						retry--
@@ -164,8 +164,17 @@ func (m Maintainer) sync() error {
 	}
 }
 
-// syncHeaderToMapChain listen header from current chain to Map chain
-func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
+func (m *Maintainer) syncBscToMap(latestBlock *big.Int) error {
+	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfBsc))
+	if remainder.Cmp(mapprotocol.Big0) != 0 {
+		// Sync blocks at 200 intervals
+		return nil
+	}
+	return nil
+}
+
+// syncHeaderToMap listen header from current chain to Map chain
+func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	// It is checked whether the latest height is higher than the current height
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.cfg.id)
 	if err != nil {
@@ -178,7 +187,7 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 			"current height", latestBlock)
 		return nil
 	}
-
+	m.log.Info("Sync Header to Map Chain", "current", latestBlock)
 	header, err := m.conn.Client().HeaderByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return err
@@ -258,7 +267,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	if latestBlock.Cmp(big.NewInt(0)) == 0 {
 		return nil
 	}
-	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(1000))
+	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfMap))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		// only listen last block of the epoch
 		return nil
@@ -274,7 +283,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
-	input, err := mapprotocol.PackInput(mapprotocol.ABILightNode, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
+	input, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
 	if err != nil {
 		return err
 	}
