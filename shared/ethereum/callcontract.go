@@ -151,10 +151,8 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return 0, 0, nil, err
 	}
 
-	//fmt.Println("eth2map 参数", "0x"+common.Bytes2Hex(payloads))
-	//fmt.Println("eth2map 参数", new(big.Int).SetUint64(uFromChainID))
 	pack, err := mapprotocol.PackInput(mapprotocol.Eth2MapTransferInAbi, mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(uFromChainID), payloads)
-	//pack, err := mapprotocol.PackInput(mapprotocol.Verify, mapprotocol.MethodVerifyProofData, payloads)
+	//pack, err := mapprotocol.PackInput(mapprotocol.NearVerify, mapprotocol.MethodVerifyProofData, payloads)
 	if err != nil {
 		return 0, 0, nil, errors.Wrap(err, "transferIn pack failed")
 	}

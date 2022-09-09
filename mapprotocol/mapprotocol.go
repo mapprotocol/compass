@@ -115,7 +115,7 @@ func PackInput(commonAbi abi.ABI, abiMethod string, params ...interface{}) ([]by
 }
 
 func UnpackHeaderHeightOutput(output []byte) (*big.Int, error) {
-	outputs := LightNodeInterface.Methods[MethodOfHeaderHeight].Outputs
+	outputs := LightManger.Methods[MethodOfHeaderHeight].Outputs
 	unpack, err := outputs.Unpack(output)
 	if err != nil {
 		return big.NewInt(0), err

@@ -47,7 +47,7 @@ func TestUpdateNearHeaderToMAP(t *testing.T) {
 
 func updateNearHeader(data []byte, t *testing.T) {
 	cli := dialMapConn()
-	input, err := mapprotocol.PackInput(mapprotocol.LightNodeInterface, mapprotocol.MethodUpdateBlockHeader, data)
+	input, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, data)
 	if err != nil {
 		t.Fatal(err)
 	}

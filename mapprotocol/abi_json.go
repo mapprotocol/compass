@@ -555,292 +555,196 @@ const LightNode = `[
 		],
 		"stateMutability": "view",
 		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "headerHeight",
-		"outputs": [
-		  {
-			"internalType": "uint256",
-			"name": "",
-			"type": "uint256"
-		  }
-		],
-		"stateMutability": "view",
-		"type": "function"
-  	}
-]`
-
-const LightNodeInterfaceABI = `[
-	{
-		"inputs": [],
-		"name": "headerHeight",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "bytes",
-				"name": "_blockHeader",
-				"type": "bytes"
-			}
-		],
-		"name": "updateBlockHeader",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "bytes",
-				"name": "_receiptProof",
-				"type": "bytes"
-			}
-		],
-		"name": "verifyProofData",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "success",
-				"type": "bool"
-			},
-			{
-				"internalType": "bytes",
-				"name": "logs",
-				"type": "bytes"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
 	}
-]`
+	]`
 
 var (
-	EncodeReceiptABI = `[
-{
-        "inputs":[
-            {
-                "components":[
-                    {
-                        "components":[
-                            {
-                                "internalType":"bytes",
-                                "name":"parentHash",
-                                "type":"bytes"
-                            },
-                            {
-                                "internalType":"address",
-                                "name":"coinbase",
-                                "type":"address"
-                            },
-                            {
-                                "internalType":"bytes",
-                                "name":"root",
-                                "type":"bytes"
-                            },
-                            {
-                                "internalType":"bytes",
-                                "name":"txHash",
-                                "type":"bytes"
-                            },
-                            {
-                                "internalType":"bytes",
-                                "name":"receiptHash",
-                                "type":"bytes"
-                            },
-                            {
-                                "internalType":"bytes",
-                                "name":"bloom",
-                                "type":"bytes"
-                            },
-                            {
-                                "internalType":"uint256",
-                                "name":"number",
-                                "type":"uint256"
-                            },
-                            {
-                                "internalType":"uint256",
-                                "name":"gasLimit",
-                                "type":"uint256"
-                            },
-                            {
-                                "internalType":"uint256",
-                                "name":"gasUsed",
-                                "type":"uint256"
-                            },
-                            {
-                                "internalType":"uint256",
-                                "name":"time",
-                                "type":"uint256"
-                            },
-                            {
-                                "internalType":"bytes",
-                                "name":"extraData",
-                                "type":"bytes"
-                            },
-                            {
-                                "internalType":"bytes",
-                                "name":"mixDigest",
-                                "type":"bytes"
-                            },
-                            {
-                                "internalType":"bytes",
-                                "name":"nonce",
-                                "type":"bytes"
-                            },
-                            {
-                                "internalType":"uint256",
-                                "name":"baseFee",
-                                "type":"uint256"
-                            }
-                        ],
-                        "internalType":"struct ILightNodePoint.blockHeader",
-                        "name":"header",
-                        "type":"tuple"
-                    },
-                    {
-                        "components":[
-                            {
-                                "internalType":"uint256",
-                                "name":"xr",
-                                "type":"uint256"
-                            },
-                            {
-                                "internalType":"uint256",
-                                "name":"xi",
-                                "type":"uint256"
-                            },
-                            {
-                                "internalType":"uint256",
-                                "name":"yr",
-                                "type":"uint256"
-                            },
-                            {
-                                "internalType":"uint256",
-                                "name":"yi",
-                                "type":"uint256"
-                            }
-                        ],
-                        "internalType":"struct IBLSPoint.G2",
-                        "name":"aggPk",
-                        "type":"tuple"
-                    },
-                    {
-                        "components":[
-                            {
-                                "internalType":"uint256",
-                                "name":"receiptType",
-                                "type":"uint256"
-                            },
-                            {
-                                "internalType":"bytes",
-                                "name":"postStateOrStatus",
-                                "type":"bytes"
-                            },
-                            {
-                                "internalType":"uint256",
-                                "name":"cumulativeGasUsed",
-                                "type":"uint256"
-                            },
-                            {
-                                "internalType":"bytes",
-                                "name":"bloom",
-                                "type":"bytes"
-                            },
-                            {
-                                "components":[
-                                    {
-                                        "internalType":"address",
-                                        "name":"addr",
-                                        "type":"address"
-                                    },
-                                    {
-                                        "internalType":"bytes[]",
-                                        "name":"topics",
-                                        "type":"bytes[]"
-                                    },
-                                    {
-                                        "internalType":"bytes",
-                                        "name":"data",
-                                        "type":"bytes"
-                                    }
-                                ],
-                                "internalType":"struct ILightNodePoint.txLog[]",
-                                "name":"logs",
-                                "type":"tuple[]"
-                            }
-                        ],
-                        "internalType":"struct ILightNodePoint.txReceipt",
-                        "name":"receipt",
-                        "type":"tuple"
-                    },
-                    {
-                        "internalType":"bytes",
-                        "name":"keyIndex",
-                        "type":"bytes"
-                    },
-                    {
-                        "internalType":"bytes[]",
-                        "name":"proof",
-                        "type":"bytes[]"
-                    }
-                ],
-                "internalType":"struct ILightNodePoint.receiptProof",
-                "name":"_receiptProof",
-                "type":"tuple"
-            }
-        ],
-        "name":"getBytes",
-        "outputs":[
-            {
-                "internalType":"bytes",
-                "name":"",
-                "type":"bytes"
-            }
-        ],
-        "stateMutability":"view",
-        "type":"function"
-    }
-]`
-	VerifyAbi = `[
+	EncodeReceiptABI = `
+	[
 		{
-		  "inputs": [
-			 {
-				"internalType": "bytes",
-				"name": "receiptProof",
-				"type": "bytes"
-			 }
-		  ],
-		  "name": "verifyProofData",
-		  "outputs": [
-			 {
-				"internalType": "bool",
-				"name": "success",
-				"type": "bool"
-			 },
-			 {
-				"internalType": "string",
-				"name": "message",
-				"type": "string"
-			 },
-			 {
-				"internalType": "bytes",
-				"name": "logs",
-				"type": "bytes"
-			 }
-		  ],
-		  "stateMutability": "nonpayable",
-		  "type": "function"
-	   }
+			"inputs":[
+				{
+					"components":[
+						{
+							"components":[
+								{
+									"internalType":"bytes",
+									"name":"parentHash",
+									"type":"bytes"
+								},
+								{
+									"internalType":"address",
+									"name":"coinbase",
+									"type":"address"
+								},
+								{
+									"internalType":"bytes",
+									"name":"root",
+									"type":"bytes"
+								},
+								{
+									"internalType":"bytes",
+									"name":"txHash",
+									"type":"bytes"
+								},
+								{
+									"internalType":"bytes",
+									"name":"receiptHash",
+									"type":"bytes"
+								},
+								{
+									"internalType":"bytes",
+									"name":"bloom",
+									"type":"bytes"
+								},
+								{
+									"internalType":"uint256",
+									"name":"number",
+									"type":"uint256"
+								},
+								{
+									"internalType":"uint256",
+									"name":"gasLimit",
+									"type":"uint256"
+								},
+								{
+									"internalType":"uint256",
+									"name":"gasUsed",
+									"type":"uint256"
+								},
+								{
+									"internalType":"uint256",
+									"name":"time",
+									"type":"uint256"
+								},
+								{
+									"internalType":"bytes",
+									"name":"extraData",
+									"type":"bytes"
+								},
+								{
+									"internalType":"bytes",
+									"name":"mixDigest",
+									"type":"bytes"
+								},
+								{
+									"internalType":"bytes",
+									"name":"nonce",
+									"type":"bytes"
+								},
+								{
+									"internalType":"uint256",
+									"name":"baseFee",
+									"type":"uint256"
+								}
+							],
+							"internalType":"struct ILightNodePoint.blockHeader",
+							"name":"header",
+							"type":"tuple"
+						},
+						{
+							"components":[
+								{
+									"internalType":"uint256",
+									"name":"xr",
+									"type":"uint256"
+								},
+								{
+									"internalType":"uint256",
+									"name":"xi",
+									"type":"uint256"
+								},
+								{
+									"internalType":"uint256",
+									"name":"yr",
+									"type":"uint256"
+								},
+								{
+									"internalType":"uint256",
+									"name":"yi",
+									"type":"uint256"
+								}
+							],
+							"internalType":"struct IBLSPoint.G2",
+							"name":"aggPk",
+							"type":"tuple"
+						},
+						{
+							"components":[
+								{
+									"internalType":"uint256",
+									"name":"receiptType",
+									"type":"uint256"
+								},
+								{
+									"internalType":"bytes",
+									"name":"postStateOrStatus",
+									"type":"bytes"
+								},
+								{
+									"internalType":"uint256",
+									"name":"cumulativeGasUsed",
+									"type":"uint256"
+								},
+								{
+									"internalType":"bytes",
+									"name":"bloom",
+									"type":"bytes"
+								},
+								{
+									"components":[
+										{
+											"internalType":"address",
+											"name":"addr",
+											"type":"address"
+										},
+										{
+											"internalType":"bytes[]",
+											"name":"topics",
+											"type":"bytes[]"
+										},
+										{
+											"internalType":"bytes",
+											"name":"data",
+											"type":"bytes"
+										}
+									],
+									"internalType":"struct ILightNodePoint.txLog[]",
+									"name":"logs",
+									"type":"tuple[]"
+								}
+							],
+							"internalType":"struct ILightNodePoint.txReceipt",
+							"name":"receipt",
+							"type":"tuple"
+						},
+						{
+							"internalType":"bytes",
+							"name":"keyIndex",
+							"type":"bytes"
+						},
+						{
+							"internalType":"bytes[]",
+							"name":"proof",
+							"type":"bytes[]"
+						}
+					],
+					"internalType":"struct ILightNodePoint.receiptProof",
+					"name":"_receiptProof",
+					"type":"tuple"
+				}
+			],
+			"name":"getBytes",
+			"outputs":[
+				{
+					"internalType":"bytes",
+					"name":"",
+					"type":"bytes"
+				}
+			],
+			"stateMutability":"view",
+			"type":"function"
+		}
 	]`
 	Eth2MapTransferIn = `
 	[
