@@ -127,7 +127,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 					continue
 				}
 			}
-			m.log.Info("Event found")
+			m.log.Info("Event found", "log", outcome.ExecutionOutcome.Outcome.Logs)
 			target = append(target, outcome)
 		}
 	}
@@ -221,13 +221,18 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			return 0, errors.Wrap(err, "logs format failed")
 		}
 
-		input, err := mapprotocol.Mcs.Pack(mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(out.FromChain.Uint64()), all)
+		method := mapprotocol.MethodOfTransferIn
+		if !strings.HasPrefix(tg.ExecutionOutcome.Outcome.Logs[1], mapprotocol.NearOfTransferIn) {
+			method = mapprotocol.MethodOfDepositIn
+		}
+		input, err := mapprotocol.Mcs.Pack(method, new(big.Int).SetUint64(uint64(m.cfg.id)), all)
+		//input, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(m.cfg.id)), all)
 		if err != nil {
 			return 0, errors.Wrap(err, "transferIn pack failed")
 		}
 
 		msgpayload := []interface{}{input}
-		message := msg.NewSwapWithProof(msg.ChainId(out.FromChain.Uint64()), m.cfg.mapChainID, msgpayload, m.msgCh)
+		message := msg.NewSwapWithProof(m.cfg.id, m.cfg.mapChainID, msgpayload, m.msgCh)
 		err = m.router.Send(message)
 		ret++
 	}

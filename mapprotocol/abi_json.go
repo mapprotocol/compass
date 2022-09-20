@@ -442,6 +442,24 @@ const (
 		  "type": "function"
 		},
 		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "_fromChain",
+					"type": "uint256"
+				},
+				{
+					"internalType": "bytes",
+					"name": "receiptProof",
+					"type": "bytes"
+				}
+			],
+			"name": "depositIn",
+			"outputs": [],
+			"stateMutability": "payable",
+			"type": "function"
+		},
+		{
 			"inputs":[
 				{
 					"internalType":"uint256",
@@ -685,6 +703,40 @@ const (
 			],
 			"stateMutability": "view",
 			"type": "function"
+		},
+		{
+			"inputs":[
+				{
+					"internalType":"uint256",
+					"name":"_chainId",
+					"type":"uint256"
+				},
+				{
+					"internalType":"bytes",
+					"name":"_receiptProof",
+					"type":"bytes"
+				}
+			],
+			"name":"verifyProofData",
+			"outputs":[
+				{
+					"internalType":"bool",
+					"name":"success",
+					"type":"bool"
+				},
+				{
+					"internalType":"string",
+					"name":"message",
+					"type":"string"
+				},
+				{
+					"internalType":"bytes",
+					"name":"logs",
+					"type":"bytes"
+				}
+			],
+			"stateMutability":"view",
+			"type":"function"
 		},
 		{
 			"inputs": [
