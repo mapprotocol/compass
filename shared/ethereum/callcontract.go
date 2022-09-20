@@ -88,12 +88,7 @@ type TxProve struct {
 	TxIndex     uint
 }
 
-func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, receipts []*types.Receipt) (uint64, uint64, []byte, error) {
-	fromChainID := log.Data[96:128]
-	toChainID := log.Data[128:160]
-	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
-	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
-
+func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, receipts []*types.Receipt, method string, fId, tId msg.ChainId) ([]byte, error) {
 	// calc tx proof
 	blockNumber := log.BlockNumber
 	transactionIndex := log.TxIndex
@@ -101,29 +96,29 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 	proof := light.NewNodeSet()
 	key, err := rlp.EncodeToBytes(transactionIndex)
 	if err != nil {
-		return 0, 0, nil, err
+		return nil, err
 	}
 
 	// assemble trie tree
 	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
 	if err != nil {
-		return 0, 0, nil, err
+		return nil, err
 	}
 	for i, r := range receipts {
 		key, err := rlp.EncodeToBytes(uint(i))
 		if err != nil {
-			return 0, 0, nil, err
+			return nil, err
 		}
 		value, err := rlp.EncodeToBytes(r)
 		if err != nil {
-			return 0, 0, nil, err
+			return nil, err
 		}
 		tr.Update(key, value)
 	}
 
 	tr = DeriveTire(receipts, tr)
 	if err = tr.Prove(key, 0, proof); err != nil {
-		return 0, 0, nil, err
+		return nil, err
 	}
 
 	txProve := mapprotocol.TxProve{
@@ -135,29 +130,30 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 
 	txProofBytes, err := rlp.EncodeToBytes(txProve)
 	if err != nil {
-		return 0, 0, nil, err
+		return nil, err
 	}
 
 	rp := mapprotocol.NewReceiptProof{
 		Router:   bridgeAddr,
 		Coin:     bridgeAddr, // common.BytesToAddress(token),
-		SrcChain: big.NewInt(0).SetUint64(uFromChainID),
-		DstChain: big.NewInt(0).SetUint64(uToChainID),
+		SrcChain: big.NewInt(0).SetUint64(uint64(fId)),
+		DstChain: big.NewInt(0).SetUint64(uint64(tId)),
 		TxProve:  txProofBytes,
 	}
 
 	payloads, err := rlp.EncodeToBytes(rp)
 	if err != nil {
-		return 0, 0, nil, err
+		return nil, err
 	}
 
-	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfTransferIn, new(big.Int).SetUint64(uFromChainID), payloads)
-	//pack, err := mapprotocol.PackInput(mapprotocol.NearVerify, mapprotocol.MethodVerifyProofData, payloads)
+	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), payloads)
+	//pack, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodVerifyProofData,
+	//	big.NewInt(0).SetUint64(uint64(fId)), payloads)
 	if err != nil {
-		return 0, 0, nil, errors.Wrap(err, "transferIn pack failed")
+		return nil, errors.Wrap(err, "transferIn pack failed")
 	}
 
-	return uFromChainID, uToChainID, pack, nil
+	return pack, nil
 }
 
 type MapTxProve struct {

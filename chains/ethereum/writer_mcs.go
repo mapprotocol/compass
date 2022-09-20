@@ -53,7 +53,7 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
 			mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
-			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.NearVerify, mapprotocol.MethodVerifyProofData)
+			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
 			w.log.Info("send transaction", "addr", addr)
 			w.conn.UnlockOpts()
 

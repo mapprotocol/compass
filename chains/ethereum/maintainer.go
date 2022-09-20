@@ -131,16 +131,12 @@ func (m Maintainer) sync() error {
 					continue
 				}
 			} else if m.cfg.syncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
-				if m.cfg.id == 56 { // bsc 同步逻辑
-
-				} else {
-					// Sync headers to Map
-					err = m.syncHeaderToMap(currentBlock)
-					if err != nil {
-						m.log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
-						retry--
-						continue
-					}
+				// Sync headers to Map
+				err = m.syncHeaderToMap(currentBlock)
+				if err != nil {
+					m.log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
+					retry--
+					continue
 				}
 			}
 
