@@ -40,10 +40,6 @@ func (r *Router) Send(msg msg.Message) error {
 
 	r.log.Trace("Routing message", "src", msg.Source, "dest", msg.Destination, "nonce", msg.DepositNonce)
 	dest := msg.Destination
-	// if neither src or dest are from map, redirect to map chain
-	if msg.Source != r.mapcid && msg.Destination != r.mapcid {
-		dest = r.mapcid
-	}
 
 	w := r.registry[dest]
 	if w == nil {

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	gconfig "github.com/mapprotocol/compass/config"
@@ -25,8 +26,7 @@ const DefaultGasMultiplier = 1
 
 // Chain specific options
 var (
-	BridgeOpt = "bridge"
-	//GenericHandlerOpt     = "genericHandler"
+	McsOpt                = "mcs"
 	MaxGasPriceOpt        = "maxGasPrice"
 	GasLimitOpt           = "gasLimit"
 	GasMultiplier         = "gasMultiplier"
@@ -38,6 +38,7 @@ var (
 	SyncToMap             = "syncToMap"
 	SyncIDList            = "syncIdList"
 	LightNode             = "lightnode"
+	Event                 = "event"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
@@ -49,7 +50,7 @@ type Config struct {
 	keystorePath       string      // Location of keyfiles
 	blockstorePath     string
 	freshStart         bool // Disables loading from blockstore at start
-	bridgeContract     common.Address
+	mcsContract        common.Address
 	gasLimit           *big.Int
 	maxGasPrice        *big.Int
 	gasMultiplier      *big.Float
@@ -62,11 +63,12 @@ type Config struct {
 	mapChainID         msg.ChainId
 	syncChainIDList    []msg.ChainId  // chain ids which map sync to
 	lightNode          common.Address // the lightnode to sync header
+	syncMap            map[msg.ChainId]*big.Int
+	events             []utils.EventSig
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
 func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
-
 	config := &Config{
 		name:               chainCfg.Name,
 		id:                 chainCfg.Id,
@@ -75,7 +77,7 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		keystorePath:       chainCfg.KeystorePath,
 		blockstorePath:     chainCfg.BlockstorePath,
 		freshStart:         chainCfg.FreshStart,
-		bridgeContract:     utils.ZeroAddress,
+		mcsContract:        utils.ZeroAddress,
 		gasLimit:           big.NewInt(DefaultGasLimit),
 		maxGasPrice:        big.NewInt(DefaultGasPrice),
 		gasMultiplier:      big.NewFloat(DefaultGasMultiplier),
@@ -84,19 +86,15 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		blockConfirmations: big.NewInt(0),
 		egsApiKey:          "",
 		egsSpeed:           "",
+		events:             make([]utils.EventSig, 0),
 	}
 
-	if contract, ok := chainCfg.Opts[BridgeOpt]; ok && contract != "" {
-		config.bridgeContract = common.HexToAddress(contract)
-		delete(chainCfg.Opts, BridgeOpt)
+	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
+		config.mcsContract = common.HexToAddress(contract)
+		delete(chainCfg.Opts, McsOpt)
 	} else {
-		return nil, fmt.Errorf("must provide opts.bridge field for ethereum config")
+		return nil, fmt.Errorf("must provide opts.mcs field for ethereum config")
 	}
-
-	// if contract, ok := chainCfg.Opts[GenericHandlerOpt]; ok {
-	// 	config.genericHandlerContract = common.HexToAddress(contract)
-	// 	delete(chainCfg.Opts, GenericHandlerOpt)
-	// }
 
 	if gasPrice, ok := chainCfg.Opts[MaxGasPriceOpt]; ok {
 		price := big.NewInt(0)
@@ -206,12 +204,18 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 
 	if lightnode, ok := chainCfg.Opts[LightNode]; ok && lightnode != "" {
 		config.lightNode = common.HexToAddress(lightnode)
-		delete(chainCfg.Opts, LightNode)
 	}
 
-	if len(chainCfg.Opts) != 0 {
-		return nil, fmt.Errorf("unknown Opts Encountered: %#v", chainCfg.Opts)
+	if v, ok := chainCfg.Opts[Event]; ok && v != "" {
+		vs := strings.Split(v, "|")
+		for _, s := range vs {
+			config.events = append(config.events, utils.EventSig(s))
+		}
 	}
+
+	//if len(chainCfg.Opts) != 0 {
+	//	return nil, fmt.Errorf("unknown Opts Encountered: %#v", chainCfg.Opts)
+	//}
 
 	return config, nil
 }

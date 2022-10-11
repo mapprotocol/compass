@@ -6,65 +6,80 @@ package mapprotocol
 import (
 	"context"
 	"crypto/ecdsa"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
 
+	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
+
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
+
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
-
+	"github.com/ethereum/go-ethereum"
 	goeth "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/pkg/errors"
 )
 
-// global Map connection; assign at cmd/main
-var GlobalMapConn *ethclient.Client
+// GlobalMapConn global Map connection; assign at cmd/main
+var (
+	GlobalMapConn   *ethclient.Client
+	SyncOtherMap    = make(map[msg.ChainId]*big.Int)
+	Map2OtherHeight = make(map[msg.ChainId]GetHeight)
+	Get2MapHeight   = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }
+	Get2MapByLight  = func() (*big.Int, error) { return nil, nil }
+)
 
-func packInput(commonAbi abi.ABI, abiMethod string, params ...interface{}) ([]byte, error) {
-	input, err := commonAbi.Pack(abiMethod, params...)
-	if err != nil {
-		return nil, err
+type GetHeight func() (*big.Int, error)
+
+func InitOther2MapHeight(lightManager common.Address) {
+	Get2MapHeight = func(chainId msg.ChainId) (*big.Int, error) {
+		height, _, err := GetCurrentNumberAbi(chainId)
+		if err != nil {
+			return nil, errors.Wrap(err, "get other2map headerHeight failed")
+		}
+		//input, err := PackInput(LightManger, MethodOfHeaderHeight, big.NewInt(int64(chainId)))
+		//if err != nil {
+		//	return nil, errors.Wrap(err, "get other2map packInput failed")
+		//}
+		//
+		//height, err := HeaderHeight(lightManager, input)
+		//if err != nil {
+		//	return nil, errors.Wrap(err, "get other2map headerHeight failed")
+		//}
+		//fmt.Println("get height param ", big.NewInt(int64(chainId)), "current synced height is", height)
+		return height, nil
 	}
-	return input, nil
 }
 
-func SaveHeaderTxData(src, dest *big.Int, marshal []byte) ([]byte, error) {
-	return packInput(ABIRelayer,
-		SaveHeader,
-		src,
-		dest,
-		marshal)
-}
-
-func SaveHeaderLiteTxData(marshal []byte) ([]byte, error) {
-	return packInput(ABILiteNode, SaveHeader, marshal)
-}
-
-func GetCurrentNumberAbi(from common.Address) (*big.Int, string, error) {
+func GetCurrentNumberAbi(chainId msg.ChainId) (*big.Int, string, error) {
 	if GlobalMapConn == nil {
-		return Big0, "", errors.New("Global Map Connection is not assigned!")
+		return Big0, "", errors.New(" Global Map Connection is not assigned!")
 	}
 
 	blockNum, err := GlobalMapConn.BlockNumber(context.Background())
 	if err != nil {
 		return Big0, "", err
 	}
-	input, _ := packInput(ABIRelayer, CurNbrAndHash, big.NewInt(int64(ChainTypeETH)))
+	input, _ := PackInput(ABIRelayer, "currentNumberAndHash", big.NewInt(int64(chainId)))
 
 	msg := goeth.CallMsg{
-		From: from,
+		From: ZeroAddress,
 		To:   &RelayerAddress,
-		Data: input}
+		Data: input,
+	}
 
 	output, err := GlobalMapConn.CallContract(context.Background(), msg, big.NewInt(0).SetUint64(blockNum))
 	if err != nil {
 		return Big0, "", err
 	}
-	method, _ := ABIRelayer.Methods[CurNbrAndHash]
+	method, _ := ABIRelayer.Methods["currentNumberAndHash"]
 	ret, err := method.Outputs.Unpack(output)
 	if err != nil {
 		return Big0, "", err
@@ -75,6 +90,100 @@ func GetCurrentNumberAbi(from common.Address) (*big.Int, string, error) {
 	return height, hash.String(), nil
 }
 
+func InitBsc2MapHeight(lightNode common.Address) {
+	Get2MapByLight = func() (*big.Int, error) {
+		input, err := PackInput(Height, MethodOfHeaderHeight)
+		if err != nil {
+			return nil, errors.Wrap(err, "get other2map packInput failed")
+		}
+
+		height, err := HeaderHeight(lightNode, input)
+		if err != nil {
+			return nil, errors.Wrap(err, "get other2map headerHeight failed")
+		}
+		return height, nil
+	}
+}
+
+func Map2EthHeight(fromUser string, lightNode common.Address, client *ethclient.Client) GetHeight {
+	return func() (*big.Int, error) {
+		from := common.HexToAddress(fromUser)
+		input, err := PackInput(Height, MethodOfHeaderHeight)
+		if err != nil {
+			return nil, fmt.Errorf("pack lightNode headerHeight Input failed, err is %v", err.Error())
+		}
+		output, err := client.CallContract(context.Background(),
+			ethereum.CallMsg{
+				From: from,
+				To:   &lightNode,
+				Data: input,
+			},
+			nil,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("headerHeight callContract failed, err is %v", err.Error())
+		}
+
+		return UnpackHeaderHeightOutput(output)
+	}
+}
+
+func Map2NearHeight(lightNode string, client *nearclient.Client) GetHeight {
+	return func() (*big.Int, error) {
+		res, err := client.ContractViewCallFunction(context.Background(), lightNode, "get_header_height",
+			"e30=", block.FinalityFinal())
+		if err != nil {
+			return nil, errors.Wrap(err, "call near lightNode to headerHeight failed")
+		}
+
+		if res.Error != nil {
+			return nil, fmt.Errorf("call near lightNode to get headerHeight resp exist error(%v)", *res.Error)
+		}
+
+		result := big.NewInt(0)
+		err = json.Unmarshal(res.Result, result)
+		if err != nil {
+			return nil, errors.Wrap(err, "near lightNode headerHeight resp json marshal failed")
+		}
+		return result, nil
+	}
+}
+
+func PackInput(commonAbi abi.ABI, abiMethod string, params ...interface{}) ([]byte, error) {
+	input, err := commonAbi.Pack(abiMethod, params...)
+	if err != nil {
+		return nil, err
+	}
+	return input, nil
+}
+
+func UnpackHeaderHeightOutput(output []byte) (*big.Int, error) {
+	outputs := Height.Methods[MethodOfHeaderHeight].Outputs
+	unpack, err := outputs.Unpack(output)
+	if err != nil {
+		fmt.Println("unpack ------------ ", unpack)
+		return big.NewInt(0), err
+	}
+
+	height := new(big.Int)
+	if err := outputs.Copy(&height, unpack); err != nil {
+		return big.NewInt(0), err
+	}
+	return height, nil
+}
+
+func HeaderHeight(to common.Address, input []byte) (*big.Int, error) {
+	output, err := GlobalMapConn.CallContract(context.Background(), goeth.CallMsg{From: ZeroAddress, To: &to, Data: input}, nil)
+	if err != nil {
+		return nil, err
+	}
+	height, err := UnpackHeaderHeightOutput(output)
+	if err != nil {
+		return nil, err
+	}
+	return height, nil
+}
+
 type Connection interface {
 	Keypair() *secp256k1.Keypair
 	Client() *ethclient.Client
@@ -82,7 +191,7 @@ type Connection interface {
 
 func RegisterRelayerWithConn(conn Connection, value int64, logger log15.Logger) error {
 	amoutnOfwei := ethToWei(value)
-	input, err := packInput(ABIRelayer, RegisterRelayer)
+	input, err := PackInput(ABIRelayer, MethodOfRegister)
 	if err != nil {
 		return err
 	}
@@ -96,9 +205,9 @@ func RegisterRelayerWithConn(conn Connection, value int64, logger log15.Logger) 
 	return nil
 }
 
-func BindWoerkerWithConn(conn Connection, worker string, logger log15.Logger) error {
+func BindWorkerWithConn(conn Connection, worker string, logger log15.Logger) error {
 	workerAddr := common.HexToAddress(worker)
-	input, err := packInput(ABIRelayer, BindWorker, workerAddr)
+	input, err := PackInput(ABIRelayer, MethodOfBindWorker, workerAddr)
 	if err != nil {
 		return err
 	}

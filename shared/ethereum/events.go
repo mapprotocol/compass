@@ -14,11 +14,6 @@ func (es EventSig) GetTopic() common.Hash {
 	return crypto.Keccak256Hash([]byte(es))
 }
 
-const (
-	//event LogSwapOut(bytes32 hash, address indexed token, address indexed from, address indexed to, uint amount, uint fromChainID, uint toChainID);
-	SwapOut EventSig = "LogSwapOut(bytes32,address,address,address,uint256,uint256,uint256)"
-)
-
 type ProposalStatus int
 
 const (
