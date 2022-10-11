@@ -11,20 +11,25 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-type ChainType uint64
-
-// Map Chain ID
 const (
-	MainNetChainID    uint64 = 177
-	TestNetChainID    uint64 = 212
-	DevNetChainID     uint64 = 213
-	SingleNodeChainID uint64 = 214
+	MethodVerifyProofData   = "verifyProofData"
+	MethodUpdateBlockHeader = "updateBlockHeader"
+	MethodOfHeaderHeight    = "headerHeight"
+	MethodOfTransferIn      = "transferIn"
+	MethodOfRegister        = "register"
+	MethodOfBindWorker      = "bind"
+	MethodOfOrderList       = "orderList"
+	MethodOfGetBytes        = "getBytes"
+	MethodOfGetHeadersBytes = "getHeadersBytes"
 )
 
-// ETH Chain ID
 const (
-	ETHChainID     uint64 = 1
-	RopstenCHainID uint64 = 3
+	EpochOfMap = 1000
+	EpochOfBsc = 200
+)
+
+const (
+	HeaderCountOfBsc = 4
 )
 
 // common varible
@@ -35,17 +40,23 @@ var (
 )
 
 var (
-	// todo using
-	RelayerAddress = common.HexToAddress("0xB864eEe844698de06Dd305CBf729fDD765d9592D")
-	// functions
-	SaveHeader      = "save"
-	CurNbrAndHash   = "currentNumberAndHash"
-	RegisterRelayer = "register"
-	BindWorker      = "bind"
+	ZeroAddress    = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	RelayerAddress = common.HexToAddress("0x000068656164657273746F726541646472657373")
+)
 
+var (
+	Mcs, _         = abi.JSON(strings.NewReader(McsAbi))
+	Bsc, _         = abi.JSON(strings.NewReader(BscAbiJson))
+	Near, _        = abi.JSON(strings.NewReader(NearAbiJson))
+	LightManger, _ = abi.JSON(strings.NewReader(LightMangerAbi))
+	Map2Other, _   = abi.JSON(strings.NewReader(Map2OtherAbi))
 	ABIRelayer, _  = abi.JSON(strings.NewReader(RelayerABIJSON))
-	ABILiteNode, _ = abi.JSON(strings.NewReader(LiteABIJSON))
+	Height, _      = abi.JSON(strings.NewReader(HeightAbiJson))
+)
 
-	ChainTypeETH ChainType = ChainType(RopstenCHainID) // todo change to eth when get online
-	ChainTypeMAP ChainType = ChainType(TestNetChainID) // todo may change?
+type Role string
+
+var (
+	RoleOfMaintainer Role = "maintainer"
+	RoleOfMessenger  Role = "messenger"
 )

@@ -13,6 +13,14 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/mapprotocol/compass/chains/bsc"
+
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/mapprotocol/compass/chains/near"
+
+	"github.com/mapprotocol/compass/chains"
+
 	"strconv"
 
 	"github.com/ChainSafe/chainbridge-utils/metrics/health"
@@ -44,6 +52,7 @@ var generateFlags = []cli.Flag{
 	config.PasswordFlag,
 	config.Sr25519Flag,
 	config.Secp256k1Flag,
+	config.Ed25519Flag,
 	config.SubkeyNetworkFlag,
 }
 
@@ -56,6 +65,7 @@ var importFlags = []cli.Flag{
 	config.PrivateKeyFlag,
 	config.Sr25519Flag,
 	config.Secp256k1Flag,
+	config.Ed25519Flag,
 	config.PasswordFlag,
 	config.SubkeyNetworkFlag,
 }
@@ -107,11 +117,12 @@ var accountCommand = cli.Command{
 	},
 }
 
-var relayerCommand = cli.Command{
-	Name:  "relayers",
-	Usage: "manage relayer operations",
-	Description: "The relayers command is used to manage relayer on Map chain.\n" +
+var maintainerCommand = cli.Command{
+	Name:  "maintainer",
+	Usage: "manage maintainer operations",
+	Description: "The maintainer command is used to manage maintainer on Map chain.\n" +
 		"\tTo register an account : compass relayers register --account '0x0...'",
+	Action: maintainer,
 	Subcommands: []*cli.Command{
 		{
 			Action: handleRegisterCmd,
@@ -135,6 +146,15 @@ var relayerCommand = cli.Command{
 				"\tUse --worker to provide the address of worker.",
 		},
 	},
+	Flags: append(app.Flags, cliFlags...),
+}
+
+var messengerCommand = cli.Command{
+	Name:        "messenger",
+	Usage:       "manage messenger operations",
+	Description: "The messenger command is used to sync the log information of transactions in the block",
+	Action:      messenger,
+	Flags:       append(app.Flags, cliFlags...),
 }
 
 var (
@@ -143,7 +163,7 @@ var (
 
 // init initializes CLI
 func init() {
-	app.Action = run
+	//app.Action = run
 	app.Copyright = "Copyright 2021 MAP Protocol 2021 Authors"
 	app.Name = "compass"
 	app.Usage = "Compass"
@@ -152,7 +172,8 @@ func init() {
 	app.EnableBashCompletion = true
 	app.Commands = []*cli.Command{
 		&accountCommand,
-		&relayerCommand,
+		&maintainerCommand,
+		&messengerCommand,
 	}
 
 	app.Flags = append(app.Flags, cliFlags...)
@@ -181,7 +202,15 @@ func startLogger(ctx *cli.Context) error {
 	return nil
 }
 
-func run(ctx *cli.Context) error {
+func maintainer(ctx *cli.Context) error {
+	return run(ctx, mapprotocol.RoleOfMaintainer)
+}
+
+func messenger(ctx *cli.Context) error {
+	return run(ctx, mapprotocol.RoleOfMessenger)
+}
+
+func run(ctx *cli.Context, role mapprotocol.Role) error {
 	err := startLogger(ctx)
 	if err != nil {
 		return err
@@ -215,28 +244,30 @@ func run(ctx *cli.Context) error {
 	}
 	c := core.NewCore(sysErr, msg.ChainId(mapcid))
 	// merge map chain
-	allChains := make([]config.RawChainConfig, len(cfg.Chains), len(cfg.Chains)+1)
-	copy(allChains, cfg.Chains)
-	allChains = append([]config.RawChainConfig{cfg.MapChain}, allChains...)
+	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
+	allChains = append(allChains, cfg.MapChain)
+	allChains = append(allChains, cfg.Chains...)
 
 	for idx, chain := range allChains {
-		chainId, errr := strconv.Atoi(chain.Id)
-		if errr != nil {
-			return errr
+		chainId, err := strconv.Atoi(chain.Id)
+		if err != nil {
+			return err
 		}
 		// write Map chain id to opts
 		chain.Opts[config.MapChainID] = cfg.MapChain.Id
 		chainConfig := &core.ChainConfig{
-			Name:           chain.Name,
-			Id:             msg.ChainId(chainId),
-			Endpoint:       chain.Endpoint,
-			From:           chain.From,
-			KeystorePath:   ks,
-			Insecure:       insecure,
-			BlockstorePath: ctx.String(config.BlockstorePathFlag.Name),
-			FreshStart:     ctx.Bool(config.FreshStartFlag.Name),
-			LatestBlock:    ctx.Bool(config.LatestBlockFlag.Name),
-			Opts:           chain.Opts,
+			Name:             chain.Name,
+			Id:               msg.ChainId(chainId),
+			Endpoint:         chain.Endpoint,
+			From:             chain.From,
+			Network:          chain.Network,
+			KeystorePath:     ks,
+			NearKeystorePath: chain.KeystorePath,
+			Insecure:         insecure,
+			BlockstorePath:   ctx.String(config.BlockstorePathFlag.Name),
+			FreshStart:       ctx.Bool(config.FreshStartFlag.Name),
+			LatestBlock:      ctx.Bool(config.LatestBlockFlag.Name),
+			Opts:             chain.Opts,
 		}
 		var newChain core.Chain
 		var m *metrics.ChainMetrics
@@ -247,15 +278,27 @@ func run(ctx *cli.Context) error {
 			m = metrics.NewChainMetrics(chain.Name)
 		}
 
-		if chain.Type == "ethereum" {
+		if chain.Type == chains.Ethereum {
 			// only support eth
-			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m)
+			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, role)
 			if err != nil {
 				return err
 			}
 			if idx == 0 {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
+				mapprotocol.InitOther2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
+				mapprotocol.InitBsc2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
+			}
+		} else if chain.Type == chains.Near {
+			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role)
+			if err != nil {
+				return err
+			}
+		} else if chain.Type == chains.Bsc {
+			newChain, err = bsc.InitializeChain(chainConfig, logger, sysErr, m, role)
+			if err != nil {
+				return err
 			}
 		} else {
 			return errors.New("unrecognized Chain Type")

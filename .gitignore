@@ -23,6 +23,7 @@ build/
 bin/
 site/
 target/
+tests/*.txt
 
 # golang
 .env

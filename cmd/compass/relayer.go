@@ -60,7 +60,7 @@ func handleRegisterCmd(ctx *cli.Context) error {
 
 	logger := log.Root().New("register", accountAddr)
 	sysErr := make(chan error)
-	mapChain, err := ethereum.InitializeChain(chainConfig, logger, sysErr, m)
+	mapChain, err := ethereum.InitializeChain(chainConfig, logger, sysErr, m, mapprotocol.RoleOfMaintainer)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,6 @@ func handleRegisterCmd(ctx *cli.Context) error {
 
 	return nil
 }
-
 
 // handleBindCmd register an account as a relayer
 func handleBindCmd(ctx *cli.Context) error {
@@ -116,12 +115,12 @@ func handleBindCmd(ctx *cli.Context) error {
 
 	logger := log.Root().New("bind", relayerAddr)
 	sysErr := make(chan error)
-	mapChain, err := ethereum.InitializeChain(chainConfig, logger, sysErr, m)
+	mapChain, err := ethereum.InitializeChain(chainConfig, logger, sysErr, m, mapprotocol.RoleOfMaintainer)
 	if err != nil {
 		return err
 	}
 
-	err = mapprotocol.BindWoerkerWithConn(mapChain.Conn(), workerAddr, logger)
+	err = mapprotocol.BindWorkerWithConn(mapChain.Conn(), workerAddr, logger)
 	if err != nil {
 		return err
 	}

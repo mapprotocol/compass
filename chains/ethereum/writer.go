@@ -63,5 +63,4 @@ func (w *writer) ResolveMessage(m msg.Message) bool {
 		w.log.Error("Unknown message type received", "type", m.Type)
 		return false
 	}
-	return true
 }

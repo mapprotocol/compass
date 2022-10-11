@@ -16,9 +16,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/mapprotocol/compass/connections/ethereum/egs"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
 var BlockRetryInterval = time.Second * 5
@@ -43,10 +43,8 @@ type Connection struct {
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
-func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int, gasMultiplier *big.Float, gsnApiKey, gsnSpeed string) *Connection {
-	// tmp
-	// pkstr := ethcommon.Bytes2Hex(ethcrypto.FromECDSA(kp.PrivateKey()))
-	// fmt.Println("pk:" + pkstr)
+func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
+	gasMultiplier *big.Float, gsnApiKey, gsnSpeed string) *Connection {
 	return &Connection{
 		endpoint:      endpoint,
 		http:          http,
@@ -238,6 +236,7 @@ func (c *Connection) LockAndUpdateOpts() error {
 				return err
 			}
 		}
+		c.log.Info("LockAndUpdateOpts ", "head.BaseFee", head.BaseFee)
 	} else {
 		var gasPrice *big.Int
 		gasPrice, err = c.SafeEstimateGas(context.TODO())
@@ -248,6 +247,7 @@ func (c *Connection) LockAndUpdateOpts() error {
 		c.opts.GasPrice = gasPrice
 	}
 
+	c.log.Info("LockAndUpdateOpts ", "gas", c.opts.GasPrice)
 	nonce, err := c.conn.PendingNonceAt(context.Background(), c.opts.From)
 	if err != nil {
 		c.optsLock.Unlock()
@@ -272,14 +272,14 @@ func (c *Connection) LatestBlock() (*big.Int, error) {
 
 // EnsureHasBytecode asserts if contract code exists at the specified address
 func (c *Connection) EnsureHasBytecode(addr ethcommon.Address) error {
-	code, err := c.conn.CodeAt(context.Background(), addr, nil)
-	if err != nil {
-		return err
-	}
-
-	if len(code) == 0 {
-		return fmt.Errorf("no bytecode found at %s", addr.Hex())
-	}
+	//code, err := c.conn.CodeAt(context.Background(), addr, nil)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//if len(code) == 0 {
+	//	return fmt.Errorf("no bytecode found at %s", addr.Hex())
+	//}
 	return nil
 }
 

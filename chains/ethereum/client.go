@@ -9,7 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
 /*
@@ -18,6 +18,19 @@ import (
 
 func getTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
 	block, err := conn.BlockByNumber(context.Background(), number)
+	if err != nil {
+		return nil, err
+	}
+
+	txs := make([]common.Hash, 0, len(block.Transactions()))
+	for _, tx := range block.Transactions() {
+		txs = append(txs, tx.Hash())
+	}
+	return txs, nil
+}
+
+func getMapTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
+	block, err := conn.MAPBlockByNumber(context.Background(), number)
 	if err != nil {
 		return nil, err
 	}
