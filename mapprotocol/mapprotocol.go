@@ -40,54 +40,18 @@ type GetHeight func() (*big.Int, error)
 
 func InitOther2MapHeight(lightManager common.Address) {
 	Get2MapHeight = func(chainId msg.ChainId) (*big.Int, error) {
-		height, _, err := GetCurrentNumberAbi(chainId)
+		input, err := PackInput(LightManger, MethodOfHeaderHeight, big.NewInt(int64(chainId)))
+		if err != nil {
+			return nil, errors.Wrap(err, "get other2map packInput failed")
+		}
+
+		height, err := HeaderHeight(lightManager, input)
 		if err != nil {
 			return nil, errors.Wrap(err, "get other2map headerHeight failed")
 		}
-		//input, err := PackInput(LightManger, MethodOfHeaderHeight, big.NewInt(int64(chainId)))
-		//if err != nil {
-		//	return nil, errors.Wrap(err, "get other2map packInput failed")
-		//}
-		//
-		//height, err := HeaderHeight(lightManager, input)
-		//if err != nil {
-		//	return nil, errors.Wrap(err, "get other2map headerHeight failed")
-		//}
-		//fmt.Println("get height param ", big.NewInt(int64(chainId)), "current synced height is", height)
+		fmt.Println("get height param ", big.NewInt(int64(chainId)), "current synced height is", height)
 		return height, nil
 	}
-}
-
-func GetCurrentNumberAbi(chainId msg.ChainId) (*big.Int, string, error) {
-	if GlobalMapConn == nil {
-		return Big0, "", errors.New(" Global Map Connection is not assigned!")
-	}
-
-	blockNum, err := GlobalMapConn.BlockNumber(context.Background())
-	if err != nil {
-		return Big0, "", err
-	}
-	input, _ := PackInput(ABIRelayer, "currentNumberAndHash", big.NewInt(int64(chainId)))
-
-	msg := goeth.CallMsg{
-		From: ZeroAddress,
-		To:   &RelayerAddress,
-		Data: input,
-	}
-
-	output, err := GlobalMapConn.CallContract(context.Background(), msg, big.NewInt(0).SetUint64(blockNum))
-	if err != nil {
-		return Big0, "", err
-	}
-	method, _ := ABIRelayer.Methods["currentNumberAndHash"]
-	ret, err := method.Outputs.Unpack(output)
-	if err != nil {
-		return Big0, "", err
-	}
-	height := ret[0].(*big.Int)
-	hash := common.BytesToHash(ret[1].([]byte))
-
-	return height, hash.String(), nil
 }
 
 func InitBsc2MapHeight(lightNode common.Address) {
