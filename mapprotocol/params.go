@@ -29,7 +29,7 @@ const (
 )
 
 const (
-	HeaderCountOfBsc = 4
+	HeaderCountOfBsc = 5
 )
 
 // common varible
