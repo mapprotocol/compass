@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/mapprotocol/compass/chains/bsc"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/mapprotocol/compass/chains/near"
@@ -286,9 +288,15 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
 				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
+				mapprotocol.InitBsc2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
 			}
 		} else if chain.Type == chains.Near {
 			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role)
+			if err != nil {
+				return err
+			}
+		} else if chain.Type == chains.Bsc {
+			newChain, err = bsc.InitializeChain(chainConfig, logger, sysErr, m, role)
 			if err != nil {
 				return err
 			}

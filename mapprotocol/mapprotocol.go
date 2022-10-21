@@ -33,6 +33,7 @@ var (
 	SyncOtherMap    = make(map[msg.ChainId]*big.Int)
 	Map2OtherHeight = make(map[msg.ChainId]GetHeight)
 	Get2MapHeight   = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }
+	Get2MapByLight  = func() (*big.Int, error) { return nil, nil }
 )
 
 type GetHeight func() (*big.Int, error)
@@ -49,6 +50,21 @@ func InitOtherChain2MapHeight(lightManager common.Address) {
 			return nil, errors.Wrap(err, "get other2map headerHeight failed")
 		}
 		fmt.Println("get height param ", big.NewInt(int64(chainId)), "current synced height is", height)
+		return height, nil
+	}
+}
+
+func InitBsc2MapHeight(lightNode common.Address) {
+	Get2MapByLight = func() (*big.Int, error) {
+		input, err := PackInput(Height, MethodOfHeaderHeight)
+		if err != nil {
+			return nil, errors.Wrap(err, "get other2map packInput failed")
+		}
+
+		height, err := HeaderHeight(lightNode, input)
+		if err != nil {
+			return nil, errors.Wrap(err, "get other2map headerHeight failed")
+		}
 		return height, nil
 	}
 }
