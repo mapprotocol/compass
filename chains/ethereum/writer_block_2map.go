@@ -34,6 +34,7 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			marshal, _ := m.Payload[1].([]byte)
 			// save header data
 			data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, id, marshal)
+			//data, err := mapprotocol.PackInput(mapprotocol.Bsc, mapprotocol.MethodUpdateBlockHeader, marshal)
 			if err != nil {
 				w.log.Error("block2Map Failed to pack abi data", "err", err)
 				w.conn.UnlockOpts()

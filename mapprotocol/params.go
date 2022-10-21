@@ -21,11 +21,13 @@ const (
 	MethodOfBindWorker      = "bind"
 	MethodOfOrderList       = "orderList"
 	MethodOfGetBytes        = "getBytes"
+	MethodOfGetHeadersBytes = "getHeadersBytes"
 )
 
 const (
-	EpochOfMap = 1000
-	EpochOfBsc = 200
+	EpochOfMap       = 2000
+	EpochOfBsc       = 200
+	HeaderCountOfBsc = 5
 )
 
 // common varible

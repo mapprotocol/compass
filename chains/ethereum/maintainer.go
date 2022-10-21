@@ -24,7 +24,8 @@ type Maintainer struct {
 
 func NewMaintainer(cs *CommonSync) *Maintainer {
 	return &Maintainer{
-		CommonSync: cs,
+		CommonSync:   cs,
+		syncedHeight: new(big.Int),
 	}
 }
 
@@ -158,15 +159,6 @@ func (m Maintainer) sync() error {
 			retry = BlockRetryLimit
 		}
 	}
-}
-
-func (m *Maintainer) syncBscToMap(latestBlock *big.Int) error {
-	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfBsc))
-	if remainder.Cmp(mapprotocol.Big0) != 0 {
-		// Sync blocks at 200 intervals
-		return nil
-	}
-	return nil
 }
 
 // syncHeaderToMap listen header from current chain to Map chain

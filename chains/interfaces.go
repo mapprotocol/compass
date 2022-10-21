@@ -19,6 +19,7 @@ type Listener interface {
 }
 
 const (
+	Bsc      = "bsc"
 	Near     = "near"
 	Ethereum = "ethereum"
 )
