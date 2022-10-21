@@ -24,7 +24,7 @@ get:
 
 build:
 	@echo "  >  \033[32mBuilding compass...\033[0m "
-	cd cmd/compass && go build -o ../../build/compass-devnet $(VERSION)
+	cd cmd/compass && go build -o ../../build/compass $(VERSION)
 
 dev:
 	@echo "  >  \033[32mBuilding compass-dev...\033[0m "

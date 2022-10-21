@@ -45,6 +45,8 @@ func (w *writer) ResolveMessage(m msg.Message) bool {
 	w.log.Info("Attempting to resolve message", "type", m.Type, "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
 
 	switch m.Type {
+	case msg.SyncFromMap:
+		return w.exeSyncMapMsg(m)
 	default:
 		w.log.Error("Unknown message type received", "type", m.Type)
 		return false
