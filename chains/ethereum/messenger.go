@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/mapprotocol/compass/mapprotocol"
+
 	"github.com/mapprotocol/compass/msg"
 
 	eth "github.com/ethereum/go-ethereum"
@@ -132,6 +134,10 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		// getOrderId
 		orderId := log.Data[64:96]
 		if m.cfg.syncToMap {
+			method := mapprotocol.MethodOfTransferIn
+			if log.Topics[0] != mapprotocol.HashOfTransferIn {
+				method = mapprotocol.MethodOfDepositIn
+			}
 			// when syncToMap we need to assemble a tx proof
 			txsHash, err := getTransactionsHashByBlockNumber(m.conn.Client(), latestBlock)
 			if err != nil {
@@ -141,13 +147,13 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-			fromChainID, _, payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, m.cfg.mcsContract, receipts)
+			payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, m.cfg.mcsContract, receipts, method, m.cfg.id, m.cfg.mapChainID)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
 			msgpayload := []interface{}{payload, orderId}
-			message = msg.NewSwapWithProof(msg.ChainId(fromChainID), m.cfg.mapChainID, msgpayload, m.msgCh)
+			message = msg.NewSwapWithProof(m.cfg.id, m.cfg.mapChainID, msgpayload, m.msgCh)
 		} else if m.cfg.id == m.cfg.mapChainID {
 			// when listen from map we also need to assemble a tx prove in a different way
 			header, err := m.conn.Client().MAPHeaderByNumber(context.Background(), latestBlock)
@@ -162,13 +168,13 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-			_, toChainID, payload, err := utils.ParseMapLogIntoSwapWithProofArgsV2(m.conn.Client(), log, receipts, header)
+			fromChainID, toChainID, payload, err := utils.ParseMapLogIntoSwapWithProofArgsV2(m.conn.Client(), log, receipts, header)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
 			msgpayload := []interface{}{payload, orderId}
-			message = msg.NewSwapWithMapProof(m.cfg.mapChainID, msg.ChainId(toChainID), msgpayload, m.msgCh)
+			message = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
 		}
 
 		m.log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
@@ -190,7 +196,7 @@ func (m *Messenger) buildQuery(contract ethcommon.Address, sig []utils.EventSig,
 	query := eth.FilterQuery{
 		FromBlock: startBlock,
 		ToBlock:   endBlock,
-		Addresses: []ethcommon.Address{contract}, // todo 解开注释
+		Addresses: []ethcommon.Address{contract},
 		Topics:    [][]ethcommon.Hash{topics},
 	}
 	return query

@@ -7,8 +7,6 @@ import (
 	"math/big"
 	"time"
 
-	maptypes "github.com/mapprotocol/atlas/core/types"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -277,8 +275,6 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
-	printHeader(header)
-	printAggPK(aggPK)
 	msgpayload := []interface{}{input}
 	waitCount := len(m.cfg.syncChainIDList)
 	for _, cid := range m.cfg.syncChainIDList {
@@ -353,56 +349,4 @@ func rlpEthereumHeaders(source, destination msg.ChainId, headers []types.Header)
 		return nil, fmt.Errorf("rpl encode params error: %v", err)
 	}
 	return enc, nil
-}
-
-func printHeader(header *maptypes.Header) {
-	type blockHeader struct {
-		ParentHash  string
-		Coinbase    string
-		Root        string
-		TxHash      string
-		ReceiptHash string
-		Bloom       string
-		Number      *big.Int
-		GasLimit    *big.Int
-		GasUsed     *big.Int
-		Time        *big.Int
-		ExtraData   string
-		MixDigest   string
-		Nonce       string
-		BaseFee     *big.Int
-	}
-	h := blockHeader{
-		ParentHash:  "0x" + common.Bytes2Hex(header.ParentHash[:]),
-		Coinbase:    header.Coinbase.String(),
-		Root:        "0x" + common.Bytes2Hex(header.Root[:]),
-		TxHash:      "0x" + common.Bytes2Hex(header.TxHash[:]),
-		ReceiptHash: "0x" + common.Bytes2Hex(header.ReceiptHash[:]),
-		Bloom:       "0x" + common.Bytes2Hex(header.Bloom[:]),
-		Number:      header.Number,
-		GasLimit:    new(big.Int).SetUint64(header.GasLimit),
-		GasUsed:     new(big.Int).SetUint64(header.GasUsed),
-		Time:        new(big.Int).SetUint64(header.Time),
-		ExtraData:   "0x" + common.Bytes2Hex(header.Extra),
-		MixDigest:   "0x" + common.Bytes2Hex(header.MixDigest[:]),
-		Nonce:       "0x" + common.Bytes2Hex(header.Nonce[:]),
-		BaseFee:     header.BaseFee,
-	}
-	fmt.Printf("============================== header: %+v\n", h)
-}
-
-func printAggPK(aggPk *mapprotocol.G2) {
-	type G2Str struct {
-		xr string
-		xi string
-		yr string
-		yi string
-	}
-	g2 := G2Str{
-		xr: "0x" + common.Bytes2Hex(aggPk.Xr.Bytes()),
-		xi: "0x" + common.Bytes2Hex(aggPk.Xi.Bytes()),
-		yr: "0x" + common.Bytes2Hex(aggPk.Yr.Bytes()),
-		yi: "0x" + common.Bytes2Hex(aggPk.Yi.Bytes()),
-	}
-	fmt.Printf("============================== aggPk: %+v\n", g2)
 }

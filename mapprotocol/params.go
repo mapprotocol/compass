@@ -16,6 +16,7 @@ const (
 	MethodUpdateBlockHeader = "updateBlockHeader"
 	MethodOfHeaderHeight    = "headerHeight"
 	MethodOfTransferIn      = "transferIn"
+	MethodOfDepositIn       = "depositIn"
 	MethodOfRegister        = "register"
 	MethodOfBindWorker      = "bind"
 	MethodOfOrderList       = "orderList"
@@ -24,11 +25,8 @@ const (
 )
 
 const (
-	EpochOfMap = 2000
-	EpochOfBsc = 200
-)
-
-const (
+	EpochOfMap       = 2000
+	EpochOfBsc       = 200
 	HeaderCountOfBsc = 5
 )
 
@@ -40,8 +38,10 @@ var (
 )
 
 var (
-	ZeroAddress    = common.HexToAddress("0x0000000000000000000000000000000000000000")
-	RelayerAddress = common.HexToAddress("0x000068656164657273746F726541646472657373")
+	ZeroAddress      = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	RelayerAddress   = common.HexToAddress("0x000068656164657273746F726541646472657373")
+	HashOfTransferIn = common.HexToHash("0xaca0a1067548270e80c1209ec69b5381d80bdaf345ad70cf7f00af9c6ed3f9b4")
+	NearOfTransferIn = "2ef1cdf83614a69568ed2c96a275dd7fb2e63a464aa3a0ffe79f55d538c8b3b5"
 )
 
 var (
