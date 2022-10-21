@@ -38,7 +38,7 @@ var (
 
 type GetHeight func() (*big.Int, error)
 
-func InitOther2MapHeight(lightManager common.Address) {
+func InitOtherChain2MapHeight(lightManager common.Address) {
 	Get2MapHeight = func(chainId msg.ChainId) (*big.Int, error) {
 		input, err := PackInput(LightManger, MethodOfHeaderHeight, big.NewInt(int64(chainId)))
 		if err != nil {
@@ -125,7 +125,6 @@ func UnpackHeaderHeightOutput(output []byte) (*big.Int, error) {
 	outputs := Height.Methods[MethodOfHeaderHeight].Outputs
 	unpack, err := outputs.Unpack(output)
 	if err != nil {
-		fmt.Println("unpack ------------ ", unpack)
 		return big.NewInt(0), err
 	}
 

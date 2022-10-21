@@ -29,19 +29,19 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 		case <-w.stop:
 			return false
 		default:
-			//// 先请求下orderId是否已经存在
-			//if len(m.Payload) > 1 {
-			//	orderId := m.Payload[1].([]byte)
-			//	exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
-			//	if err != nil {
-			//		w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
-			//	}
-			//	if exits {
-			//		w.log.Info("mcs orderId existing, abandon request", "orderId", common.Bytes2Hex(orderId))
-			//		m.DoneCh <- struct{}{}
-			//		return true
-			//	}
-			//}
+			// 先请求下orderId是否已经存在
+			if len(m.Payload) > 1 {
+				orderId := m.Payload[1].([]byte)
+				exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
+				if err != nil {
+					w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
+				}
+				if exits {
+					w.log.Info("mcs orderId existing, abandon request", "orderId", common.Bytes2Hex(orderId))
+					m.DoneCh <- struct{}{}
+					return true
+				}
+			}
 
 			err := w.conn.LockAndUpdateOpts()
 			if err != nil {
@@ -52,14 +52,14 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
-			//mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
-			err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.Near, mapprotocol.MethodVerifyProofData)
+			mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
+			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
 			w.log.Info("send transaction", "addr", addr)
 			w.conn.UnlockOpts()
 
 			if err == nil {
 				// message successfully handled]
-				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce") //, m.DepositNonce, "mcsTx", mcsTx.Hash())
+				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "mcsTx", mcsTx.Hash())
 				m.DoneCh <- struct{}{}
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
