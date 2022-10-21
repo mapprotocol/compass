@@ -24,7 +24,7 @@ const (
 )
 
 const (
-	EpochOfMap = 1000
+	EpochOfMap = 2000
 	EpochOfBsc = 200
 )
 

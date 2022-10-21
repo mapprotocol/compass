@@ -2,6 +2,7 @@ package bsc
 
 import (
 	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/pkg/errors"
 
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -65,16 +66,16 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		cfg.StartBlock = curr
 	}
 
-	//if role == mapprotocol.RoleOfMaintainer { // 请求获取同步的map高度
-	//fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
-	//height, err := fn()
-	//if err != nil {
-	//	return nil, errors.Wrap(err, "bsc get init headerHeight failed")
-	//}
-	//logger.Info("map2Other Current situation", "chain", cfg.Name, "height", height)
-	//mapprotocol.SyncOtherMap[cfg.Id] = height
-	//mapprotocol.Map2OtherHeight[cfg.Id] = fn
-	//}
+	if role == mapprotocol.RoleOfMaintainer { // 请求获取同步的map高度
+		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
+		height, err := fn()
+		if err != nil {
+			return nil, errors.Wrap(err, "bsc get init headerHeight failed")
+		}
+		logger.Info("map2Bsc Current situation", "chain", cfg.Name, "height", height, "lightNode", cfg.LightNode)
+		mapprotocol.SyncOtherMap[cfg.Id] = height
+		mapprotocol.Map2OtherHeight[cfg.Id] = fn
+	}
 
 	// simplified a little bit
 	var listen chains.Listener
