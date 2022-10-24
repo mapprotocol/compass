@@ -49,7 +49,7 @@ func InitOtherChain2MapHeight(lightManager common.Address) {
 		if err != nil {
 			return nil, errors.Wrap(err, "get other2map headerHeight failed")
 		}
-		fmt.Println("get height param ", big.NewInt(int64(chainId)), "current synced height is", height)
+		//fmt.Println("get height param ", big.NewInt(int64(chainId)), "current synced height is", height)
 		return height, nil
 	}
 }
