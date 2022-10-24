@@ -128,15 +128,23 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
+	chainBlcNum, err := m.conn.Client().BlockNumber(context.Background())
+	if err != nil {
+		return errors.Wrap(err, "get latest chainBlcNum failed")
+	}
+	// latestBlock must less than blockNumber of chain online，otherwise time.sleep
+	difference := new(big.Int).Sub(latestBlock, new(big.Int).SetUint64(chainBlcNum))
+	if difference.Int64() > 0 {
+		m.log.Info("chain online blockNumber less than local latestBlock, waiting...", "chainBlcNum", chainBlcNum,
+			"localBlock", latestBlock, "waiting", difference.Int64())
+		time.Sleep(constant.BlockRetryInterval * time.Duration(difference.Int64()))
+	}
 	m.log.Info("find sync block", "current height", latestBlock)
-	// It is checked whether the latest height is higher than the current height
-	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.cfg.Id)
 	if err != nil {
 		m.log.Error("Get current synced Height failed", "err", err)
 		return err
 	}
-	// If the current block is lower than the latest height, it will not be synchronized
 	if latestBlock.Cmp(syncedHeight) <= 0 {
 		m.log.Info("CurrentBlock less than synchronized headerHeight", "synced height", syncedHeight,
 			"current height", latestBlock)
@@ -151,7 +159,6 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 			return err
 		}
 		headers[mapprotocol.HeaderCountOfBsc-i-1] = *header
-		//m.log.Info("getHeader", "header", header.Number)
 	}
 
 	params := make([]bsc.Header, 0, len(headers))
