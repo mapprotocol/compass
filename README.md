@@ -14,32 +14,32 @@ This project is inspired by [ChainSafe/ChainBridge](https://github.com/ChainSafe
 - [Configuration](#configuration)
 - [Chain Implementations](#chain-implementations)
 
-# Quick Start  
+# Quick Start
 
-the recommanded way to get the executable is to download it from the release page.  
+the recommanded way to get the executable is to download it from the release page.
 
->if you want to build it from the source code,check the [building](#building) section below.  
+>if you want to build it from the source code,check the [building](#building) section below.
 
-### 2. Prepare the accounts for each chain  
+### 2. Prepare the accounts for each chain
 fund some accounts in order to send txs on each chain, you want to provice crosse-chain service.
-the esaiest way is to using the same one address for every chain.  
+the esaiest way is to using the same one address for every chain.
 
 after that we need to import the account into the keystore of compass.  
-using the private key is the simplest way,run the following command in terminal:  
+using the private key is the simplest way,run the following command in terminal:
 
 ```zsh
 compass accounts import --privateKey '********** your private key **********'
 ```
 
 during the process of importing, you will be asked to input a password.  
-the password is used to encrypt your keystore.you have to input it when unlocking your account.  
+the password is used to encrypt your keystore.you have to input it when unlocking your account.
 
-to list the imported keys in the keystore, using the command below:  
+to list the imported keys in the keystore, using the command below:
 ```zsh
 compass accounts list
 ```
 
-### 3. Modify the configuration file  
+### 3. Modify the configuration file
 copy a example configure file from
 ```json
 {
@@ -76,9 +76,9 @@ copy a example configure file from
 }
 ```
 modify the configuration accordingly.  
-fill the accounts for each chain.  
+fill the accounts for each chain.
 
-### 4. Running the executable  
+### 4. Running the executable
 lauch and keep the executable runing simply by run:
 ```zsh
 compass maintainer --blockstore ./block-eth-map --config ./config-mcs-erh-map.json
@@ -90,10 +90,10 @@ if everything runs smoothly. it's all set
 
 Building compass requires a [Go](https://github.com/golang/go) compiler(version 1.16 or later)
 
-under the root directory of the repo  
+under the root directory of the repo
 
 `make build`: Builds `compass` in `./build`.  
-`make install`: Uses `go install` to add `compass` to your GOBIN.  
+`make install`: Uses `go install` to add `compass` to your GOBIN.
 
 # Maintainer
 
@@ -115,7 +115,7 @@ compass messenger --blockstore ./block-eth-map --config ./config.json
 
 # Configuration
 
-the configuration file is a small JSON file.  
+the configuration file is a small JSON file.
 
 ```
 {
@@ -130,7 +130,7 @@ the configuration file is a small JSON file.
 
 ```
 
-A chain configurations take this form:  
+A chain configurations take this form:
 
 ```
 {
@@ -139,13 +139,14 @@ A chain configurations take this form:
     "id": "0",                          // Chain ID
     "endpoint": "ws://<host>:<port>",   // Node endpoint
     "from": "0xff93...",                // On-chain address of maintainer
+    "keystorePath" : "/you/path/",      // 
     "opts": {},                         // Chain-specific configuration options (see below)
 }
 ```
 
-See `config.json.example` for an example configuration.  
+See `config.json.example` for an example configuration.
 
-### Ethereum Options
+### Options
 
 Since MAP is also a EVM based chain, so the opts of the **mapchain** is following the options below as well  
 Ethereum chains support the following additional options:
@@ -170,11 +171,11 @@ Ethereum chains support the following additional options:
 ```
 ## Blockstore
 
-The blockstore is used to record the last block the maintainer processed, so it can pick up where it left off. 
+The blockstore is used to record the last block the maintainer processed, so it can pick up where it left off.
 
-If a `startBlock` option is provided (see [Configuration](#configuration)), then the greater of `startBlock` and the latest block in the blockstore is used at startup.
+To disable loading from the chunk library, specify the "-- fresh" flag. Add the fresh flag, and the program will execute from height 0，
 
-To disable loading from the blockstore specify the `--fresh` flag. A custom path for the blockstore can be provided with `--blockstore <path>`. For development, the `--latest` flag can be used to start from the current block and override any other configuration.
+In addition, the configuration file provides the "startBlock" option, and the program will execute from the startBlock
 
 ## Keystore
 
@@ -189,4 +190,29 @@ To import private keys as keystores, use `compass accounts import --privateKey k
 # Chain Implementations
 
 - Ethereum (Solidity): [contracts](https://github.com/mapprotocol/contracts)
-The Solidity contracts required for compass. Includes scripts for deployment.
+  The Solidity contracts required for compass. Includes scripts for deployment.
+
+## Near
+
+If you need to synchronize the near block, please install the near cli first. Here is a simple tutorial. For more information, 
+
+please check [Near cli installation tutorial](https://docs.near.org/tools/near-cli#installation)
+
+First, install npm. Depending on the system, the running command is different. The following is an example of the installation command in 
+
+the ubuntu system. Use the `apt install npm` command to run `npm install -g near cli`,
+
+After installation, use 'near -- version' to check whether the installation is successful
+
+Configure the environment you need, for example:
+
+`
+  export NEAR_CLI_LOCALNET_RPC_SERVER_URL=https://archival-rpc.testnet.near.org
+  export NEAR_ENV=testnet
+`
+
+Use the 'near generate key' command , Creates a key pair locally in `.near-credentials` with an implicit account as the accountId. (hash representation of the public key)
+
+And record the directory to the keystorePath option in the configuration file
+
+In addition, another program needs to be run for near. Please check [near-lake-s3](./near-lake-s3/README.md)
