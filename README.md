@@ -215,4 +215,4 @@ Use the 'near generate key' command , Creates a key pair locally in `.near-crede
 
 And record the directory to the keystorePath option in the configuration file
 
-In addition, another program needs to be run for near. Please check [near-lake-s3](./near-lake-s3/README.md)
+In addition, another program needs to be run for near messenger. Please check [near-lake-s3](./near-lake-s3/README.md)
