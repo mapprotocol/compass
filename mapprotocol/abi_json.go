@@ -1095,4 +1095,107 @@ const (
 		"type": "function"
 	}
 	]`
+	MaticAbiJson = `[
+		{
+		  "inputs": [
+			{
+			  "components": [
+				{
+				  "internalType": "bytes",
+				  "name": "parentHash",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "sha3Uncles",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "address",
+				  "name": "miner",
+				  "type": "address"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "stateRoot",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "transactionsRoot",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "receiptsRoot",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "logsBloom",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "difficulty",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "number",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "gasLimit",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "gasUsed",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "timestamp",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "extraData",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "mixHash",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "nonce",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "baseFeePerGas",
+				  "type": "uint256"
+				}
+          ],
+          "internalType": "struct Verify.BlockHeader",
+          "name": "_blockHeader",
+          "type": "tuple"
+        }
+      ],
+      "name": "getHeadersBytes",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    }
+	]`
 )

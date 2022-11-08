@@ -27,18 +27,17 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/mapprotocol/compass/chains"
-	"github.com/mapprotocol/compass/mapprotocol"
-
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/blockstore"
+	"github.com/mapprotocol/compass/chains"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/keystore"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 )
@@ -117,11 +116,6 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		return nil, err
 	}
 
-	err = conn.EnsureHasBytecode(cfg.mcsContract)
-	if err != nil {
-		return nil, err
-	}
-
 	if chainCfg.LatestBlock {
 		curr, err := conn.LatestBlock()
 		if err != nil {
@@ -145,6 +139,10 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	var listen chains.Listener
 	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMessenger {
+		err = conn.EnsureHasBytecode(cfg.mcsContract)
+		if err != nil {
+			return nil, err
+		}
 		listen = NewMessenger(cs)
 		logger.Info("listen event", "chain", cfg.name, "event", cfg.events)
 	} else { // Maintainer is used by default

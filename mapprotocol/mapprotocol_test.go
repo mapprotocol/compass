@@ -12,7 +12,7 @@ import (
 )
 
 func dialConn() *ethclient.Client {
-	conn, err := ethclient.Dial("https://ropsten.infura.io/v3/8cce6b470ad44fb5a3621aa34243647f")
+	conn, err := ethclient.Dial("http://18.142.54.137:7445")
 	if err != nil {
 		log.Fatalf("Failed to connect to the atlas: %v", err)
 	}
@@ -21,9 +21,10 @@ func dialConn() *ethclient.Client {
 
 func TestRegisterRelayerWithConn(t *testing.T) {
 	from := common.HexToAddress("0xf03aDB732FBa8Fca38C00253B1A1aa72CCA026E6")
-	to := common.HexToAddress("0x90809CFE1Da66C86b7698bC2CaD0c0871dF37494")
+	to := common.HexToAddress("0xd8c65C51f32324d34Ab1d34cC4895702d64EE0ef")
 
-	input, err := PackInput(LightManger, MethodOfHeaderHeight)
+	var useAbi = Height
+	input, err := PackInput(useAbi, MethodOfHeaderHeight)
 	if err != nil {
 		t.Fatalf("PackLightNodeInput failed, err is %v", err.Error())
 	}
@@ -41,13 +42,13 @@ func TestRegisterRelayerWithConn(t *testing.T) {
 	}
 
 	t.Log("----------------", string(output))
-	resp, err := LightManger.Methods[MethodOfHeaderHeight].Outputs.Unpack(output)
+	resp, err := useAbi.Methods[MethodOfHeaderHeight].Outputs.Unpack(output)
 	if err != nil {
 		t.Fatalf("Unpack failed, err is %v", err.Error())
 	}
 	var ret *big.Int
 
-	err = LightManger.Methods[MethodOfHeaderHeight].Outputs.Copy(&ret, resp)
+	err = useAbi.Methods[MethodOfHeaderHeight].Outputs.Copy(&ret, resp)
 	if err != nil {
 		t.Fatalf("Outputs Copy failed, err is %v", err.Error())
 	}
