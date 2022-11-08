@@ -22,11 +22,13 @@ func (n Nonce) Big() *big.Int {
 	return big.NewInt(int64(n))
 }
 
-var SwapTransfer TransferType = "SwapTransfer"
-var SyncToMap TransferType = "SyncToMap"
-var SwapWithProof TransferType = "SwapWithProof"
-var SyncFromMap TransferType = "SyncFromMap"
-var SwapWithMapProof TransferType = "SwapWithMapProof"
+var (
+	SwapTransfer     TransferType = "SwapTransfer"
+	SyncToMap        TransferType = "SyncToMap"
+	SwapWithProof    TransferType = "SwapWithProof"
+	SyncFromMap      TransferType = "SyncFromMap"
+	SwapWithMapProof TransferType = "SwapWithMapProof"
+)
 
 // Message is used as a generic format to communicate between chains
 type Message struct {

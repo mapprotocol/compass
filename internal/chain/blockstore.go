@@ -7,7 +7,7 @@ import (
 )
 
 // SetupBlockStore queries the blockstore for the latest known block. If the latest block is
-// greater than cfg.startBlock, then cfg.startBlock is replaced with the latest known block.
+// greater than Cfg.startBlock, then Cfg.startBlock is replaced with the latest known block.
 func SetupBlockStore(cfg *Config, kp *secp256k1.Keypair, role mapprotocol.Role) (*blockstore.Blockstore, error) {
 	bs, err := blockstore.NewBlockstore(cfg.BlockstorePath, cfg.Id, kp.Address(), role)
 	if err != nil {

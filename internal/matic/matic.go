@@ -1,4 +1,4 @@
-package bsc
+package matic
 
 import (
 	"math/big"
@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-type Header struct {
+type BlockHeader struct {
 	ParentHash       []byte         `json:"parentHash"`
 	Sha3Uncles       []byte         `json:"sha3Uncles"`
 	Miner            common.Address `json:"miner"`
@@ -23,9 +23,10 @@ type Header struct {
 	ExtraData        []byte         `json:"extraData"`
 	MixHash          []byte         `json:"mixHash"`
 	Nonce            []byte         `json:"nonce"`
+	BaseFeePerGas    *big.Int       `json:"baseFeePerGas"`
 }
 
-func ConvertHeader(header types.Header) Header {
+func ConvertHeader(header *types.Header) BlockHeader {
 	bloom := make([]byte, 0, len(header.Bloom))
 	for _, b := range header.Bloom {
 		bloom = append(bloom, b)
@@ -34,7 +35,7 @@ func ConvertHeader(header types.Header) Header {
 	for _, b := range header.Nonce {
 		nonce = append(nonce, b)
 	}
-	return Header{
+	return BlockHeader{
 		ParentHash:       hashToByte(header.ParentHash),
 		Sha3Uncles:       hashToByte(header.UncleHash),
 		Miner:            header.Coinbase,
@@ -50,6 +51,7 @@ func ConvertHeader(header types.Header) Header {
 		ExtraData:        header.Extra,
 		MixHash:          hashToByte(header.MixDigest),
 		Nonce:            nonce,
+		BaseFeePerGas:    header.BaseFee,
 	}
 }
 
