@@ -4,6 +4,7 @@
 package mapprotocol
 
 import (
+	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"strings"
 
@@ -61,4 +62,8 @@ type Role string
 var (
 	RoleOfMaintainer Role = "maintainer"
 	RoleOfMessenger  Role = "messenger"
+)
+
+var (
+	OnlineChaId = map[msg.ChainId]string{}
 )
