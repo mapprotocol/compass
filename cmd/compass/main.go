@@ -311,6 +311,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			return errors.New("unrecognized Chain Type")
 		}
 
+		mapprotocol.OnlineChaId[chainConfig.Id] = chainConfig.Name
 		c.AddChain(newChain)
 	}
 
