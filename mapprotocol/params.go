@@ -4,6 +4,7 @@
 package mapprotocol
 
 import (
+	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"strings"
 
@@ -25,9 +26,10 @@ const (
 )
 
 const (
-	EpochOfMap       = 2000
-	EpochOfBsc       = 200
-	HeaderCountOfBsc = 5
+	EpochOfMap         = 4000
+	EpochOfBsc         = 200
+	HeaderCountOfBsc   = 5
+	HeaderCountOfMatic = 64
 )
 
 // common varible
@@ -52,6 +54,7 @@ var (
 	Map2Other, _   = abi.JSON(strings.NewReader(Map2OtherAbi))
 	ABIRelayer, _  = abi.JSON(strings.NewReader(RelayerABIJSON))
 	Height, _      = abi.JSON(strings.NewReader(HeightAbiJson))
+	Matic, _       = abi.JSON(strings.NewReader(MaticAbiJson))
 )
 
 type Role string
@@ -59,4 +62,8 @@ type Role string
 var (
 	RoleOfMaintainer Role = "maintainer"
 	RoleOfMessenger  Role = "messenger"
+)
+
+var (
+	OnlineChaId = map[msg.ChainId]string{}
 )

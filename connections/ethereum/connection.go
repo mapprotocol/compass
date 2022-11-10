@@ -199,15 +199,10 @@ func (c *Connection) EstimateGasLondon(ctx context.Context, baseFee *big.Int) (*
 }
 
 func multiplyGasPrice(gasEstimate *big.Int, gasMultiplier *big.Float) *big.Int {
-
 	gasEstimateFloat := new(big.Float).SetInt(gasEstimate)
-
 	result := gasEstimateFloat.Mul(gasEstimateFloat, gasMultiplier)
-
 	gasPrice := new(big.Int)
-
 	result.Int(gasPrice)
-
 	return gasPrice
 }
 
@@ -220,6 +215,7 @@ func (c *Connection) LockAndUpdateOpts() error {
 	// cos map chain dont have this section in return,this err will be raised
 	if err != nil && err.Error() != "missing required field 'sha3Uncles' for Header" {
 		c.UnlockOpts()
+		c.log.Error("LockAndUpdateOpts HeaderByNumber", "err", err)
 		return err
 	}
 
@@ -247,7 +243,6 @@ func (c *Connection) LockAndUpdateOpts() error {
 		c.opts.GasPrice = gasPrice
 	}
 
-	c.log.Info("LockAndUpdateOpts ", "gas", c.opts.GasPrice)
 	nonce, err := c.conn.PendingNonceAt(context.Background(), c.opts.From)
 	if err != nil {
 		c.optsLock.Unlock()

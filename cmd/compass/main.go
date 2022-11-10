@@ -10,6 +10,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/chains/matic"
 	"net/http"
 	"os"
 
@@ -269,11 +270,12 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			LatestBlock:      ctx.Bool(config.LatestBlockFlag.Name),
 			Opts:             chain.Opts,
 		}
-		var newChain core.Chain
-		var m *metrics.ChainMetrics
+		var (
+			newChain core.Chain
+			m        *metrics.ChainMetrics
+		)
 
 		logger := log.Root().New("chain", chainConfig.Name)
-
 		if ctx.Bool(config.MetricsFlag.Name) {
 			m = metrics.NewChainMetrics(chain.Name)
 		}
@@ -288,7 +290,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
 				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
-				mapprotocol.InitBsc2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
+				mapprotocol.InitMati2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
 			}
 		} else if chain.Type == chains.Near {
 			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role)
@@ -300,10 +302,16 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			if err != nil {
 				return err
 			}
+		} else if chain.Type == chains.Matic {
+			newChain, err = matic.InitializeChain(chainConfig, logger, sysErr, m, role)
+			if err != nil {
+				return err
+			}
 		} else {
 			return errors.New("unrecognized Chain Type")
 		}
 
+		mapprotocol.OnlineChaId[chainConfig.Id] = chainConfig.Name
 		c.AddChain(newChain)
 	}
 
