@@ -29,11 +29,12 @@ import (
 
 // GlobalMapConn global Map connection; assign at cmd/main
 var (
-	GlobalMapConn   *ethclient.Client
-	SyncOtherMap    = make(map[msg.ChainId]*big.Int)
-	Map2OtherHeight = make(map[msg.ChainId]GetHeight)
-	Get2MapHeight   = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }
-	Get2MapByLight  = func() (*big.Int, error) { return nil, nil }
+	GlobalMapConn      *ethclient.Client
+	SyncOtherMap       = make(map[msg.ChainId]*big.Int)
+	Map2OtherHeight    = make(map[msg.ChainId]GetHeight)
+	Get2MapHeight      = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }
+	Get2MapByLight     = func() (*big.Int, error) { return nil, nil }
+	GetMaxCanVerifyNum = map[msg.ChainId]func(){}
 )
 
 type GetHeight func() (*big.Int, error)

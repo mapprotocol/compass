@@ -61,6 +61,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		cfg.StartBlock = curr
 	}
 
+	var listen chains.Listener
+	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMaintainer { // 请求获取同步的map高度
 		//fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
 		//height, err := fn()
@@ -70,18 +72,13 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		//logger.Info("map2 Current situation", "chain", cfg.Name, "height", height, "lightNode", cfg.LightNode)
 		//mapprotocol.SyncOtherMap[cfg.Id] = height
 		//mapprotocol.Map2OtherHeight[cfg.Id] = fn
+		listen = NewMaintainer(cs)
 	} else if role == mapprotocol.RoleOfMessenger {
 		err = conn.EnsureHasBytecode(cfg.McsContract)
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	// simplified a little bit
-	var listen chains.Listener
-	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
-	if role == mapprotocol.RoleOfMaintainer { // Maintainer is used by default
-		listen = NewMaintainer(cs)
+		listen = NewMessenger(cs)
 	}
 	w := writer.New(conn, cfg, logger, stop, sysErr, m)
 

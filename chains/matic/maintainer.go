@@ -146,21 +146,18 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 		return nil
 	}
 	m.Log.Info("find sync block", "current height", latestBlock)
-
 	header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return err
 	}
 
 	h := matic.ConvertHeader(header)
-	//fmt.Printf("=============%+v,\n ", h)
 	input, err := mapprotocol.Matic.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(h)
 	if err != nil {
 		m.Log.Error("failed to abi pack", "err", err)
 		return err
 	}
 
-	//fmt.Printf("=============%+v,\n ", common.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)

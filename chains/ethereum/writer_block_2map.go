@@ -1,7 +1,6 @@
 package ethereum
 
 import (
-	"math/big"
 	"strings"
 	"time"
 
@@ -21,7 +20,7 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 		default:
 			err := w.conn.LockAndUpdateOpts()
 			if err != nil {
-				w.log.Error("Failed to update nonce", "err", err)
+				w.log.Error("BlockToMap Failed to update nonce", "err", err)
 				time.Sleep(TxRetryInterval)
 				continue
 			}
@@ -30,11 +29,11 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
 
-			id, _ := m.Payload[0].(*big.Int)
+			//id, _ := m.Payload[0].(*big.Int)
 			marshal, _ := m.Payload[1].([]byte)
 			// save header data
-			data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, id, marshal)
-			//data, err := mapprotocol.PackInput(mapprotocol.Bsc, mapprotocol.MethodUpdateBlockHeader, marshal)
+			//data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, id, marshal)
+			data, err := mapprotocol.PackInput(mapprotocol.Bsc, mapprotocol.MethodUpdateBlockHeader, marshal)
 			if err != nil {
 				w.log.Error("block2Map Failed to pack abi data", "err", err)
 				w.conn.UnlockOpts()
@@ -66,6 +65,7 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 				w.log.Warn("Sync Header to map Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
+				//time.Sleep(TxRetryInterval)
 			}
 		}
 	}

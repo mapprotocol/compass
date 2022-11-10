@@ -1,4 +1,4 @@
-package utils
+package tx
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
-func getTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
+func GetTxsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
 	block, err := conn.BlockByNumber(context.Background(), number)
 	if err != nil {
 		return nil, err
@@ -22,7 +22,7 @@ func getTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) (
 	return txs, nil
 }
 
-func getMapTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
+func GetMapTxsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
 	block, err := conn.MAPBlockByNumber(context.Background(), number)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func getMapTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int
 	return txs, nil
 }
 
-func getReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*types.Receipt, error) {
+func GetReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*types.Receipt, error) {
 	rs := make([]*types.Receipt, 0, len(txsHash))
 	for _, h := range txsHash {
 		r, err := conn.TransactionReceipt(context.Background(), h)
