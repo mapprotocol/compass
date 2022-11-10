@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
@@ -298,7 +298,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 				continue
 			}
 		}
-		if _, ok := chains.NearChainId[cid]; ok {
+		if name, ok := mapprotocol.OnlineChaId[cid]; ok && strings.ToLower(name) == "near" {
 			param := map[string]interface{}{
 				"header": mapprotocol.ConvertNearNeedHeader(header),
 				"agg_pk": map[string]interface{}{

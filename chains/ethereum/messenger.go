@@ -127,6 +127,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
+	count := 0
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
 		// evm event to msg
@@ -173,6 +174,10 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
+			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
+				m.log.Debug("Found a log that is not the current task ", "toChainID", toChainID)
+				continue
+			}
 			msgpayload := []interface{}{payload, orderId}
 			message = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
 		}
@@ -182,9 +187,10 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		if err != nil {
 			m.log.Error("subscription error: failed to route message", "err", err)
 		}
+		count++
 	}
 
-	return len(logs), nil
+	return count, nil
 }
 
 // buildQuery constructs a query for the bridgeContract by hashing sig to get the event topic

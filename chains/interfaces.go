@@ -20,15 +20,17 @@ type Listener interface {
 
 const (
 	Bsc      = "bsc"
+	Matic    = "matic"
 	Near     = "near"
 	Ethereum = "ethereum"
 )
 
 var (
 	NearChainId = map[msg.ChainId]struct{}{
-		1313161556: {},
-		1313161555: {},
-		1313161554: {},
+		1313161556:          {},
+		1313161555:          {},
+		1313161554:          {},
+		5566818579631833089: {},
 	}
 )
 

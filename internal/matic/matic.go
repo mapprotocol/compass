@@ -1,6 +1,8 @@
-package bsc
+package matic
 
 import (
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -8,12 +10,9 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 )
 
-type Header struct {
+type BlockHeader struct {
 	ParentHash       []byte         `json:"parentHash"`
 	Sha3Uncles       []byte         `json:"sha3Uncles"`
 	Miner            common.Address `json:"miner"`
@@ -29,9 +28,10 @@ type Header struct {
 	ExtraData        []byte         `json:"extraData"`
 	MixHash          []byte         `json:"mixHash"`
 	Nonce            []byte         `json:"nonce"`
+	BaseFeePerGas    *big.Int       `json:"baseFeePerGas"`
 }
 
-func ConvertHeader(header types.Header) Header {
+func ConvertHeader(header *types.Header) BlockHeader {
 	bloom := make([]byte, 0, len(header.Bloom))
 	for _, b := range header.Bloom {
 		bloom = append(bloom, b)
@@ -40,7 +40,7 @@ func ConvertHeader(header types.Header) Header {
 	for _, b := range header.Nonce {
 		nonce = append(nonce, b)
 	}
-	return Header{
+	return BlockHeader{
 		ParentHash:       hashToByte(header.ParentHash),
 		Sha3Uncles:       hashToByte(header.UncleHash),
 		Miner:            header.Coinbase,
@@ -56,6 +56,7 @@ func ConvertHeader(header types.Header) Header {
 		ExtraData:        header.Extra,
 		MixHash:          hashToByte(header.MixDigest),
 		Nonce:            nonce,
+		BaseFeePerGas:    header.BaseFee,
 	}
 }
 
@@ -68,17 +69,18 @@ func hashToByte(h common.Hash) []byte {
 }
 
 type ProofData struct {
-	Headers      []Header
-	ReceiptProof ReceiptProof
+	Header BlockHeader
+	Rp     ReceiptProof
 }
 
 type ReceiptProof struct {
-	TxReceipt mapprotocol.TxReceipt
-	KeyIndex  []byte
-	Proof     [][]byte
+	txReceipt *mapprotocol.TxReceipt
+	keyIndex  []byte
+	proof     [][]byte
 }
 
-func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, method string) ([]byte, error) {
+func AssembleProof(header *types.Header, log types.Log, bridgeAddr common.Address, receipts []*types.Receipt, method string) ([]byte, error) {
+	h := ConvertHeader(header)
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
@@ -95,19 +97,19 @@ func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, me
 	ek := utils.Key2Hex(key, len(proof))
 
 	pd := ProofData{
-		Headers: header,
-		ReceiptProof: ReceiptProof{
-			TxReceipt: *receipt,
-			KeyIndex:  ek,
-			Proof:     proof,
+		Header: h,
+		Rp: ReceiptProof{
+			txReceipt: receipt,
+			keyIndex:  ek,
+			proof:     proof,
 		},
 	}
 
-	input, err := mapprotocol.Bsc.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+	input, err := mapprotocol.Matic.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
 	if err != nil {
 		return nil, err
 	}
-	pack, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, input)
+	pack, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodVerifyProofData, input)
 	if err != nil {
 		return nil, err
 	}

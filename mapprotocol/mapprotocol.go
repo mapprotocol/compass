@@ -29,11 +29,12 @@ import (
 
 // GlobalMapConn global Map connection; assign at cmd/main
 var (
-	GlobalMapConn   *ethclient.Client
-	SyncOtherMap    = make(map[msg.ChainId]*big.Int)
-	Map2OtherHeight = make(map[msg.ChainId]GetHeight)
-	Get2MapHeight   = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }
-	Get2MapByLight  = func() (*big.Int, error) { return nil, nil }
+	GlobalMapConn      *ethclient.Client
+	SyncOtherMap       = make(map[msg.ChainId]*big.Int)
+	Map2OtherHeight    = make(map[msg.ChainId]GetHeight)
+	Get2MapHeight      = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }
+	Get2MapByLight     = func() (*big.Int, error) { return nil, nil }
+	GetMaxCanVerifyNum = map[msg.ChainId]func(){}
 )
 
 type GetHeight func() (*big.Int, error)
@@ -47,14 +48,14 @@ func InitOtherChain2MapHeight(lightManager common.Address) {
 
 		height, err := HeaderHeight(lightManager, input)
 		if err != nil {
-			return nil, errors.Wrap(err, "get other2map headerHeight failed")
+			return nil, errors.Wrap(err, "get other2map headerHeight by lightManager failed")
 		}
 		//fmt.Println("get height param ", big.NewInt(int64(chainId)), "current synced height is", height)
 		return height, nil
 	}
 }
 
-func InitBsc2MapHeight(lightNode common.Address) {
+func InitMati2MapHeight(lightNode common.Address) {
 	Get2MapByLight = func() (*big.Int, error) {
 		input, err := PackInput(Height, MethodOfHeaderHeight)
 		if err != nil {
@@ -63,7 +64,7 @@ func InitBsc2MapHeight(lightNode common.Address) {
 
 		height, err := HeaderHeight(lightNode, input)
 		if err != nil {
-			return nil, errors.Wrap(err, "get other2map headerHeight failed")
+			return nil, errors.Wrap(err, "get other2map headerHeight by lightNode failed")
 		}
 		return height, nil
 	}
@@ -129,7 +130,7 @@ func UnpackHeaderHeightOutput(output []byte) (*big.Int, error) {
 	}
 
 	height := new(big.Int)
-	if err := outputs.Copy(&height, unpack); err != nil {
+	if err = outputs.Copy(&height, unpack); err != nil {
 		return big.NewInt(0), err
 	}
 	return height, nil

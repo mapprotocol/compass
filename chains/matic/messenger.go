@@ -1,18 +1,18 @@
-package bsc
+package matic
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/bsc"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/matic"
 	"github.com/mapprotocol/compass/internal/tx"
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/mapprotocol"
+
 	"github.com/mapprotocol/compass/msg"
 
 	eth "github.com/ethereum/go-ethereum"
@@ -152,23 +152,12 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
 
-			headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
-			for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
-				headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
-				header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
-				if err != nil {
-					return 0, err
-				}
-				fmt.Println("------------ , ", headerHeight)
-				headers[i] = *header
+			header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
+			if err != nil {
+				return 0, fmt.Errorf("getHeader failed, err is %v", err)
 			}
 
-			params := make([]bsc.Header, 0, len(headers))
-			for _, h := range headers {
-				params = append(params, bsc.ConvertHeader(h))
-			}
-
-			payload, err := bsc.AssembleProof(params, log, receipts, method)
+			payload, err := matic.AssembleProof(header, log, m.Cfg.McsContract, receipts, method)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
