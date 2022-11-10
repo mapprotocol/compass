@@ -184,7 +184,7 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := key2Hex(key, len(proof))
+	ek := Key2Hex(key, len(proof))
 	if _, ok := chains.NearChainId[msg.ChainId(uToChainID)]; !ok {
 		rp := mapprotocol.ReceiptProof{
 			Header:   mapprotocol.ConvertHeader(header),
@@ -233,11 +233,11 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 		"receipt_proof": m,
 		"index":         log.Index,
 	})
-	fmt.Printf("map2near message %v \n", string(data))
+	//fmt.Printf("map2near message %v \n", string(data))
 	return uFromChainID, uToChainID, data, nil
 }
 
-func key2Hex(str []byte, proofLength int) []byte {
+func Key2Hex(str []byte, proofLength int) []byte {
 	ret := make([]byte, 0)
 	if len(ret)+1 == proofLength {
 		ret = append(ret, str...)
