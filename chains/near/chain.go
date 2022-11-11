@@ -108,7 +108,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		if err != nil {
 			return nil, errors.Wrap(err, "near get init headerHeight failed")
 		}
-		logger.Info("map2near Current situation", "chain", cfg.name, "height", height)
+		logger.Info("map2near Current situation", "chain", cfg.name, "height", height, "lightNode", cfg.lightNode)
 		mapprotocol.SyncOtherMap[cfg.id] = height
 		mapprotocol.Map2OtherHeight[cfg.id] = fn
 	}
