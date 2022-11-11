@@ -157,7 +157,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, fmt.Errorf("getHeader failed, err is %v", err)
 			}
 
-			payload, err := matic.AssembleProof(header, log, m.Cfg.McsContract, receipts, method)
+			payload, err := matic.AssembleProof(header, log, m.Cfg.Id, receipts, method)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}

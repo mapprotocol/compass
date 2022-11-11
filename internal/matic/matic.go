@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"math/big"
 )
@@ -69,17 +70,17 @@ func hashToByte(h common.Hash) []byte {
 }
 
 type ProofData struct {
-	Header BlockHeader
-	Rp     ReceiptProof
+	Header       BlockHeader
+	ReceiptProof ReceiptProof
 }
 
 type ReceiptProof struct {
-	txReceipt *mapprotocol.TxReceipt
-	keyIndex  []byte
-	proof     [][]byte
+	TxReceipt mapprotocol.TxReceipt
+	KeyIndex  []byte
+	Proof     [][]byte
 }
 
-func AssembleProof(header *types.Header, log types.Log, bridgeAddr common.Address, receipts []*types.Receipt, method string) ([]byte, error) {
+func AssembleProof(header *types.Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
 	h := ConvertHeader(header)
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
@@ -98,10 +99,10 @@ func AssembleProof(header *types.Header, log types.Log, bridgeAddr common.Addres
 
 	pd := ProofData{
 		Header: h,
-		Rp: ReceiptProof{
-			txReceipt: receipt,
-			keyIndex:  ek,
-			proof:     proof,
+		ReceiptProof: ReceiptProof{
+			TxReceipt: *receipt,
+			KeyIndex:  ek,
+			Proof:     proof,
 		},
 	}
 
@@ -109,7 +110,8 @@ func AssembleProof(header *types.Header, log types.Log, bridgeAddr common.Addres
 	if err != nil {
 		return nil, err
 	}
-	pack, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodVerifyProofData, input)
+	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	//pack, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, input)
 	if err != nil {
 		return nil, err
 	}

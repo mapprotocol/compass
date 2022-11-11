@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"math/big"
 
@@ -78,7 +79,7 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, method string) ([]byte, error) {
+func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, method string, fId msg.ChainId) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
@@ -107,7 +108,8 @@ func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, me
 	if err != nil {
 		return nil, err
 	}
-	pack, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, input)
+	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	//pack, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, input)
 	if err != nil {
 		return nil, err
 	}
