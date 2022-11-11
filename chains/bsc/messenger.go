@@ -168,7 +168,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				params = append(params, bsc.ConvertHeader(h))
 			}
 
-			payload, err := bsc.AssembleProof(params, log, receipts, method)
+			payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
