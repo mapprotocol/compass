@@ -69,7 +69,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		//if err != nil {
 		//	return nil, errors.Wrap(err, "bsc get init headerHeight failed")
 		//}
-		//logger.Info("map2 Current situation", "chain", cfg.Name, "height", height, "lightNode", cfg.LightNode)
+		//logger.Info("map2 Current situation", "height", height, "lightNode", cfg.LightNode)
 		//mapprotocol.SyncOtherMap[cfg.Id] = height
 		//mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		listen = NewMaintainer(cs)
