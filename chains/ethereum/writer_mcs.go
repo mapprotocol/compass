@@ -71,8 +71,8 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			} else {
 				w.log.Warn("Execution failed, will retry", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 				time.Sleep(TxRetryInterval)
-				//m.DoneCh <- struct{}{}
-				//return true
+				m.DoneCh <- struct{}{}
+				return true
 			}
 		}
 	}

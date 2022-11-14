@@ -79,7 +79,7 @@ func (m Maintainer) sync() error {
 	} else if m.cfg.id == m.cfg.mapChainID {
 		minHeight := big.NewInt(0)
 		for cId, height := range mapprotocol.SyncOtherMap {
-			if minHeight.Cmp(height) == 1 {
+			if minHeight.Uint64() == 0 || minHeight.Cmp(height) == 1 {
 				m.log.Info("map to other chain find min sync height ", "chainId", cId,
 					"syncedHeight", minHeight, "currentHeight", height)
 				minHeight = height

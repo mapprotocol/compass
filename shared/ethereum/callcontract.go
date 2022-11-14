@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"math/big"
+	"strings"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -18,7 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
-	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
@@ -184,7 +184,9 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := Key2Hex(key, len(proof))
-	if _, ok := chains.NearChainId[msg.ChainId(uToChainID)]; !ok {
+	// name, ok := mapprotocol.OnlineChaId[cid]; ok && strings.ToLower(name) == "near"
+	//if _, ok := chains.NearChainId[msg.ChainId(uToChainID)]; !ok {
+	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
 		rp := mapprotocol.ReceiptProof{
 			Header:   mapprotocol.ConvertHeader(header),
 			AggPk:    aggPK,

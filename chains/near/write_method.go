@@ -60,8 +60,8 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 				time.Sleep(TxRetryInterval)
 			} else {
 				w.log.Warn("Execution failed will retry", "err", err)
-				//m.DoneCh <- struct{}{}
-				//return true
+				m.DoneCh <- struct{}{}
+				return true
 			}
 		}
 	}
@@ -104,6 +104,8 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			} else {
 				w.log.Warn("Execution failed, tx may already be complete", "err", err)
 				time.Sleep(TxRetryInterval)
+				m.DoneCh <- struct{}{}
+				return true
 			}
 		}
 	}

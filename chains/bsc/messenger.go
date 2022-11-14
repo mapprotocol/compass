@@ -131,6 +131,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
+	count := 0
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
 		// evm event to msg
@@ -159,7 +160,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				if err != nil {
 					return 0, err
 				}
-				fmt.Println("------------ , ", headerHeight)
 				headers[i] = *header
 			}
 
@@ -168,23 +168,26 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				params = append(params, bsc.ConvertHeader(h))
 			}
 
-			payload, err := bsc.AssembleProof(params, log, receipts, method)
+			payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
 			msgpayload := []interface{}{payload, orderId}
 			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
+
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", ethcommon.Bytes2Hex(orderId))
+			err = m.Router.Send(message)
+			if err != nil {
+				m.Log.Error("subscription error: failed to route message", "err", err)
+			}
+			count++
 		}
 
-		m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
-		err = m.Router.Send(message)
-		if err != nil {
-			m.Log.Error("subscription error: failed to route message", "err", err)
-		}
 	}
 
-	return len(logs), nil
+	return count, nil
 }
 
 // buildQuery constructs a query for the bridgeContract by hashing sig to get the event topic

@@ -70,6 +70,8 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Error("Sync Header to map encounter EOF, will retry")
 			} else {
 				w.log.Warn("Execution failed, will retry", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+				m.DoneCh <- struct{}{}
+				return true
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}
