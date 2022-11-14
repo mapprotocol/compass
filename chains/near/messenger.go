@@ -3,6 +3,7 @@ package near
 import (
 	"context"
 	"encoding/json"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"strings"
 	"time"
@@ -58,6 +59,25 @@ func (m *Messenger) sync() error {
 				m.log.Error("Polling failed, retries exceeded")
 				m.sysErr <- ErrFatalPolling
 				return nil
+			}
+
+			latestBlock, err := m.conn.LatestBlock()
+			if err != nil {
+				m.log.Error("Unable to get latest block", "block", latestBlock, "err", err)
+				retry--
+				time.Sleep(RetryInterval)
+				continue
+			}
+
+			if m.metrics != nil {
+				m.metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
+			}
+
+			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
+			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.blockConfirmations) == -1 {
+				m.log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
 			}
 
 			// messager

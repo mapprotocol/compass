@@ -26,8 +26,7 @@ var (
 
 // exeSyncMapMsg executes sync msg, and send tx to the destination blockchain
 func (w *writer) exeSyncMapMsg(m msg.Message) bool {
-	//return w.callContractWithMsg(,  m)
-	for i := 0; i < TxRetryLimit; i++ {
+	for {
 		select {
 		case <-w.stop:
 			return false
@@ -62,6 +61,8 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Sync Map Header to other chain Nonce too low, will retry")
 				time.Sleep(TxRetryInterval)
+			} else if strings.Index(err.Error(), "insufficient funds for gas * price + value") != -1 {
+				w.log.Error("insufficient funds for gas * price + value, will retry")
 			} else {
 				w.log.Warn("Sync Map Header to other chain Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 				m.DoneCh <- struct{}{}
@@ -69,9 +70,9 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 			}
 		}
 	}
-	w.log.Error("Sync Map Header to other chain Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
-	w.sysErr <- ErrFatalTx
-	return false
+	//w.log.Error("Sync Map Header to other chain Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	//w.sysErr <- ErrFatalTx
+	//return false
 }
 
 // sendTx send tx to an address with value and input data
