@@ -108,12 +108,12 @@ func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, me
 	if err != nil {
 		return nil, err
 	}
+
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
 	//pack, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, input)
 	if err != nil {
 		return nil, err
 	}
-
 	return pack, nil
 }
 
