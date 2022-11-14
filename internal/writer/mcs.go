@@ -25,7 +25,7 @@ func (w *Writer) exeSwapMsg(m msg.Message) bool {
 
 // callContractWithMsg contract using address and function signature with message info
 func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
-	for i := 0; i < constant.TxRetryLimit; i++ {
+	for {
 		select {
 		case <-w.stop:
 			return false
@@ -68,18 +68,18 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Error("Nonce too low, will retry")
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry")
+			} else if strings.Index(err.Error(), "insufficient funds for gas * price + value") != -1 {
+				w.log.Error("insufficient funds for gas * price + value, will retry")
 			} else {
 				w.log.Warn("Execution failed, will retry", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
-				m.DoneCh <- struct{}{}
-				return true
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
-	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination,
-		"depositNonce", m.DepositNonce)
-	w.sysErr <- constant.ErrFatalTx
-	return false
+	//w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination,
+	//	"depositNonce", m.DepositNonce)
+	//w.sysErr <- constant.ErrFatalTx
+	//return false
 }
 
 func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) error {

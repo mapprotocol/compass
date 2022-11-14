@@ -91,6 +91,13 @@ func (m Maintainer) sync() error {
 				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
+			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
+			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
+				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+
 			if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
 				// Sync headers to Map
 				err = m.syncHeaderToMap(currentBlock)

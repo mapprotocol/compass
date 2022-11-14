@@ -19,7 +19,7 @@ import (
 // the current function is only responsible for sending messages and is not responsible for processing data formats，
 func (w *Writer) execToMapMsg(m msg.Message) bool {
 	//return w.callContractWithMsg(,  m)
-	for i := 0; i < constant.TxRetryLimit; i++ {
+	for {
 		select {
 		case <-w.stop:
 			return false
@@ -64,17 +64,17 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 				w.log.Error("Sync Header to map encounter EOF, will retry")
 			} else if strings.Index(err.Error(), "max fee per gas less than block base fee") != -1 {
 				w.log.Error("gas maybe less than base fee, will retry")
+			} else if strings.Index(err.Error(), "insufficient funds for gas * price + value") != -1 {
+				w.log.Error("insufficient funds for gas * price + value, will retry")
 			} else {
 				w.log.Warn("Sync Header to map Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
-				m.DoneCh <- struct{}{}
-				return true
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
-	w.log.Error("Sync Header to map Submission of Sync Header transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
-	w.sysErr <- constant.ErrFatalTx
-	return false
+	//w.log.Error("Sync Header to map Submission of Sync Header transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	//w.sysErr <- constant.ErrFatalTx
+	//return false
 }
 
 // sendTx send tx to an address with value and input data
