@@ -6,6 +6,7 @@ import (
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/writer"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/pkg/errors"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
@@ -64,14 +65,14 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	var listen chains.Listener
 	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMaintainer { // 请求获取同步的map高度
-		//fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
-		//height, err := fn()
-		//if err != nil {
-		//	return nil, errors.Wrap(err, "bsc get init headerHeight failed")
-		//}
-		//logger.Info("map2 Current situation", "height", height, "lightNode", cfg.LightNode)
-		//mapprotocol.SyncOtherMap[cfg.Id] = height
-		//mapprotocol.Map2OtherHeight[cfg.Id] = fn
+		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
+		height, err := fn()
+		if err != nil {
+			return nil, errors.Wrap(err, "matic get init headerHeight failed")
+		}
+		logger.Info("map2 Current situation", "height", height, "lightNode", cfg.LightNode)
+		mapprotocol.SyncOtherMap[cfg.Id] = height
+		mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		listen = NewMaintainer(cs)
 	} else if role == mapprotocol.RoleOfMessenger {
 		err = conn.EnsureHasBytecode(cfg.McsContract)
