@@ -228,7 +228,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			return 0, errors.Wrap(err, "borshifyOutcomeProof failed")
 		}
 
-		all, err := mapprotocol.Near.Methods["getBytes"].Inputs.Pack(blkBytes, proofBytes)
+		all, err := mapprotocol.Near.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(blkBytes, proofBytes)
 		if err != nil {
 			return 0, errors.Wrap(err, "getBytes pack failed")
 		}

@@ -64,16 +64,14 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry")
-				time.Sleep(TxRetryInterval)
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry")
-				time.Sleep(TxRetryInterval)
 			} else if strings.Index(err.Error(), "insufficient funds for gas * price + value") != -1 {
 				w.log.Error("insufficient funds for gas * price + value, will retry")
 			} else {
 				w.log.Warn("Execution failed, will retry", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
-				time.Sleep(TxRetryInterval)
 			}
+			time.Sleep(TxRetryInterval)
 		}
 	}
 	//w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
