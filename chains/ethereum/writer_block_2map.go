@@ -55,21 +55,16 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Sync Header to map Nonce too low, will retry")
-				time.Sleep(TxRetryInterval)
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry")
-				time.Sleep(TxRetryInterval)
 			} else if strings.Index(err.Error(), "max fee per gas less than block base fee") != -1 {
 				w.log.Error("gas maybe less than base fee, will retry")
-				time.Sleep(TxRetryInterval)
 			} else if strings.Index(err.Error(), "insufficient funds for gas * price + value") != -1 {
 				w.log.Error("insufficient funds for gas * price + value, will retry")
 			} else {
-				w.log.Warn("Sync Header to map Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
-				m.DoneCh <- struct{}{}
-				return true
-				//time.Sleep(TxRetryInterval)
+				w.log.Warn("Sync Header to map Execution failed", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 			}
+			time.Sleep(TxRetryInterval)
 		}
 	}
 	//w.log.Error("Sync Header to map Submission of Sync Header transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)

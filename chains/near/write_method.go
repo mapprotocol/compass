@@ -54,15 +54,16 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry", "err", err)
-				time.Sleep(TxRetryInterval)
 			} else if strings.Index(err.Error(), "EOF") != -1 || strings.Index(err.Error(), "unexpected end of JSON input") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry")
-				time.Sleep(TxRetryInterval)
-			} else {
-				w.log.Warn("Execution failed will retry", "err", err)
+			} else if strings.Index(err.Error(), "block header height is incorrect") != -1 {
+				w.log.Error("The header may have been synchronized，Continue to execute the next header")
 				m.DoneCh <- struct{}{}
 				return true
+			} else {
+				w.log.Warn("Execution failed will retry", "err", err)
 			}
+			time.Sleep(TxRetryInterval)
 		}
 	}
 	w.log.Error("Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
