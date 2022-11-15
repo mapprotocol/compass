@@ -126,8 +126,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, nil
 	}
 
-	//m.log.Info("收到的数据", "result", result)
-	//time.Sleep(time.Second * 3)
 	data := mapprotocol.StreamerMessage{}
 	err = json.Unmarshal([]byte(result), &data)
 	if err != nil {

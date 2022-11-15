@@ -21,6 +21,7 @@ const (
 	MethodOfRegister        = "register"
 	MethodOfBindWorker      = "bind"
 	MethodOfOrderList       = "orderList"
+	MethodOfIsUsedEvent     = "is_used_event"
 	MethodOfGetBytes        = "getBytes"
 	MethodOfGetHeadersBytes = "getHeadersBytes"
 )
