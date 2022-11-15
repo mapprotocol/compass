@@ -2,8 +2,13 @@ package near
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
 	"strings"
 	"time"
 
@@ -78,6 +83,20 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 		case <-w.stop:
 			return false
 		default:
+			// First request whether the orderId already exists
+			if len(m.Payload) > 1 {
+				orderId := m.Payload[1].([]byte)
+				exits, err := w.checkOrderId(w.cfg.mcsContract, orderId)
+				if err != nil {
+					w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
+				}
+				if exits {
+					w.log.Info("mcs orderId existing, abandon request", "orderId", common.Bytes2Hex(orderId))
+					m.DoneCh <- struct{}{}
+					return true
+				}
+			}
+
 			err := w.conn.LockAndUpdateOpts()
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
@@ -92,22 +111,29 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				w.log.Info("Submitted cross tx execution", "txHash", txHash.String(), "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
 				m.DoneCh <- struct{}{}
 				return true
+			} else if strings.Index(err.Error(), "the event with order id") != -1 && strings.Index(err.Error(), "is used") != -1 {
+				w.log.Info("Order id is used", "err", err)
+				m.DoneCh <- struct{}{}
+				return true
+			} else if strings.Index(err.Error(), "cannot get epoch record for block") != -1 && // 1000 [2000 - 9000] 10000 (2min)
+				strings.Index(err.Error(), "expected range") != -1 {
+				w.log.Error("The block where the transaction is located is no longer verifiable", "err", err)
+				// todo 解析log所在交易是大于还是小于区间，小于直接放弃，大于sleep
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry")
-				time.Sleep(TxRetryInterval)
 			} else if strings.Index(err.Error(), "EOF") != -1 || strings.Index(err.Error(), "unexpected end of JSON input") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry", "err", err)
-				time.Sleep(TxRetryInterval)
-			} else if strings.Index(err.Error(), "the event with order id") != -1 && strings.Index(err.Error(), "is used") != -1 {
-				w.log.Info("Execution failed, tx may already be complete", "back", err)
-				m.DoneCh <- struct{}{}
-				return true
+			} else if strings.Index(err.Error(), "to_chain_token") != -1 &&
+				strings.Index(err.Error(), "is not mcs token or fungible token or native token") != -1 {
+				w.log.Error("Transfer Token is not supported", "err", err)
+			} else if strings.Index(err.Error(), "transfer in token failed") != -1 {
+				w.log.Error("Insufficient vault balance of NEP141 Or The target user does not exist, Please check", "err", err)
+			} else if strings.Index(err.Error(), "near withdraw failed") != -1 {
+				w.log.Error("Insufficient vault when native token is transferred in", "err", err)
 			} else {
 				w.log.Warn("Execution failed, tx may already be complete", "err", err)
-				time.Sleep(TxRetryInterval)
-				m.DoneCh <- struct{}{}
-				return true
 			}
+			time.Sleep(TxRetryInterval)
 		}
 	}
 	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
@@ -141,4 +167,31 @@ func (w *writer) sendTx(toAddress string, method string, input []byte) (hash.Cry
 		return hash.CryptoHash{}, fmt.Errorf("back resp failed, err is %s", string(res.Status.Failure))
 	}
 	return res.Transaction.Hash, nil
+}
+
+func (w *writer) checkOrderId(toAddress string, input []byte) (bool, error) {
+	var fixedOrderId [32]byte
+	for idx, v := range input {
+		fixedOrderId[idx] = v
+	}
+	m := map[string]interface{}{
+		"order_id": fixedOrderId,
+	}
+	data, err := json.Marshal(m)
+	if err != nil {
+		return false, err
+	}
+	w.log.Info("checkOrderId", "toAddress", toAddress)
+	ctx := client.ContextWithKeyPair(context.Background(), *w.conn.Keypair())
+	res, err := w.conn.Client().ContractViewCallFunction(ctx, w.cfg.from, mapprotocol.MethodOfIsUsedEvent,
+		base64.StdEncoding.EncodeToString(data), block.FinalityFinal())
+	if err != nil {
+		return false, fmt.Errorf("checkOrderId ContractViewCallFunction failed: %w", err)
+	}
+	var exist bool
+	err = json.Unmarshal(res.Result, &exist)
+	if err != nil {
+		return false, err
+	}
+	return exist, nil
 }
