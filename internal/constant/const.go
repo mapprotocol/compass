@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	TxRetryInterval = time.Second * 2 // TxRetryInterval Time between retrying a failed tx
+	TxRetryInterval = time.Second * 3 // TxRetryInterval Time between retrying a failed tx
 	TxRetryLimit    = 10              // TxRetryLimit Maximum number of tx retries before exiting
 )
 

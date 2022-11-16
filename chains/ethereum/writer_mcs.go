@@ -3,6 +3,7 @@ package ethereum
 import (
 	"context"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"strings"
 	"time"
@@ -62,7 +63,7 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "mcsTx", mcsTx.Hash())
 				m.DoneCh <- struct{}{}
 				return true
-			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
+			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry")
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry")
@@ -71,7 +72,7 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			} else {
 				w.log.Warn("Execution failed, will retry", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 			}
-			time.Sleep(TxRetryInterval)
+			time.Sleep(constant.TxRetryInterval)
 		}
 	}
 	//w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
