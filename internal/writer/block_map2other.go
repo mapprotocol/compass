@@ -36,12 +36,16 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 				}
 				m.DoneCh <- struct{}{}
 				return true
+			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
+				w.log.Info("Order Exist, Continue to the next")
+				m.DoneCh <- struct{}{}
+				return true
 			} else if strings.Index(err.Error(), "EOF") != -1 {
 				w.log.Error("Sync Header to map encounter EOF, will retry")
 			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
 				w.log.Error("Sync Map Header to other chain Nonce too low, will retry")
-			} else if strings.Index(err.Error(), "insufficient funds for gas * price + value") != -1 {
-				w.log.Error("insufficient funds for gas * price + value, will retry")
+			} else if strings.Index(err.Error(), constant.NotEnoughGas) != -1 {
+				w.log.Error(constant.NotEnoughGasPrint)
 			} else {
 				w.log.Warn("Sync Map Header to other chain Execution failed, header may already been synced",
 					"gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)

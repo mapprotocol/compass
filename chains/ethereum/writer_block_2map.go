@@ -54,14 +54,18 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 				}
 				m.DoneCh <- struct{}{}
 				return true
+			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
+				w.log.Info("Order Exist, Continue to the next")
+				m.DoneCh <- struct{}{}
+				return true
 			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
 				w.log.Error("Sync Header to map Nonce too low, will retry")
-			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
+			} else if strings.Index(err.Error(), "EOF") != -1 {
 				w.log.Error("Sync Header to map encounter EOF, will retry")
 			} else if strings.Index(err.Error(), "max fee per gas less than block base fee") != -1 {
 				w.log.Error("gas maybe less than base fee, will retry")
-			} else if strings.Index(err.Error(), "insufficient funds for gas * price + value") != -1 {
-				w.log.Error("insufficient funds for gas * price + value, will retry")
+			} else if strings.Index(err.Error(), constant.NotEnoughGas) != -1 {
+				w.log.Error(constant.NotEnoughGasPrint)
 			} else {
 				w.log.Warn("Sync Header to map Execution failed", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 			}
