@@ -30,6 +30,8 @@ aws_secret_access_key=
 
 You can rename .env.example to .env, modify it and put it in the same directory with near-lake-s3 (or it's parent directory).
 
+maybe you can install the [redis](https://redis.io/docs/getting-started/installation/) for the following configuration.
+
 ```
 // Start from cache if true ignore START_BLOCK_HEIGHT
 START_BLOCK_HEIGHT_FROM_CACHE=false
