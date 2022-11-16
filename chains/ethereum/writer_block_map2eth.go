@@ -3,6 +3,7 @@ package ethereum
 import (
 	"context"
 	"errors"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"strings"
 	"time"
@@ -11,17 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/msg"
-)
-
-const (
-	TxRetryInterval = time.Second * 2 // TxRetryInterval Time between retrying a failed tx
-	TxRetryLimit    = 10              // TxRetryLimit Maximum number of tx retries before exiting
-)
-
-var (
-	ErrNonceTooLow   = errors.New("nonce too low")
-	ErrTxUnderpriced = errors.New("replacement transaction underpriced")
-	ErrFatalTx       = errors.New("submission of transaction failed")
 )
 
 // exeSyncMapMsg executes sync msg, and send tx to the destination blockchain
@@ -55,14 +45,14 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 				return true
 			} else if strings.Index(err.Error(), "EOF") != -1 {
 				w.log.Error("Sync Header to map encounter EOF, will retry")
-			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
+			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
 				w.log.Error("Sync Map Header to other chain Nonce too low, will retry")
 			} else if strings.Index(err.Error(), "insufficient funds for gas * price + value") != -1 {
 				w.log.Error("insufficient funds for gas * price + value, will retry")
 			} else {
 				w.log.Warn("Sync Map Header to other chain Execution failed", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 			}
-			time.Sleep(TxRetryInterval)
+			time.Sleep(constant.TxRetryInterval)
 		}
 	}
 	//w.log.Error("Sync Map Header to other chain Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)

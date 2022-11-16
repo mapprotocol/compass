@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
 	"strconv"
@@ -22,10 +23,6 @@ import (
 )
 
 const (
-	// TxRetryLimit Maximum number of tx retries before exiting
-	TxRetryLimit = 10
-	// TxRetryInterval Time between retrying a failed tx
-	TxRetryInterval              = time.Second * 2
 	AbiMethodOfUpdateBlockHeader = "update_block_header"
 	AbiMethodOfNew               = "new"
 	AbiMethodOfGetHeaderHeight   = "get_header_height"
@@ -51,7 +48,7 @@ var (
 
 // exeSyncMapMsg executes sync msg, and send tx to the destination blockchain
 func (w *writer) exeSyncMapMsg(m msg.Message) bool {
-	for i := 0; i < TxRetryLimit; i++ {
+	for i := 0; i < constant.TxRetryLimit; i++ {
 		select {
 		case <-w.stop:
 			return false
@@ -80,7 +77,7 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 			} else {
 				w.log.Warn("Execution failed will retry", "err", err)
 			}
-			time.Sleep(TxRetryInterval)
+			time.Sleep(constant.TxRetryInterval)
 		}
 	}
 	w.log.Error("Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
@@ -90,7 +87,7 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *writer) exeSwapMsg(m msg.Message) bool {
-	for i := 0; i < TxRetryLimit; i++ {
+	for i := 0; i < constant.TxRetryLimit; i++ {
 		select {
 		case <-w.stop:
 			return false
@@ -147,7 +144,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			} else {
 				w.log.Warn("Execution failed, tx may already be complete", "err", err)
 			}
-			time.Sleep(TxRetryInterval)
+			time.Sleep(constant.TxRetryInterval)
 		}
 	}
 	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
