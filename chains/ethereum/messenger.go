@@ -178,7 +178,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				m.log.Debug("Found a log that is not the current task ", "toChainID", toChainID)
 				continue
 			}
-			msgpayload := []interface{}{payload, orderId}
+			msgpayload := []interface{}{payload, orderId, latestBlock.Uint64()}
 			message = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
 		}
 

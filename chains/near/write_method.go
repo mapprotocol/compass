@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,6 +36,17 @@ var (
 	ErrNonceTooLow   = errors.New("nonce too low")
 	ErrFatalTx       = errors.New("submission of transaction failed")
 	ErrTxUnderpriced = errors.New("replacement transaction underpriced")
+)
+
+var (
+	OrderIdIsUsed         = "the event with order id"
+	OrderIdIsUsedFlag2    = "is used"
+	VerifyRangeMatch      = "cannot get epoch record for block"
+	VerifyRangeMatchFlag2 = "expected range"
+	TokenNotSupport       = "to_chain_token"
+	TokenNotSupportFlag2  = "is not mcs token or fungible token or native token"
+	TokenFailed           = "transfer in token failed"
+	WithdrawFailed        = "near withdraw failed"
 )
 
 // exeSyncMapMsg executes sync msg, and send tx to the destination blockchain
@@ -111,24 +123,26 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				w.log.Info("Submitted cross tx execution", "txHash", txHash.String(), "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
 				m.DoneCh <- struct{}{}
 				return true
-			} else if strings.Index(err.Error(), "the event with order id") != -1 && strings.Index(err.Error(), "is used") != -1 {
+			} else if strings.Index(err.Error(), OrderIdIsUsed) != -1 && strings.Index(err.Error(), OrderIdIsUsedFlag2) != -1 {
 				w.log.Info("Order id is used", "err", err)
 				m.DoneCh <- struct{}{}
 				return true
-			} else if strings.Index(err.Error(), "cannot get epoch record for block") != -1 && // 1000 [2000 - 9000] 10000 (2min)
-				strings.Index(err.Error(), "expected range") != -1 {
+			} else if strings.Index(err.Error(), VerifyRangeMatch) != -1 && strings.Index(err.Error(), VerifyRangeMatchFlag2) != -1 {
 				w.log.Error("The block where the transaction is located is no longer verifiable", "err", err)
-				// todo 解析log所在交易是大于还是小于区间，小于直接放弃，大于sleep
+				abandon := w.resolveVerifyRangeError(m.Payload[2].(uint64), err)
+				if abandon {
+					m.DoneCh <- struct{}{}
+					return true
+				}
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry")
 			} else if strings.Index(err.Error(), "EOF") != -1 || strings.Index(err.Error(), "unexpected end of JSON input") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry", "err", err)
-			} else if strings.Index(err.Error(), "to_chain_token") != -1 &&
-				strings.Index(err.Error(), "is not mcs token or fungible token or native token") != -1 {
+			} else if strings.Index(err.Error(), TokenNotSupport) != -1 && strings.Index(err.Error(), TokenNotSupportFlag2) != -1 {
 				w.log.Error("Transfer Token is not supported", "err", err)
-			} else if strings.Index(err.Error(), "transfer in token failed") != -1 {
+			} else if strings.Index(err.Error(), TokenFailed) != -1 {
 				w.log.Error("Insufficient vault balance of NEP141 Or The target user does not exist, Please check", "err", err)
-			} else if strings.Index(err.Error(), "near withdraw failed") != -1 {
+			} else if strings.Index(err.Error(), WithdrawFailed) != -1 {
 				w.log.Error("Insufficient vault when native token is transferred in", "err", err)
 			} else {
 				w.log.Warn("Execution failed, tx may already be complete", "err", err)
@@ -164,7 +178,7 @@ func (w *writer) sendTx(toAddress string, method string, input []byte) (hash.Cry
 	}
 	w.log.Debug("sendTx success", "res", res)
 	if len(res.Status.Failure) != 0 {
-		return hash.CryptoHash{}, fmt.Errorf("back resp failed, err is %s", string(res.Status.Failure))
+		return hash.CryptoHash{}, fmt.Errorf("%s", string(res.Status.Failure))
 	}
 	return res.Transaction.Hash, nil
 }
@@ -194,4 +208,56 @@ func (w *writer) checkOrderId(toAddress string, input []byte) (bool, error) {
 		return false, err
 	}
 	return exist, nil
+}
+
+func (w *writer) resolveVerifyRangeError(currentHeight uint64, par error) (isAbandon bool) {
+	var entityError Error
+	err := json.Unmarshal([]byte(par.Error()), &entityError)
+	if err != nil {
+		w.log.Warn("near mcs back err is not appoint json format", "err", par)
+		return
+	}
+	leftIdx := strings.Index(entityError.ActionError.Kind.FunctionCallError.ExecutionError, "[")
+	rightIdx := strings.Index(entityError.ActionError.Kind.FunctionCallError.ExecutionError, "]")
+	rangeStr := entityError.ActionError.Kind.FunctionCallError.ExecutionError[leftIdx:rightIdx]
+	verifyRange := strings.Split(strings.TrimSpace(rangeStr), ",")
+	if len(verifyRange) != 2 {
+		w.log.Warn("near mcs back err is not appoint json format", "err", par)
+		return
+	}
+	left, err := strconv.ParseInt(strings.TrimSpace(verifyRange[0]), 10, 64)
+	if err != nil {
+		w.log.Warn("left range resolve failed", "str", verifyRange[0], "err", par)
+		return
+	}
+	right, err := strconv.ParseInt(strings.TrimSpace(verifyRange[1]), 10, 64)
+	if err != nil {
+		w.log.Warn("right range resolve failed", "str", verifyRange[1], "err", par)
+		return
+	}
+	if currentHeight < uint64(left) {
+		isAbandon = true
+		return
+	}
+	if currentHeight > uint64(right) {
+		time.Sleep(time.Minute * 2)
+	}
+	return
+}
+
+type Error struct {
+	ActionError ActionError `json:"ActionError"`
+}
+
+type ActionError struct {
+	Index int  `json:"index"`
+	Kind  Kind `json:"kind"`
+}
+
+type Kind struct {
+	FunctionCallError FunctionCallError `json:"FunctionCallError"`
+}
+
+type FunctionCallError struct {
+	ExecutionError string `json:"ExecutionError"`
 }
