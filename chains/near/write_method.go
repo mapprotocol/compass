@@ -112,6 +112,11 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				return false
 			}
 
+			var inputHash interface{}
+			if len(m.Payload) > 3 {
+				inputHash = m.Payload[3]
+			}
+			w.log.Info("send transaction", "addr", w.cfg.mcsContract, "hashOrReceiptId", inputHash)
 			// sendtx using general method
 			txHash, err := w.sendTx(w.cfg.mcsContract, AbiMethodOfTransferIn, m.Payload[0].([]byte))
 			w.conn.UnlockOpts()
@@ -134,7 +139,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry")
 			} else if strings.Index(err.Error(), "EOF") != -1 || strings.Index(err.Error(), "unexpected end of JSON input") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
-				w.log.Error("Sync Header to map encounter EOF, will retry", "err", err)
+				w.log.Error("Mcs encounter EOF, will retry", "err", err)
 			} else if strings.Index(err.Error(), TokenNotSupport) != -1 && strings.Index(err.Error(), TokenNotSupportFlag2) != -1 {
 				w.log.Error("Transfer Token is not supported", "err", err)
 			} else if strings.Index(err.Error(), TokenFailed) != -1 {
