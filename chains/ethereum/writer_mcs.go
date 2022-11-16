@@ -49,17 +49,21 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Error("Failed to update nonce", "err", err)
 				return false
 			}
+
+			var inputHash interface{}
+			if len(m.Payload) > 3 {
+				inputHash = m.Payload[3]
+			}
+			w.log.Info("send transaction", "addr", addr, "hashOrReceiptId", inputHash)
 			// These store the gas limit and price before a transaction is sent for logging in case of a failure
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
 			mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
 			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
-			w.log.Info("send transaction", "addr", addr)
 			w.conn.UnlockOpts()
 
 			if err == nil {
-				// message successfully handled]
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "mcsTx", mcsTx.Hash())
 				m.DoneCh <- struct{}{}
 				return true
@@ -67,8 +71,8 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Error("Nonce too low, will retry")
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry")
-			} else if strings.Index(err.Error(), "insufficient funds for gas * price + value") != -1 {
-				w.log.Error("insufficient funds for gas * price + value, will retry")
+			} else if strings.Index(err.Error(), constant.NotEnoughGas) != -1 {
+				w.log.Error(constant.NotEnoughGasPrint)
 			} else {
 				w.log.Warn("Execution failed, will retry", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 			}

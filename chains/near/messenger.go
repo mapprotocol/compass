@@ -3,6 +3,7 @@ package near
 import (
 	"context"
 	"encoding/json"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"strings"
@@ -254,8 +255,13 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			return 0, errors.Wrap(err, "transferIn pack failed")
 		}
 
-		msgpayload := []interface{}{input}
-		message := msg.NewSwapWithProof(m.cfg.id, m.cfg.mapChainID, msgpayload, m.msgCh)
+		ids := common.HexToHash(out.OrderId)
+		orderId := make([]byte, 0, len(ids))
+		for _, id := range ids {
+			orderId = append(orderId, id)
+		}
+		msgPayload := []interface{}{input, orderId, 0, tg.Receipt.ReceiptID}
+		message := msg.NewSwapWithProof(m.cfg.id, m.cfg.mapChainID, msgPayload, m.msgCh)
 		err = m.router.Send(message)
 		ret++
 	}

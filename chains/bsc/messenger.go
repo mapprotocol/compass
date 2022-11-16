@@ -173,8 +173,8 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
-			msgpayload := []interface{}{payload, orderId}
-			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
+			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 
 			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
 				"orderId", ethcommon.Bytes2Hex(orderId))

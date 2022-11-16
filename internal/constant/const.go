@@ -27,3 +27,9 @@ var (
 	BlockRetryInterval = time.Second * 5
 	ErrFatalPolling    = errors.New("listener block polling failed")
 )
+
+var (
+	NotEnoughGas      = "insufficient funds for gas * price + value"
+	NotEnoughGasPrint = "insufficient funds for gas * price + value, will retry"
+	EthOrderExist     = "order exist"
+)

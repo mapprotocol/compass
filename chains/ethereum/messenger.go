@@ -153,8 +153,8 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
-			msgpayload := []interface{}{payload, orderId}
-			message = msg.NewSwapWithProof(m.cfg.id, m.cfg.mapChainID, msgpayload, m.msgCh)
+			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+			message = msg.NewSwapWithProof(m.cfg.id, m.cfg.mapChainID, msgPayload, m.msgCh)
 		} else if m.cfg.id == m.cfg.mapChainID {
 			// when listen from map we also need to assemble a tx prove in a different way
 			header, err := m.conn.Client().MAPHeaderByNumber(context.Background(), latestBlock)
@@ -178,8 +178,8 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				m.log.Debug("Found a log that is not the current task ", "toChainID", toChainID)
 				continue
 			}
-			msgpayload := []interface{}{payload, orderId, latestBlock.Uint64()}
-			message = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgpayload, m.msgCh)
+			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+			message = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgPayload, m.msgCh)
 		}
 
 		m.log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
