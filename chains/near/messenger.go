@@ -3,6 +3,7 @@ package near
 import (
 	"context"
 	"encoding/json"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"strings"
 	"time"
@@ -60,6 +61,25 @@ func (m *Messenger) sync() error {
 				return nil
 			}
 
+			latestBlock, err := m.conn.LatestBlock()
+			if err != nil {
+				m.log.Error("Unable to get latest block", "block", latestBlock, "err", err)
+				retry--
+				time.Sleep(RetryInterval)
+				continue
+			}
+
+			if m.metrics != nil {
+				m.metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
+			}
+
+			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
+			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.blockConfirmations) == -1 {
+				m.log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+
 			// messager
 			// Parse out events
 			count, err := m.getEventsForBlock(currentBlock)
@@ -106,8 +126,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, nil
 	}
 
-	//m.log.Info("收到的数据", "result", result)
-	//time.Sleep(time.Second * 3)
 	data := mapprotocol.StreamerMessage{}
 	err = json.Unmarshal([]byte(result), &data)
 	if err != nil {
@@ -208,7 +226,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			return 0, errors.Wrap(err, "borshifyOutcomeProof failed")
 		}
 
-		all, err := mapprotocol.Near.Methods["getBytes"].Inputs.Pack(blkBytes, proofBytes)
+		all, err := mapprotocol.Near.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(blkBytes, proofBytes)
 		if err != nil {
 			return 0, errors.Wrap(err, "getBytes pack failed")
 		}

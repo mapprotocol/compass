@@ -110,7 +110,7 @@ func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, me
 	}
 
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	//pack, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, input)
+	// input, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), all)
 	if err != nil {
 		return nil, err
 	}
