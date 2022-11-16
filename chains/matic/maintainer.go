@@ -44,9 +44,7 @@ func (m Maintainer) sync() error {
 	m.Log.Info("Polling Blocks...", "block", currentBlock)
 
 	if m.Cfg.SyncToMap {
-		// check whether needs quick listen
-		syncedHeight, err := mapprotocol.Get2MapByLight()
-		//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+		syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
 		if err != nil {
 			m.Log.Error("Get synced Height failed", "err", err)
 			return err
@@ -86,6 +84,13 @@ func (m Maintainer) sync() error {
 
 			if m.Metrics != nil {
 				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
+			}
+
+			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
+			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
+				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
 			}
 
 			if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
@@ -128,8 +133,7 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMap listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
-	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	syncedHeight, err := mapprotocol.Get2MapByLight()
+	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
 	if err != nil {
 		m.Log.Error("Get current synced Height failed", "err", err)
 		return err

@@ -12,10 +12,6 @@ import (
 
 var _ core.Writer = &writer{}
 
-var PassedStatus uint8 = 2
-var TransferredStatus uint8 = 3
-var CancelledStatus uint8 = 4
-
 type writer struct {
 	cfg     Config
 	conn    Connection

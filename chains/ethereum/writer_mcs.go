@@ -24,12 +24,12 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 
 // callContractWithMsg contract using address and function signature with message info
 func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
-	for i := 0; i < TxRetryLimit; i++ {
+	for {
 		select {
 		case <-w.stop:
 			return false
 		default:
-			// 先请求下orderId是否已经存在
+			// First request whether the orderId already exists
 			if len(m.Payload) > 1 {
 				orderId := m.Payload[1].([]byte)
 				exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
@@ -64,21 +64,19 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry")
-				time.Sleep(TxRetryInterval)
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry")
-				time.Sleep(TxRetryInterval)
+			} else if strings.Index(err.Error(), "insufficient funds for gas * price + value") != -1 {
+				w.log.Error("insufficient funds for gas * price + value, will retry")
 			} else {
 				w.log.Warn("Execution failed, will retry", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
-				time.Sleep(TxRetryInterval)
-				m.DoneCh <- struct{}{}
-				return true
 			}
+			time.Sleep(TxRetryInterval)
 		}
 	}
-	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
-	w.sysErr <- ErrFatalTx
-	return false
+	//w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	//w.sysErr <- ErrFatalTx
+	//return false
 }
 
 func (w *writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) error {
