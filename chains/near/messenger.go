@@ -140,13 +140,18 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if len(outcome.ExecutionOutcome.Outcome.Logs) == 0 {
 				continue
 			}
+			match := false
 			for _, ls := range outcome.ExecutionOutcome.Outcome.Logs {
-				if !m.match(ls) {
-					continue
+				if !match {
+					match = m.match(ls)
 				}
 			}
-			m.log.Info("Event found", "log", outcome.ExecutionOutcome.Outcome.Logs)
-			target = append(target, outcome)
+			if match {
+				m.log.Info("Event found", "log", outcome.ExecutionOutcome.Outcome.Logs)
+				target = append(target, outcome)
+			} else {
+				m.log.Info("Event Not Match", "log", outcome.ExecutionOutcome.Outcome.Logs)
+			}
 		}
 	}
 

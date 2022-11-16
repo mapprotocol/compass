@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"strings"
 	"time"
@@ -22,7 +23,7 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			err := w.conn.LockAndUpdateOpts()
 			if err != nil {
 				w.log.Error("BlockToMap Failed to update nonce", "err", err)
-				time.Sleep(TxRetryInterval)
+				time.Sleep(constant.TxRetryInterval)
 				continue
 			}
 			// These store the gas limit and price before a transaction is sent for logging in case of a failure
@@ -53,7 +54,7 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 				}
 				m.DoneCh <- struct{}{}
 				return true
-			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
+			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
 				w.log.Error("Sync Header to map Nonce too low, will retry")
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Sync Header to map encounter EOF, will retry")
@@ -64,7 +65,7 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			} else {
 				w.log.Warn("Sync Header to map Execution failed", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 			}
-			time.Sleep(TxRetryInterval)
+			time.Sleep(constant.TxRetryInterval)
 		}
 	}
 	//w.log.Error("Sync Header to map Submission of Sync Header transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
