@@ -79,7 +79,7 @@ func (m *Messenger) sync() error {
 			}
 
 			if m.cfg.syncToMap {
-				_, right, err := mapprotocol.Get2MapVerifyRange(m.cfg.id)
+				left, right, err := mapprotocol.Get2MapVerifyRange(m.cfg.id)
 				if err != nil {
 					m.log.Warn("Get2MapVerifyRange failed", "err", err)
 				}
@@ -87,6 +87,11 @@ func (m *Messenger) sync() error {
 					m.log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "maxVerify", right)
 					time.Sleep(time.Minute)
 					continue
+				}
+
+				if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
+					currentBlock = left
+					m.log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
 				}
 			}
 
@@ -130,17 +135,6 @@ func (m *Messenger) sync() error {
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
-	if m.cfg.syncToMap {
-		left, _, err := mapprotocol.Get2MapVerifyRange(m.cfg.id)
-		if err != nil {
-			m.log.Warn("Get2MapVerifyRange failed", "err", err)
-		}
-		if left != nil && left.Uint64() != 0 && left.Cmp(latestBlock) == 1 {
-			m.log.Info("min verify range greater than currentBlock, skip ", "currentBlock", latestBlock, "minVerify", left)
-			return 0, nil
-		}
-	}
-
 	m.log.Debug("Querying block for events", "block", latestBlock)
 	query := m.buildQuery(m.cfg.mcsContract, m.cfg.events, latestBlock, latestBlock)
 	// querying for logs
