@@ -37,7 +37,7 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
-				w.log.Info("Order Exist, Continue to the next")
+				w.log.Info(constant.EthOrderExistPrint, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), "EOF") != -1 {
@@ -49,8 +49,6 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 			} else {
 				w.log.Warn("Sync Map Header to other chain Execution failed, header may already been synced",
 					"gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
-				m.DoneCh <- struct{}{}
-				return true
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}

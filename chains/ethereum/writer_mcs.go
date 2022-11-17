@@ -67,12 +67,38 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "mcsTx", mcsTx.Hash())
 				m.DoneCh <- struct{}{}
 				return true
+			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
+				w.log.Error(constant.EthOrderExistPrint)
+				m.DoneCh <- struct{}{}
+				return true
 			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
-				w.log.Error("Nonce too low, will retry")
+				w.log.Error("Nonce too low, will retry", "err", err)
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
-				w.log.Error("Sync Header to map encounter EOF, will retry")
+				w.log.Error("Mcs encounter EOF, will retry", "err", err)
+			} else if strings.Index(err.Error(), constant.NotPerMission) != -1 {
+				w.log.Error(constant.NotPerMissionPrint, "err", err)
 			} else if strings.Index(err.Error(), constant.NotEnoughGas) != -1 {
-				w.log.Error(constant.NotEnoughGasPrint)
+				w.log.Error(constant.NotEnoughGasPrint, "err", err)
+			} else if strings.Index(err.Error(), constant.AddressIsZero) != -1 {
+				w.log.Error(constant.AddressIsZeroPrint, "err", err)
+			} else if strings.Index(err.Error(), constant.VaultNotRegister) != -1 {
+				w.log.Error(constant.VaultNotRegisterPrint, "err", err)
+			} else if strings.Index(err.Error(), constant.InvalidVaultToken) != -1 {
+				w.log.Error(constant.InvalidVaultTokenPrint, "err", err)
+			} else if strings.Index(err.Error(), constant.InvalidMosContract) != -1 {
+				w.log.Error(constant.InvalidMosContractPrint, "err", err)
+			} else if strings.Index(err.Error(), constant.InvalidChainId) != -1 {
+				w.log.Error(constant.InvalidChainIdPrint, "err", err)
+			} else if strings.Index(err.Error(), constant.MapTokenNotRegistered) != -1 {
+				w.log.Error(constant.MapTokenNotRegisteredPrint, "err", err)
+			} else if strings.Index(err.Error(), constant.OutTokenNotRegistered) != -1 {
+				w.log.Error(constant.OutTokenNotRegisteredPrint, "err", err)
+			} else if strings.Index(err.Error(), constant.BalanceTooLow) != -1 {
+				w.log.Error(constant.BalanceTooLowPrint, "err", err)
+			} else if strings.Index(err.Error(), constant.VaultTokenNotRegistered) != -1 {
+				w.log.Error(constant.VaultTokenNotRegisteredPrint, "err", err)
+			} else if strings.Index(err.Error(), constant.ChainTypeError) != -1 {
+				w.log.Error(constant.ChainTypeErrorPrint, "err", err)
 			} else {
 				w.log.Warn("Execution failed, will retry", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 			}
