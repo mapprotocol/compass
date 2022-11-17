@@ -164,7 +164,7 @@ type MapTxProve struct {
 }
 
 func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
-	header *maptypes.Header) (uint64, uint64, []byte, error) {
+	header *maptypes.Header, fId msg.ChainId) (uint64, uint64, []byte, error) {
 	fromChainID := log.Data[96:128]
 	toChainID := log.Data[128:160]
 	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
@@ -199,7 +199,7 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
-		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfTransferIn, big.NewInt(0).SetUint64(uFromChainID), pack)
+		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfTransferIn, big.NewInt(0).SetUint64(uint64(fId)), pack)
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
 		}
