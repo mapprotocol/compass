@@ -91,6 +91,10 @@ func (m *Messenger) sync() error {
 				time.Sleep(time.Minute)
 				continue
 			}
+			if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
+				currentBlock = left
+				m.Log.Info("min verify range greater than currentBlock, set current equal left ", "currentBlock", latestBlock, "minVerify", left)
+			}
 
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {

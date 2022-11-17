@@ -147,7 +147,7 @@ func InitOtherChain2MapVerifyRange(lightManager common.Address) {
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "get other2map verifyRange by lightManager failed")
 		}
-		fmt.Println("get verify param ", big.NewInt(int64(chainId)), "min", left, "max", right)
+		//fmt.Println("get verify param ", big.NewInt(int64(chainId)), "min", left, "max", right)
 		return left, right, nil
 	}
 }

@@ -91,6 +91,10 @@ func (m *Messenger) sync() error {
 				time.Sleep(time.Minute)
 				continue
 			}
+			if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
+				currentBlock = left
+				m.Log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
+			}
 
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
@@ -132,11 +136,6 @@ func (m *Messenger) sync() error {
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
-	if left != nil && left.Uint64() != 0 && left.Cmp(latestBlock) == 1 {
-		m.Log.Info("min verify range greater than currentBlock, skip ", "currentBlock", latestBlock, "minVerify", left)
-		return 0, nil
-	}
-
 	m.Log.Debug("Querying block for events", "block", latestBlock)
 	query := m.buildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
 	// querying for logs
