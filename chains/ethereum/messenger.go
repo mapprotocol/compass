@@ -78,6 +78,18 @@ func (m *Messenger) sync() error {
 				m.metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
+			if m.cfg.syncToMap {
+				_, right, err := mapprotocol.Get2MapVerifyRange(m.cfg.id)
+				if err != nil {
+					m.log.Warn("Get2MapVerifyRange failed", "err", err)
+				}
+				if right != nil && right.Uint64() != 0 && right.Cmp(currentBlock) == -1 {
+					m.log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "maxVerify", right)
+					time.Sleep(time.Minute)
+					continue
+				}
+			}
+
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.blockConfirmations) == -1 {
 				m.log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
@@ -118,9 +130,19 @@ func (m *Messenger) sync() error {
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
+	if m.cfg.syncToMap {
+		left, _, err := mapprotocol.Get2MapVerifyRange(m.cfg.id)
+		if err != nil {
+			m.log.Warn("Get2MapVerifyRange failed", "err", err)
+		}
+		if left != nil && left.Uint64() != 0 && left.Cmp(latestBlock) == 1 {
+			m.log.Info("min verify range greater than currentBlock, skip ", "currentBlock", latestBlock, "minVerify", left)
+			return 0, nil
+		}
+	}
+
 	m.log.Debug("Querying block for events", "block", latestBlock)
 	query := m.buildQuery(m.cfg.mcsContract, m.cfg.events, latestBlock, latestBlock)
-
 	// querying for logs
 	logs, err := m.conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
@@ -178,6 +200,22 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				m.log.Debug("Found a log that is not the current task ", "toChainID", toChainID)
 				continue
 			}
+
+			if fn, ok := mapprotocol.Map2OtherVerifyRange[msg.ChainId(toChainID)]; ok {
+				left, right, err := fn()
+				if err != nil {
+					m.log.Warn("map chain Get2OtherVerifyRange failed", "err", err)
+				}
+				if left != nil && left.Uint64() != 0 && left.Cmp(latestBlock) == 1 {
+					m.log.Info("min verify range greater than currentBlock, skip ", "currentBlock", latestBlock, "minVerify", left)
+					continue
+				}
+				if right != nil && right.Uint64() != 0 && right.Cmp(latestBlock) == -1 {
+					m.log.Info("currentBlock less than max verify range", "currentBlock", latestBlock, "maxVerify", right)
+					time.Sleep(time.Minute)
+				}
+			}
+
 			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
 			message = msg.NewSwapWithMapProof(m.cfg.mapChainID, msg.ChainId(toChainID), msgPayload, m.msgCh)
 		}
