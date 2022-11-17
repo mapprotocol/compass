@@ -44,7 +44,7 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
-				w.log.Info("Order Exist, Continue to the next")
+				w.log.Info(constant.EthOrderExistPrint, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), "EOF") != -1 {
