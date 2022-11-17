@@ -1,9 +1,9 @@
 package near
 
 import (
-	"math/big"
-
 	"github.com/mapprotocol/compass/pkg/redis"
+	"github.com/pkg/errors"
+	"math/big"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
@@ -17,7 +17,6 @@ import (
 	"github.com/mapprotocol/compass/msg"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
 	"github.com/mapprotocol/near-api-go/pkg/types/key"
-	"github.com/pkg/errors"
 )
 
 type Connection interface {
@@ -89,11 +88,6 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		return nil, err
 	}
 
-	err = conn.EnsureHasBytecode(cfg.mcsContract)
-	if err != nil {
-		return nil, err
-	}
-
 	if chainCfg.LatestBlock {
 		curr, err := conn.LatestBlock()
 		if err != nil {
@@ -102,7 +96,21 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		cfg.startBlock = curr
 	}
 
-	if role == mapprotocol.RoleOfMaintainer && cfg.id != cfg.mapChainID { // 请求获取同步的map高度
+	// simplified a little bit
+	var listen chains.Listener
+	cs := NewCommonListen(conn, cfg, logger, stop, sysErr, m, bs)
+	if role == mapprotocol.RoleOfMessenger {
+		redis.Init(cfg.redisUrl)
+		// verify range
+		fn := mapprotocol.Map2NearVerifyRange(cfg.lightNode, conn.Client())
+		left, right, err := fn()
+		if err != nil {
+			return nil, errors.Wrap(err, "near get init verifyHeight failed")
+		}
+		logger.Info("Map2Bsc Current verify range", "chain", cfg.name, "left", left, "right", right, "lightNode", cfg.lightNode)
+		mapprotocol.Map2OtherVerifyRange[cfg.id] = fn
+		listen = NewMessenger(cs)
+	} else { // Maintainer is used by default
 		fn := mapprotocol.Map2NearHeight(cfg.lightNode, conn.Client())
 		height, err := fn()
 		if err != nil {
@@ -111,15 +119,6 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		logger.Info("map2near Current situation", "chain", cfg.name, "height", height, "lightNode", cfg.lightNode)
 		mapprotocol.SyncOtherMap[cfg.id] = height
 		mapprotocol.Map2OtherHeight[cfg.id] = fn
-	}
-
-	// simplified a little bit
-	var listen chains.Listener
-	cs := NewCommonListen(conn, cfg, logger, stop, sysErr, m, bs)
-	if role == mapprotocol.RoleOfMessenger {
-		redis.Init(cfg.redisUrl)
-		listen = NewMessenger(cs)
-	} else { // Maintainer is used by default
 		listen = NewMaintainer(cs)
 	}
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
