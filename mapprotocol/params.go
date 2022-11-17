@@ -13,17 +13,22 @@ import (
 )
 
 const (
-	MethodVerifyProofData   = "verifyProofData"
-	MethodUpdateBlockHeader = "updateBlockHeader"
-	MethodOfHeaderHeight    = "headerHeight"
-	MethodOfTransferIn      = "transferIn"
-	MethodOfDepositIn       = "depositIn"
-	MethodOfRegister        = "register"
-	MethodOfBindWorker      = "bind"
-	MethodOfOrderList       = "orderList"
-	MethodOfIsUsedEvent     = "is_used_event"
-	MethodOfGetBytes        = "getBytes"
-	MethodOfGetHeadersBytes = "getHeadersBytes"
+	MethodVerifyProofData       = "verifyProofData"
+	MethodUpdateBlockHeader     = "updateBlockHeader"
+	MethodVerifiableHeaderRange = "verifiableHeaderRange"
+	MethodOfHeaderHeight        = "headerHeight"
+	MethodOfTransferIn          = "transferIn"
+	MethodOfDepositIn           = "depositIn"
+	MethodOfRegister            = "register"
+	MethodOfBindWorker          = "bind"
+	MethodOfOrderList           = "orderList"
+	MethodOfIsUsedEvent         = "is_used_event"
+	MethodOfGetBytes            = "getBytes"
+	MethodOfGetHeadersBytes     = "getHeadersBytes"
+)
+
+const (
+	NearVerifyRange = "get_verifiable_header_range"
 )
 
 const (
@@ -55,6 +60,7 @@ var (
 	Map2Other, _   = abi.JSON(strings.NewReader(Map2OtherAbi))
 	ABIRelayer, _  = abi.JSON(strings.NewReader(RelayerABIJSON))
 	Height, _      = abi.JSON(strings.NewReader(HeightAbiJson))
+	Verify, _      = abi.JSON(strings.NewReader(VerifiableHeaderRangeAbiJson))
 	Matic, _       = abi.JSON(strings.NewReader(MaticAbiJson))
 )
 

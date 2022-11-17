@@ -143,8 +143,18 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		if err != nil {
 			return nil, err
 		}
+		// verify range
+		if cfg.id != cfg.mapChainID {
+			fn := mapprotocol.Map2EthVerifyRange(cfg.from, cfg.lightNode, conn.Client())
+			left, right, err := fn()
+			if err != nil {
+				return nil, errors.Wrap(err, "eth init verify range failed")
+			}
+			logger.Info("Map2eth Current verify range", "chain", cfg.name, "left", left, "right", right, "lightNode", cfg.lightNode)
+			mapprotocol.Map2OtherVerifyRange[cfg.id] = fn
+		}
 		listen = NewMessenger(cs)
-		logger.Info("listen event", "chain", cfg.name, "event", cfg.events)
+		logger.Info("Listen event", "chain", cfg.name, "event", cfg.events)
 	} else { // Maintainer is used by default
 		listen = NewMaintainer(cs)
 	}

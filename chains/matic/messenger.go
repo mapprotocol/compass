@@ -82,6 +82,20 @@ func (m *Messenger) sync() error {
 				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
+			left, right, err := mapprotocol.Get2MapVerifyRange(m.Cfg.Id)
+			if err != nil {
+				m.Log.Warn("Get2MapVerifyRange failed", "err", err)
+			}
+			if right != nil && right.Uint64() != 0 && right.Cmp(currentBlock) == -1 {
+				m.Log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "rightVerify", right)
+				time.Sleep(time.Minute)
+				continue
+			}
+			if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
+				currentBlock = left
+				m.Log.Info("min verify range greater than currentBlock, set current equal left ", "currentBlock", latestBlock, "minVerify", left)
+			}
+
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
@@ -90,7 +104,7 @@ func (m *Messenger) sync() error {
 			}
 			// messager
 			// Parse out events
-			count, err := m.getEventsForBlock(currentBlock)
+			count, err := m.getEventsForBlock(currentBlock, left)
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				retry--
@@ -121,10 +135,14 @@ func (m *Messenger) sync() error {
 }
 
 // getEventsForBlock looks for the deposit event in the latest block
-func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
+func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
+	if left != nil && left.Uint64() != 0 && left.Cmp(latestBlock) == 1 {
+		m.Log.Info("min verify range greater than currentBlock, skip ", "currentBlock", latestBlock, "minVerify", left)
+		return 0, nil
+	}
+
 	m.Log.Debug("Querying block for events", "block", latestBlock)
 	query := m.buildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
-
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
