@@ -29,15 +29,19 @@ import (
 
 // GlobalMapConn global Map connection; assign at cmd/main
 var (
-	GlobalMapConn      *ethclient.Client
-	SyncOtherMap       = make(map[msg.ChainId]*big.Int)
-	Map2OtherHeight    = make(map[msg.ChainId]GetHeight)
-	Get2MapHeight      = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }
-	Get2MapByLight     = func() (*big.Int, error) { return nil, nil }
-	GetMaxCanVerifyNum = map[msg.ChainId]func(){}
+	GlobalMapConn   *ethclient.Client
+	SyncOtherMap    = make(map[msg.ChainId]*big.Int)                                  // map to other chain init height
+	Map2OtherHeight = make(map[msg.ChainId]GetHeight)                                 // get map to other height function collect
+	Get2MapHeight   = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil } // get other chain to map height
+	/*
+		InitLeftVerifyRange  = make(map[msg.ChainId]*big.Int)                                  // map to other chain init left verify range
+	*/
+	Map2OtherVerifyRange = make(map[msg.ChainId]GetVerifyRange)                                           // get map to other right verify range function collect
+	Get2MapVerifyRange   = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // get other chain to map verify height
 )
 
 type GetHeight func() (*big.Int, error)
+type GetVerifyRange func() (*big.Int, *big.Int, error)
 
 func InitOtherChain2MapHeight(lightManager common.Address) {
 	Get2MapHeight = func(chainId msg.ChainId) (*big.Int, error) {
@@ -49,22 +53,6 @@ func InitOtherChain2MapHeight(lightManager common.Address) {
 		height, err := HeaderHeight(lightManager, input)
 		if err != nil {
 			return nil, errors.Wrap(err, "get other2map headerHeight by lightManager failed")
-		}
-		//fmt.Println("get height param ", big.NewInt(int64(chainId)), "current synced height is", height)
-		return height, nil
-	}
-}
-
-func InitMati2MapHeight(lightNode common.Address) {
-	Get2MapByLight = func() (*big.Int, error) {
-		input, err := PackInput(Height, MethodOfHeaderHeight)
-		if err != nil {
-			return nil, errors.Wrap(err, "get other2map packInput failed")
-		}
-
-		height, err := HeaderHeight(lightNode, input)
-		if err != nil {
-			return nil, errors.Wrap(err, "get other2map headerHeight by lightNode failed")
 		}
 		return height, nil
 	}
@@ -146,6 +134,96 @@ func HeaderHeight(to common.Address, input []byte) (*big.Int, error) {
 		return nil, err
 	}
 	return height, nil
+}
+
+func InitOtherChain2MapVerifyRange(lightManager common.Address) {
+	Get2MapVerifyRange = func(chainId msg.ChainId) (*big.Int, *big.Int, error) {
+		input, err := PackInput(LightManger, MethodVerifiableHeaderRange, big.NewInt(int64(chainId)))
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "get other2map verifyRange packInput failed")
+		}
+
+		left, right, err := VerifyRange(lightManager, input)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "get other2map verifyRange by lightManager failed")
+		}
+		fmt.Println("get verify param ", big.NewInt(int64(chainId)), "min", left, "max", right)
+		return left, right, nil
+	}
+}
+
+func Map2EthVerifyRange(fromUser string, lightNode common.Address, client *ethclient.Client) GetVerifyRange {
+	return func() (*big.Int, *big.Int, error) {
+		from := common.HexToAddress(fromUser)
+		input, err := PackInput(Verify, MethodVerifiableHeaderRange)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "pack lightNode verifiableHeaderRange Input failed")
+		}
+		output, err := client.CallContract(context.Background(),
+			ethereum.CallMsg{
+				From: from,
+				To:   &lightNode,
+				Data: input,
+			},
+			nil,
+		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("verifiableHeaderRange callContract failed, err is %v", err.Error())
+		}
+
+		return UnpackVerifyRangeOutput(output)
+	}
+}
+
+func Map2NearVerifyRange(lightNode string, client *nearclient.Client) GetVerifyRange {
+	return func() (*big.Int, *big.Int, error) {
+		res, err := client.ContractViewCallFunction(context.Background(), lightNode, NearVerifyRange,
+			"e30=", block.FinalityFinal())
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "call near lightNode to get_verifiable_header_range failed")
+		}
+
+		if res.Error != nil {
+			return nil, nil, fmt.Errorf("call near lightNode to get get_verifiable_header_range resp exist error(%v)", *res.Error)
+		}
+
+		fmt.Println("------------ ", string(res.Result))
+		var verifyRange [2]*big.Int
+		err = json.Unmarshal(res.Result, &verifyRange)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "near lightNode get_verifiable_header_range resp json marshal failed")
+		}
+		return verifyRange[0], verifyRange[1], nil
+	}
+}
+
+func VerifyRange(to common.Address, input []byte) (*big.Int, *big.Int, error) {
+	output, err := GlobalMapConn.CallContract(context.Background(), goeth.CallMsg{From: ZeroAddress, To: &to, Data: input}, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	left, right, err := UnpackVerifyRangeOutput(output)
+	if err != nil {
+		return nil, nil, err
+	}
+	return left, right, nil
+}
+
+func UnpackVerifyRangeOutput(output []byte) (*big.Int, *big.Int, error) {
+	outputs := Verify.Methods[MethodVerifiableHeaderRange].Outputs
+	unpack, err := outputs.Unpack(output)
+	if err != nil {
+		return new(big.Int), new(big.Int), err
+	}
+
+	ret := struct {
+		Left  *big.Int
+		Right *big.Int
+	}{}
+	if err = outputs.Copy(&ret, unpack); err != nil {
+		return new(big.Int), new(big.Int), err
+	}
+	return ret.Left, ret.Right, nil
 }
 
 type Connection interface {
