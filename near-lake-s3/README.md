@@ -28,7 +28,7 @@ aws_secret_access_key=
 
 ### Env Config
 
-You can rename .env.example to .env, modify it and put it in the same directory with near-lake-s3 (or it's parent directory).
+You can copy env.example to .env, modify it and put it in the same directory with near-lake-s3 (or it's parent directory).
 
 maybe you can install the [redis](https://redis.io/docs/getting-started/installation/) for the following configuration.
 
@@ -37,14 +37,22 @@ maybe you can install the [redis](https://redis.io/docs/getting-started/installa
 START_BLOCK_HEIGHT_FROM_CACHE=false
 START_BLOCK_HEIGHT=0
 
-// Push block to Redis list if false ignore PUSH_ENGINE_URL
-ENABLE_REDIS=true
+// The URL of the redis
 REDIS_URL="redis://127.0.0.1:6379"
-// redis list name
-PUB_CHANNEL="blocks"
+// Redis list name where the block will push to
+PUB_LIST="blocks"
 
 // The account name to watch
 MCS="mcs.testnet"
+
+// True for NEAR tesnet, false for NEAR mainnet
+TEST=true
+
+// Log file
+LOG_FILE="./near-lake.log"
+
+// Log level
+LOG_LEVEL="INFO"
 ```
 
 
