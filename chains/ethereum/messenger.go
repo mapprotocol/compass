@@ -169,7 +169,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-			fromChainID, toChainID, payload, err := utils.ParseMapLogIntoSwapWithProofArgsV2(m.conn.Client(), log, receipts, header)
+			_, toChainID, payload, err := utils.ParseMapLogIntoSwapWithProofArgsV2(m.conn.Client(), log, receipts, header, m.cfg.mapChainID)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
@@ -179,7 +179,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				continue
 			}
 			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-			message = msg.NewSwapWithMapProof(msg.ChainId(fromChainID), msg.ChainId(toChainID), msgPayload, m.msgCh)
+			message = msg.NewSwapWithMapProof(m.cfg.mapChainID, msg.ChainId(toChainID), msgPayload, m.msgCh)
 		}
 
 		m.log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
