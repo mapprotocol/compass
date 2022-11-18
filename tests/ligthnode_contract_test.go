@@ -233,7 +233,7 @@ func ExistInSlice(target string, dst []string) bool {
 var ContractAddr = common.HexToAddress("0xA7D3A66013DE32f0a44C92E337Af22C4344a2d62")
 
 func dialConn() *ethclient.Client {
-	conn, err := ethclient.Dial("https://ropsten.infura.io/v3/8cce6b470ad44fb5a3621aa34243647f")
+	conn, err := ethclient.Dial("http://18.142.54.137:7445")
 	if err != nil {
 		log.Fatalf("Failed to connect to the atlas: %v", err)
 	}
@@ -395,6 +395,27 @@ func buildQuery(contract common.Address, sig utils.EventSig, startBlock *big.Int
 		},
 	}
 	return query
+}
+
+func TestHashStatus(t *testing.T) {
+	hash := common.HexToHash("0xd4eadb06f544ffc8263d550f38fd4a52e882919b8cef1716ebbbed4294773a93")
+	hash1 := common.HexToHash("0x2d9fd9553b1419cb2ee690788def96eedb6ecada203798bca984430461fd7144")
+	client := dialConn()
+	for {
+		time.Sleep(time.Millisecond * 1000)
+		receipt, err := client.TransactionReceipt(context.Background(), hash)
+		if err != nil {
+			break
+		}
+		receipt1, err := client.TransactionReceipt(context.Background(), hash1)
+		if err != nil {
+			break
+		}
+
+		t.Log("Tx is successful", "tx", hash, "receipt.Status", receipt.Status)
+		t.Log("Tx is successful", "tx", hash1, "receipt.Status", receipt1.Status)
+		break
+	}
 }
 
 func SendContractTransaction(client *ethclient.Client, from, toAddress common.Address, value *big.Int, privateKey *ecdsa.PrivateKey, input []byte) error {

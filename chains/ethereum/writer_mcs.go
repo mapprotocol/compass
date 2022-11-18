@@ -62,11 +62,16 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
 			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
 			w.conn.UnlockOpts()
-
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce, "mcsTx", mcsTx.Hash())
-				m.DoneCh <- struct{}{}
-				return true
+				// Query transaction status
+				err = w.txStatus(mcsTx.Hash())
+				if err != nil {
+					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
+				} else {
+					m.DoneCh <- struct{}{}
+					return true
+				}
 			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
 				w.log.Error(constant.EthOrderExistPrint)
 				m.DoneCh <- struct{}{}
@@ -252,4 +257,18 @@ func (w *writer) checkOrderId(toAddress *common.Address, input []byte, useAbi ab
 	}
 
 	return exist, nil
+}
+
+func (w *writer) txStatus(txHash common.Hash) error {
+	time.Sleep(time.Second * 2)
+	receipt, err := w.conn.Client().TransactionReceipt(context.Background(), txHash)
+	if err != nil {
+		return err
+	}
+
+	if receipt.Status == types.ReceiptStatusSuccessful {
+		w.log.Info("mcsTx receipt status is success", "hash", txHash)
+		return nil
+	}
+	return fmt.Errorf("txHash(%s), status not success, current status is (%d)", txHash, receipt.Status)
 }
