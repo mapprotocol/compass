@@ -38,6 +38,9 @@ var (
 var (
 	OrderIdIsUsed         = "the event with order id"
 	OrderIdIsUsedFlag2    = "is used"
+	ToAddressError        = "invalid to address"
+	ValidChainToken       = "invalid to chain token address"
+	TransferInToken       = "transfer in token failed, maybe TO account does not exist"
 	VerifyRangeMatch      = "cannot get epoch record for block"
 	VerifyRangeMatchFlag2 = "expected range"
 	TokenNotSupport       = "to_chain_token"
@@ -126,7 +129,19 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), OrderIdIsUsed) != -1 && strings.Index(err.Error(), OrderIdIsUsedFlag2) != -1 {
-				w.log.Info("Order id is used", "err", err)
+				w.log.Info("Order id is used, Continue to the next", "err", err)
+				m.DoneCh <- struct{}{}
+				return true
+			} else if strings.Index(err.Error(), ToAddressError) != -1 {
+				w.log.Info("Tx to address is error, Continue to the next", "err", err)
+				m.DoneCh <- struct{}{}
+				return true
+			} else if strings.Index(err.Error(), ValidChainToken) != -1 {
+				w.log.Info("Tx have invalid to chain token address, Continue to the next", "err", err)
+				m.DoneCh <- struct{}{}
+				return true
+			} else if strings.Index(err.Error(), TransferInToken) != -1 {
+				w.log.Info("Tx transfer in token failed, maybe TO account does not exist", "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), VerifyRangeMatch) != -1 && strings.Index(err.Error(), VerifyRangeMatchFlag2) != -1 {
@@ -197,9 +212,8 @@ func (w *writer) checkOrderId(toAddress string, input []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	w.log.Info("checkOrderId", "toAddress", toAddress)
 	ctx := client.ContextWithKeyPair(context.Background(), *w.conn.Keypair())
-	res, err := w.conn.Client().ContractViewCallFunction(ctx, w.cfg.from, mapprotocol.MethodOfIsUsedEvent,
+	res, err := w.conn.Client().ContractViewCallFunction(ctx, toAddress, mapprotocol.MethodOfIsUsedEvent,
 		base64.StdEncoding.EncodeToString(data), block.FinalityFinal())
 	if err != nil {
 		return false, fmt.Errorf("checkOrderId ContractViewCallFunction failed: %w", err)
