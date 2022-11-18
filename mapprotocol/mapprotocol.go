@@ -83,7 +83,7 @@ func Map2EthHeight(fromUser string, lightNode common.Address, client *ethclient.
 
 func Map2NearHeight(lightNode string, client *nearclient.Client) GetHeight {
 	return func() (*big.Int, error) {
-		res, err := client.ContractViewCallFunction(context.Background(), lightNode, "get_header_height",
+		res, err := client.ContractViewCallFunction(context.Background(), lightNode, NearHeaderHeight,
 			"e30=", block.FinalityFinal())
 		if err != nil {
 			return nil, errors.Wrap(err, "call near lightNode to headerHeight failed")
