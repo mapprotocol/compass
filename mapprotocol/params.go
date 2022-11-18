@@ -28,7 +28,8 @@ const (
 )
 
 const (
-	NearVerifyRange = "get_verifiable_header_range"
+	NearVerifyRange  = "get_verifiable_header_range"
+	NearHeaderHeight = "get_header_height"
 )
 
 const (
