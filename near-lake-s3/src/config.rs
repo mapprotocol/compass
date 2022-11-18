@@ -25,7 +25,9 @@ pub struct Env {
 pub async fn init_lake_config() -> LakeConfig {
     let mut current_height = PROJECT_CONFIG.start_block_height;
     if PROJECT_CONFIG.start_block_height_from_cache {
-        current_height = get_synced_block_height().await + 1;
+        if let Some(height) = get_synced_block_height().await {
+            current_height = height + 1;
+        }
     }
 
     tracing::info!(target: INDEXER, "start stream from block {}", current_height);
@@ -88,12 +90,14 @@ pub fn redis_publisher() -> MutexGuard<'static, RedisPusher> {
     }
 }
 
-pub async fn get_synced_block_height() -> u64 {
+pub async fn get_synced_block_height() -> Option<u64> {
     let value = redis_publisher().get(BLOCK_HEIGHT).await;
     if value.is_some() {
         let height: u64 = serde_json::from_str(value.unwrap().as_str()).unwrap();
-        height
-    } else { 0 }
+        Some(height)
+    } else {
+        None
+    }
 }
 
 pub async fn update_synced_block_height(height: u64) {
