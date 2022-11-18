@@ -264,14 +264,21 @@ func (w *Writer) checkOrderId(toAddress *common.Address, input []byte, useAbi ab
 
 func (w *Writer) txStatus(txHash common.Hash) error {
 	time.Sleep(time.Second * 2)
-	receipt, err := w.conn.Client().TransactionReceipt(context.Background(), txHash)
-	if err != nil {
-		return err
-	}
+	for {
+		receipt, err := w.conn.Client().TransactionReceipt(context.Background(), txHash)
+		if err != nil {
+			if strings.Index(err.Error(), "not found") != -1 {
+				w.log.Info("Tx is temporary not found, please wait...", "tx", txHash)
+				time.Sleep(time.Millisecond * 900)
+				continue
+			}
+			return err
+		}
 
-	if receipt.Status == types.ReceiptStatusSuccessful {
-		w.log.Info("mcsTx receipt status is success", "hash", txHash)
-		return nil
+		if receipt.Status == types.ReceiptStatusSuccessful {
+			w.log.Info("mcsTx receipt status is success", "hash", txHash)
+			return nil
+		}
+		return fmt.Errorf("txHash(%s), status not success, current status is (%d)", txHash, receipt.Status)
 	}
-	return fmt.Errorf("txHash(%s), status not success, current status is (%d)", txHash, receipt.Status)
 }
