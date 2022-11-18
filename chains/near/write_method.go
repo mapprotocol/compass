@@ -38,8 +38,9 @@ var (
 var (
 	OrderIdIsUsed         = "the event with order id"
 	OrderIdIsUsedFlag2    = "is used"
-	ToAddressError        = "value: FromUtf8Error { bytes"
-	ToAddressErrorFlag2   = "error: Utf8Error { valid_up_to: 0, error_len: Some(1)"
+	ToAddressError        = "invalid to address"
+	ValidChainToken       = "invalid to chain token address"
+	TransferInToken       = "transfer in token failed, maybe TO account does not exist"
 	VerifyRangeMatch      = "cannot get epoch record for block"
 	VerifyRangeMatchFlag2 = "expected range"
 	TokenNotSupport       = "to_chain_token"
@@ -131,8 +132,16 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				w.log.Info("Order id is used, Continue to the next", "err", err)
 				m.DoneCh <- struct{}{}
 				return true
-			} else if strings.Index(err.Error(), ToAddressError) != -1 && strings.Index(err.Error(), ToAddressErrorFlag2) != -1 {
-				w.log.Info("to address is error, Continue to the next", "err", err)
+			} else if strings.Index(err.Error(), ToAddressError) != -1 {
+				w.log.Info("Tx to address is error, Continue to the next", "err", err)
+				m.DoneCh <- struct{}{}
+				return true
+			} else if strings.Index(err.Error(), ValidChainToken) != -1 {
+				w.log.Info("Tx have invalid to chain token address, Continue to the next", "err", err)
+				m.DoneCh <- struct{}{}
+				return true
+			} else if strings.Index(err.Error(), TransferInToken) != -1 {
+				w.log.Info("Tx transfer in token failed, maybe TO account does not exist", "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), VerifyRangeMatch) != -1 && strings.Index(err.Error(), VerifyRangeMatchFlag2) != -1 {
