@@ -103,7 +103,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 					w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
 				}
 				if exits {
-					w.log.Info("mcs orderId existing, abandon request", "orderId", common.Bytes2Hex(orderId))
+					w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
 					m.DoneCh <- struct{}{}
 					return true
 				}
