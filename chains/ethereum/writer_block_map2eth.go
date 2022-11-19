@@ -47,6 +47,10 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 				w.log.Info(constant.EthOrderExistPrint, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
+			} else if strings.Index(err.Error(), constant.HeaderIsHave) != -1 {
+				w.log.Info(constant.HeaderIsHavePrint, "err", err)
+				m.DoneCh <- struct{}{}
+				return true
 			} else if strings.Index(err.Error(), "EOF") != -1 {
 				w.log.Error("Sync Header to map encounter EOF, will retry")
 			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
