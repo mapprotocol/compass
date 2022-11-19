@@ -187,7 +187,6 @@ func Map2NearVerifyRange(lightNode string, client *nearclient.Client) GetVerifyR
 			return nil, nil, fmt.Errorf("call near lightNode to get get_verifiable_header_range resp exist error(%v)", *res.Error)
 		}
 
-		fmt.Println("------------ ", string(res.Result))
 		var verifyRange [2]*big.Int
 		err = json.Unmarshal(res.Result, &verifyRange)
 		if err != nil {
