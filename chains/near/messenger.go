@@ -64,7 +64,12 @@ func (m *Messenger) sync() error {
 
 			latestBlock, err := m.conn.LatestBlock()
 			if err != nil {
-				m.log.Error("Unable to get latest block", "block", latestBlock, "err", err)
+				if strings.Index(err.Error(), "invalid character ‘<’ looking for beginning of value") != -1 {
+					m.log.Error("Network instability，Waiting", "err", err)
+					time.Sleep(constant.RetryLongInterval)
+					continue
+				}
+				m.log.Error("Unable to get latest block", "err", err)
 				retry--
 				time.Sleep(RetryInterval)
 				continue
