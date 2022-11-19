@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::config::{init_lake_config, PROJECT_CONFIG, update_synced_block_height, redis_publisher, INDEXER, REDIS};
 use futures::StreamExt;
 use serde_json::json;
@@ -30,6 +31,30 @@ pub async fn handle_streamer_message(
         }
     }
 
+    let mut receipt_id2tx_id: HashMap<String, String> = HashMap::new();
+    for shard in &streamer_message.shards {
+        if let Some(chunk) = &shard.chunk {
+            for tx in &chunk.transactions {
+                if PROJECT_CONFIG.accounts.contains(&tx.transaction.receiver_id.to_string()) {
+                    if let ExecutionStatusView::SuccessReceiptId(successReceiptId) = tx.outcome.execution_outcome.outcome.status {
+                        receipt_id2tx_id.insert(successReceiptId.to_string(), tx.transaction.hash.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    for (receipt_id, tx_id) in receipt_id2tx_id {
+        redis_publisher().set(receipt_id.clone().as_str(), tx_id.clone()).await;
+        tracing::info!(
+            target: INDEXER,
+            "Save Receipt ID {} / TX ID {} on block {}",
+            receipt_id,
+            tx_id,
+            streamer_message.block.header.height
+            );
+    }
+
     if publish {
         let json = json!(streamer_message).to_string();
         redis_publisher().lpush(json).await;
@@ -55,10 +80,9 @@ pub async fn handle_streamer_message(
 
 pub fn is_valid_receipt(execution_outcome: &ExecutionOutcomeWithIdView) -> bool {
     match &execution_outcome.outcome.status {
-        ExecutionStatusView::SuccessValue(_) => (),
-        ExecutionStatusView::SuccessReceiptId(_) => (),
-        _ => return false
+        ExecutionStatusView::Unknown => return false,
+        _ => ()
     }
 
-    PROJECT_CONFIG.mcs.eq(&execution_outcome.outcome.executor_id.to_string())
+    PROJECT_CONFIG.accounts.contains(&execution_outcome.outcome.executor_id.to_string())
 }
