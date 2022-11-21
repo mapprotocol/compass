@@ -49,6 +49,7 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Error("Failed to update nonce", "err", err)
 				return false
 			}
+			w.conn.UnlockOpts()
 
 			var inputHash interface{}
 			if len(m.Payload) > 3 {
