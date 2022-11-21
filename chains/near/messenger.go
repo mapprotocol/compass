@@ -120,6 +120,9 @@ func (m *Messenger) sync() error {
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
+	if !m.cfg.syncToMap {
+		return 0, nil
+	}
 	// querying for logs
 	ctx := context.Background()
 	cmd := redis.GetClient().RPop(ctx, redis.ListKey)
