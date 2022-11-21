@@ -119,50 +119,50 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			if len(m.Payload) > 3 {
 				inputHash = m.Payload[3]
 			}
-			w.log.Info("send transaction", "addr", w.cfg.mcsContract, "hashOrReceiptId", inputHash)
+			w.log.Info("send transaction", "addr", w.cfg.mcsContract, "srcHash", inputHash)
 			// sendtx using general method
 			txHash, err := w.sendTx(w.cfg.mcsContract, AbiMethodOfTransferIn, m.Payload[0].([]byte))
 			w.conn.UnlockOpts()
 			if err == nil {
 				// message successfully handled
-				w.log.Info("Submitted cross tx execution", "txHash", txHash.String(), "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
+				w.log.Info("Submitted cross tx execution", "mcsTx", txHash.String(), "src", m.Source, "dst", m.Destination, "srcHash", inputHash)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), OrderIdIsUsed) != -1 && strings.Index(err.Error(), OrderIdIsUsedFlag2) != -1 {
-				w.log.Info("Order id is used, Continue to the next", "err", err)
+				w.log.Info("Order id is used, Continue to the next", "srcHash", inputHash, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), ToAddressError) != -1 {
-				w.log.Info("Tx to address is error, Continue to the next", "err", err)
+				w.log.Info("Tx to address is error, Continue to the next", "srcHash", inputHash, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), ValidChainToken) != -1 {
-				w.log.Info("Tx have invalid to chain token address, Continue to the next", "err", err)
+				w.log.Info("Tx have invalid to chain token address, Continue to the next", "srcHash", inputHash, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), TransferInToken) != -1 {
-				w.log.Info("Tx transfer in token failed, maybe TO account does not exist", "err", err)
+				w.log.Info("Tx transfer in token failed, maybe TO account does not exist", "srcHash", inputHash, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), VerifyRangeMatch) != -1 && strings.Index(err.Error(), VerifyRangeMatchFlag2) != -1 {
-				w.log.Error("The block where the transaction is located is no longer verifiable", "err", err)
 				abandon := w.resolveVerifyRangeError(m.Payload[2].(uint64), err)
+				w.log.Error("The block where the transaction is located is no longer verifiable", "srcHash", inputHash, "abandon", abandon, "err", err)
 				if abandon {
 					m.DoneCh <- struct{}{}
 					return true
 				}
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
-				w.log.Error("Nonce too low, will retry")
+				w.log.Error("Nonce too low, will retry", "srcHash", inputHash)
 			} else if strings.Index(err.Error(), "EOF") != -1 || strings.Index(err.Error(), "unexpected end of JSON input") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
-				w.log.Error("Mcs encounter EOF, will retry", "err", err)
+				w.log.Error("Mcs encounter EOF, will retry", "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), TokenNotSupport) != -1 && strings.Index(err.Error(), TokenNotSupportFlag2) != -1 {
-				w.log.Error("Transfer Token is not supported", "err", err)
+				w.log.Error("Transfer Token is not supported", "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), TokenFailed) != -1 {
-				w.log.Error("Insufficient vault balance of NEP141 Or The target user does not exist, Please check", "err", err)
+				w.log.Error("Insufficient vault balance of NEP141 Or The target user does not exist, Please check", "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), WithdrawFailed) != -1 {
-				w.log.Error("Insufficient vault when native token is transferred in", "err", err)
+				w.log.Error("Insufficient vault when native token is transferred in", "srcHash", inputHash, "err", err)
 			} else {
-				w.log.Warn("Execution failed, tx may already be complete", "err", err)
+				w.log.Warn("Execution failed, tx may already be complete", "srcHash", inputHash, "err", err)
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}
