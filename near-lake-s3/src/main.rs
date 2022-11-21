@@ -20,6 +20,7 @@ async fn main() -> Result<(), tokio::io::Error> {
     let file_appender : RollingFileAppender  = tracing_appender::rolling::daily(path.parent().unwrap(), path.file_name().unwrap());
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     tracing_subscriber::fmt()
+        .with_ansi(false)
         .with_max_level(Level::from_str(&PROJECT_CONFIG.log_level).unwrap())
         .with_writer(non_blocking.clone())
         .init();
