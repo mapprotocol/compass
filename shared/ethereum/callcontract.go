@@ -230,9 +230,23 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 		"proof":     nProof,
 	}
 
+	idx := 0
+	match := false
+	for lIdx, l := range receipt.Logs {
+		for _, topic := range l.Topics {
+			if common.BytesToHash(topic) == log.Topics[0] {
+				idx = lIdx
+				match = true
+				break
+			}
+		}
+		if match {
+			break
+		}
+	}
 	data, _ := json.Marshal(map[string]interface{}{
 		"receipt_proof": m,
-		"index":         log.Index,
+		"index":         idx,
 	})
 	//fmt.Printf("map2near message %v \n", string(data))
 	return uFromChainID, uToChainID, data, nil

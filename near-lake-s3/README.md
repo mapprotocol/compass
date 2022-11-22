@@ -33,9 +33,9 @@ You can copy env.example to .env, modify it and put it in the same directory wit
 maybe you can install the [redis](https://redis.io/docs/getting-started/installation/) for the following configuration.
 
 ```
-// Start from cache if true ignore START_BLOCK_HEIGHT
-START_BLOCK_HEIGHT_FROM_CACHE=false
-START_BLOCK_HEIGHT=0
+// Get the start block height from cache if true, if no record is found, use START_BLOCK_HEIGHT
+START_BLOCK_HEIGHT_FROM_CACHE=true
+START_BLOCK_HEIGHT=10000
 
 // The URL of the redis
 REDIS_URL="redis://127.0.0.1:6379"

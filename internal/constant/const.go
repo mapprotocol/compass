@@ -19,6 +19,7 @@ var (
 var (
 	BlockRetryLimit    = 5
 	BlockRetryInterval = time.Second * 5
+	RetryLongInterval  = time.Second * 60
 	ErrFatalPolling    = errors.New("listener block polling failed")
 )
 
@@ -27,6 +28,8 @@ var (
 	NotEnoughGasPrint            = "insufficient funds for gas * price + value, will retry"
 	EthOrderExist                = "order exist"
 	EthOrderExistPrint           = "Order Exist, Continue to the next"
+	HeaderIsHave                 = "Header is have"
+	HeaderIsHavePrint            = "Header is have, Continue to the next"
 	NotPerMission                = "mosRelay :: only admin"
 	NotPerMissionPrint           = "mosRelay :: only admin, will retry"
 	AddressIsZero                = "address is zero"
