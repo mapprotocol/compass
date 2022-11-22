@@ -38,7 +38,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 					w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
 				}
 				if exits {
-					w.log.Info("mcs orderId existing, abandon request", "orderId", common.Bytes2Hex(orderId))
+					w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
 					m.DoneCh <- struct{}{}
 					return true
 				}
@@ -55,7 +55,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			if len(m.Payload) > 3 {
 				inputHash = m.Payload[3]
 			}
-			w.log.Info("send transaction", "addr", addr, "hashOrReceiptId", inputHash)
+			w.log.Info("send transaction", "addr", addr, "srcHash", inputHash)
 			// These store the gas limit and price before a transaction is sent for logging in case of a failure
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			gasLimit := w.conn.Opts().GasLimit
@@ -64,44 +64,50 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
 			if err == nil {
 				// message successfully handled]
-				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce,
+				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash,
 					"mcsTx", mcsTx.Hash())
-				m.DoneCh <- struct{}{}
-				return true
+				// Query transaction status
+				err = w.txStatus(mcsTx.Hash())
+				if err != nil {
+					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
+				} else {
+					m.DoneCh <- struct{}{}
+					return true
+				}
 			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
-				w.log.Error(constant.EthOrderExistPrint, "err", err)
+				w.log.Info(constant.EthOrderExistPrint, "srcHash", inputHash)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
-				w.log.Error("Nonce too low, will retry", "err", err)
+				w.log.Error("Nonce too low, will retry", "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
-				w.log.Error("Mcs encounter EOF, will retry", "err", err)
+				w.log.Error("Mcs encounter EOF, will retry", "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.NotPerMission) != -1 {
-				w.log.Error(constant.NotPerMissionPrint, "err", err)
+				w.log.Error(constant.NotPerMissionPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.NotEnoughGas) != -1 {
-				w.log.Error(constant.NotEnoughGasPrint, "err", err)
+				w.log.Error(constant.NotEnoughGasPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.AddressIsZero) != -1 {
-				w.log.Error(constant.AddressIsZeroPrint, "err", err)
+				w.log.Error(constant.AddressIsZeroPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.VaultNotRegister) != -1 {
-				w.log.Error(constant.VaultNotRegisterPrint, "err", err)
+				w.log.Error(constant.VaultNotRegisterPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.InvalidVaultToken) != -1 {
-				w.log.Error(constant.InvalidVaultTokenPrint, "err", err)
+				w.log.Error(constant.InvalidVaultTokenPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.InvalidMosContract) != -1 {
-				w.log.Error(constant.InvalidMosContractPrint, "err", err)
+				w.log.Error(constant.InvalidMosContractPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.InvalidChainId) != -1 {
-				w.log.Error(constant.InvalidChainIdPrint, "err", err)
+				w.log.Error(constant.InvalidChainIdPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.MapTokenNotRegistered) != -1 {
-				w.log.Error(constant.MapTokenNotRegisteredPrint, "err", err)
+				w.log.Error(constant.MapTokenNotRegisteredPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.OutTokenNotRegistered) != -1 {
-				w.log.Error(constant.OutTokenNotRegisteredPrint, "err", err)
+				w.log.Error(constant.OutTokenNotRegisteredPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.BalanceTooLow) != -1 {
-				w.log.Error(constant.BalanceTooLowPrint, "err", err)
+				w.log.Error(constant.BalanceTooLowPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.VaultTokenNotRegistered) != -1 {
-				w.log.Error(constant.VaultTokenNotRegisteredPrint, "err", err)
+				w.log.Error(constant.VaultTokenNotRegisteredPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.ChainTypeError) != -1 {
-				w.log.Error(constant.ChainTypeErrorPrint, "err", err)
+				w.log.Error(constant.ChainTypeErrorPrint, "srcHash", inputHash, "err", err)
 			} else {
-				w.log.Warn("Execution failed, will retry", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+				w.log.Warn("Execution failed, will retry", "srcHash", inputHash, "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}
@@ -254,4 +260,25 @@ func (w *Writer) checkOrderId(toAddress *common.Address, input []byte, useAbi ab
 	}
 
 	return exist, nil
+}
+
+func (w *Writer) txStatus(txHash common.Hash) error {
+	time.Sleep(time.Second * 2)
+	for {
+		receipt, err := w.conn.Client().TransactionReceipt(context.Background(), txHash)
+		if err != nil {
+			if strings.Index(err.Error(), "not found") != -1 {
+				w.log.Info("Tx is temporary not found, please wait...", "tx", txHash)
+				time.Sleep(time.Millisecond * 900)
+				continue
+			}
+			return err
+		}
+
+		if receipt.Status == types.ReceiptStatusSuccessful {
+			w.log.Info("mcsTx receipt status is success", "hash", txHash)
+			return nil
+		}
+		return fmt.Errorf("txHash(%s), status not success, current status is (%d)", txHash, receipt.Status)
+	}
 }

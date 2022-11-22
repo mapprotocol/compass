@@ -16,7 +16,8 @@ pub struct Env {
     pub(crate) start_block_height: u64,
     pub(crate) redis_url: String,
     pub(crate) pub_list: String,
-    pub(crate) mcs: String,
+    pub(crate) accounts: Vec<String>,
+    pub(crate) parse_tx_hash: bool,
     pub(crate) test: bool,
     pub(crate) log_file: String,
     pub(crate) log_level: String,
@@ -25,7 +26,9 @@ pub struct Env {
 pub async fn init_lake_config() -> LakeConfig {
     let mut current_height = PROJECT_CONFIG.start_block_height;
     if PROJECT_CONFIG.start_block_height_from_cache {
-        current_height = get_synced_block_height().await + 1;
+        if let Some(height) = get_synced_block_height().await {
+            current_height = height + 1;
+        }
     }
 
     tracing::info!(target: INDEXER, "start stream from block {}", current_height);
@@ -48,7 +51,7 @@ pub fn init_env_config() -> Env {
     for (key, value) in env::vars() {
         println!("{}: {}", key, value);
     }
-    Env {
+    let env = Env {
         start_block_height_from_cache: env::var("START_BLOCK_HEIGHT_FROM_CACHE")
             .unwrap()
             .parse::<bool>()
@@ -59,14 +62,30 @@ pub fn init_env_config() -> Env {
             .unwrap(),
         redis_url: env::var("REDIS_URL").unwrap(),
         pub_list: env::var("PUB_LIST").unwrap(),
-        mcs: env::var("MCS").unwrap(),
-        test: env::var("TEST")
+        accounts: env::var("ACCOUNTS")
             .unwrap()
+            .split(",")
+            .into_iter()
+            .map(|s| s.trim().to_string())
+            .collect(),
+        parse_tx_hash: env::var("PARSE_TX_HASH")
+            .unwrap_or_else(|_| "false".to_string())
+            .parse::<bool>()
+            .unwrap(),
+        test: env::var("TEST")
+            .unwrap_or_else(|_| "true".to_string())
             .parse::<bool>()
             .unwrap(),
         log_file: env::var("LOG_FILE").unwrap(),
-        log_level: env::var("LOG_LEVEL").unwrap(),
-    }
+        log_level: env::var("LOG_LEVEL")
+            .unwrap_or_else(|_| "info".to_string())
+    };
+
+    println!("test: {:?}", env.test);
+    println!("log_level: {:?}", env.log_level);
+    println!("parse_tx_hash: {:?}", env.parse_tx_hash);
+
+    env
 }
 
 pub async fn init_redis_pusher() {
@@ -88,12 +107,14 @@ pub fn redis_publisher() -> MutexGuard<'static, RedisPusher> {
     }
 }
 
-pub async fn get_synced_block_height() -> u64 {
+pub async fn get_synced_block_height() -> Option<u64> {
     let value = redis_publisher().get(BLOCK_HEIGHT).await;
     if value.is_some() {
         let height: u64 = serde_json::from_str(value.unwrap().as_str()).unwrap();
-        height
-    } else { 0 }
+        Some(height)
+    } else {
+        None
+    }
 }
 
 pub async fn update_synced_block_height(height: u64) {
