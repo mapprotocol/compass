@@ -2,6 +2,7 @@ package ethereum
 
 import (
 	"errors"
+	"github.com/mapprotocol/compass/internal/chain"
 	"math/big"
 	"time"
 
@@ -17,7 +18,7 @@ var ErrFatalPolling = errors.New("listener block polling failed")
 
 type CommonSync struct {
 	cfg                Config
-	conn               Connection
+	conn               chain.Connection
 	log                log15.Logger
 	router             chains.Router
 	stop               <-chan int
@@ -30,7 +31,7 @@ type CommonSync struct {
 }
 
 // NewCommonSync creates and returns a listener
-func NewCommonSync(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
+func NewCommonSync(conn chain.Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
 	m *metrics.ChainMetrics, bs blockstore.Blockstorer) *CommonSync {
 	return &CommonSync{
 		cfg:                *cfg,

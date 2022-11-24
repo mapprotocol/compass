@@ -7,6 +7,7 @@ import (
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/msg"
 )
 
@@ -18,7 +19,7 @@ var CancelledStatus uint8 = 4
 
 type writer struct {
 	cfg     Config
-	conn    Connection
+	conn    chain.Connection
 	log     log15.Logger
 	stop    <-chan int
 	sysErr  chan<- error // Reports fatal error to core
@@ -26,7 +27,7 @@ type writer struct {
 }
 
 // NewWriter creates and returns writer
-func NewWriter(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error, m *metrics.ChainMetrics) *writer {
+func NewWriter(conn chain.Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error, m *metrics.ChainMetrics) *writer {
 	return &writer{
 		cfg:     *cfg,
 		conn:    conn,

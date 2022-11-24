@@ -8,6 +8,8 @@ import (
 const (
 	TxRetryInterval = time.Second * 3 // TxRetryInterval Time between retrying a failed tx
 	TxRetryLimit    = 10              // TxRetryLimit Maximum number of tx retries before exiting
+	HttpTimeOut     = 10 * time.Second
+	Agent           = "compass-go"
 )
 
 var (

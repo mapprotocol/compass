@@ -1,6 +1,7 @@
 package chain
 
 import (
+	kclient "github.com/klaytn/rosetta-sdk-go-klaytn/client"
 	"math/big"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
@@ -21,4 +22,9 @@ type Connection interface {
 	LatestBlock() (*big.Int, error)
 	WaitForBlock(block *big.Int, delay *big.Int) error
 	Close()
+}
+
+type KConnection interface {
+	Connection
+	KClient() *kclient.APIClient
 }

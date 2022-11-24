@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
-	connection "github.com/mapprotocol/compass/connections/ethereum"
+	connection "github.com/mapprotocol/compass/connections/klaytn"
 	"github.com/mapprotocol/compass/core"
 	w "github.com/mapprotocol/compass/internal/writer"
 	"github.com/mapprotocol/compass/keystore"
@@ -23,7 +23,7 @@ var _ core.Chain = new(Chain)
 
 type Chain struct {
 	cfg    *core.ChainConfig // The config of the chain
-	conn   chain.Connection  // The chains connection
+	conn   chain.KConnection // The chains connection
 	writer *w.Writer         // The writer of the chain
 	stop   chan<- int
 	listen chains.Listener // The listener of this chain
@@ -66,13 +66,13 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	// simplified a little bit
 	var listen chains.Listener
 	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
-	if role == mapprotocol.RoleOfMaintainer { // 请求获取同步的map高度
+	if role == mapprotocol.RoleOfMaintainer {
 		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
 		height, err := fn()
 		if err != nil {
-			return nil, errors.Wrap(err, "bsc get init headerHeight failed")
+			return nil, errors.Wrap(err, "klaytn get init headerHeight failed")
 		}
-		logger.Info("map2Bsc Current situation", "height", height, "lightNode", cfg.LightNode)
+		logger.Info("map2Klaytn Current situation", "height", height, "lightNode", cfg.LightNode)
 		mapprotocol.SyncOtherMap[cfg.Id] = height
 		mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		listen = NewMaintainer(cs)
@@ -87,7 +87,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		if err != nil {
 			return nil, errors.Wrap(err, "bsc get init verifyHeight failed")
 		}
-		logger.Info("Map2Bsc Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
+		logger.Info("Map2Klaytn Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
 		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		listen = NewMessenger(cs)
 	}
