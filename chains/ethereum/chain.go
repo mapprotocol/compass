@@ -23,46 +23,26 @@ The writer recieves the message and creates a proposals on-chain. Once a proposa
 package ethereum
 
 import (
-	"math/big"
-
-	"github.com/pkg/errors"
-
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/chains"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/pkg/errors"
 )
 
 var _ core.Chain = &Chain{}
 
-var _ Connection = &connection.Connection{}
-
-type Connection interface {
-	Connect() error
-	Keypair() *secp256k1.Keypair
-	Opts() *bind.TransactOpts
-	CallOpts() *bind.CallOpts
-	LockAndUpdateOpts() error
-	UnlockOpts()
-	Client() *ethclient.Client
-	EnsureHasBytecode(address common.Address) error
-	LatestBlock() (*big.Int, error)
-	WaitForBlock(block *big.Int, delay *big.Int) error
-	Close()
-}
-
 type Chain struct {
 	cfg    *core.ChainConfig // The config of the chain
-	conn   Connection        // The chains connection
+	conn   chain.Connection  // The chains connection
 	writer *writer           // The writer of the chain
 	stop   chan<- int
 	listen chains.Listener // The listener of this chain
@@ -215,6 +195,6 @@ func (c *Chain) EthClient() *ethclient.Client {
 }
 
 // Conn return Connection interface for relayer register
-func (c *Chain) Conn() Connection {
+func (c *Chain) Conn() chain.Connection {
 	return c.conn
 }
