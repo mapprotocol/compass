@@ -2,15 +2,14 @@ package klaytn
 
 import (
 	"context"
-	"github.com/mapprotocol/compass/internal/chain"
 	"math/big"
 	"time"
 
-	"github.com/mapprotocol/compass/internal/bsc"
-
-	"github.com/mapprotocol/compass/internal/constant"
-
 	"github.com/ethereum/go-ethereum/core/types"
+	kclient "github.com/klaytn/rosetta-sdk-go-klaytn/client"
+	"github.com/mapprotocol/compass/internal/bsc"
+	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
@@ -19,12 +18,14 @@ import (
 type Maintainer struct {
 	*chain.CommonSync
 	syncedHeight *big.Int
+	kClient      *kclient.APIClient
 }
 
-func NewMaintainer(cs *chain.CommonSync) *Maintainer {
+func NewMaintainer(cs *chain.CommonSync, kc *kclient.APIClient) *Maintainer {
 	return &Maintainer{
 		CommonSync:   cs,
 		syncedHeight: new(big.Int),
+		kClient:      kc,
 	}
 }
 
@@ -80,6 +81,7 @@ func (m Maintainer) sync() error {
 			}
 
 			latestBlock, err := m.Conn.LatestBlock()
+			//latestBlock, err := m.kClient.BlockAPI.Block()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
 				retry--

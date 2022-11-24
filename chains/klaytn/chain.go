@@ -75,7 +75,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		logger.Info("map2Klaytn Current situation", "height", height, "lightNode", cfg.LightNode)
 		mapprotocol.SyncOtherMap[cfg.Id] = height
 		mapprotocol.Map2OtherHeight[cfg.Id] = fn
-		listen = NewMaintainer(cs)
+		listen = NewMaintainer(cs, conn.KClient())
 	} else if role == mapprotocol.RoleOfMessenger {
 		err = conn.EnsureHasBytecode(cfg.McsContract)
 		if err != nil {
@@ -89,7 +89,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		}
 		logger.Info("Map2Klaytn Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
 		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
-		listen = NewMessenger(cs)
+		listen = NewMessenger(cs, conn.KClient())
 	}
 	wri := w.New(conn, cfg, logger, stop, sysErr, m)
 
