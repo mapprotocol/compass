@@ -86,6 +86,14 @@ func (m Maintainer) sync() error {
 				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
+			// latestBlock must less than blockNumber of chain online，otherwise time.sleep
+			difference := new(big.Int).Sub(currentBlock, latestBlock)
+			if difference.Int64() > 0 {
+				m.Log.Info("Chain online blockNumber less than local block height, waiting...", "onlineHeight", latestBlock,
+					"localHeight", currentBlock, "waiting", difference.Int64())
+				time.Sleep(constant.BlockRetryInterval * time.Duration(difference.Int64()))
+			}
+
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
@@ -94,13 +102,6 @@ func (m Maintainer) sync() error {
 			}
 
 			if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
-				// latestBlock must less than blockNumber of chain online，otherwise time.sleep
-				difference := new(big.Int).Sub(currentBlock, latestBlock)
-				if difference.Int64() > 0 {
-					m.Log.Info("chain online blockNumber less than local latestBlock, waiting...", "latestBlock", latestBlock,
-						"localBlock", currentBlock, "waiting", difference.Int64())
-					time.Sleep(constant.BlockRetryInterval * time.Duration(difference.Int64()))
-				}
 				// Sync headers to Map
 				err = m.syncHeaderToMap(currentBlock)
 				if err != nil {
@@ -149,7 +150,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
-	m.Log.Info("find sync block", "current height", latestBlock)
+	m.Log.Info("Find sync block", "current height", latestBlock)
 	header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return err
@@ -158,7 +159,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	h := matic.ConvertHeader(header)
 	input, err := mapprotocol.Matic.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(h)
 	if err != nil {
-		m.Log.Error("failed to abi pack", "err", err)
+		m.Log.Error("Failed to abi pack", "err", err)
 		return err
 	}
 
@@ -168,7 +169,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 
 	err = m.Router.Send(message)
 	if err != nil {
-		m.Log.Error("subscription error: failed to route message", "err", err)
+		m.Log.Error("Subscription error: failed to route message", "err", err)
 		return err
 	}
 

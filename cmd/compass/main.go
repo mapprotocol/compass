@@ -10,6 +10,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/chains/klaytn"
 	"github.com/mapprotocol/compass/chains/matic"
 	"net/http"
 	"os"
@@ -304,6 +305,11 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			}
 		} else if chain.Type == chains.Matic {
 			newChain, err = matic.InitializeChain(chainConfig, logger, sysErr, m, role)
+			if err != nil {
+				return err
+			}
+		} else if chain.Type == chains.Klaytn {
+			newChain, err = klaytn.InitializeChain(chainConfig, logger, sysErr, m, role)
 			if err != nil {
 				return err
 			}

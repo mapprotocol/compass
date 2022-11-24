@@ -153,7 +153,7 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 		// evm event to msg
 		var message msg.Message
 		// getOrderId
-		orderId := log.Data[64:96]
+		orderId := log.Data[:32]
 		if m.Cfg.SyncToMap {
 			method := mapprotocol.MethodOfTransferIn
 			if log.Topics[0] != mapprotocol.HashOfTransferIn {

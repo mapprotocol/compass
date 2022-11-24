@@ -91,6 +91,14 @@ func (m Maintainer) sync() error {
 				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
+			// latestBlock must less than blockNumber of chain online，otherwise time.sleep
+			difference := new(big.Int).Sub(currentBlock, latestBlock)
+			if difference.Int64() > 0 {
+				m.Log.Info("Chain online blockNumber less than local block height, waiting...", "onlineHeight", latestBlock,
+					"localHeight", currentBlock, "waiting", difference.Int64())
+				time.Sleep(constant.BlockRetryInterval * time.Duration(difference.Int64()))
+			}
+
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
@@ -136,18 +144,8 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
-	chainBlcNum, err := m.Conn.Client().BlockNumber(context.Background())
-	if err != nil {
-		return errors.Wrap(err, "get latest chainBlcNum failed")
-	}
-	// latestBlock must less than blockNumber of chain online，otherwise time.sleep
-	difference := new(big.Int).Sub(latestBlock, new(big.Int).SetUint64(chainBlcNum))
-	if difference.Int64() > 0 {
-		m.Log.Info("chain online blockNumber less than local latestBlock, waiting...", "chainBlcNum", chainBlcNum,
-			"localBlock", latestBlock, "waiting", difference.Int64())
-		time.Sleep(constant.BlockRetryInterval * time.Duration(difference.Int64()))
-	}
-	m.Log.Info("find sync block", "current height", latestBlock)
+
+	m.Log.Info("Find sync block", "current height", latestBlock)
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
 	if err != nil {
 		m.Log.Error("Get current synced Height failed", "err", err)
@@ -175,7 +173,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	}
 	input, err := mapprotocol.Bsc.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(params)
 	if err != nil {
-		m.Log.Error("failed to abi pack", "err", err)
+		m.Log.Error("Failed to abi pack", "err", err)
 		return err
 	}
 
@@ -185,7 +183,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 
 	err = m.Router.Send(message)
 	if err != nil {
-		m.Log.Error("subscription error: failed to route message", "err", err)
+		m.Log.Error("Subscription error: failed to route message", "err", err)
 		return err
 	}
 

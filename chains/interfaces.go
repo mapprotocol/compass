@@ -21,6 +21,7 @@ type Listener interface {
 const (
 	Bsc      = "bsc"
 	Matic    = "matic"
+	Klaytn   = "klaytn"
 	Near     = "near"
 	Ethereum = "ethereum"
 )
