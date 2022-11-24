@@ -141,7 +141,7 @@ func Test_new(t *testing.T) {
 		from,
 		endPoint,
 		[]action.Action{
-			action.NewFunctionCall(AbiMethodOfNew, data, 0, types.Balance{}),
+			action.NewFunctionCall("new", data, 0, types.Balance{}),
 		},
 		client.WithLatestBlock(),
 		client.WithKeyPair(kp),
@@ -155,7 +155,7 @@ func Test_new(t *testing.T) {
 
 func Test_get_sync_header_height(t *testing.T) {
 	//args := []byte("{}")
-	res, err := dailRpc().ContractViewCallFunction(context.Background(), to, AbiMethodOfGetHeaderHeight, "e30=", block.FinalityFinal())
+	res, err := dailRpc().ContractViewCallFunction(context.Background(), to, "get_header_height", "e30=", block.FinalityFinal())
 	if err != nil {
 		t.Fatalf("pack lightNode headerHeight Input failed, err is %v", err.Error())
 	}

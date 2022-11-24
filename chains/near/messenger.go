@@ -284,7 +284,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 		for _, id := range ids {
 			orderId = append(orderId, id)
 		}
-		msgPayload := []interface{}{input, orderId, 0, tg.Receipt.ReceiptID}
+		msgPayload := []interface{}{input, orderId, 0, tg.ExecutionOutcome.Outcome.ReceiptIDs}
 		message := msg.NewSwapWithProof(m.cfg.id, m.cfg.mapChainID, msgPayload, m.msgCh)
 		err = m.router.Send(message)
 		ret++
