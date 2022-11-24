@@ -67,14 +67,14 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	var listen chains.Listener
 	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMaintainer {
-		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
-		height, err := fn()
-		if err != nil {
-			return nil, errors.Wrap(err, "klaytn get init headerHeight failed")
-		}
-		logger.Info("map2Klaytn Current situation", "height", height, "lightNode", cfg.LightNode)
-		mapprotocol.SyncOtherMap[cfg.Id] = height
-		mapprotocol.Map2OtherHeight[cfg.Id] = fn
+		//fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
+		//height, err := fn()
+		//if err != nil {
+		//	return nil, errors.Wrap(err, "klaytn get init headerHeight failed")
+		//}
+		//logger.Info("map2Klaytn Current situation", "height", height, "lightNode", cfg.LightNode)
+		//mapprotocol.SyncOtherMap[cfg.Id] = height
+		//mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		listen = NewMaintainer(cs, conn.KClient())
 	} else if role == mapprotocol.RoleOfMessenger {
 		err = conn.EnsureHasBytecode(cfg.McsContract)

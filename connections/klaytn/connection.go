@@ -3,6 +3,7 @@ package klaytn
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
 	"sync"
@@ -231,17 +232,23 @@ func (c *Connection) UnlockOpts() {
 
 // LatestBlock returns the latest block from the current chain
 func (c *Connection) LatestBlock() (*big.Int, error) {
-	//bnum, err := c.conn.BlockAPI.Block(context.Background())
-	//if err != nil {
-	//	return nil, err
-	//}
-	//return big.NewInt(0).SetUint64(bnum), nil
-	return nil, nil
+	bnum, err := c.conn.BlockNumber(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return big.NewInt(0).SetUint64(bnum), nil
 }
 
 // EnsureHasBytecode asserts if contract code exists at the specified address
 func (c *Connection) EnsureHasBytecode(addr common.Address) error {
+	code, err := c.conn.CodeAt(context.Background(), addr, nil)
+	if err != nil {
+		return err
+	}
 
+	if len(code) == 0 {
+		return fmt.Errorf("no bytecode found at %s", addr.Hex())
+	}
 	return nil
 }
 
