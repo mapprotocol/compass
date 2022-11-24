@@ -93,12 +93,14 @@ func Map2NearHeight(lightNode string, client *nearclient.Client) GetHeight {
 			return nil, fmt.Errorf("call near lightNode to get headerHeight resp exist error(%v)", *res.Error)
 		}
 
-		result := big.NewInt(0)
-		err = json.Unmarshal(res.Result, result)
+		result := "" // use string return
+		err = json.Unmarshal(res.Result, &result)
 		if err != nil {
 			return nil, errors.Wrap(err, "near lightNode headerHeight resp json marshal failed")
 		}
-		return result, nil
+		ret := new(big.Int)
+		ret.SetString(result, 10)
+		return ret, nil
 	}
 }
 
@@ -187,12 +189,15 @@ func Map2NearVerifyRange(lightNode string, client *nearclient.Client) GetVerifyR
 			return nil, nil, fmt.Errorf("call near lightNode to get get_verifiable_header_range resp exist error(%v)", *res.Error)
 		}
 
-		var verifyRange [2]*big.Int
+		var verifyRange [2]string
 		err = json.Unmarshal(res.Result, &verifyRange)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "near lightNode get_verifiable_header_range resp json marshal failed")
 		}
-		return verifyRange[0], verifyRange[1], nil
+		var left, right big.Int
+		left.SetString(verifyRange[0], 10)
+		right.SetString(verifyRange[1], 10)
+		return &left, &right, nil
 	}
 }
 

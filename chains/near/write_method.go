@@ -24,8 +24,6 @@ import (
 
 const (
 	AbiMethodOfUpdateBlockHeader = "update_block_header"
-	AbiMethodOfNew               = "new"
-	AbiMethodOfGetHeaderHeight   = "get_header_height"
 	AbiMethodOfTransferIn        = "transfer_in"
 )
 
