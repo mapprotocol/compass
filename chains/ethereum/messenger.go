@@ -206,7 +206,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				}
 				if right != nil && right.Uint64() != 0 && right.Cmp(latestBlock) == -1 {
 					m.log.Info("currentBlock less than max verify range", "currentBlock", latestBlock, "maxVerify", right)
-					time.Sleep(time.Minute)
+					time.Sleep(time.Minute * 3)
 				}
 			}
 
