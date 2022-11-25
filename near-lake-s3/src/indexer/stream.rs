@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::process::id;
 use crate::config::{init_lake_config, PROJECT_CONFIG, update_synced_block_height, redis_publisher, INDEXER, REDIS};
 use futures::StreamExt;
 use serde_json::json;
@@ -22,16 +23,23 @@ pub async fn handle_streamer_message(
     tracing::info!("Block height {}", streamer_message.block.header.height);
 
     let mut publish = false;
+    let mut receipt_id2tx_id: HashMap<String, String> = HashMap::new();
+
     'outer: for shard in &streamer_message.shards {
         for tx_res in &shard.receipt_execution_outcomes {
             if is_valid_receipt(&tx_res.execution_outcome) {
                 publish = true;
-                break 'outer;
+
+                let tx_id_opt = redis_publisher().get(tx_res.execution_outcome.id.to_string().as_str()).await;
+                if let Some(tx_id) = tx_id_opt {
+                    for receipt_id in &tx_res.execution_outcome.outcome.receipt_ids {
+                        receipt_id2tx_id.insert(receipt_id.to_string(), tx_id.clone());
+                    }
+                }
             }
         }
     }
 
-    let mut receipt_id2tx_id: HashMap<String, String> = HashMap::new();
     for shard in &streamer_message.shards {
         if let Some(chunk) = &shard.chunk {
             for tx in &chunk.transactions {
