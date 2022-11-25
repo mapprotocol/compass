@@ -1,8 +1,6 @@
 package near
 
 import (
-	"math/big"
-
 	"github.com/mapprotocol/near-api-go/pkg/types"
 )
 
@@ -19,7 +17,7 @@ type Result struct {
 }
 
 type TransferOut struct {
-	FromChain big.Int `json:"from_chain"`
-	ToChain   big.Int `json:"to_chain"`
-	OrderId   string  `json:"order_id"`
+	FromChain string `json:"from_chain"`
+	ToChain   string `json:"to_chain"`
+	OrderId   string `json:"order_id"`
 }

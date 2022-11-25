@@ -165,9 +165,8 @@ type MapTxProve struct {
 
 func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
 	header *maptypes.Header, fId msg.ChainId) (uint64, uint64, []byte, error) {
-	fromChainID := log.Data[96:128]
-	toChainID := log.Data[128:160]
-	uFromChainID := binary.BigEndian.Uint64(fromChainID[len(fromChainID)-8:])
+	//toChainID := log.Data[128:160]
+	toChainID := log.Topics[2]
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
 	aggPK, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
@@ -204,7 +203,7 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
 		}
 
-		return uFromChainID, uToChainID, payloads, nil
+		return uint64(fId), uToChainID, payloads, nil
 	}
 
 	bytesBuffer := bytes.NewBuffer([]byte{})
@@ -248,8 +247,7 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 		"receipt_proof": m,
 		"index":         idx,
 	})
-	//fmt.Printf("map2near message %v \n", string(data))
-	return uFromChainID, uToChainID, data, nil
+	return uint64(fId), uToChainID, data, nil
 }
 
 func Key2Hex(str []byte, proofLength int) []byte {
@@ -266,11 +264,11 @@ func Key2Hex(str []byte, proofLength int) []byte {
 }
 
 type TxReceipt struct {
-	ReceiptType       *big.Int `json:"receipt_type"`
-	PostStateOrStatus string   `json:"post_state_or_status"`
-	CumulativeGasUsed *big.Int `json:"cumulative_gas_used"`
-	Bloom             string   `json:"bloom"`
-	Logs              []TxLog  `json:"logs"`
+	ReceiptType       string  `json:"receipt_type"`
+	PostStateOrStatus string  `json:"post_state_or_status"`
+	CumulativeGasUsed string  `json:"cumulative_gas_used"`
+	Bloom             string  `json:"bloom"`
+	Logs              []TxLog `json:"logs"`
 }
 
 type TxLog struct {
@@ -293,9 +291,9 @@ func ConvertNearReceipt(h *mapprotocol.TxReceipt) *TxReceipt {
 		})
 	}
 	return &TxReceipt{
-		ReceiptType:       h.ReceiptType,
+		ReceiptType:       h.ReceiptType.String(),
 		PostStateOrStatus: "0x" + common.Bytes2Hex(h.PostStateOrStatus),
-		CumulativeGasUsed: h.CumulativeGasUsed,
+		CumulativeGasUsed: h.CumulativeGasUsed.String(),
 		Bloom:             "0x" + common.Bytes2Hex(h.Bloom),
 		Logs:              logs,
 	}

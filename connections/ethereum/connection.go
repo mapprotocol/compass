@@ -267,14 +267,14 @@ func (c *Connection) LatestBlock() (*big.Int, error) {
 
 // EnsureHasBytecode asserts if contract code exists at the specified address
 func (c *Connection) EnsureHasBytecode(addr ethcommon.Address) error {
-	//code, err := c.conn.CodeAt(context.Background(), addr, nil)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if len(code) == 0 {
-	//	return fmt.Errorf("no bytecode found at %s", addr.Hex())
-	//}
+	code, err := c.conn.CodeAt(context.Background(), addr, nil)
+	if err != nil {
+		return err
+	}
+
+	if len(code) == 0 {
+		return fmt.Errorf("no bytecode found at %s", addr.Hex())
+	}
 	return nil
 }
 
