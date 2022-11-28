@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/klaytn"
 	"math/big"
-	"net/http"
 	"sync"
 	"time"
 
@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
-	kclient "github.com/klaytn/rosetta-sdk-go-klaytn/client"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/ethclient"
@@ -29,7 +28,7 @@ type Connection struct {
 	gasMultiplier *big.Float
 	egsApiKey     string
 	egsSpeed      string
-	kConn         *kclient.APIClient
+	kConn         *klaytn.Client
 	conn          *ethclient.Client
 	opts          *bind.TransactOpts
 	callOpts      *bind.CallOpts
@@ -60,17 +59,14 @@ func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.
 func (c *Connection) Connect() error {
 	c.log.Info("Connecting to klatyn chain...", "url", c.endpoint)
 	var (
-		err        error
-		rpcClient  *kclient.APIClient
-		client     *rpc.Client
-		httpClient *http.Client
+		err    error
+		kc     *klaytn.Client
+		client *rpc.Client
 	)
 
 	if c.http {
+		kc, err = klaytn.DialHttp(c.endpoint, true)
 		client, err = rpc.DialHTTP(c.endpoint)
-		httpClient = &http.Client{
-			Timeout: constant.HttpTimeOut,
-		}
 	} else {
 		client, err = rpc.DialContext(context.Background(), c.endpoint)
 	}
@@ -78,10 +74,7 @@ func (c *Connection) Connect() error {
 		return err
 	}
 	c.conn = ethclient.NewClient(client)
-
-	rpcClient = kclient.NewAPIClient(kclient.NewConfiguration(c.endpoint, constant.Agent, httpClient))
-	c.kConn = rpcClient
-
+	c.kConn = kc
 	c.callOpts = &bind.CallOpts{From: c.kp.CommonAddress()}
 	return nil
 }
@@ -90,7 +83,7 @@ func (c *Connection) Keypair() *secp256k1.Keypair {
 	return c.kp
 }
 
-func (c *Connection) KClient() *kclient.APIClient {
+func (c *Connection) KClient() *klaytn.Client {
 	return c.kConn
 }
 

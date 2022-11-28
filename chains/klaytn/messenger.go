@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	kclient "github.com/klaytn/rosetta-sdk-go-klaytn/client"
 	"github.com/mapprotocol/compass/internal/bsc"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/klaytn"
 	"github.com/mapprotocol/compass/internal/tx"
 	"math/big"
 	"time"
@@ -23,10 +23,10 @@ import (
 
 type Messenger struct {
 	*chain.CommonSync
-	kClient *kclient.APIClient
+	kClient *klaytn.Client
 }
 
-func NewMessenger(cs *chain.CommonSync, kc *kclient.APIClient) *Messenger {
+func NewMessenger(cs *chain.CommonSync, kc *klaytn.Client) *Messenger {
 	return &Messenger{
 		CommonSync: cs,
 		kClient:    kc,
