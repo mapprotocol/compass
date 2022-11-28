@@ -33,10 +33,12 @@ const (
 )
 
 const (
-	EpochOfMap         = 4000
-	EpochOfBsc         = 200
-	HeaderCountOfBsc   = 5
-	HeaderCountOfMatic = 64
+	EpochOfMap          = 4000
+	EpochOfBsc          = 200
+	HeaderCountOfBsc    = 5
+	HeaderCountOfMatic  = 64
+	EpochOfKlaytn       = 3600
+	HeaderCountOfKlaytn = 5
 )
 
 // common varible
