@@ -2,26 +2,23 @@ package klaytn
 
 import (
 	"context"
+	"fmt"
+	"github.com/mapprotocol/compass/internal/klaytn"
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core/types"
-	kclient "github.com/klaytn/rosetta-sdk-go-klaytn/client"
-	"github.com/mapprotocol/compass/internal/bsc"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
 )
 
 type Maintainer struct {
 	*chain.CommonSync
 	syncedHeight *big.Int
-	kClient      *kclient.APIClient
+	kClient      *klaytn.Client
 }
 
-func NewMaintainer(cs *chain.CommonSync, kc *kclient.APIClient) *Maintainer {
+func NewMaintainer(cs *chain.CommonSync, kc *klaytn.Client) *Maintainer {
 	return &Maintainer{
 		CommonSync:   cs,
 		syncedHeight: new(big.Int),
@@ -141,57 +138,64 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMap listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
-	remainder := big.NewInt(0).Mod(new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(mapprotocol.HeaderCountOfKlaytn-1)),
-		big.NewInt(mapprotocol.EpochOfKlaytn))
-	if remainder.Cmp(mapprotocol.Big0) != 0 {
-		return nil
-	}
+	//remainder := big.NewInt(0).Mod(new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(mapprotocol.HeaderCountOfKlaytn-1)),
+	//	big.NewInt(mapprotocol.EpochOfKlaytn))
+	//if remainder.Cmp(mapprotocol.Big0) != 0 {
+	//	return nil
+	//}
 
 	m.Log.Info("Find sync block", "current height", latestBlock)
-	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	if err != nil {
-		m.Log.Error("Get current synced Height failed", "err", err)
-		return err
-	}
-	if latestBlock.Cmp(syncedHeight) <= 0 {
-		m.Log.Info("CurrentBlock less than synchronized headerHeight", "synced height", syncedHeight,
-			"current height", latestBlock)
-		return nil
-	}
+	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+	//if err != nil {
+	//	m.Log.Error("Get current synced Height failed", "err", err)
+	//	return err
+	//}
+	//if latestBlock.Cmp(syncedHeight) <= 0 {
+	//	m.Log.Info("CurrentBlock less than synchronized headerHeight", "synced height", syncedHeight,
+	//		"current height", latestBlock)
+	//	return nil
+	//}
 
-	headers := make([]types.Header, mapprotocol.HeaderCountOfKlaytn)
-	for i := 0; i < mapprotocol.HeaderCountOfKlaytn; i++ {
-		headerHeight := new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(int64(i)))
-		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight) // todo use klaytn api
-		if err != nil {
-			return err
-		}
-		headers[mapprotocol.HeaderCountOfKlaytn-i-1] = *header
-	}
+	header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
+	fmt.Printf("header ---------------- %+v \n", header)
+	fmt.Println("err ---------------- ", err)
+	number, err := m.kClient.BlockByNumber(context.Background(), latestBlock)
+	fmt.Println("number ---------------- ", number)
+	fmt.Println("err ---------------- ", err)
 
-	params := make([]bsc.Header, 0, len(headers))
-	for _, h := range headers {
-		params = append(params, bsc.ConvertHeader(h))
-	}
-	input, err := mapprotocol.Bsc.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(params)
-	if err != nil {
-		m.Log.Error("Failed to abi pack", "err", err)
-		return err
-	}
+	//headers := make([]types.Header, mapprotocol.HeaderCountOfKlaytn)
+	//for i := 0; i < mapprotocol.HeaderCountOfKlaytn; i++ {
+	//	headerHeight := new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(int64(i)))
+	//	header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight) // todo use klaytn api
+	//	if err != nil {
+	//		return err
+	//	}
+	//	headers[mapprotocol.HeaderCountOfKlaytn-i-1] = *header
+	//}
 
-	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
-	msgpayload := []interface{}{id, input}
-	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
-
-	err = m.Router.Send(message)
-	if err != nil {
-		m.Log.Error("Subscription error: failed to route message", "err", err)
-		return err
-	}
-
-	err = m.WaitUntilMsgHandled(1)
-	if err != nil {
-		return err
-	}
+	//params := make([]bsc.Header, 0, len(headers))
+	////for _, h := range headers {
+	////	params = append(params, bsc.ConvertHeader(h))
+	////}
+	//input, err := mapprotocol.Bsc.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(params)
+	//if err != nil {
+	//	m.Log.Error("Failed to abi pack", "err", err)
+	//	return err
+	//}
+	//
+	//id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
+	//msgpayload := []interface{}{id, input}
+	//message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
+	//
+	//err = m.Router.Send(message)
+	//if err != nil {
+	//	m.Log.Error("Subscription error: failed to route message", "err", err)
+	//	return err
+	//}
+	//
+	//err = m.WaitUntilMsgHandled(1)
+	//if err != nil {
+	//	return err
+	//}
 	return nil
 }

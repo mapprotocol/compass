@@ -1,7 +1,7 @@
 package chain
 
 import (
-	kclient "github.com/klaytn/rosetta-sdk-go-klaytn/client"
+	"github.com/mapprotocol/compass/internal/klaytn"
 	"math/big"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
@@ -26,5 +26,5 @@ type Connection interface {
 
 type KConnection interface {
 	Connection
-	KClient() *kclient.APIClient
+	KClient() *klaytn.Client
 }
