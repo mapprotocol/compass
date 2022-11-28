@@ -63,7 +63,7 @@ func (m Maintainer) sync() error {
 		//if syncedHeight.Cmp(currentBlock) != 0 {
 		//	m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
 		//		"syncedHeight", syncedHeight, "currentBlock", currentBlock)
-		//	currentBlock.Add(syncedHeight, new(big.Int).SetInt64(mapprotocol.HeaderCountOfBsc))
+		//	currentBlock.Add(syncedHeight, new(big.Int).SetInt64(mapprotocol.HeaderCountOfKlaytn))
 		//}
 	}
 
@@ -141,8 +141,8 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMap listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
-	remainder := big.NewInt(0).Mod(new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(mapprotocol.HeaderCountOfBsc-1)), // todo To be determined
-		big.NewInt(mapprotocol.EpochOfBsc))
+	remainder := big.NewInt(0).Mod(new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(mapprotocol.HeaderCountOfKlaytn-1)),
+		big.NewInt(mapprotocol.EpochOfKlaytn))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
@@ -159,14 +159,14 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 		return nil
 	}
 
-	headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
-	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
+	headers := make([]types.Header, mapprotocol.HeaderCountOfKlaytn)
+	for i := 0; i < mapprotocol.HeaderCountOfKlaytn; i++ {
 		headerHeight := new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(int64(i)))
 		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight) // todo use klaytn api
 		if err != nil {
 			return err
 		}
-		headers[mapprotocol.HeaderCountOfBsc-i-1] = *header
+		headers[mapprotocol.HeaderCountOfKlaytn-i-1] = *header
 	}
 
 	params := make([]bsc.Header, 0, len(headers))
