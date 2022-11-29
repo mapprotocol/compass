@@ -58,7 +58,7 @@ func DialHttp(endpoint string, isHttp bool) (*Client, error) {
 }
 
 func (c *Client) BlockByNumber(ctx context.Context, number *big.Int) (*RpcHeader, error) {
-	return c.getBlock(ctx, "klay_getHeaderByNumber", toBlockNumArg(number))
+	return c.getBlock(ctx, "klay_getBlockByNumber", toBlockNumArg(number), true)
 }
 
 func toBlockNumArg(number *big.Int) string {
@@ -176,8 +176,6 @@ func (c *Client) newMessage(method string, paramsIn ...interface{}) (*jsonrpcMes
 }
 
 func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg interface{}) error {
-	d, _ := json.Marshal(msg)
-	fmt.Println("0----------------- ", string(d))
 	respBody, err := c.doRequest(ctx, msg)
 	if err != nil {
 		return err
