@@ -38,7 +38,7 @@ const (
 	HeaderCountOfBsc    = 5
 	HeaderCountOfMatic  = 64
 	EpochOfKlaytn       = 3600
-	HeaderCountOfKlaytn = 5
+	HeaderCountOfKlaytn = 3
 )
 
 // common varible
@@ -58,6 +58,7 @@ var (
 var (
 	Mcs, _         = abi.JSON(strings.NewReader(McsAbi))
 	Bsc, _         = abi.JSON(strings.NewReader(BscAbiJson))
+	Klaytn, _      = abi.JSON(strings.NewReader(KlaytnAbiJson))
 	Near, _        = abi.JSON(strings.NewReader(NearAbiJson))
 	LightManger, _ = abi.JSON(strings.NewReader(LightMangerAbi))
 	Map2Other, _   = abi.JSON(strings.NewReader(Map2OtherAbi))

@@ -22,7 +22,7 @@ type Header struct {
 	ExtraData        []byte         `json:"extraData"`
 	GovernanceData   []byte         `json:"governanceData"`
 	VoteData         []byte         `json:"voteData"`
-	BaseFeePerGas    *big.Int       `json:"baseFeePerGas"`
+	BaseFee          *big.Int       `json:"baseFee"`
 }
 
 const (
@@ -67,6 +67,10 @@ func ConvertContractHeader(ethHeader *types.Header, rh *RpcHeader) Header {
 	timestamp.SetString(strings.TrimPrefix(rh.Timestamp, PrefixOfHex), 16)
 	timestampFos := new(big.Int)
 	timestampFos.SetString(strings.TrimPrefix(rh.TimestampFoS, PrefixOfHex), 16)
+	//log.Println(hex.DecodeString(rh.ExtraData))
+	//log.Println("height", rh.Number, "rh.ExtraData ", rh.ExtraData)
+	//log.Println("height", rh.Number, "rh.GovernanceData ", common.Hex2Bytes(rh.GovernanceData))
+	//log.Println("height", rh.Number, "rh.VoteData ", common.Hex2Bytes(rh.VoteData))
 	return Header{
 		ParentHash:       hashToByte(ethHeader.ParentHash),
 		Reward:           rh.Reward,
@@ -75,14 +79,14 @@ func ConvertContractHeader(ethHeader *types.Header, rh *RpcHeader) Header {
 		ReceiptsRoot:     hashToByte(ethHeader.ReceiptHash),
 		LogsBloom:        bloom,
 		BlockScore:       blockScore,
-		BaseFeePerGas:    baseFeePerGas,
+		BaseFee:          baseFeePerGas,
 		Number:           ethHeader.Number,
 		GasUsed:          new(big.Int).SetUint64(ethHeader.GasUsed),
 		Timestamp:        timestamp,
 		TimestampFoS:     timestampFos,
-		ExtraData:        nil,
-		//GovernanceData:   rh.,
-		VoteData: nil,
+		ExtraData:        common.Hex2Bytes(strings.TrimPrefix(rh.ExtraData, PrefixOfHex)),
+		GovernanceData:   common.Hex2Bytes(strings.TrimPrefix(rh.GovernanceData, PrefixOfHex)),
+		VoteData:         common.Hex2Bytes(strings.TrimPrefix(rh.VoteData, PrefixOfHex)),
 	}
 }
 

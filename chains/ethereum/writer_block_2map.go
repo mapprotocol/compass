@@ -2,7 +2,6 @@ package ethereum
 
 import (
 	"github.com/mapprotocol/compass/internal/constant"
-	"math/big"
 	"strings"
 	"time"
 
@@ -31,11 +30,11 @@ func (w *writer) exeSyncMsg(m msg.Message) bool {
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
 
-			id, _ := m.Payload[0].(*big.Int)
+			//id, _ := m.Payload[0].(*big.Int)
 			marshal, _ := m.Payload[1].([]byte)
 			// save header data
-			data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, id, marshal)
-			//data, err := mapprotocol.PackInput(mapprotocol.Bsc, mapprotocol.MethodUpdateBlockHeader, marshal)
+			//data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, id, marshal)
+			data, err := mapprotocol.PackInput(mapprotocol.Bsc, mapprotocol.MethodUpdateBlockHeader, marshal)
 			if err != nil {
 				w.log.Error("block2Map Failed to pack abi data", "err", err)
 				w.conn.UnlockOpts()
