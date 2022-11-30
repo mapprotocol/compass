@@ -183,7 +183,7 @@ type NearNeedHeader struct {
 	GasUsed     hexutil.Uint64   `json:"gasUsed"          gencodec:"required"`
 	Time        hexutil.Uint64   `json:"time"        gencodec:"required"`
 	Extra       hexutil.Bytes    `json:"extra"        gencodec:"required"`
-	MixDigest   common.Hash      `json:"minDigest"`
+	MixDigest   common.Hash      `json:"mixDigest"`
 	Nonce       types.BlockNonce `json:"nonce"`
 	BaseFee     *hexutil.Big     `json:"baseFee" rlp:"optional"`
 	Hash        common.Hash      `json:"hash"`
