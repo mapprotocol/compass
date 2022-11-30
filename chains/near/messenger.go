@@ -64,14 +64,8 @@ func (m *Messenger) sync() error {
 
 			latestBlock, err := m.conn.LatestBlock()
 			if err != nil {
-				if strings.Index(err.Error(), "invalid character ‘<’ looking for beginning of value") != -1 {
-					m.log.Error("Network instability，Waiting", "err", err)
-					time.Sleep(constant.RetryLongInterval)
-					continue
-				}
 				m.log.Error("Unable to get latest block", "err", err)
-				retry--
-				time.Sleep(RetryInterval)
+				time.Sleep(constant.RetryLongInterval)
 				continue
 			}
 
@@ -284,7 +278,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 		for _, id := range ids {
 			orderId = append(orderId, id)
 		}
-		msgPayload := []interface{}{input, orderId, 0, tg.Receipt.ReceiptID}
+		msgPayload := []interface{}{input, orderId, 0, tg.ExecutionOutcome.Outcome.ReceiptIDs}
 		message := msg.NewSwapWithProof(m.cfg.id, m.cfg.mapChainID, msgPayload, m.msgCh)
 		err = m.router.Send(message)
 		ret++

@@ -71,8 +71,7 @@ func (m *Messenger) sync() error {
 			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				retry--
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.RetryLongInterval)
 				continue
 			}
 
@@ -153,7 +152,7 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 		// evm event to msg
 		var message msg.Message
 		// getOrderId
-		orderId := log.Data[64:96]
+		orderId := log.Data[:32]
 		if m.Cfg.SyncToMap {
 			method := mapprotocol.MethodOfTransferIn
 			if log.Topics[0] != mapprotocol.HashOfTransferIn {

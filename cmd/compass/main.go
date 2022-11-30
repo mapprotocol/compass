@@ -160,7 +160,7 @@ var messengerCommand = cli.Command{
 }
 
 var (
-	Version = "0.0.3"
+	Version = "1.0.0"
 )
 
 // init initializes CLI
