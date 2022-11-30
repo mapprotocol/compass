@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"time"
 
@@ -69,8 +70,7 @@ func (m *Messenger) sync() error {
 			latestBlock, err := m.conn.LatestBlock()
 			if err != nil {
 				m.log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				retry--
-				time.Sleep(BlockRetryInterval)
+				time.Sleep(constant.RetryLongInterval)
 				continue
 			}
 
@@ -149,7 +149,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		// evm event to msg
 		var message msg.Message
 		// getOrderId
-		orderId := log.Data[64:96]
+		orderId := log.Data[:32]
 		if m.cfg.syncToMap {
 			method := mapprotocol.MethodOfTransferIn
 			if log.Topics[0] != mapprotocol.HashOfTransferIn {
@@ -206,7 +206,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				}
 				if right != nil && right.Uint64() != 0 && right.Cmp(latestBlock) == -1 {
 					m.log.Info("currentBlock less than max verify range", "currentBlock", latestBlock, "maxVerify", right)
-					time.Sleep(time.Minute)
+					time.Sleep(time.Minute * 3)
 				}
 			}
 
