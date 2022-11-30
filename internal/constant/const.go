@@ -19,7 +19,7 @@ var (
 var (
 	BlockRetryLimit    = 5
 	BlockRetryInterval = time.Second * 5
-	RetryLongInterval  = time.Second * 60
+	RetryLongInterval  = time.Second * 10
 	ErrFatalPolling    = errors.New("listener block polling failed")
 )
 

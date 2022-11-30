@@ -73,8 +73,7 @@ func (m *Messenger) sync() error {
 			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				retry--
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.RetryLongInterval)
 				continue
 			}
 
