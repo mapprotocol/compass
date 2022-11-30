@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"time"
 
@@ -69,8 +70,7 @@ func (m *Messenger) sync() error {
 			latestBlock, err := m.conn.LatestBlock()
 			if err != nil {
 				m.log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				retry--
-				time.Sleep(BlockRetryInterval)
+				time.Sleep(constant.RetryLongInterval)
 				continue
 			}
 
