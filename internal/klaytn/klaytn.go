@@ -3,6 +3,13 @@ package klaytn
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/light"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/trie"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
+	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"math/big"
 	"strings"
 )
@@ -67,10 +74,6 @@ func ConvertContractHeader(ethHeader *types.Header, rh *RpcHeader) Header {
 	timestamp.SetString(strings.TrimPrefix(rh.Timestamp, PrefixOfHex), 16)
 	timestampFos := new(big.Int)
 	timestampFos.SetString(strings.TrimPrefix(rh.TimestampFoS, PrefixOfHex), 16)
-	//log.Println(hex.DecodeString(rh.ExtraData))
-	//log.Println("height", rh.Number, "rh.ExtraData ", rh.ExtraData)
-	//log.Println("height", rh.Number, "rh.GovernanceData ", common.Hex2Bytes(rh.GovernanceData))
-	//log.Println("height", rh.Number, "rh.VoteData ", common.Hex2Bytes(rh.VoteData))
 	return Header{
 		ParentHash:       hashToByte(ethHeader.ParentHash),
 		Reward:           rh.Reward,
@@ -96,4 +99,71 @@ func hashToByte(h common.Hash) []byte {
 		ret = append(ret, b)
 	}
 	return ret
+}
+
+type ReceiptProof struct {
+	BlockHeader Header
+	TxReceipt   mapprotocol.TxReceipt
+	KeyIndex    []byte
+	Proof       [][]byte
+}
+
+func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
+	txIndex := log.TxIndex
+	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
+	if err != nil {
+		return nil, err
+	}
+
+	proof, err := getProof(receipts, txIndex)
+	if err != nil {
+		return nil, err
+	}
+
+	var key []byte
+	key = rlp.AppendUint64(key[:0], uint64(txIndex))
+	ek := utils.Key2Hex(key, len(proof))
+
+	pd := ReceiptProof{
+		BlockHeader: header,
+		TxReceipt:   *receipt,
+		KeyIndex:    ek,
+		Proof:       proof,
+	}
+
+	input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+	if err != nil {
+		return nil, err
+	}
+	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	// input, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), all)
+	if err != nil {
+		return nil, err
+	}
+
+	return pack, nil
+}
+
+func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
+	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
+	if err != nil {
+		return nil, err
+	}
+
+	tr = utils.DeriveTire(receipts, tr)
+	ns := light.NewNodeSet()
+	key, err := rlp.EncodeToBytes(txIndex)
+	if err != nil {
+		return nil, err
+	}
+	if err = tr.Prove(key, 0, ns); err != nil {
+		return nil, err
+	}
+
+	proof := make([][]byte, 0, len(ns.NodeList()))
+	for _, v := range ns.NodeList() {
+		proof = append(proof, v)
+	}
+
+	return proof, nil
 }

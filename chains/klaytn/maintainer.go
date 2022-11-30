@@ -2,11 +2,9 @@ package klaytn
 
 import (
 	"context"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/klaytn"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"log"
 	"math/big"
 	"time"
 
@@ -81,11 +79,9 @@ func (m Maintainer) sync() error {
 			}
 
 			latestBlock, err := m.Conn.LatestBlock()
-			//latestBlock, err := m.kClient.BlockAPI.Block()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				retry--
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.RetryLongInterval)
 				continue
 			}
 
@@ -180,7 +176,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 		return err
 	}
 
-	log.Println("hex --------- ", "0x"+common.Bytes2Hex(input))
+	//log.Println("hex --------- ", "0x"+common.Bytes2Hex(input))
 
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}

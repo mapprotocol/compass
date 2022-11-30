@@ -15,9 +15,7 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 
-	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
 type Messenger struct {
@@ -137,7 +135,7 @@ func (m *Messenger) sync() error {
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 	m.Log.Debug("Querying block for events", "block", latestBlock)
-	query := m.buildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
+	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
@@ -201,19 +199,4 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 	}
 
 	return count, nil
-}
-
-// buildQuery constructs a query for the bridgeContract by hashing sig to get the event topic
-func (m *Messenger) buildQuery(contract ethcommon.Address, sig []utils.EventSig, startBlock *big.Int, endBlock *big.Int) eth.FilterQuery {
-	topics := make([]ethcommon.Hash, 0, len(sig))
-	for _, s := range sig {
-		topics = append(topics, s.GetTopic())
-	}
-	query := eth.FilterQuery{
-		FromBlock: startBlock,
-		ToBlock:   endBlock,
-		Addresses: []ethcommon.Address{contract},
-		Topics:    [][]ethcommon.Hash{topics},
-	}
-	return query
 }
