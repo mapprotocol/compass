@@ -1,6 +1,9 @@
 package chain
 
 import (
+	eth "github.com/ethereum/go-ethereum"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"math/big"
 	"time"
 
@@ -57,4 +60,19 @@ func (c *CommonSync) WaitUntilMsgHandled(counter int) error {
 		counter -= 1
 	}
 	return nil
+}
+
+// BuildQuery constructs a query for the bridgeContract by hashing sig to get the event topic
+func (c *CommonSync) BuildQuery(contract ethcommon.Address, sig []utils.EventSig, startBlock *big.Int, endBlock *big.Int) eth.FilterQuery {
+	topics := make([]ethcommon.Hash, 0, len(sig))
+	for _, s := range sig {
+		topics = append(topics, s.GetTopic())
+	}
+	query := eth.FilterQuery{
+		FromBlock: startBlock,
+		ToBlock:   endBlock,
+		Addresses: []ethcommon.Address{contract},
+		Topics:    [][]ethcommon.Hash{topics},
+	}
+	return query
 }

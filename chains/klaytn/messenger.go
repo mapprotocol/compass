@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/bsc"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/klaytn"
@@ -12,13 +11,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 
-	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
 type Messenger struct {
@@ -140,7 +136,7 @@ func (m *Messenger) sync() error {
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 	m.Log.Debug("Querying block for events", "block", latestBlock)
-	query := m.buildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
+	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
@@ -168,23 +164,17 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-
-			headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
-			for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
-				headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
-				header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
-				if err != nil {
-					return 0, err
-				}
-				headers[i] = *header
+			// get block
+			header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
+			if err != nil {
+				return 0, err
+			}
+			kHeader, err := m.kClient.BlockByNumber(context.Background(), latestBlock)
+			if err != nil {
+				return 0, err
 			}
 
-			params := make([]bsc.Header, 0, len(headers))
-			for _, h := range headers {
-				params = append(params, bsc.ConvertHeader(h))
-			}
-
-			payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id)
+			payload, err := klaytn.AssembleProof(klaytn.ConvertContractHeader(header, kHeader), log, m.Cfg.Id, receipts, method)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
@@ -196,27 +186,11 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 				"orderId", ethcommon.Bytes2Hex(orderId))
 			err = m.Router.Send(message)
 			if err != nil {
-				m.Log.Error("subscription error: failed to route message", "err", err)
+				m.Log.Error("Subscription error: failed to route message", "err", err)
 			}
 			count++
 		}
-
 	}
 
 	return count, nil
-}
-
-// buildQuery constructs a query for the bridgeContract by hashing sig to get the event topic
-func (m *Messenger) buildQuery(contract ethcommon.Address, sig []utils.EventSig, startBlock *big.Int, endBlock *big.Int) eth.FilterQuery {
-	topics := make([]ethcommon.Hash, 0, len(sig))
-	for _, s := range sig {
-		topics = append(topics, s.GetTopic())
-	}
-	query := eth.FilterQuery{
-		FromBlock: startBlock,
-		ToBlock:   endBlock,
-		Addresses: []ethcommon.Address{contract},
-		Topics:    [][]ethcommon.Hash{topics},
-	}
-	return query
 }
