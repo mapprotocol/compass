@@ -1,10 +1,12 @@
 package klaytn
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -14,6 +16,7 @@ import (
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"math/big"
 	"strings"
+	"sync"
 )
 
 type Header struct {
@@ -137,14 +140,51 @@ func GetTxsHashByBlockNumber(conn *Client, number *big.Int) ([]common.Hash, erro
 
 type ReceiptProof struct {
 	Header   Header
-	Receipt  mapprotocol.TxReceipt
+	Receipt  TxReceipt
 	KeyIndex []byte
 	Proof    [][]byte
 }
 
+type TxReceipt struct {
+	ReceiptType       *big.Int
+	PostStateOrStatus []byte
+	CumulativeGasUsed *big.Int
+	Bloom             []byte
+	Logs              []TxLog
+}
+
+type TxLog struct {
+	Addr   common.Address
+	Topics [][]byte
+	Data   []byte
+}
+
+func GetTxReceipt(receipt *ethtypes.Receipt) (*TxReceipt, error) {
+	logs := make([]TxLog, 0, len(receipt.Logs))
+	for _, lg := range receipt.Logs {
+		topics := make([][]byte, len(lg.Topics))
+		for i := range lg.Topics {
+			topics[i] = lg.Topics[i][:]
+		}
+		logs = append(logs, TxLog{
+			Addr:   lg.Address,
+			Topics: topics,
+			Data:   lg.Data,
+		})
+	}
+
+	return &TxReceipt{
+		ReceiptType:       new(big.Int).SetUint64(uint64(receipt.Type)),
+		PostStateOrStatus: mapprotocol.StatusEncoding(receipt),
+		CumulativeGasUsed: new(big.Int).SetUint64(receipt.CumulativeGasUsed),
+		Bloom:             receipt.Bloom[:],
+		Logs:              logs,
+	}, nil
+}
+
 func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
 	txIndex := log.TxIndex
-	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
+	receipt, err := GetTxReceipt(receipts[txIndex])
 	if err != nil {
 		return nil, err
 	}
@@ -153,16 +193,38 @@ func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*ty
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("---------------- proof", len(proof))
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := utils.Key2Hex(key, len(proof))
-
+	fmt.Println("---------------- proof", len(proof))
 	pd := ReceiptProof{
 		Header:   header,
 		Receipt:  *receipt,
 		KeyIndex: ek,
 		Proof:    proof,
+	}
+	////fmt.Println("ReceiptType ", pd.Receipt.ReceiptType)
+	//fmt.Println("PostStateOrStatus ", "0x"+ common.Bytes2Hex(pd.Receipt.PostStateOrStatus))
+	//fmt.Println("CumulativeGasUsed ", pd.Receipt.CumulativeGasUsed)
+	//fmt.Println("Bloom ", "0x"+ common.Bytes2Hex(pd.Receipt.Bloom))
+	//for _, log := range pd.Receipt.Logs {
+	//	fmt.Println("adddres ------- ", log.Addr)
+	//	fmt.Println("datta ------- ", "0x"+common.Bytes2Hex(log.Data))
+	//	for _, t := range log.Topics {
+	//		fmt.Println("topics ------- ",  "0x"+common.Bytes2Hex(t))
+	//	}
+	//}
+	//
+	//d, err := rlp.EncodeToBytes(pd.Receipt)
+	//fmt.Println("-------- err ", err)
+	////fmt.Println("-------- ek ", pd.KeyIndex)
+	//fmt.Println("-------- dat ", "0x"+common.Bytes2Hex(d))
+	//fmt.Println("-------- proof -----------  ",  len(pd.Proof))
+	//
+	for _, b := range pd.Proof {
+		fmt.Println("-------- bbbb ", "0x"+common.Bytes2Hex(b), len(pd.Proof))
 	}
 
 	input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
@@ -185,7 +247,7 @@ func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
 		return nil, err
 	}
 
-	tr = utils.DeriveTire(receipts, tr)
+	tr = DeriveTire(receipts, tr)
 	ns := light.NewNodeSet()
 	key, err := rlp.EncodeToBytes(txIndex)
 	if err != nil {
@@ -201,4 +263,48 @@ func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
 	}
 
 	return proof, nil
+}
+
+var encodeBufferPool = sync.Pool{
+	New: func() interface{} { return new(bytes.Buffer) },
+}
+
+// DerivableList is the input to DeriveSha.
+// It is implemented by the 'Transactions' and 'Receipts' types.
+// This is internal, do not use these methods.
+type DerivableList interface {
+	Len() int
+	EncodeIndex(int, *bytes.Buffer)
+}
+
+func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
+	buf.Reset()
+	list.EncodeIndex(i, buf)
+	// It's really unfortunate that we need to do perform this copy.
+	// StackTrie holds onto the values until Hash is called, so the values
+	// written to it must not alias.
+	return common.CopyBytes(buf.Bytes())
+}
+
+func DeriveTire(rs types.Receipts, tr *trie.Trie) *trie.Trie {
+	valueBuf := encodeBufferPool.Get().(*bytes.Buffer)
+	defer encodeBufferPool.Put(valueBuf)
+
+	var indexBuf []byte
+	for i := 1; i < rs.Len() && i <= 0x7f; i++ {
+		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))
+		value := encodeForDerive(rs, i, valueBuf)
+		tr.Update(indexBuf, value)
+	}
+	if rs.Len() > 0 {
+		indexBuf = rlp.AppendUint64(indexBuf[:0], 0)
+		value := encodeForDerive(rs, 0, valueBuf)
+		tr.Update(indexBuf, value)
+	}
+	for i := 0x80; i < rs.Len(); i++ {
+		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))
+		value := encodeForDerive(rs, i, valueBuf)
+		tr.Update(indexBuf, value)
+	}
+	return tr
 }
