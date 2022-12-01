@@ -290,8 +290,9 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			if idx == 0 {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
-				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
-				mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
+				//mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
+				//mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
+				mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
 			}
 		} else if chain.Type == chains.Near {
 			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role)

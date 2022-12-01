@@ -2,10 +2,8 @@ package klaytn
 
 import (
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/mapprotocol/compass/internal/chain"
-	"github.com/pkg/errors"
-
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/mapprotocol"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
@@ -81,14 +79,14 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		if err != nil {
 			return nil, err
 		}
-		// verify range
-		fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
-		left, right, err := fn()
-		if err != nil {
-			return nil, errors.Wrap(err, "bsc get init verifyHeight failed")
-		}
-		logger.Info("Map2Klaytn Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
-		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
+		//// verify range
+		//fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
+		//left, right, err := fn()
+		//if err != nil {
+		//	return nil, errors.Wrap(err, "kalytn get init verifyHeight failed")
+		//}
+		//logger.Info("Map2Klaytn Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
+		//mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		listen = NewMessenger(cs, conn.KClient())
 	}
 	wri := w.New(conn, cfg, logger, stop, sysErr, m)

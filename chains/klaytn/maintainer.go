@@ -2,9 +2,11 @@ package klaytn
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/klaytn"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"log"
 	"math/big"
 	"time"
 
@@ -47,22 +49,22 @@ func (m Maintainer) sync() error {
 	m.Log.Info("Polling Blocks...", "block", currentBlock)
 
 	if m.Cfg.SyncToMap {
-		//// check whether needs quick listen
-		////syncedHeight, err := mapprotocol.Get2MapByLight()
+		// check whether needs quick listen
+		syncedHeight, err := mapprotocol.Get2MapByLight()
 		//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-		//if err != nil {
-		//	m.Log.Error("Get synced Height failed", "err", err)
-		//	return err
-		//}
-		//
-		//m.Log.Info("Check Sync Status...", "synced", syncedHeight)
-		//m.syncedHeight = syncedHeight
-		//
-		//if syncedHeight.Cmp(currentBlock) != 0 {
-		//	m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
-		//		"syncedHeight", syncedHeight, "currentBlock", currentBlock)
-		//	currentBlock.Add(syncedHeight, new(big.Int).SetInt64(mapprotocol.HeaderCountOfKlaytn))
-		//}
+		if err != nil {
+			m.Log.Error("Get synced Height failed", "err", err)
+			return err
+		}
+
+		m.Log.Info("Check Sync Status...", "synced", syncedHeight)
+		m.syncedHeight = syncedHeight
+
+		if syncedHeight.Cmp(currentBlock) != 0 {
+			m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
+				"syncedHeight", syncedHeight, "currentBlock", currentBlock)
+			currentBlock.Add(syncedHeight, new(big.Int)) // .SetInt64(mapprotocol.EpochOfKlaytn)
+		}
 	}
 
 	var retry = constant.BlockRetryLimit
@@ -129,7 +131,7 @@ func (m Maintainer) sync() error {
 			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)
 			m.LatestBlock.LastUpdated = time.Now()
 
-			currentBlock.Add(currentBlock, big.NewInt(1))
+			currentBlock.Add(currentBlock, big.NewInt(3600))
 			retry = constant.BlockRetryLimit
 		}
 	}
@@ -144,16 +146,17 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	}
 
 	m.Log.Info("Find sync block", "current height", latestBlock)
+	syncedHeight, err := mapprotocol.Get2MapByLight()
 	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	//if err != nil {
-	//	m.Log.Error("Get current synced Height failed", "err", err)
-	//	return err
-	//}
-	//if latestBlock.Cmp(syncedHeight) <= 0 {
-	//	m.Log.Info("CurrentBlock less than synchronized headerHeight", "synced height", syncedHeight,
-	//		"current height", latestBlock)
-	//	return nil
-	//}
+	if err != nil {
+		m.Log.Error("Get current synced Height failed", "err", err)
+		return err
+	}
+	if latestBlock.Cmp(syncedHeight) <= 0 {
+		m.Log.Info("CurrentBlock less than synchronized headerHeight", "synced height", syncedHeight,
+			"current height", latestBlock)
+		return nil
+	}
 
 	headers := make([]klaytn.Header, mapprotocol.HeaderCountOfKlaytn)
 	for i := 0; i < mapprotocol.HeaderCountOfKlaytn; i++ {
@@ -176,7 +179,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 		return err
 	}
 
-	//log.Println("hex --------- ", "0x"+common.Bytes2Hex(input))
+	log.Println("hex --------- ", "0x"+common.Bytes2Hex(input))
 
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}

@@ -38,7 +38,7 @@ const (
 	HeaderCountOfBsc    = 12
 	HeaderCountOfMatic  = 64
 	EpochOfKlaytn       = 3600
-	HeaderCountOfKlaytn = 3
+	HeaderCountOfKlaytn = 1
 )
 
 // common varible

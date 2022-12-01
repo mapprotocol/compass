@@ -20,7 +20,8 @@ import (
 
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *writer) exeSwapMsg(m msg.Message) bool {
-	return w.callContractWithMsg(w.cfg.mcsContract, m)
+	//return w.callContractWithMsg(w.cfg.mcsContract, m)
+	return w.callContractWithMsg(w.cfg.lightNode, m)
 }
 
 // callContractWithMsg contract using address and function signature with message info
@@ -60,20 +61,20 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			gasLimit := w.conn.Opts().GasLimit
 			gasPrice := w.conn.Opts().GasPrice
-			mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
-			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
+			//mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
+			err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
 			if err == nil {
 				// message successfully handled]
-				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash,
-					"mcsTx", mcsTx.Hash())
-				// Query transaction status
-				err = w.txStatus(mcsTx.Hash())
-				if err != nil {
-					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
-				} else {
-					m.DoneCh <- struct{}{}
-					return true
-				}
+				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash) //,
+				//	"mcsTx", mcsTx.Hash())
+				//// Query transaction status
+				//err = w.txStatus(mcsTx.Hash())
+				//if err != nil {
+				//	w.log.Warn("TxHash Status is not successful, will retry", "err", err)
+				//} else {
+				m.DoneCh <- struct{}{}
+				return true
+				//}
 			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
 				w.log.Info(constant.EthOrderExistPrint, "srcHash", inputHash)
 				m.DoneCh <- struct{}{}

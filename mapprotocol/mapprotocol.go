@@ -38,10 +38,26 @@ var (
 	*/
 	Map2OtherVerifyRange = make(map[msg.ChainId]GetVerifyRange)                                           // get map to other right verify range function collect
 	Get2MapVerifyRange   = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // get other chain to map verify height
+	Get2MapByLight       = func() (*big.Int, error) { return nil, nil }
 )
 
 type GetHeight func() (*big.Int, error)
 type GetVerifyRange func() (*big.Int, *big.Int, error)
+
+func Init2MapHeightByLight(lightNode common.Address) {
+	Get2MapByLight = func() (*big.Int, error) {
+		input, err := PackInput(Height, MethodOfHeaderHeight)
+		if err != nil {
+			return nil, errors.Wrap(err, "get other2map packInput failed")
+		}
+
+		height, err := HeaderHeight(lightNode, input)
+		if err != nil {
+			return nil, errors.Wrap(err, "get other2map headerHeight failed")
+		}
+		return height, nil
+	}
+}
 
 func InitOtherChain2MapHeight(lightManager common.Address) {
 	Get2MapHeight = func(chainId msg.ChainId) (*big.Int, error) {
