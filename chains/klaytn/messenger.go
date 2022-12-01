@@ -156,7 +156,7 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 				method = mapprotocol.MethodOfDepositIn
 			}
 			// when syncToMap we need to assemble a tx proof
-			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
+			txsHash, err := klaytn.GetTxsHashByBlockNumber(m.kClient, latestBlock)
 			if err != nil {
 				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 			}

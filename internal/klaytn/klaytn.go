@@ -1,6 +1,8 @@
 package klaytn
 
 import (
+	"context"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -33,12 +35,8 @@ type Header struct {
 }
 
 const (
-	// BloomByteLength represents the number of bytes used in a header log bloom.
-	BloomByteLength = 256
-	PrefixOfHex     = "0x"
+	PrefixOfHex = "0x"
 )
-
-type Bloom [BloomByteLength]byte
 
 type RpcHeader struct {
 	BaseFeePerGas    string         `json:"baseFeePerGas"`
@@ -58,7 +56,30 @@ type RpcHeader struct {
 	TimestampFoS     string         `json:"timestampFoS"`
 	TotalBlockScore  string         `json:"totalBlockScore"`
 	TransactionsRoot common.Hash    `json:"transactionsRoot"`
+	Transactions     []Transactions `json:"transactions"`
 	VoteData         string         `json:"voteData"`
+}
+
+type Transactions struct {
+	AccessList           []interface{} `json:"accessList,omitempty"`
+	BlockHash            string        `json:"blockHash"`
+	BlockNumber          string        `json:"blockNumber"`
+	ChainID              string        `json:"chainId,omitempty"`
+	From                 string        `json:"from"`
+	Gas                  string        `json:"gas"`
+	GasPrice             string        `json:"gasPrice"`
+	Hash                 string        `json:"hash"`
+	Input                string        `json:"input"`
+	MaxFeePerGas         string        `json:"maxFeePerGas,omitempty"`
+	MaxPriorityFeePerGas string        `json:"maxPriorityFeePerGas,omitempty"`
+	Nonce                string        `json:"nonce"`
+	R                    string        `json:"r"`
+	S                    string        `json:"s"`
+	To                   string        `json:"to"`
+	TransactionIndex     string        `json:"transactionIndex"`
+	Type                 string        `json:"type"`
+	V                    string        `json:"v"`
+	Value                string        `json:"value"`
 }
 
 func ConvertContractHeader(ethHeader *types.Header, rh *RpcHeader) Header {
@@ -101,11 +122,24 @@ func hashToByte(h common.Hash) []byte {
 	return ret
 }
 
+func GetTxsHashByBlockNumber(conn *Client, number *big.Int) ([]common.Hash, error) {
+	block, err := conn.BlockByNumber(context.Background(), number)
+	if err != nil {
+		return nil, err
+	}
+
+	txs := make([]common.Hash, 0, len(block.Transactions))
+	for _, tx := range block.Transactions {
+		txs = append(txs, common.HexToHash(tx.Hash))
+	}
+	return txs, nil
+}
+
 type ReceiptProof struct {
-	BlockHeader Header
-	TxReceipt   mapprotocol.TxReceipt
-	KeyIndex    []byte
-	Proof       [][]byte
+	Header   Header
+	Receipt  mapprotocol.TxReceipt
+	KeyIndex []byte
+	Proof    [][]byte
 }
 
 func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
@@ -125,18 +159,19 @@ func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*ty
 	ek := utils.Key2Hex(key, len(proof))
 
 	pd := ReceiptProof{
-		BlockHeader: header,
-		TxReceipt:   *receipt,
-		KeyIndex:    ek,
-		Proof:       proof,
+		Header:   header,
+		Receipt:  *receipt,
+		KeyIndex: ek,
+		Proof:    proof,
 	}
 
 	input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
 	if err != nil {
 		return nil, err
 	}
-	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	// input, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), all)
+	fmt.Println("proof hex ------------ ", "0x"+common.Bytes2Hex(input))
+	//pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	pack, err := mapprotocol.Near.Pack(mapprotocol.MethodVerifyProofData, input)
 	if err != nil {
 		return nil, err
 	}
