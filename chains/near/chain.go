@@ -110,7 +110,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		logger.Info("Map2Bsc Current verify range", "chain", cfg.name, "left", left, "right", right, "lightNode", cfg.lightNode)
 		mapprotocol.Map2OtherVerifyRange[cfg.id] = fn
 		listen = NewMessenger(cs)
-	} else { // Maintainer is used by default
+	} else if role == mapprotocol.RoleOfMaintainer {
 		fn := mapprotocol.Map2NearHeight(cfg.lightNode, conn.Client())
 		height, err := fn()
 		if err != nil {
@@ -120,6 +120,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		mapprotocol.SyncOtherMap[cfg.id] = height
 		mapprotocol.Map2OtherHeight[cfg.id] = fn
 		listen = NewMaintainer(cs)
+	} else if role == mapprotocol.RoleOfMonitor {
+
 	}
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
 

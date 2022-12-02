@@ -90,6 +90,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		logger.Info("Map2Bsc Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
 		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		listen = NewMessenger(cs)
+	} else if role == mapprotocol.RoleOfMonitor {
+
 	}
 	wri := w.New(conn, cfg, logger, stop, sysErr, m)
 
