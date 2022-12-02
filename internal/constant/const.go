@@ -2,6 +2,7 @@ package constant
 
 import (
 	"errors"
+	"math/big"
 	"time"
 )
 
@@ -17,10 +18,16 @@ var (
 )
 
 var (
-	BlockRetryLimit    = 5
-	BlockRetryInterval = time.Second * 5
-	RetryLongInterval  = time.Second * 10
-	ErrFatalPolling    = errors.New("listener block polling failed")
+	BlockRetryLimit      = 5
+	BlockRetryInterval   = time.Second * 5
+	BalanceRetryInterval = time.Second * 5
+	RetryLongInterval    = time.Second * 10
+	TenMinute            = int64(600)
+	ErrFatalPolling      = errors.New("listener block polling failed")
+)
+
+var (
+	Waterline = new(big.Int).SetUint64(10)
 )
 
 var (
