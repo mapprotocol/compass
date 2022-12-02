@@ -46,6 +46,11 @@ var (
 		Name:  "latest",
 		Usage: "Overrides blockstore and start block, starts from latest block",
 	}
+
+	SkipErrorFlag = &cli.BoolFlag{
+		Name:  "skipError",
+		Usage: "Skip Error",
+	}
 )
 
 // Metrics flags

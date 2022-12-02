@@ -47,6 +47,7 @@ var cliFlags = []cli.Flag{
 	config.LatestBlockFlag,
 	config.MetricsFlag,
 	config.MetricsPort,
+	config.SkipErrorFlag,
 }
 
 var generateFlags = []cli.Flag{
@@ -269,6 +270,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			FreshStart:       ctx.Bool(config.FreshStartFlag.Name),
 			LatestBlock:      ctx.Bool(config.LatestBlockFlag.Name),
 			Opts:             chain.Opts,
+			SkipError:        ctx.Bool(config.SkipErrorFlag.Name),
 		}
 		var (
 			newChain core.Chain
@@ -279,6 +281,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		if ctx.Bool(config.MetricsFlag.Name) {
 			m = metrics.NewChainMetrics(chain.Name)
 		}
+		logger.Info("this task set skip error", "skip", ctx.Bool(config.SkipErrorFlag.Name))
 
 		if chain.Type == chains.Ethereum {
 			// only support eth

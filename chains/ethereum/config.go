@@ -65,6 +65,7 @@ type Config struct {
 	lightNode          common.Address // the lightnode to sync header
 	syncMap            map[msg.ChainId]*big.Int
 	events             []utils.EventSig
+	skipError          bool
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
@@ -87,6 +88,7 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		egsApiKey:          "",
 		egsSpeed:           "",
 		events:             make([]utils.EventSig, 0),
+		skipError:          chainCfg.SkipError,
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
