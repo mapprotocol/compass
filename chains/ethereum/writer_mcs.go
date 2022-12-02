@@ -82,10 +82,14 @@ func (w *writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Error("Nonce too low, will retry", "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
 				w.log.Error("Mcs encounter EOF, will retry", "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.NotPerMission) != -1 {
-				w.log.Error(constant.NotPerMissionPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.NotEnoughGas) != -1 {
 				w.log.Error(constant.NotEnoughGasPrint, "srcHash", inputHash, "err", err)
+			} else if w.cfg.skipError {
+				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "srcHash", inputHash, "err", err)
+				m.DoneCh <- struct{}{}
+				return true
+			} else if strings.Index(err.Error(), constant.NotPerMission) != -1 {
+				w.log.Error(constant.NotPerMissionPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.AddressIsZero) != -1 {
 				w.log.Error(constant.AddressIsZeroPrint, "srcHash", inputHash, "err", err)
 			} else if strings.Index(err.Error(), constant.VaultNotRegister) != -1 {

@@ -64,6 +64,7 @@ type Config struct {
 	lightNode          string        // the lightnode to sync header
 	redisUrl           string
 	events             []string
+	skipError          bool
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
@@ -86,6 +87,7 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		egsApiKey:          "",
 		egsSpeed:           "",
 		redisUrl:           "",
+		skipError:          chainCfg.SkipError,
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
