@@ -24,6 +24,7 @@ package ethereum
 
 import (
 	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/monitor"
 	w "github.com/mapprotocol/compass/internal/writer"
 	"math/big"
 
@@ -136,6 +137,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		logger.Info("Listen event", "chain", cfg.Name, "event", cfg.Events)
 	} else if role == mapprotocol.RoleOfMaintainer { // Maintainer is used by default
 		listen = NewMaintainer(cs)
+	} else if role == mapprotocol.RoleOfMonitor {
+		listen = monitor.New(cs)
 	}
 	writer := w.New(conn, cfg, logger, stop, sysErr, m)
 

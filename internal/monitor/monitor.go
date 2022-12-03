@@ -5,10 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
-	"io"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -21,9 +21,10 @@ type Monitor struct {
 	timestamp int64
 }
 
-func NewMonitor(cs *chain.CommonSync) *Monitor {
+func New(cs *chain.CommonSync) *Monitor {
 	return &Monitor{
 		CommonSync: cs,
+		balance:    new(big.Int),
 	}
 }
 
@@ -66,10 +67,16 @@ func (m *Monitor) sync() error {
 
 			if balance.Cmp(constant.Waterline) == -1 {
 				// alarm
+				m.alarm(context.Background(),
+					fmt.Sprintf("Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", m.Cfg.Name, m.Cfg.From,
+						balance.Div(balance, constant.Wei)))
 			}
 
 			if (time.Now().Unix() - m.timestamp) > constant.TenMinute {
 				// alarm
+				m.alarm(context.Background(),
+					fmt.Sprintf("The balance remains unchanged, and no transaction may occur, \nchain=%s,addr=%s,balance=%d", m.Cfg.Name, m.Cfg.From,
+						balance.Div(balance, constant.Wei)))
 			}
 
 			time.Sleep(constant.BalanceRetryInterval)
@@ -77,40 +84,29 @@ func (m *Monitor) sync() error {
 	}
 }
 
-func (m *Monitor) doRequest(ctx context.Context, msg interface{}) (io.ReadCloser, error) {
-	body, err := json.Marshal(msg)
+func (m *Monitor) alarm(ctx context.Context, msg string) {
+	body, err := json.Marshal(map[string]interface{}{
+		"text": msg,
+	})
 	if err != nil {
-		return nil, err
+		return
 	}
-	req, err := http.NewRequestWithContext(ctx, "POST", c.url, ioutil.NopCloser(bytes.NewReader(body)))
+	req, err := http.NewRequestWithContext(ctx, "POST",
+		"https://hooks.slack.com/services/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", ioutil.NopCloser(bytes.NewReader(body)))
 	if err != nil {
-		return nil, err
+		return
 	}
-	req.ContentLength = int64(len(body))
+	req.Header.Set("Content-type", "application/json")
 
-	// set headers
-	c.mu.Lock()
-	req.Header = c.headers.Clone()
-	c.mu.Unlock()
-
-	// do request
-	resp, err := c.client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		//var buf bytes.Buffer
-		//var body []byte
-		//if _, err := buf.ReadFrom(resp.Body); err == nil {
-		//	body = buf.Bytes()
-		//}
 
-		return nil, nil
-		//return nil, HTTPError{
-		//	Status:     resp.Status,
-		//	StatusCode: resp.StatusCode,
-		//	Body:       body,
-		//}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		m.Log.Warn("read resp failed", "err", err)
+		return
 	}
-	return resp.Body, nil
+	m.Log.Info("send alarm message", "resp", string(data))
 }
