@@ -18,16 +18,17 @@ var (
 )
 
 var (
-	BlockRetryLimit      = 5
-	BlockRetryInterval   = time.Second * 5
-	BalanceRetryInterval = time.Second * 5
-	RetryLongInterval    = time.Second * 10
-	TenMinute            = int64(600)
-	ErrFatalPolling      = errors.New("listener block polling failed")
+	BlockRetryLimit    = 5
+	BlockRetryInterval = time.Second * 5
+	RetryLongInterval  = time.Second * 10
+	TenMinute          = int64(3000)
+	ErrFatalPolling    = errors.New("listener block polling failed")
 )
 
 var (
-	Waterline = new(big.Int).SetUint64(10)
+	BalanceRetryInterval = time.Second * 30
+	Waterline            = new(big.Int).SetUint64(5000000000000000000) // five
+	Wei                  = new(big.Int).SetUint64(1000000000000000000)
 )
 
 var (
