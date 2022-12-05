@@ -23,6 +23,9 @@ The writer recieves the message and creates a proposals on-chain. Once a proposa
 package ethereum
 
 import (
+	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/monitor"
+	w "github.com/mapprotocol/compass/internal/writer"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -32,7 +35,6 @@ import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/chains"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
@@ -63,54 +65,32 @@ type Connection interface {
 type Chain struct {
 	cfg    *core.ChainConfig // The config of the chain
 	conn   Connection        // The chains connection
-	writer *writer           // The writer of the chain
+	writer *w.Writer         // The writer of the chain
 	stop   chan<- int
 	listen chains.Listener // The listener of this chain
 }
 
-// checkBlockstore queries the blockstore for the latest known block. If the latest block is
-// greater than cfg.startBlock, then cfg.startBlock is replaced with the latest known block.
-func setupBlockstore(cfg *Config, kp *secp256k1.Keypair, role mapprotocol.Role) (*blockstore.Blockstore, error) {
-	bs, err := blockstore.NewBlockstore(cfg.blockstorePath, cfg.id, kp.Address(), role)
-	if err != nil {
-		return nil, err
-	}
-
-	if !cfg.freshStart {
-		latestBlock, err := bs.TryLoadLatestBlock()
-		if err != nil {
-			return nil, err
-		}
-
-		if latestBlock.Cmp(cfg.startBlock) == 1 {
-			cfg.startBlock = latestBlock
-		}
-	}
-
-	return bs, nil
-}
-
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
 	role mapprotocol.Role) (*Chain, error) {
-	cfg, err := parseChainConfig(chainCfg)
+	cfg, err := chain.ParseConfig(chainCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	kpI, err := keystore.KeypairFromAddress(cfg.from, keystore.EthChain, cfg.keystorePath, chainCfg.Insecure)
+	kpI, err := keystore.KeypairFromAddress(cfg.From, keystore.EthChain, cfg.KeystorePath, chainCfg.Insecure)
 	if err != nil {
 		return nil, err
 	}
 	kp, _ := kpI.(*secp256k1.Keypair)
 
-	bs, err := setupBlockstore(cfg, kp, role)
+	bs, err := chain.SetupBlockStore(cfg, kp, role)
 	if err != nil {
 		return nil, err
 	}
 
 	stop := make(chan int)
-	conn := connection.NewConnection(cfg.endpoint, cfg.http, kp, logger, cfg.gasLimit, cfg.maxGasPrice,
-		cfg.gasMultiplier, cfg.egsApiKey, cfg.egsSpeed)
+	conn := connection.NewConnection(cfg.Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice,
+		cfg.GasMultiplier, cfg.EgsApiKey, cfg.EgsSpeed)
 	err = conn.Connect()
 	if err != nil {
 		return nil, err
@@ -121,44 +101,46 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		if err != nil {
 			return nil, err
 		}
-		cfg.startBlock = curr
+		cfg.StartBlock = curr
 	}
 
-	if role == mapprotocol.RoleOfMaintainer && cfg.id != cfg.mapChainID { // 请求获取同步的map高度
-		fn := mapprotocol.Map2EthHeight(cfg.from, cfg.lightNode, conn.Client())
+	if role == mapprotocol.RoleOfMaintainer && cfg.Id != cfg.MapChainID { // 请求获取同步的map高度
+		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
 		height, err := fn()
 		if err != nil {
 			return nil, errors.Wrap(err, "eth get init headerHeight failed")
 		}
-		logger.Info("map2Other Current situation", "chain", cfg.name, "height", height)
-		mapprotocol.SyncOtherMap[cfg.id] = height
-		mapprotocol.Map2OtherHeight[cfg.id] = fn
+		logger.Info("map2Other Current situation", "chain", cfg.Name, "height", height)
+		mapprotocol.SyncOtherMap[cfg.Id] = height
+		mapprotocol.Map2OtherHeight[cfg.Id] = fn
 	}
 
 	// simplified a little bit
 	var listen chains.Listener
-	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
+	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMessenger {
-		err = conn.EnsureHasBytecode(cfg.mcsContract)
+		err = conn.EnsureHasBytecode(cfg.McsContract)
 		if err != nil {
 			return nil, err
 		}
 		// verify range
-		if cfg.id != cfg.mapChainID {
-			fn := mapprotocol.Map2EthVerifyRange(cfg.from, cfg.lightNode, conn.Client())
+		if cfg.Id != cfg.MapChainID {
+			fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
 			left, right, err := fn()
 			if err != nil {
 				return nil, errors.Wrap(err, "eth init verify range failed")
 			}
-			logger.Info("Map2eth Current verify range", "chain", cfg.name, "left", left, "right", right, "lightNode", cfg.lightNode)
-			mapprotocol.Map2OtherVerifyRange[cfg.id] = fn
+			logger.Info("Map2eth Current verify range", "chain", cfg.Name, "left", left, "right", right, "lightNode", cfg.LightNode)
+			mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		}
 		listen = NewMessenger(cs)
-		logger.Info("Listen event", "chain", cfg.name, "event", cfg.events)
-	} else { // Maintainer is used by default
+		logger.Info("Listen event", "chain", cfg.Name, "event", cfg.Events)
+	} else if role == mapprotocol.RoleOfMaintainer { // Maintainer is used by default
 		listen = NewMaintainer(cs)
+	} else if role == mapprotocol.RoleOfMonitor {
+		listen = monitor.New(cs)
 	}
-	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
+	writer := w.New(conn, cfg, logger, stop, sysErr, m)
 
 	return &Chain{
 		cfg:    chainCfg,
@@ -180,12 +162,6 @@ func (c *Chain) Start() error {
 		return err
 	}
 
-	err = c.writer.start()
-	if err != nil {
-		return err
-	}
-
-	c.writer.log.Debug("Successfully started chain")
 	return nil
 }
 

@@ -70,6 +70,7 @@ type Role string
 var (
 	RoleOfMaintainer Role = "maintainer"
 	RoleOfMessenger  Role = "messenger"
+	RoleOfMonitor    Role = "monitor"
 )
 
 var (
