@@ -149,6 +149,10 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 					m.DoneCh <- struct{}{}
 					return true
 				}
+			} else if w.cfg.skipError {
+				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "srcHash", inputHash, "err", err)
+				m.DoneCh <- struct{}{}
+				return true
 			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
 				w.log.Error("Nonce too low, will retry", "srcHash", inputHash)
 			} else if strings.Index(err.Error(), "EOF") != -1 || strings.Index(err.Error(), "unexpected end of JSON input") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
