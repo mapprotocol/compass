@@ -121,7 +121,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		mapprotocol.Map2OtherHeight[cfg.id] = fn
 		listen = NewMaintainer(cs)
 	} else if role == mapprotocol.RoleOfMonitor {
-
+		listen = NewMonitor(cs)
 	}
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
 

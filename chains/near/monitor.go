@@ -1,4 +1,4 @@
-package monitor
+package near
 
 import (
 	"bytes"
@@ -6,9 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/near-api-go/pkg/client/block"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -16,24 +15,24 @@ import (
 )
 
 type Monitor struct {
-	*chain.CommonSync
+	*CommonListen
 	balance   *big.Int
 	timestamp int64
 }
 
-func New(cs *chain.CommonSync) *Monitor {
+func NewMonitor(cs *CommonListen) *Monitor {
 	return &Monitor{
-		CommonSync: cs,
-		balance:    new(big.Int),
+		CommonListen: cs,
+		balance:      new(big.Int),
 	}
 }
 
 func (m *Monitor) Sync() error {
-	m.Log.Debug("Starting listener...")
+	m.log.Debug("Starting listener...")
 	go func() {
 		err := m.sync()
 		if err != nil {
-			m.Log.Error("Polling Account balance failed", "err", err)
+			m.log.Error("Polling blocks failed", "err", err)
 		}
 	}()
 
@@ -45,39 +44,40 @@ func (m *Monitor) Sync() error {
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Monitor) sync() error {
-	addr := common.HexToAddress(m.Cfg.From)
 	for {
 		select {
-		case <-m.Stop:
+		case <-m.stop:
 			return errors.New("polling terminated")
 		default:
-			balance, err := m.Conn.Client().BalanceAt(context.Background(), addr, nil)
+			resp, err := m.conn.Client().AccountView(context.Background(), m.cfg.from, block.FinalityFinal())
 			if err != nil {
-				m.Log.Error("Unable to get user balance failed", "from", addr, "err", err)
+				m.log.Error("Unable to get user balance failed", "from", m.cfg.from, "err", err)
 				time.Sleep(constant.RetryLongInterval)
 				continue
 			}
 
-			m.Log.Info("Get balance result", "account", addr, "balance", balance)
+			m.log.Info("Get balance result", "account", m.cfg.from, "balance", resp.Amount.String())
 
-			if balance.Cmp(m.balance) != 0 {
-				m.balance = balance
+			v, ok := new(big.Int).SetString(resp.Amount.String(), 10)
+			if ok && v.Cmp(m.balance) != 0 {
+				m.balance = v
 				m.timestamp = time.Now().Unix()
 			}
 
-			if balance.Cmp(constant.Waterline) == -1 {
+			v = v.Div(v, constant.WeiOfNear)
+			if v.Cmp(constant.WaterlineOfNear) == -1 {
 				// alarm
 				m.alarm(context.Background(),
-					fmt.Sprintf("Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", m.Cfg.Name, m.Cfg.From,
-						balance.Div(balance, constant.Wei)))
+					fmt.Sprintf("Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", m.cfg.name, m.cfg.from,
+						v.Div(v, constant.WeiOfNear)))
 			}
 
 			if (time.Now().Unix() - m.timestamp) > constant.AlarmMinute {
 				// alarm
 				m.alarm(context.Background(),
 					fmt.Sprintf("No transaction occurred in addr in the last %d seconds,\n"+
-						"chain=%s,addr=%s,balance=%d", constant.AlarmMinute, m.Cfg.Name, m.Cfg.From,
-						balance.Div(balance, constant.Wei)))
+						"chain=%s,addr=%s,balance=%d", constant.AlarmMinute, m.cfg.name, m.cfg.from,
+						v.Div(v, constant.Wei)))
 			}
 
 			time.Sleep(constant.BalanceRetryInterval)
@@ -106,8 +106,8 @@ func (m *Monitor) alarm(ctx context.Context, msg string) {
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		m.Log.Warn("read resp failed", "err", err)
+		m.log.Warn("read resp failed", "err", err)
 		return
 	}
-	m.Log.Info("send alarm message", "resp", string(data))
+	m.log.Info("send alarm message", "resp", string(data))
 }
