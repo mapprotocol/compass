@@ -25,6 +25,7 @@ const (
 	MethodOfIsUsedEvent         = "is_used_event"
 	MethodOfGetBytes            = "getBytes"
 	MethodOfGetHeadersBytes     = "getHeadersBytes"
+	MethodOfGetConfirms         = "confirms"
 )
 
 const (
@@ -75,4 +76,9 @@ var (
 
 var (
 	OnlineChaId = map[msg.ChainId]string{}
+)
+
+var (
+	ConfirmsOfMatic    = big.NewInt(10)
+	InputOfConfirms, _ = PackInput(Matic, MethodOfGetConfirms)
 )

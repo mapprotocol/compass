@@ -53,6 +53,7 @@ func (m Maintainer) sync() error {
 	if m.Cfg.SyncToMap {
 		// check whether needs quick listen
 		syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+		//syncedHeight, err := mapprotocol.Get2MapByLight()
 		if err != nil {
 			m.Log.Error("Get synced Height failed", "err", err)
 			return err
@@ -109,7 +110,6 @@ func (m Maintainer) sync() error {
 			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				retry--
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
@@ -167,6 +167,7 @@ func (m Maintainer) sync() error {
 func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	// It is checked whether the latest height is higher than the current height
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {
 		m.Log.Error("Get synced Height failed", "err", err)
 		return err
@@ -269,11 +270,12 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	}
 
 	h := mapprotocol.ConvertHeader(header)
-	aggPK, err := mapprotocol.GetAggPK(m.Conn.Client(), new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
+	aggPK, ist, err := mapprotocol.GetAggPK(m.Conn.Client(), new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return err
 	}
-	input, err := mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
+	istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
+	input, err := mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
 	if err != nil {
 		return err
 	}

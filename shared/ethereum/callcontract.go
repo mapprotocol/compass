@@ -169,7 +169,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 	toChainID := log.Topics[2]
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
-	aggPK, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
+	aggPK, ist, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return 0, 0, nil, err
 	}
@@ -184,21 +184,14 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := Key2Hex(key, len(proof))
 	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
-		var istanbulExtra *maptypes.IstanbulExtra
-		if err := rlp.DecodeBytes(header.Extra[32:], &istanbulExtra); err != nil {
-			return 0, 0, nil, err
-		}
-		logRlp, err := rlp.EncodeToBytes(receipt.Logs)
-		if err != nil {
-			return 0, 0, nil, err
-		}
-
+		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 		nr := mapprotocol.MapTxReceipt{
 			PostStateOrStatus: receipt.PostStateOrStatus,
 			CumulativeGasUsed: receipt.CumulativeGasUsed,
 			Bloom:             receipt.Bloom,
-			Logs:              logRlp,
+			Logs:              receipt.Logs,
 		}
+
 		nrRlp, err := rlp.EncodeToBytes(nr)
 		if err != nil {
 			return 0, 0, nil, err
@@ -219,7 +212,9 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
+
 		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfTransferIn, big.NewInt(0).SetUint64(uint64(fId)), pack)
+		//payloads, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
 		}

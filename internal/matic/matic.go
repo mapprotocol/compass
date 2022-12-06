@@ -70,7 +70,7 @@ func hashToByte(h common.Hash) []byte {
 }
 
 type ProofData struct {
-	Header       BlockHeader
+	Headers      []BlockHeader
 	ReceiptProof ReceiptProof
 }
 
@@ -80,8 +80,7 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func AssembleProof(header *types.Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
-	h := ConvertHeader(header)
+func AssembleProof(headers []BlockHeader, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
@@ -98,7 +97,7 @@ func AssembleProof(header *types.Header, log types.Log, fId msg.ChainId, receipt
 	ek := utils.Key2Hex(key, len(proof))
 
 	pd := ProofData{
-		Header: h,
+		Headers: headers,
 		ReceiptProof: ReceiptProof{
 			TxReceipt: *receipt,
 			KeyIndex:  ek,
@@ -111,7 +110,7 @@ func AssembleProof(header *types.Header, log types.Log, fId msg.ChainId, receipt
 		return nil, err
 	}
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	// input, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), all)
+	//pack, err := mapprotocol.Near.Pack(mapprotocol.MethodVerifyProofData, input)
 	if err != nil {
 		return nil, err
 	}
