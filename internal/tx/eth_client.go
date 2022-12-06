@@ -40,6 +40,9 @@ func GetReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*typ
 	for _, h := range txsHash {
 		r, err := conn.TransactionReceipt(context.Background(), h)
 		if err != nil {
+			if err.Error() == "not found" {
+				continue
+			}
 			return nil, err
 		}
 		rs = append(rs, r)
