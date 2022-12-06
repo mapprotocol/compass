@@ -66,6 +66,27 @@ type ReceiptProof struct {
 	Proof    [][]byte
 }
 
+type NewMapReceiptProof struct {
+	Header       *BlockHeader
+	AggPk        *G2
+	KeyIndex     []byte
+	Proof        [][]byte
+	Ist          types.IstanbulExtra
+	TxReceiptRlp TxReceiptRlp
+}
+
+type TxReceiptRlp struct {
+	ReceiptType *big.Int
+	ReceiptRlp  []byte
+}
+
+type MapTxReceipt struct {
+	PostStateOrStatus []byte
+	CumulativeGasUsed *big.Int
+	Bloom             []byte
+	Logs              []byte
+}
+
 type NewReceiptProof struct {
 	Router   common.Address
 	Coin     common.Address
