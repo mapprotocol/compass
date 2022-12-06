@@ -71,8 +71,68 @@ type NewMapReceiptProof struct {
 	AggPk        *G2
 	KeyIndex     []byte
 	Proof        [][]byte
-	Ist          types.IstanbulExtra
+	Ist          IstanbulExtra
 	TxReceiptRlp TxReceiptRlp
+}
+
+type IstanbulExtra struct {
+	// Validators are the validators that have been added in the block
+	Validators []common.Address
+	// AddedPubKey are the BLS public keys for the validators added in the block
+	AddedPubKey [][]byte
+	// AddedG1PubKey are the BLS public keys for the validators added in the block
+	AddedG1PubKey [][]byte
+	// RemoveList is a bitmap having an active bit for each removed validator in the block
+	RemoveList *big.Int
+	// Seal is an ECDSA signature by the proposer
+	Seal []byte
+	// AggregatedSeal contains the aggregated BLS signature created via IBFT consensus.
+	AggregatedSeal IstanbulAggregatedSeal
+	// ParentAggregatedSeal contains and aggregated BLS signature for the previous block.
+	ParentAggregatedSeal IstanbulAggregatedSeal
+}
+
+type IstanbulAggregatedSeal struct {
+	Bitmap    *big.Int
+	Signature []byte
+	Round     *big.Int
+}
+
+func ConvertIstanbulExtra(istanbulExtra *types.IstanbulExtra) *IstanbulExtra {
+	addedPubKey := make([][]byte, 0, len(istanbulExtra.AddedValidatorsPublicKeys))
+	for _, avpk := range istanbulExtra.AddedValidatorsPublicKeys {
+		data := make([]byte, 0, len(avpk))
+		for _, v := range avpk {
+			data = append(data, v)
+		}
+		addedPubKey = append(addedPubKey, data)
+	}
+	addedValidatorsG1PublicKeys := make([][]byte, 0, len(istanbulExtra.AddedValidatorsG1PublicKeys))
+	for _, avgpk := range istanbulExtra.AddedValidatorsG1PublicKeys {
+		data := make([]byte, 0, len(avgpk))
+		for _, v := range avgpk {
+			data = append(data, v)
+		}
+		addedValidatorsG1PublicKeys = append(addedPubKey, data)
+	}
+
+	return &IstanbulExtra{
+		Validators:    istanbulExtra.AddedValidators,
+		AddedPubKey:   addedPubKey,
+		AddedG1PubKey: addedValidatorsG1PublicKeys,
+		RemoveList:    istanbulExtra.RemovedValidators,
+		Seal:          istanbulExtra.Seal,
+		AggregatedSeal: IstanbulAggregatedSeal{
+			Bitmap:    istanbulExtra.AggregatedSeal.Bitmap,
+			Signature: istanbulExtra.AggregatedSeal.Signature,
+			Round:     istanbulExtra.AggregatedSeal.Round,
+		},
+		ParentAggregatedSeal: IstanbulAggregatedSeal{
+			Bitmap:    istanbulExtra.ParentAggregatedSeal.Bitmap,
+			Signature: istanbulExtra.ParentAggregatedSeal.Signature,
+			Round:     istanbulExtra.ParentAggregatedSeal.Round,
+		},
+	}
 }
 
 type TxReceiptRlp struct {
@@ -84,7 +144,7 @@ type MapTxReceipt struct {
 	PostStateOrStatus []byte
 	CumulativeGasUsed *big.Int
 	Bloom             []byte
-	Logs              []byte
+	Logs              []TxLog
 }
 
 type NewReceiptProof struct {
@@ -122,15 +182,15 @@ func ConvertHeader(header *types.Header) *BlockHeader {
 	return h
 }
 
-func GetAggPK(cli *ethclient.Client, number *big.Int, extra []byte) (*G2, error) {
+func GetAggPK(cli *ethclient.Client, number *big.Int, extra []byte) (*G2, *types.IstanbulExtra, error) {
 	var istanbulExtra *types.IstanbulExtra
 	if err := rlp.DecodeBytes(extra[32:], &istanbulExtra); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	snapshot, err := cli.GetSnapshot(context.Background(), number)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	validators := validator.MapValidatorsToDataWithBLSKeyCache(snapshot.ValSet.List())
@@ -145,7 +205,7 @@ func GetAggPK(cli *ethclient.Client, number *big.Int, extra []byte) (*G2, error)
 	for _, v := range publicKeys {
 		pk, err := bls.UnmarshalPk(v[:])
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		pks = append(pks, pk)
 	}
@@ -156,7 +216,7 @@ func GetAggPK(cli *ethclient.Client, number *big.Int, extra []byte) (*G2, error)
 		Xr: new(big.Int).SetBytes(aggPKBytes[32:64]),
 		Yi: new(big.Int).SetBytes(aggPKBytes[64:96]),
 		Yr: new(big.Int).SetBytes(aggPKBytes[96:128]),
-	}, nil
+	}, istanbulExtra, nil
 }
 
 func GetTxReceipt(receipt *ethtypes.Receipt) (*TxReceipt, error) {
