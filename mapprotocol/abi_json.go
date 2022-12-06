@@ -1229,63 +1229,14 @@ const (
 						"type":"tuple"
 					},
 					{
-						"components":[
-							{
-								"internalType":"uint256",
-								"name":"receiptType",
-								"type":"uint256"
-							},
-							{
-								"internalType":"bytes",
-								"name":"postStateOrStatus",
-								"type":"bytes"
-							},
-							{
-								"internalType":"uint256",
-								"name":"cumulativeGasUsed",
-								"type":"uint256"
-							},
-							{
-								"internalType":"bytes",
-								"name":"bloom",
-								"type":"bytes"
-							},
-							{
-								"components":[
-									{
-										"internalType":"address",
-										"name":"addr",
-										"type":"address"
-									},
-									{
-										"internalType":"bytes[]",
-										"name":"topics",
-										"type":"bytes[]"
-									},
-									{
-										"internalType":"bytes",
-										"name":"data",
-										"type":"bytes"
-									}
-								],
-								"internalType":"struct ILightNodePoint.TxLog[]",
-								"name":"logs",
-								"type":"tuple[]"
-							}
-						],
-						"internalType":"struct ILightNodePoint.TxReceipt",
-						"name":"receipt",
-						"type":"tuple"
-					},
-					{
-						"internalType":"bytes",
-						"name":"keyIndex",
-						"type":"bytes"
-					},
-					{
 						"internalType":"bytes[]",
-						"name":"proof",
+						"name":"receipts",
 						"type":"bytes[]"
+					},
+					{
+						"internalType":"uint256",
+						"name":"logIndex",
+						"type":"uint256"
 					}
 				],
 				"internalType":"struct ILightNodePoint.ReceiptProof",

@@ -2,11 +2,9 @@ package klaytn
 
 import (
 	"context"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/klaytn"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"log"
 	"math/big"
 	"time"
 
@@ -178,8 +176,6 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
 	}
-
-	log.Println("hex --------- ", "0x"+common.Bytes2Hex(input))
 
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
