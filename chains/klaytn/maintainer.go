@@ -48,8 +48,8 @@ func (m Maintainer) sync() error {
 
 	if m.Cfg.SyncToMap {
 		// check whether needs quick listen
-		syncedHeight, err := mapprotocol.Get2MapByLight()
-		//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+		//syncedHeight, err := mapprotocol.Get2MapByLight()
+		syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
 		if err != nil {
 			m.Log.Error("Get synced Height failed", "err", err)
 			return err
@@ -144,8 +144,8 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	}
 
 	m.Log.Info("Find sync block", "current height", latestBlock)
-	syncedHeight, err := mapprotocol.Get2MapByLight()
-	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+	//syncedHeight, err := mapprotocol.Get2MapByLight()
+	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
 	if err != nil {
 		m.Log.Error("Get current synced Height failed", "err", err)
 		return err
