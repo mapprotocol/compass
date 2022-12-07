@@ -2,10 +2,8 @@ package klaytn
 
 import (
 	"context"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -142,39 +140,17 @@ type ReceiptProof struct {
 	Receipts [][]byte
 }
 
-type TxReceipt struct {
-	Status            []byte
-	CumulativeGasUsed *big.Int
-	Bloom             []byte
-	Logs              []TxLog
+type ReceiptRLP struct {
+	Status  uint
+	GasUsed uint64
+	Bloom   types.Bloom
+	Logs    []*types.Log
 }
 
 type TxLog struct {
 	Addr   common.Address
 	Topics [][]byte
 	Data   []byte
-}
-
-func GetTxReceipt(receipt *ethtypes.Receipt) (*TxReceipt, error) {
-	logs := make([]TxLog, 0, len(receipt.Logs))
-	for _, lg := range receipt.Logs {
-		topics := make([][]byte, len(lg.Topics))
-		for i := range lg.Topics {
-			topics[i] = lg.Topics[i][:]
-		}
-		logs = append(logs, TxLog{
-			Addr:   lg.Address,
-			Topics: topics,
-			Data:   lg.Data,
-		})
-	}
-
-	return &TxReceipt{
-		Status:            mapprotocol.StatusEncoding(receipt),
-		CumulativeGasUsed: new(big.Int).SetUint64(receipt.CumulativeGasUsed),
-		Bloom:             receipt.Bloom[:],
-		Logs:              logs,
-	}, nil
 }
 
 func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
@@ -192,11 +168,11 @@ func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*ty
 				Data:   lg.Data,
 			})
 		}
-		data, err := rlp.EncodeToBytes(&TxReceipt{
-			Status:            mapprotocol.StatusEncoding(receipt),
-			CumulativeGasUsed: new(big.Int).SetUint64(receipt.CumulativeGasUsed),
-			Bloom:             receipt.Bloom[:],
-			Logs:              logs,
+		data, err := rlp.EncodeToBytes(&ReceiptRLP{
+			Status:  uint(receipt.Status),
+			GasUsed: receipt.GasUsed,
+			Bloom:   receipt.Bloom,
+			Logs:    receipt.Logs,
 		})
 		if err != nil {
 			return nil, err
@@ -213,9 +189,9 @@ func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*ty
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("proof hex ------------ ", "0x"+common.Bytes2Hex(input))
-	//pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	pack, err := mapprotocol.Near.Pack(mapprotocol.MethodVerifyProofData, input)
+	//fmt.Println("proof hex ------------ ", "0x"+common.Bytes2Hex(input))
+	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	//pack, err := mapprotocol.Near.Pack(mapprotocol.MethodVerifyProofData, input)
 	if err != nil {
 		return nil, err
 	}
