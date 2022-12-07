@@ -2,14 +2,16 @@ package matic
 
 import (
 	"context"
+	"math/big"
+	"time"
+
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/matic"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
-	"math/big"
-	"time"
 )
 
 type Maintainer struct {
@@ -45,6 +47,7 @@ func (m Maintainer) sync() error {
 
 	if m.Cfg.SyncToMap {
 		syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+		//syncedHeight, err := mapprotocol.Get2MapByLight()
 		if err != nil {
 			m.Log.Error("Get synced Height failed", "err", err)
 			return err
@@ -52,12 +55,11 @@ func (m Maintainer) sync() error {
 
 		m.Log.Info("Check Sync Status...", "synced", syncedHeight)
 		m.syncedHeight = syncedHeight
-		//m.syncedHeight = new(big.Int).SetUint64(35347455)
 
 		if syncedHeight.Cmp(currentBlock) != 0 {
+			currentBlock.Add(syncedHeight, new(big.Int).SetInt64(mapprotocol.ConfirmsOfMatic.Int64()+2))
 			m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
 				"syncedHeight", syncedHeight, "currentBlock", currentBlock)
-			currentBlock.Add(syncedHeight, new(big.Int).SetInt64(mapprotocol.HeaderCountOfBsc))
 		}
 	}
 
@@ -86,19 +88,18 @@ func (m Maintainer) sync() error {
 				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
-			// latestBlock must less than blockNumber of chain online，otherwise time.sleep
-			difference := new(big.Int).Sub(currentBlock, latestBlock)
-			if difference.Int64() > 0 {
-				m.Log.Info("Chain online blockNumber less than local block height, waiting...", "onlineHeight", latestBlock,
-					"localHeight", currentBlock, "waiting", difference.Int64())
-				time.Sleep(constant.BlockRetryInterval * time.Duration(difference.Int64()))
-			}
-
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.BlockRetryInterval)
 				continue
+			}
+			// latestBlock must less than blockNumber of chain online，otherwise time.sleep
+			difference := new(big.Int).Sub(currentBlock, latestBlock)
+			if difference.Int64() > 0 {
+				m.Log.Info("chain online blockNumber less than local latestBlock, waiting...", "latestBlock", latestBlock,
+					"localBlock", currentBlock, "waiting", difference.Int64())
+				time.Sleep(constant.BlockRetryInterval * time.Duration(difference.Int64()))
 			}
 
 			if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
@@ -134,7 +135,14 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMap listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
+	// epoch check
+	remainder := big.NewInt(0).Mod(new(big.Int).Sub(latestBlock, mapprotocol.ConfirmsOfMatic), big.NewInt(mapprotocol.HeaderCountOfMatic))
+	if remainder.Cmp(mapprotocol.Big0) != 0 {
+		return nil
+	}
+	// synced height check
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {
 		m.Log.Error("Get current synced Height failed", "err", err)
 		return err
@@ -144,20 +152,25 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 			"current height", latestBlock)
 		return nil
 	}
-	// 每64个block进行同步，
-	sub := big.NewInt(0).Sub(latestBlock, syncedHeight)
-	remainder := big.NewInt(0).Mod(sub, big.NewInt(mapprotocol.HeaderCountOfMatic))
-	if remainder.Cmp(mapprotocol.Big0) != 0 {
-		return nil
-	}
-	m.Log.Info("Find sync block", "current height", latestBlock)
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
-	if err != nil {
-		return err
+
+	m.Log.Info("find sync block", "current height", latestBlock)
+	startBlock := new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(mapprotocol.ConfirmsOfMatic.Int64()+1))
+	headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
+	for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
+		headerHeight := new(big.Int).Add(startBlock, new(big.Int).SetInt64(int64(i)))
+		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+		if err != nil {
+			return err
+		}
+		headers[i] = header
 	}
 
-	h := matic.ConvertHeader(header)
-	input, err := mapprotocol.Matic.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(h)
+	mHeaders := make([]matic.BlockHeader, 0, len(headers))
+	for _, h := range headers {
+		mHeaders = append(mHeaders, matic.ConvertHeader(h))
+	}
+
+	input, err := mapprotocol.Matic.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(mHeaders)
 	if err != nil {
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
