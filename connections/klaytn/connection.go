@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/connections/ethereum/egs"
 	"github.com/mapprotocol/compass/internal/klaytn"
 	"math/big"
 	"sync"
@@ -101,67 +102,66 @@ func (c *Connection) CallOpts() *bind.CallOpts {
 
 func (c *Connection) SafeEstimateGas(ctx context.Context) (*big.Int, error) {
 	var suggestedGasPrice *big.Int
-	return suggestedGasPrice, nil
-	//// First attempt to use EGS for the gas price if the api key is supplied
-	//if c.egsApiKey != "" {
-	//	price, err := egs.FetchGasPrice(c.egsApiKey, c.egsSpeed)
-	//	if err != nil {
-	//		c.log.Error("Couldn't fetch gasPrice from GSN", "err", err)
-	//	} else {
-	//		suggestedGasPrice = price
-	//	}
-	//}
-	//
-	//// Fallback to the node rpc method for the gas price if GSN did not provide a price
-	//if suggestedGasPrice == nil {
-	//	c.log.Debug("Fetching gasPrice from node")
-	//	nodePriceEstimate, err := c.conn.SuggestGasPrice(context.TODO())
-	//	if err != nil {
-	//		return nil, err
-	//	} else {
-	//		suggestedGasPrice = nodePriceEstimate
-	//	}
-	//}
-	//
-	//gasPrice := multiplyGasPrice(suggestedGasPrice, c.gasMultiplier)
-	//
-	//// Check we aren't exceeding our limit
-	//if gasPrice.Cmp(c.maxGasPrice) == 1 {
-	//	return c.maxGasPrice, nil
-	//} else {
-	//	return gasPrice, nil
-	//}
+	// First attempt to use EGS for the gas price if the api key is supplied
+	if c.egsApiKey != "" {
+		price, err := egs.FetchGasPrice(c.egsApiKey, c.egsSpeed)
+		if err != nil {
+			c.log.Error("Couldn't fetch gasPrice from GSN", "err", err)
+		} else {
+			suggestedGasPrice = price
+		}
+	}
+
+	// Fallback to the node rpc method for the gas price if GSN did not provide a price
+	if suggestedGasPrice == nil {
+		c.log.Debug("Fetching gasPrice from node")
+		nodePriceEstimate, err := c.conn.SuggestGasPrice(context.TODO())
+		if err != nil {
+			return nil, err
+		} else {
+			suggestedGasPrice = nodePriceEstimate
+		}
+	}
+
+	gasPrice := multiplyGasPrice(suggestedGasPrice, c.gasMultiplier)
+
+	// Check we aren't exceeding our limit
+	if gasPrice.Cmp(c.maxGasPrice) == 1 {
+		return c.maxGasPrice, nil
+	} else {
+		return gasPrice, nil
+	}
 }
 
 func (c *Connection) EstimateGasLondon(ctx context.Context, baseFee *big.Int) (*big.Int, *big.Int, error) {
 	var maxPriorityFeePerGas *big.Int
 	var maxFeePerGas *big.Int
 
-	//if c.maxGasPrice.Cmp(baseFee) < 0 {
-	//	maxPriorityFeePerGas = big.NewInt(1000000000)
-	//	maxFeePerGas = new(big.Int).Add(c.maxGasPrice, maxPriorityFeePerGas)
-	//	return maxPriorityFeePerGas, maxFeePerGas, nil
-	//}
-	//
-	//maxPriorityFeePerGas, err := c.conn.SuggestGasTipCap(context.TODO())
-	//if err != nil {
-	//	return nil, nil, err
-	//}
-	//
-	//maxFeePerGas = new(big.Int).Add(
-	//	maxPriorityFeePerGas,
-	//	new(big.Int).Mul(baseFee, big.NewInt(2)),
-	//)
-	//
-	//if maxFeePerGas.Cmp(maxPriorityFeePerGas) < 0 {
-	//	return nil, nil, fmt.Errorf("maxFeePerGas (%v) < maxPriorityFeePerGas (%v)", maxFeePerGas, maxPriorityFeePerGas)
-	//}
-	//
-	//// Check we aren't exceeding our limit
-	//if maxFeePerGas.Cmp(c.maxGasPrice) == 1 {
-	//	maxPriorityFeePerGas.Sub(c.maxGasPrice, baseFee)
-	//	maxFeePerGas = c.maxGasPrice
-	//}
+	if c.maxGasPrice.Cmp(baseFee) < 0 {
+		maxPriorityFeePerGas = big.NewInt(1000000000)
+		maxFeePerGas = new(big.Int).Add(c.maxGasPrice, maxPriorityFeePerGas)
+		return maxPriorityFeePerGas, maxFeePerGas, nil
+	}
+
+	maxPriorityFeePerGas, err := c.conn.SuggestGasTipCap(context.TODO())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	maxFeePerGas = new(big.Int).Add(
+		maxPriorityFeePerGas,
+		new(big.Int).Mul(baseFee, big.NewInt(2)),
+	)
+
+	if maxFeePerGas.Cmp(maxPriorityFeePerGas) < 0 {
+		return nil, nil, fmt.Errorf("maxFeePerGas (%v) < maxPriorityFeePerGas (%v)", maxFeePerGas, maxPriorityFeePerGas)
+	}
+
+	// Check we aren't exceeding our limit
+	if maxFeePerGas.Cmp(c.maxGasPrice) == 1 {
+		maxPriorityFeePerGas.Sub(c.maxGasPrice, baseFee)
+		maxFeePerGas = c.maxGasPrice
+	}
 	return maxPriorityFeePerGas, maxFeePerGas, nil
 }
 
@@ -177,45 +177,45 @@ func multiplyGasPrice(gasEstimate *big.Int, gasMultiplier *big.Float) *big.Int {
 // and gas price.
 func (c *Connection) LockAndUpdateOpts() error {
 	c.optsLock.Lock()
-	//
-	//head, err := c.conn.HeaderByNumber(context.TODO(), nil)
-	//// cos map chain dont have this section in return,this err will be raised
-	//if err != nil && err.Error() != "missing required field 'sha3Uncles' for Header" {
-	//	c.UnlockOpts()
-	//	c.log.Error("LockAndUpdateOpts HeaderByNumber", "err", err)
-	//	return err
-	//}
-	//
-	//if head.BaseFee != nil {
-	//	c.opts.GasTipCap, c.opts.GasFeeCap, err = c.EstimateGasLondon(context.TODO(), head.BaseFee)
-	//
-	//	// Both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) cannot be specified: https://github.com/ethereum/go-ethereum/blob/95bbd46eabc5d95d9fb2108ec232dd62df2f44ab/accounts/abi/bind/base.go#L254
-	//	c.opts.GasPrice = nil
-	//	if err != nil {
-	//		// if EstimateGasLondon failed, fall back to suggestGasPrice
-	//		c.opts.GasPrice, err = c.conn.SuggestGasPrice(context.TODO())
-	//		if err != nil {
-	//			c.UnlockOpts()
-	//			return err
-	//		}
-	//	}
-	//	c.log.Info("LockAndUpdateOpts ", "head.BaseFee", head.BaseFee)
-	//} else {
-	//	var gasPrice *big.Int
-	//	gasPrice, err = c.SafeEstimateGas(context.TODO())
-	//	if err != nil {
-	//		c.UnlockOpts()
-	//		return err
-	//	}
-	//	c.opts.GasPrice = gasPrice
-	//}
-	//
-	//nonce, err := c.conn.PendingNonceAt(context.Background(), c.opts.From)
-	//if err != nil {
-	//	c.optsLock.Unlock()
-	//	return err
-	//}
-	//c.opts.Nonce.SetUint64(nonce)
+
+	head, err := c.conn.HeaderByNumber(context.TODO(), nil)
+	// cos map chain dont have this section in return,this err will be raised
+	if err != nil && err.Error() != "missing required field 'sha3Uncles' for Header" {
+		c.UnlockOpts()
+		c.log.Error("LockAndUpdateOpts HeaderByNumber", "err", err)
+		return err
+	}
+
+	if head.BaseFee != nil {
+		c.opts.GasTipCap, c.opts.GasFeeCap, err = c.EstimateGasLondon(context.TODO(), head.BaseFee)
+
+		// Both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) cannot be specified: https://github.com/ethereum/go-ethereum/blob/95bbd46eabc5d95d9fb2108ec232dd62df2f44ab/accounts/abi/bind/base.go#L254
+		c.opts.GasPrice = nil
+		if err != nil {
+			// if EstimateGasLondon failed, fall back to suggestGasPrice
+			c.opts.GasPrice, err = c.conn.SuggestGasPrice(context.TODO())
+			if err != nil {
+				c.UnlockOpts()
+				return err
+			}
+		}
+		c.log.Info("LockAndUpdateOpts ", "head.BaseFee", head.BaseFee)
+	} else {
+		var gasPrice *big.Int
+		gasPrice, err = c.SafeEstimateGas(context.TODO())
+		if err != nil {
+			c.UnlockOpts()
+			return err
+		}
+		c.opts.GasPrice = gasPrice
+	}
+
+	nonce, err := c.conn.PendingNonceAt(context.Background(), c.opts.From)
+	if err != nil {
+		c.optsLock.Unlock()
+		return err
+	}
+	c.opts.Nonce.SetUint64(nonce)
 	return nil
 }
 
