@@ -5,6 +5,7 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/pkg/errors"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
@@ -65,28 +66,28 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	var listen chains.Listener
 	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMaintainer {
-		//fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
-		//height, err := fn()
-		//if err != nil {
-		//	return nil, errors.Wrap(err, "klaytn get init headerHeight failed")
-		//}
-		//logger.Info("map2Klaytn Current situation", "height", height, "lightNode", cfg.LightNode)
-		//mapprotocol.SyncOtherMap[cfg.Id] = height
-		//mapprotocol.Map2OtherHeight[cfg.Id] = fn
+		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
+		height, err := fn()
+		if err != nil {
+			return nil, errors.Wrap(err, "klaytn get init headerHeight failed")
+		}
+		logger.Info("map2Klaytn Current situation", "height", height, "lightNode", cfg.LightNode)
+		mapprotocol.SyncOtherMap[cfg.Id] = height
+		mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		listen = NewMaintainer(cs, conn.KClient())
 	} else if role == mapprotocol.RoleOfMessenger {
 		err = conn.EnsureHasBytecode(cfg.McsContract)
 		if err != nil {
 			return nil, err
 		}
-		//// verify range
-		//fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
-		//left, right, err := fn()
-		//if err != nil {
-		//	return nil, errors.Wrap(err, "kalytn get init verifyHeight failed")
-		//}
-		//logger.Info("Map2Klaytn Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
-		//mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
+		// verify range
+		fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
+		left, right, err := fn()
+		if err != nil {
+			return nil, errors.Wrap(err, "kalytn get init verifyHeight failed")
+		}
+		logger.Info("Map2Klaytn Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
+		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		listen = NewMessenger(cs, conn.KClient())
 	}
 	wri := w.New(conn, cfg, logger, stop, sysErr, m)
