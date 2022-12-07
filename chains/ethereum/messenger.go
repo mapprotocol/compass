@@ -186,7 +186,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-			_, toChainID, payload, err := utils.ParseMapLogIntoSwapWithProofArgsV2(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID)
+			_, toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
