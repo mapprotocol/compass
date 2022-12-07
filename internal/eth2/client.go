@@ -1,16 +1,11 @@
 package eth2
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"io"
-	"io/ioutil"
-	"math/big"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -28,7 +23,7 @@ var ErrNoResult = errors.New("no result in JSON-RPC response")
 
 type Client struct {
 	client    *http.Client
-	url       string
+	endpoint  string
 	closeOnce sync.Once
 	closch    chan interface{}
 	mu        sync.Mutex // protcts headers
@@ -37,7 +32,7 @@ type Client struct {
 	idCounter uint32
 }
 
-func DialHttp(endpoint string, isHttp bool) (*Client, error) {
+func DialHttp(endpoint string) (*Client, error) {
 	// Sanity chck URL so we don't end up with a client that will fail every request.
 	_, err := url.Parse(endpoint)
 	if err != nil {
@@ -49,7 +44,7 @@ func DialHttp(endpoint string, isHttp bool) (*Client, error) {
 	headers.Set("content-type", contentType)
 	return &Client{
 		client:    new(http.Client),
-		url:       endpoint,
+		endpoint:  endpoint,
 		closeOnce: sync.Once{},
 		closch:    make(chan interface{}),
 		mu:        sync.Mutex{},
@@ -57,37 +52,10 @@ func DialHttp(endpoint string, isHttp bool) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) BeaconHeaders(ctx context.Context, number *big.Int) (*BeaconHeadersResp, error) {
-	return c.getBlock(ctx, "klay_getBlockByNumber", toBlockNumArg(number), true)
-}
-
-func toBlockNumArg(number *big.Int) string {
-	if number == nil {
-		return "latest"
-	}
-	pending := big.NewInt(-1)
-	if number.Cmp(pending) == 0 {
-		return "pending"
-	}
-	return hexutil.EncodeBig(number)
-}
-
-func (c *Client) getBlock(ctx context.Context, method string, args ...interface{}) (*RpcHeader, error) {
-	var raw json.RawMessage
-	err := c.CallContext(ctx, &raw, method, args...)
-	if err != nil {
-		return nil, err
-	} else if len(raw) == 0 {
-		return nil, ethereum.NotFound
-	}
-
-	data, err := raw.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-
-	var ret RpcHeader
-	err = json.Unmarshal(data, &ret)
+func (c *Client) BeaconHeaders(ctx context.Context, blockId string) (*BeaconHeadersResp, error) {
+	urlPath := fmt.Sprintf("%s/%s/%s", c.endpoint, "eth/v1/beacon/headers", blockId)
+	var ret BeaconHeadersResp
+	err := c.CallContext(ctx, urlPath, &ret)
 	if err != nil {
 		return nil, err
 	}
@@ -95,12 +63,7 @@ func (c *Client) getBlock(ctx context.Context, method string, args ...interface{
 }
 
 type jsonrpcMessage struct {
-	Version string          `json:"jsonrpc,omitempty"`
-	ID      json.RawMessage `json:"id,omitempty"`
-	Method  string          `json:"method,omitempty"`
-	Params  json.RawMessage `json:"params,omitempty"`
-	Error   *jsonError      `json:"error,omitempty"`
-	Result  json.RawMessage `json:"result,omitempty"`
+	Result json.RawMessage `json:"result,omitempty"`
 }
 
 type jsonError struct {
@@ -131,17 +94,14 @@ func (op *requestOp) wait(ctx context.Context) (*jsonrpcMessage, error) {
 	}
 }
 
-func (c *Client) CallContext(ctx context.Context, result interface{}, method string, args ...interface{}) error {
+func (c *Client) CallContext(ctx context.Context, url string, result interface{}) error {
 	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
 		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
 	}
-	msg, err := c.newMessage(method, args...)
-	if err != nil {
-		return err
-	}
-	op := &requestOp{ids: []json.RawMessage{msg.ID}, resp: make(chan *jsonrpcMessage, 1)}
 
-	err = c.sendHTTP(ctx, op, msg)
+	op := &requestOp{ids: []json.RawMessage{c.nextID()}, resp: make(chan *jsonrpcMessage, 1)}
+
+	err := c.sendHTTP(ctx, url, op)
 	if err != nil {
 		return err
 	}
@@ -164,19 +124,8 @@ func (c *Client) nextID() json.RawMessage {
 	return strconv.AppendUint(nil, uint64(id), 10)
 }
 
-func (c *Client) newMessage(method string, paramsIn ...interface{}) (*jsonrpcMessage, error) {
-	msg := &jsonrpcMessage{Version: vsn, ID: c.nextID(), Method: method}
-	if paramsIn != nil { // prevent sending "params":null
-		var err error
-		if msg.Params, err = json.Marshal(paramsIn); err != nil {
-			return nil, err
-		}
-	}
-	return msg, nil
-}
-
-func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg interface{}) error {
-	respBody, err := c.doRequest(ctx, msg)
+func (c *Client) sendHTTP(ctx context.Context, url string, op *requestOp) error {
+	respBody, err := c.doRequest(ctx, url)
 	if err != nil {
 		return err
 	}
@@ -190,16 +139,11 @@ func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg interface{}) e
 	return nil
 }
 
-func (c *Client) doRequest(ctx context.Context, msg interface{}) (io.ReadCloser, error) {
-	body, err := json.Marshal(msg)
+func (c *Client) doRequest(ctx context.Context, url string) (io.ReadCloser, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, "POST", c.url, ioutil.NopCloser(bytes.NewReader(body)))
-	if err != nil {
-		return nil, err
-	}
-	req.ContentLength = int64(len(body))
 
 	// set headers
 	c.mu.Lock()
@@ -218,12 +162,7 @@ func (c *Client) doRequest(ctx context.Context, msg interface{}) (io.ReadCloser,
 		//	body = buf.Bytes()
 		//}
 
-		return nil, nil
-		//return nil, HTTPError{
-		//	Status:     resp.Status,
-		//	StatusCode: resp.StatusCode,
-		//	Body:       body,
-		//}
+		return nil, fmt.Errorf("eth2 doRequest failed, code %v", resp.StatusCode)
 	}
 	return resp.Body, nil
 }

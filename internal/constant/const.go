@@ -65,3 +65,9 @@ var (
 	ChainTypeError               = "chain type error"
 	ChainTypeErrorPrint          = "chain type error, will retry"
 )
+
+const (
+	FinalBlockIdOfEth2   = "finalized"
+	HeadBlockIdOfEth2    = "head"
+	GenesisBlockIdOfEth2 = "genesis"
+)
