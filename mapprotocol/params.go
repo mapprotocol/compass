@@ -25,6 +25,7 @@ const (
 	MethodOfIsUsedEvent         = "is_used_event"
 	MethodOfGetBytes            = "getBytes"
 	MethodOfGetHeadersBytes     = "getHeadersBytes"
+	MethodOfGetConfirms         = "confirms"
 )
 
 const (
@@ -73,8 +74,14 @@ type Role string
 var (
 	RoleOfMaintainer Role = "maintainer"
 	RoleOfMessenger  Role = "messenger"
+	RoleOfMonitor    Role = "monitor"
 )
 
 var (
 	OnlineChaId = map[msg.ChainId]string{}
+)
+
+var (
+	ConfirmsOfMatic    = big.NewInt(10)
+	InputOfConfirms, _ = PackInput(Matic, MethodOfGetConfirms)
 )

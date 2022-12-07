@@ -163,13 +163,13 @@ type MapTxProve struct {
 	TxIndex     uint
 }
 
-func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
+func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
 	header *maptypes.Header, fId msg.ChainId) (uint64, uint64, []byte, error) {
 	//toChainID := log.Data[128:160]
 	toChainID := log.Topics[2]
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
-	aggPK, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
+	aggPK, ist, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return 0, 0, nil, err
 	}
@@ -183,22 +183,38 @@ func ParseMapLogIntoSwapWithProofArgsV2(cli *ethclient.Client, log types.Log, re
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := Key2Hex(key, len(proof))
-	// name, ok := mapprotocol.OnlineChaId[cid]; ok && strings.ToLower(name) == "near"
-	//if _, ok := chains.NearChainId[msg.ChainId(uToChainID)]; !ok {
 	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
-		rp := mapprotocol.ReceiptProof{
+		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
+		nr := mapprotocol.MapTxReceipt{
+			PostStateOrStatus: receipt.PostStateOrStatus,
+			CumulativeGasUsed: receipt.CumulativeGasUsed,
+			Bloom:             receipt.Bloom,
+			Logs:              receipt.Logs,
+		}
+
+		nrRlp, err := rlp.EncodeToBytes(nr)
+		if err != nil {
+			return 0, 0, nil, err
+		}
+		rp := mapprotocol.NewMapReceiptProof{
 			Header:   mapprotocol.ConvertHeader(header),
 			AggPk:    aggPK,
-			Receipt:  receipt,
 			KeyIndex: ek,
 			Proof:    proof,
+			Ist:      *istanbulExtra,
+			TxReceiptRlp: mapprotocol.TxReceiptRlp{
+				ReceiptType: receipt.ReceiptType,
+				ReceiptRlp:  nrRlp,
+			},
 		}
 
 		pack, err := mapprotocol.Mcs.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp)
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
+
 		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfTransferIn, big.NewInt(0).SetUint64(uint64(fId)), pack)
+		//payloads, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
 		}

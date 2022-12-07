@@ -19,9 +19,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/mapprotocol/compass/chains/near"
-
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/chains/near"
+	chain2 "github.com/mapprotocol/compass/internal/chain"
 
 	"strconv"
 
@@ -81,6 +81,10 @@ var registerFlags = []cli.Flag{
 var bindFlags = []cli.Flag{
 	config.Relayer,
 	config.Worker,
+}
+
+var monitorFlags = []cli.Flag{
+	config.ConfigFileFlag,
 }
 
 var accountCommand = cli.Command{
@@ -160,6 +164,14 @@ var messengerCommand = cli.Command{
 	Flags:       append(app.Flags, cliFlags...),
 }
 
+var monitorCommand = cli.Command{
+	Name:        "monitor",
+	Usage:       "monitor account balance",
+	Description: "The messenger command is used to sync the log information of transactions in the block",
+	Action:      monitor,
+	Flags:       append(app.Flags, monitorFlags...),
+}
+
 var (
 	Version = "1.0.0"
 )
@@ -177,6 +189,7 @@ func init() {
 		&accountCommand,
 		&maintainerCommand,
 		&messengerCommand,
+		&monitorCommand,
 	}
 
 	app.Flags = append(app.Flags, cliFlags...)
@@ -211,6 +224,10 @@ func maintainer(ctx *cli.Context) error {
 
 func messenger(ctx *cli.Context) error {
 	return run(ctx, mapprotocol.RoleOfMessenger)
+}
+
+func monitor(ctx *cli.Context) error {
+	return run(ctx, mapprotocol.RoleOfMonitor)
 }
 
 func run(ctx *cli.Context, role mapprotocol.Role) error {
@@ -293,9 +310,9 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			if idx == 0 {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
-				//mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
-				//mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
-				mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[ethereum.LightNode]))
+				//mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
+				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
+				mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 			}
 		} else if chain.Type == chains.Near {
 			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role)

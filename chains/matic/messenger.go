@@ -4,18 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/matic"
 	"github.com/mapprotocol/compass/internal/tx"
-	"math/big"
-	"time"
-
 	"github.com/mapprotocol/compass/mapprotocol"
-
 	"github.com/mapprotocol/compass/msg"
-
-	ethcommon "github.com/ethereum/go-ethereum/common"
 )
 
 type Messenger struct {
@@ -168,12 +167,22 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
 
-			header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
-			if err != nil {
-				return 0, fmt.Errorf("getHeader failed, err is %v", err)
+			headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
+			for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
+				headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
+				tmp, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+				if err != nil {
+					return 0, fmt.Errorf("getHeader failed, err is %v", err)
+				}
+				headers[i] = tmp
 			}
 
-			payload, err := matic.AssembleProof(header, log, m.Cfg.Id, receipts, method)
+			mHeaders := make([]matic.BlockHeader, 0, len(headers))
+			for _, h := range headers {
+				mHeaders = append(mHeaders, matic.ConvertHeader(h))
+			}
+
+			payload, err := matic.AssembleProof(mHeaders, log, m.Cfg.Id, receipts, method)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
