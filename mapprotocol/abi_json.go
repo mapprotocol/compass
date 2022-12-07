@@ -1088,6 +1088,217 @@ const (
 		}
 	]
 	`
+	KlaytnAbiJson = `[
+	{
+	  "inputs": [
+		{
+		  "components": [
+			{
+			  "internalType": "bytes",
+			  "name": "parentHash",
+			  "type": "bytes"
+			},
+			{
+			  "internalType": "address",
+			  "name": "reward",
+			  "type": "address"
+			},
+			{
+			  "internalType": "bytes",
+			  "name": "stateRoot",
+			  "type": "bytes"
+			},
+			{
+			  "internalType": "bytes",
+			  "name": "transactionsRoot",
+			  "type": "bytes"
+			},
+			{
+			  "internalType": "bytes",
+			  "name": "receiptsRoot",
+			  "type": "bytes"
+			},
+			{
+			  "internalType": "bytes",
+			  "name": "logsBloom",
+			  "type": "bytes"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "blockScore",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "number",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "gasUsed",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "timestamp",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "timestampFoS",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "bytes",
+			  "name": "extraData",
+			  "type": "bytes"
+			},
+			{
+			  "internalType": "bytes",
+			  "name": "governanceData",
+			  "type": "bytes"
+			},
+			{
+			  "internalType": "bytes",
+			  "name": "voteData",
+			  "type": "bytes"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "baseFee",
+			  "type": "uint256"
+			}
+		  ],
+		  "internalType": "struct ILightNodePoint.BlockHeader[]",
+		  "name": "_blockHeaders",
+		  "type": "tuple[]"
+		}
+	  ],
+	  "name": "getHeadersBytes",
+	  "outputs": [
+		{
+		  "internalType": "bytes",
+		  "name": "",
+		  "type": "bytes"
+		}
+	  ],
+	  "stateMutability": "pure",
+	  "type": "function"
+	},
+	{
+		"inputs":[
+			{
+				"components":[
+					{
+						"components":[
+							{
+								"internalType":"bytes",
+								"name":"parentHash",
+								"type":"bytes"
+							},
+							{
+								"internalType":"address",
+								"name":"reward",
+								"type":"address"
+							},
+							{
+								"internalType":"bytes",
+								"name":"stateRoot",
+								"type":"bytes"
+							},
+							{
+								"internalType":"bytes",
+								"name":"transactionsRoot",
+								"type":"bytes"
+							},
+							{
+								"internalType":"bytes",
+								"name":"receiptsRoot",
+								"type":"bytes"
+							},
+							{
+								"internalType":"bytes",
+								"name":"logsBloom",
+								"type":"bytes"
+							},
+							{
+								"internalType":"uint256",
+								"name":"blockScore",
+								"type":"uint256"
+							},
+							{
+								"internalType":"uint256",
+								"name":"number",
+								"type":"uint256"
+							},
+							{
+								"internalType":"uint256",
+								"name":"gasUsed",
+								"type":"uint256"
+							},
+							{
+								"internalType":"uint256",
+								"name":"timestamp",
+								"type":"uint256"
+							},
+							{
+								"internalType":"uint256",
+								"name":"timestampFoS",
+								"type":"uint256"
+							},
+							{
+								"internalType":"bytes",
+								"name":"extraData",
+								"type":"bytes"
+							},
+							{
+								"internalType":"bytes",
+								"name":"governanceData",
+								"type":"bytes"
+							},
+							{
+								"internalType":"bytes",
+								"name":"voteData",
+								"type":"bytes"
+							},
+							{
+								"internalType":"uint256",
+								"name":"baseFee",
+								"type":"uint256"
+							}
+						],
+						"internalType":"struct ILightNodePoint.BlockHeader",
+						"name":"header",
+						"type":"tuple"
+					},
+					{
+						"internalType":"bytes[]",
+						"name":"receipts",
+						"type":"bytes[]"
+					},
+					{
+						"internalType":"uint256",
+						"name":"logIndex",
+						"type":"uint256"
+					}
+				],
+				"internalType":"struct ILightNodePoint.ReceiptProof",
+				"name":"_proof",
+				"type":"tuple"
+			}
+		],
+		"name":"getBytes",
+		"outputs":[
+			{
+				"internalType":"bytes",
+				"name":"",
+				"type":"bytes"
+			}
+		],
+		"stateMutability":"pure",
+		"type":"function"
+	}]
+	`
 	HeightAbiJson = `
 	[
 		{
