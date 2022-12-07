@@ -172,7 +172,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 
 	input, err := mapprotocol.Matic.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(mHeaders)
 	if err != nil {
-		m.Log.Error("failed to abi pack", "err", err)
+		m.Log.Error("Failed to abi pack", "err", err)
 		return err
 	}
 
@@ -182,7 +182,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 
 	err = m.Router.Send(message)
 	if err != nil {
-		m.Log.Error("subscription error: failed to route message", "err", err)
+		m.Log.Error("Subscription error: failed to route message", "err", err)
 		return err
 	}
 
