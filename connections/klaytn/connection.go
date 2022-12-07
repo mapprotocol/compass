@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/connections/ethereum/egs"
 	"github.com/mapprotocol/compass/internal/klaytn"
 	"math/big"
@@ -77,7 +78,44 @@ func (c *Connection) Connect() error {
 	c.conn = ethclient.NewClient(client)
 	c.kConn = kc
 	c.callOpts = &bind.CallOpts{From: c.kp.CommonAddress()}
+
+	// Construct tx opts, call opts, and nonce mechanism
+	opts, _, err := c.newTransactOpts(big.NewInt(0), c.gasLimit, c.maxGasPrice)
+	if err != nil {
+		return err
+	}
+	c.opts = opts
+
 	return nil
+}
+
+// newTransactOpts builds the TransactOpts for the connection's keypair.
+func (c *Connection) newTransactOpts(value, gasLimit, gasPrice *big.Int) (*bind.TransactOpts, uint64, error) {
+	privateKey := c.kp.PrivateKey()
+	address := ethcrypto.PubkeyToAddress(privateKey.PublicKey)
+
+	nonce, err := c.conn.PendingNonceAt(context.Background(), address)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	id, err := c.conn.ChainID(context.Background())
+	if err != nil {
+		return nil, 0, err
+	}
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, id)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = value
+	auth.GasLimit = uint64(gasLimit.Int64())
+	auth.GasPrice = gasPrice
+	auth.Context = context.Background()
+
+	return auth, nonce, nil
 }
 
 func (c *Connection) Keypair() *secp256k1.Keypair {
