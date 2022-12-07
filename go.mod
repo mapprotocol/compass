@@ -6,7 +6,6 @@ require (
 	github.com/ChainSafe/chainbridge-utils v1.0.6
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/VictoriaMetrics/fastcache v1.10.0 // indirect
-	github.com/btcsuite/btcd v0.22.1 // indirect
 	github.com/centrifuge/go-substrate-rpc-client v2.0.0+incompatible // indirect
 	github.com/edsrzf/mmap-go v1.1.0 // indirect
 	github.com/ethereum/go-ethereum v1.10.10
@@ -16,6 +15,7 @@ require (
 	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/klaytn/rosetta-sdk-go-klaytn v0.7.10
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd
 	github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5

@@ -1,29 +1,31 @@
-package matic
+package klaytn
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/klaytn"
+	"github.com/mapprotocol/compass/internal/tx"
 	"math/big"
 	"time"
 
-	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/internal/chain"
-	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/internal/matic"
-	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+
+	ethcommon "github.com/ethereum/go-ethereum/common"
 )
 
 type Messenger struct {
 	*chain.CommonSync
+	kClient *klaytn.Client
 }
 
-func NewMessenger(cs *chain.CommonSync) *Messenger {
+func NewMessenger(cs *chain.CommonSync, kc *klaytn.Client) *Messenger {
 	return &Messenger{
 		CommonSync: cs,
+		kClient:    kc,
 	}
 }
 
@@ -70,7 +72,8 @@ func (m *Messenger) sync() error {
 			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				time.Sleep(constant.RetryLongInterval)
+				retry--
+				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
 
@@ -83,18 +86,18 @@ func (m *Messenger) sync() error {
 				m.Log.Warn("Get2MapVerifyRange failed", "err", err)
 			}
 			if right != nil && right.Uint64() != 0 && right.Cmp(currentBlock) == -1 {
-				m.Log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "rightVerify", right)
+				m.Log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "maxVerify", right)
 				time.Sleep(time.Minute)
 				continue
 			}
 			if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
 				currentBlock = left
-				m.Log.Info("min verify range greater than currentBlock, set current equal left ", "currentBlock", latestBlock, "minVerify", left)
+				m.Log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
 			}
 
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
-				m.Log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
+				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
@@ -132,11 +135,6 @@ func (m *Messenger) sync() error {
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
-	if left != nil && left.Uint64() != 0 && left.Cmp(latestBlock) == 1 {
-		m.Log.Info("min verify range greater than currentBlock, skip ", "currentBlock", latestBlock, "minVerify", left)
-		return 0, nil
-	}
-
 	m.Log.Debug("Querying block for events", "block", latestBlock)
 	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
 	// querying for logs
@@ -158,7 +156,7 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 				method = mapprotocol.MethodOfDepositIn
 			}
 			// when syncToMap we need to assemble a tx proof
-			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
+			txsHash, err := klaytn.GetTxsHashByBlockNumber(m.kClient, latestBlock)
 			if err != nil {
 				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 			}
@@ -166,23 +164,17 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-
-			headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
-			for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
-				headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
-				tmp, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
-				if err != nil {
-					return 0, fmt.Errorf("getHeader failed, err is %v", err)
-				}
-				headers[i] = tmp
+			// get block
+			header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
+			if err != nil {
+				return 0, err
+			}
+			kHeader, err := m.kClient.BlockByNumber(context.Background(), latestBlock)
+			if err != nil {
+				return 0, err
 			}
 
-			mHeaders := make([]matic.BlockHeader, 0, len(headers))
-			for _, h := range headers {
-				mHeaders = append(mHeaders, matic.ConvertHeader(h))
-			}
-
-			payload, err := matic.AssembleProof(mHeaders, log, m.Cfg.Id, receipts, method)
+			payload, err := klaytn.AssembleProof(klaytn.ConvertContractHeader(header, kHeader), log, m.Cfg.Id, receipts, method)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
@@ -190,10 +182,11 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
 			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", ethcommon.Bytes2Hex(orderId))
 			err = m.Router.Send(message)
 			if err != nil {
-				m.Log.Error("subscription error: failed to route message", "err", err)
+				m.Log.Error("Subscription error: failed to route message", "err", err)
 			}
 			count++
 		}

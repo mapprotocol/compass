@@ -1,30 +1,29 @@
-package bsc
+package klaytn
 
 import (
 	"context"
-	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/klaytn"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"time"
 
-	"github.com/mapprotocol/compass/internal/bsc"
-
+	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
-
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
 )
 
 type Maintainer struct {
 	*chain.CommonSync
 	syncedHeight *big.Int
+	kClient      *klaytn.Client
 }
 
-func NewMaintainer(cs *chain.CommonSync) *Maintainer {
+func NewMaintainer(cs *chain.CommonSync, kc *klaytn.Client) *Maintainer {
 	return &Maintainer{
 		CommonSync:   cs,
 		syncedHeight: new(big.Int),
+		kClient:      kc,
 	}
 }
 
@@ -62,7 +61,7 @@ func (m Maintainer) sync() error {
 		if syncedHeight.Cmp(currentBlock) != 0 {
 			m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
 				"syncedHeight", syncedHeight, "currentBlock", currentBlock)
-			currentBlock.Add(syncedHeight, new(big.Int).SetInt64(mapprotocol.HeaderCountOfBsc))
+			currentBlock.Add(syncedHeight, new(big.Int)) // .SetInt64(mapprotocol.EpochOfKlaytn)
 		}
 	}
 
@@ -82,7 +81,7 @@ func (m Maintainer) sync() error {
 			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.RetryLongInterval)
 				continue
 			}
 
@@ -90,19 +89,19 @@ func (m Maintainer) sync() error {
 				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
+			// latestBlock must less than blockNumber of chain online，otherwise time.sleep
+			difference := new(big.Int).Sub(currentBlock, latestBlock)
+			if difference.Int64() > 0 {
+				m.Log.Info("Chain online blockNumber less than local block height, waiting...", "onlineHeight", latestBlock,
+					"localHeight", currentBlock, "waiting", difference.Int64())
+				time.Sleep(constant.BlockRetryInterval * time.Duration(difference.Int64()))
+			}
+
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.BlockRetryInterval)
 				continue
-			}
-
-			// latestBlock must less than blockNumber of chain online，otherwise time.sleep
-			difference := new(big.Int).Sub(currentBlock, latestBlock)
-			if difference.Int64() > 0 {
-				m.Log.Info("chain online blockNumber less than local latestBlock, waiting...", "chainBlcNum", latestBlock,
-					"localBlock", currentBlock, "waiting", difference.Int64())
-				time.Sleep(constant.BlockRetryInterval * time.Duration(difference.Int64()))
 			}
 
 			if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
@@ -130,7 +129,7 @@ func (m Maintainer) sync() error {
 			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)
 			m.LatestBlock.LastUpdated = time.Now()
 
-			currentBlock.Add(currentBlock, big.NewInt(1))
+			currentBlock.Add(currentBlock, big.NewInt(3600))
 			retry = constant.BlockRetryLimit
 		}
 	}
@@ -138,13 +137,14 @@ func (m Maintainer) sync() error {
 
 // syncHeaderToMap listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
-	// epcoh check
-	remainder := big.NewInt(0).Mod(new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(mapprotocol.HeaderCountOfBsc-1)),
-		big.NewInt(mapprotocol.EpochOfBsc))
+	remainder := big.NewInt(0).Mod(new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(mapprotocol.HeaderCountOfKlaytn-1)),
+		big.NewInt(mapprotocol.EpochOfKlaytn))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
-	// synced height check
+
+	m.Log.Info("Find sync block", "current height", latestBlock)
+	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
 	if err != nil {
 		m.Log.Error("Get current synced Height failed", "err", err)
@@ -155,22 +155,23 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 			"current height", latestBlock)
 		return nil
 	}
-	m.Log.Info("find sync block", "current height", latestBlock)
-	headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
-	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
+
+	headers := make([]klaytn.Header, mapprotocol.HeaderCountOfKlaytn)
+	for i := 0; i < mapprotocol.HeaderCountOfKlaytn; i++ {
 		headerHeight := new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(int64(i)))
 		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
 		if err != nil {
 			return err
 		}
-		headers[mapprotocol.HeaderCountOfBsc-i-1] = *header
+		hKheader, err := m.kClient.BlockByNumber(context.Background(), headerHeight)
+		if err != nil {
+			return err
+		}
+
+		headers[mapprotocol.HeaderCountOfKlaytn-i-1] = klaytn.ConvertContractHeader(header, hKheader)
 	}
 
-	params := make([]bsc.Header, 0, len(headers))
-	for _, h := range headers {
-		params = append(params, bsc.ConvertHeader(h))
-	}
-	input, err := mapprotocol.Bsc.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(params)
+	input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(headers)
 	if err != nil {
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
