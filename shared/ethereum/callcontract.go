@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -183,7 +184,8 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := Key2Hex(key, len(proof))
-	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
+	//if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
+	if name, _ := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; strings.ToLower(name) != "near" {
 		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 		nr := mapprotocol.MapTxReceipt{
 			PostStateOrStatus: receipt.PostStateOrStatus,
@@ -213,6 +215,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
 
+		fmt.Println("getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
 		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfTransferIn, big.NewInt(0).SetUint64(uint64(fId)), pack)
 		//payloads, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {

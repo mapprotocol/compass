@@ -150,8 +150,10 @@ func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
 		orderId := log.Data[:32]
 		if m.Cfg.SyncToMap {
 			method := mapprotocol.MethodOfTransferIn
-			if log.Topics[0] != mapprotocol.HashOfTransferIn {
+			if log.Topics[0] == mapprotocol.HashOfDepositIn {
 				method = mapprotocol.MethodOfDepositIn
+			} else if log.Topics[0] == mapprotocol.HashOfSwapIn {
+				method = mapprotocol.MethodOfSwapIn
 			}
 			// when syncToMap we need to assemble a tx proof
 			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)

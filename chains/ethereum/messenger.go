@@ -144,6 +144,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
+	fmt.Println("latestBlock ----- ", latestBlock, " logs -------- ", len(logs))
 	count := 0
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
@@ -153,8 +154,10 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		orderId := log.Data[:32]
 		if m.Cfg.SyncToMap {
 			method := mapprotocol.MethodOfTransferIn
-			if log.Topics[0] != mapprotocol.HashOfTransferIn {
+			if log.Topics[0] == mapprotocol.HashOfDepositIn {
 				method = mapprotocol.MethodOfDepositIn
+			} else if log.Topics[0] == mapprotocol.HashOfSwapIn {
+				method = mapprotocol.MethodOfSwapIn
 			}
 			// when syncToMap we need to assemble a tx proof
 			txsHash, err := getTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
