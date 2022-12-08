@@ -2,6 +2,7 @@ package matic
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"time"
 
@@ -158,6 +159,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
 	for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
 		headerHeight := new(big.Int).Add(startBlock, new(big.Int).SetInt64(int64(i)))
+		m.Log.Info("find sync block", "headerHeight", headerHeight)
 		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
 		if err != nil {
 			return err
@@ -167,7 +169,9 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 
 	mHeaders := make([]matic.BlockHeader, 0, len(headers))
 	for _, h := range headers {
-		mHeaders = append(mHeaders, matic.ConvertHeader(h))
+		mh := matic.ConvertHeader(h)
+		m.Log.Info("find sync block -------- ", "input", mh.Number)
+		mHeaders = append(mHeaders, mh)
 	}
 
 	input, err := mapprotocol.Matic.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(mHeaders)
@@ -176,6 +180,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 		return err
 	}
 
+	m.Log.Info("find sync block -------- ", "input", "0x"+common.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
