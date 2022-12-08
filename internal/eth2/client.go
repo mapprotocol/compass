@@ -62,10 +62,6 @@ func (c *Client) BeaconHeaders(ctx context.Context, blockId string) (*BeaconHead
 	return &ret, nil
 }
 
-type jsonrpcMessage struct {
-	Result json.RawMessage `json:"result,omitempty"`
-}
-
 type jsonError struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
@@ -82,10 +78,10 @@ func (err *jsonError) Error() string {
 type requestOp struct {
 	ids  []json.RawMessage
 	err  error
-	resp chan *jsonrpcMessage // receives up to len(ids) responses
+	resp chan *CommonData // receives up to len(ids) responses
 }
 
-func (op *requestOp) wait(ctx context.Context) (*jsonrpcMessage, error) {
+func (op *requestOp) wait(ctx context.Context) (*CommonData, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -99,7 +95,7 @@ func (c *Client) CallContext(ctx context.Context, url string, result interface{}
 		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
 	}
 
-	op := &requestOp{ids: []json.RawMessage{c.nextID()}, resp: make(chan *jsonrpcMessage, 1)}
+	op := &requestOp{ids: []json.RawMessage{c.nextID()}, resp: make(chan *CommonData, 1)}
 
 	err := c.sendHTTP(ctx, url, op)
 	if err != nil {
@@ -110,12 +106,13 @@ func (c *Client) CallContext(ctx context.Context, url string, result interface{}
 	switch resp, err := op.wait(ctx); {
 	case err != nil:
 		return err
-	case resp.Error != nil:
-		return resp.Error
-	case len(resp.Result) == 0:
+	case resp.StatusCode == 404:
 		return ErrNoResult
+	case resp.Error != "":
+		return errors.New(resp.Error)
 	default:
-		return json.Unmarshal(resp.Result, &result)
+		data, _ := json.Marshal(resp.Data)
+		return json.Unmarshal(data, &result)
 	}
 }
 
@@ -131,11 +128,11 @@ func (c *Client) sendHTTP(ctx context.Context, url string, op *requestOp) error 
 	}
 	defer respBody.Close()
 
-	var respmsg jsonrpcMessage
-	if err := json.NewDecoder(respBody).Decode(&respmsg); err != nil {
+	var respMsg CommonData
+	if err := json.NewDecoder(respBody).Decode(&respMsg); err != nil {
 		return err
 	}
-	op.resp <- &respmsg
+	op.resp <- &respMsg
 	return nil
 }
 
@@ -156,12 +153,6 @@ func (c *Client) doRequest(ctx context.Context, url string) (io.ReadCloser, erro
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		//var buf bytes.Buffer
-		//var body []byte
-		//if _, err := buf.ReadFrom(resp.Body); err == nil {
-		//	body = buf.Bytes()
-		//}
-
 		return nil, fmt.Errorf("eth2 doRequest failed, code %v", resp.StatusCode)
 	}
 	return resp.Body, nil
