@@ -2,7 +2,7 @@
   "mapchain": {
     "id": "212",
     "endpoint": "http://18.142.54.137:7445",
-    "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
+    "from": "0xE0DC8D7f134d0A79019BE1232fd4b2013a64fCD6",
     "opts": {
       "mcs": "0x0ac4611305254cdd257beC56CB79CBeC720Cd02D",
       "lightnode": "0x000068656164657273746F726541646472657373",
@@ -19,7 +19,7 @@
       "type": "ethereum",
       "id": "34434",
       "endpoint": "http://18.138.248.113:8545",
-      "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
+      "from": "0xE0DC8D7f134d0A79019BE1232fd4b2013a64fCD6",
       "opts": {
         "mcs": "0xcfc80beddb70f12af6da768fc30e396889dfce26",
         "lightnode": "0x80Be41aEBFdaDBD58a65aa549cB266dAFb6b8304",
@@ -47,6 +47,38 @@
          "syncToMap": "true",
          "redis": "redis://:password@ip:port/dbnum",
          "event": "2ef1cdf83614a69568ed2c96a275dd7fb2e63a464aa3a0ffe79f55d538c8b3b5|150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377"
+       }
+     },
+     {
+       "name": "matic",
+       "type": "matic",
+       "id": "80001",
+       "endpoint": "https://rpc-mumbai.maticvigil.com",
+       "from": "0xE0DC8D7f134d0A79019BE1232fd4b2013a64fCD6",
+       "opts": {
+         "mcs": "0x688f3Ef5f728995a9DcB299DAEC849CA2E49ddE1",
+         "lightnode": "0x05634BdfbDa8aC4653Ff0655d71719F61A0922C4",
+         "http": "true",
+         "gasLimit": "400000000000",
+         "maxGasPrice": "200000000000",
+         "event": "mapTransferOut(uint256,uint256,bytes32,bytes,bytes,bytes,uint256,bytes)|mapDepositOut(uint256,uint256,bytes32,address,bytes,address,uint256)",
+         "syncToMap": "true"
+       }
+     },
+     {
+       "name": "klaytn",
+       "type": "klaytn",
+       "id": "1001",
+       "endpoint": "https://public-node-api.klaytnapi.com/v1/baobab",
+       "from": "0xE0DC8D7f134d0A79019BE1232fd4b2013a64fCD6",
+       "opts": {
+         "mcs": "0x8105ECe4ce08B6B6449539A5db23e23b973DfA8f",
+         "lightnode": "0x9E9Cd184f1ceC35b7836b26B3F884a7bA6e0aDA9",
+         "http": "true",
+         "gasLimit": "400000000000",
+         "maxGasPrice": "200000000000",
+         "event": "mapTransferOut(uint256,uint256,bytes32,bytes,bytes,bytes,uint256,bytes)|mapDepositOut(uint256,uint256,bytes32,address,bytes,address,uint256)",
+         "syncToMap": "true"
        }
      }
   ]
