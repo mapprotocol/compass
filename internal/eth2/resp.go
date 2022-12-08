@@ -1,5 +1,13 @@
 package eth2
 
+type CommonData struct {
+	StatusCode          int         `json:"statusCode"`
+	Error               string      `json:"error"`
+	Message             string      `json:"message"`
+	Data                interface{} `json:"data"`
+	ExecutionOptimistic bool        `json:"execution_optimistic"`
+}
+
 type BeaconHeadersResp struct {
 	Data                BeaconHeadersData `json:"data"`
 	ExecutionOptimistic bool              `json:"execution_optimistic"`
