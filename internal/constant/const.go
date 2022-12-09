@@ -42,6 +42,8 @@ var (
 	EthOrderExistPrint           = "Order Exist, Continue to the next"
 	HeaderIsHave                 = "Header is have"
 	HeaderIsHavePrint            = "Header is have, Continue to the next"
+	InvalidStartBlock            = "invalid start block"
+	InvalidStartBlockPrint       = "invalid start block, Continue to the next"
 	NotPerMission                = "mosRelay :: only admin"
 	NotPerMissionPrint           = "mosRelay :: only admin, will retry"
 	AddressIsZero                = "address is zero"

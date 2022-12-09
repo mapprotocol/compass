@@ -44,7 +44,7 @@ func ConvertHeader(header *types.Header) BlockHeader {
 	return BlockHeader{
 		ParentHash:       hashToByte(header.ParentHash),
 		Sha3Uncles:       hashToByte(header.UncleHash),
-		Miner:            header.Coinbase,
+		Miner:            utils.ZeroAddress,
 		StateRoot:        hashToByte(header.Root),
 		TransactionsRoot: hashToByte(header.TxHash),
 		ReceiptsRoot:     hashToByte(header.ReceiptHash),
