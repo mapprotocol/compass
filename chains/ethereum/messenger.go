@@ -152,13 +152,13 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		var message msg.Message
 		// getOrderId
 		orderId := log.Data[:32]
+		method := mapprotocol.MethodOfTransferIn
+		if log.Topics[0] == mapprotocol.HashOfDepositIn {
+			method = mapprotocol.MethodOfDepositIn
+		} else if log.Topics[0] == mapprotocol.HashOfSwapIn {
+			method = mapprotocol.MethodOfSwapIn
+		}
 		if m.Cfg.SyncToMap {
-			method := mapprotocol.MethodOfTransferIn
-			if log.Topics[0] == mapprotocol.HashOfDepositIn {
-				method = mapprotocol.MethodOfDepositIn
-			} else if log.Topics[0] == mapprotocol.HashOfSwapIn {
-				method = mapprotocol.MethodOfSwapIn
-			}
 			// when syncToMap we need to assemble a tx proof
 			txsHash, err := getTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
 			if err != nil {
@@ -189,7 +189,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-			_, toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID)
+			_, toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
