@@ -270,7 +270,7 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	}
 
 	h := mapprotocol.ConvertHeader(header)
-	aggPK, ist, err := mapprotocol.GetAggPK(m.Conn.Client(), new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
+	aggPK, ist, aggPKBytes, err := mapprotocol.GetAggPK(m.Conn.Client(), new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return err
 	}
@@ -306,10 +306,10 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 			param := map[string]interface{}{
 				"header": mapprotocol.ConvertNearNeedHeader(header),
 				"agg_pk": map[string]interface{}{
-					"xr": "0x" + common.Bytes2Hex(aggPK.Xr.Bytes()),
-					"xi": "0x" + common.Bytes2Hex(aggPK.Xi.Bytes()),
-					"yi": "0x" + common.Bytes2Hex(aggPK.Yi.Bytes()),
-					"yr": "0x" + common.Bytes2Hex(aggPK.Yr.Bytes()),
+					"xr": "0x" + common.Bytes2Hex(aggPKBytes[32:64]),
+					"xi": "0x" + common.Bytes2Hex(aggPKBytes[:32]),
+					"yi": "0x" + common.Bytes2Hex(aggPKBytes[64:96]),
+					"yr": "0x" + common.Bytes2Hex(aggPKBytes[96:128]),
 				},
 			}
 			data, _ := json.Marshal(param)
