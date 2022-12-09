@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/constant"
 	"io"
 	"net/http"
 	"net/url"
@@ -52,7 +53,7 @@ func DialHttp(endpoint string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) BeaconHeaders(ctx context.Context, blockId string) (*BeaconHeadersResp, error) {
+func (c *Client) BeaconHeaders(ctx context.Context, blockId constant.BlockIdOfEth2) (*BeaconHeadersResp, error) {
 	urlPath := fmt.Sprintf("%s/%s/%s", c.endpoint, "eth/v1/beacon/headers", blockId)
 	var ret BeaconHeadersResp
 	err := c.CallContext(ctx, urlPath, &ret)
@@ -62,17 +63,35 @@ func (c *Client) BeaconHeaders(ctx context.Context, blockId string) (*BeaconHead
 	return &ret, nil
 }
 
-type jsonError struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+func (c *Client) LightClientUpdate(ctx context.Context, startPeriod int64) (*LightClientUpdatesResp, error) {
+	urlPath := fmt.Sprintf("%s/%s?start_period=%d&count=1", c.endpoint, "eth/v1/beacon/light_client/updates", startPeriod)
+	fmt.Println("urlPath", urlPath)
+	var ret LightClientUpdatesResp
+	err := c.CallContext(ctx, urlPath, &ret)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
 }
 
-func (err *jsonError) Error() string {
-	if err.Message == "" {
-		return fmt.Sprintf("json-rpc error %d", err.Code)
+func (c *Client) FinallyUpdate(ctx context.Context) (*FinalityUpdateResp, error) {
+	urlPath := fmt.Sprintf("%s/%s", c.endpoint, "eth/v1/beacon/light_client/finality_update") // todo url 待确定
+	var ret FinalityUpdateResp
+	err := c.CallContext(ctx, urlPath, &ret)
+	if err != nil {
+		return nil, err
 	}
-	return err.Message
+	return &ret, nil
+}
+
+func (c *Client) GetBlocks(ctx context.Context, blockId string) (*BlocksResp, error) {
+	urlPath := fmt.Sprintf("%s/%s/%s", c.endpoint, "eth/v2/beacon/blocks", blockId)
+	var ret BlocksResp
+	err := c.CallContext(ctx, urlPath, &ret)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
 }
 
 type requestOp struct {
@@ -111,7 +130,8 @@ func (c *Client) CallContext(ctx context.Context, url string, result interface{}
 	case resp.Error != "":
 		return errors.New(resp.Error)
 	default:
-		data, _ := json.Marshal(resp.Data)
+		data, _ := json.Marshal(resp)
+		fmt.Println("-------------- data ", string(data))
 		return json.Unmarshal(data, &result)
 	}
 }

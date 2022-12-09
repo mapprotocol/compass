@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/eth2"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -35,6 +36,45 @@ import (
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
+
+var (
+	err        error
+	eth2Client *eth2.Client
+)
+
+func TestClient_BeaconHeaders(t *testing.T) {
+	t.Log("------------- ")
+	//eth2Client, err = eth2.DialHttp("https://lodestar-mainnet.chainsafe.io")
+	eth2Client, err = eth2.DialHttp("http://18.138.248.113:9596")
+	if err != nil {
+		panic("dail eth2 failed, err is " + err.Error())
+	}
+
+	t.Log("------------- 2")
+	//resp, err := eth2Client.BeaconHeaders(context.Background(), constant.HeadBlockIdOfEth2)
+	//if err != nil {
+	//	t.Fatalf("BeaconHeaders failed err is %v", err)
+	//}
+	//t.Log("resp", resp)
+	//
+	//lightResp, err := eth2Client.LightClientUpdate(context.Background(), 618)
+	//if err != nil {
+	//	t.Errorf("LightClientUpdate failed err is %v", err)
+	//}
+	//t.Log("lightResp", lightResp)
+	//
+	//finalityUpdateResp, err := eth2Client.FinallyUpdate(context.Background())
+	//if err != nil {
+	//	t.Fatalf("FinallyUpdate failed err is %v", err)
+	//}
+	//t.Log("finalityUpdateResp", finalityUpdateResp)
+
+	blockResp, err := eth2Client.GetBlocks(context.Background(), "1")
+	if err != nil {
+		t.Fatalf("GetBlocks failed err is %v", err)
+	}
+	t.Log("blockResp", blockResp)
+}
 
 func Test_Key(t *testing.T) {
 	var key []byte
