@@ -1,6 +1,7 @@
 package bsc
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -109,6 +110,7 @@ func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, me
 		return nil, err
 	}
 
+	fmt.Println("bsc getBytes after hex ------------ ", "0x"+common.Bytes2Hex(input))
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
 	// input, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), all)
 	if err != nil {
