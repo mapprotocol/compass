@@ -182,15 +182,15 @@ func ConvertHeader(header *types.Header) *BlockHeader {
 	return h
 }
 
-func GetAggPK(cli *ethclient.Client, number *big.Int, extra []byte) (*G2, *types.IstanbulExtra, error) {
+func GetAggPK(cli *ethclient.Client, number *big.Int, extra []byte) (*G2, *types.IstanbulExtra, []byte, error) {
 	var istanbulExtra *types.IstanbulExtra
 	if err := rlp.DecodeBytes(extra[32:], &istanbulExtra); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	snapshot, err := cli.GetSnapshot(context.Background(), number)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	validators := validator.MapValidatorsToDataWithBLSKeyCache(snapshot.ValSet.List())
@@ -205,7 +205,7 @@ func GetAggPK(cli *ethclient.Client, number *big.Int, extra []byte) (*G2, *types
 	for _, v := range publicKeys {
 		pk, err := bls.UnmarshalPk(v[:])
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		pks = append(pks, pk)
 	}
@@ -216,7 +216,7 @@ func GetAggPK(cli *ethclient.Client, number *big.Int, extra []byte) (*G2, *types
 		Xr: new(big.Int).SetBytes(aggPKBytes[32:64]),
 		Yi: new(big.Int).SetBytes(aggPKBytes[64:96]),
 		Yr: new(big.Int).SetBytes(aggPKBytes[96:128]),
-	}, istanbulExtra, nil
+	}, istanbulExtra, aggPKBytes, nil
 }
 
 func GetTxReceipt(receipt *ethtypes.Receipt) (*TxReceipt, error) {
@@ -264,7 +264,7 @@ type NearNeedHeader struct {
 	GasUsed     hexutil.Uint64   `json:"gasUsed"          gencodec:"required"`
 	Time        hexutil.Uint64   `json:"time"        gencodec:"required"`
 	Extra       hexutil.Bytes    `json:"extra"        gencodec:"required"`
-	MixDigest   common.Hash      `json:"minDigest"`
+	MixDigest   common.Hash      `json:"mixDigest"`
 	Nonce       types.BlockNonce `json:"nonce"`
 	BaseFee     *hexutil.Big     `json:"baseFee" rlp:"optional"`
 	Hash        common.Hash      `json:"hash"`
