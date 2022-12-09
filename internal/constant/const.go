@@ -66,8 +66,15 @@ var (
 	ChainTypeErrorPrint          = "chain type error, will retry"
 )
 
+type BlockIdOfEth2 string
+
 const (
-	FinalBlockIdOfEth2   = "finalized"
-	HeadBlockIdOfEth2    = "head"
-	GenesisBlockIdOfEth2 = "genesis"
+	FinalBlockIdOfEth2   BlockIdOfEth2 = "finalized"
+	HeadBlockIdOfEth2    BlockIdOfEth2 = "head"
+	GenesisBlockIdOfEth2 BlockIdOfEth2 = "genesis"
+)
+
+const (
+	SlotsPerEpoch   int64 = 32
+	EpochsPerPeriod int64 = 256
 )

@@ -18,9 +18,12 @@ type FinalityUpdateResp struct {
 }
 
 type BlocksResp struct {
-	Data                BlocksData `json:"data"`
-	Version             string     `json:"version"`
-	ExecutionOptimistic bool       `json:"execution_optimistic"`
+	Data                BlockData `json:"data"`
+	ExecutionOptimistic bool      `json:"execution_optimistic"`
+}
+
+type LightClientUpdatesResp struct {
+	Data []LightClientUpdatesData `json:"data"`
 }
 
 type Message struct {
@@ -87,18 +90,10 @@ type Target struct {
 	Root  string `json:"root"`
 }
 
-type BlocksData struct {
-	Slot            string `json:"slot"`
-	Index           string `json:"index"`
-	BeaconBlockRoot string `json:"beacon_block_root"`
-	Source          Source `json:"source"`
-	Target          Target `json:"target"`
-}
-
 type Attestations struct {
-	AggregationBits string `json:"aggregation_bits"`
-	Data            Data   `json:"data"`
-	Signature       string `json:"signature"`
+	AggregationBits string          `json:"aggregation_bits"`
+	Data            AttestationData `json:"data"`
+	Signature       string          `json:"signature"`
 }
 
 type Body struct {
@@ -120,7 +115,30 @@ type BlocksMessage struct {
 	Body          Body   `json:"body"`
 }
 
-type Data struct {
+type BlockData struct {
 	Message   BlocksMessage `json:"message"`
 	Signature string        `json:"signature"`
+}
+
+type NextSyncCommittee struct {
+	Pubkeys         []string `json:"pubkeys"`
+	AggregatePubkey string   `json:"aggregate_pubkey"`
+}
+
+type LightClientUpdatesData struct {
+	AttestedHeader          AttestedHeader    `json:"attested_header"`
+	NextSyncCommittee       NextSyncCommittee `json:"next_sync_committee"`
+	NextSyncCommitteeBranch []string          `json:"next_sync_committee_branch"`
+	FinalizedHeader         FinalizedHeader   `json:"finalized_header"`
+	FinalityBranch          []string          `json:"finality_branch"`
+	SyncAggregate           SyncAggregate     `json:"sync_aggregate"`
+	SignatureSlot           string            `json:"signature_slot"`
+}
+
+type AttestationData struct {
+	BeaconBlockRoot string `json:"beacon_block_root"`
+	Index           string `json:"index"`
+	Slot            string `json:"slot"`
+	Source          Source `json:"source"`
+	Target          Target `json:"target"`
 }
