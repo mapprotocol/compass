@@ -23,7 +23,6 @@ The writer recieves the message and creates a proposals on-chain. Once a proposa
 package ethereum
 
 import (
-	"fmt"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/monitor"
 	w "github.com/mapprotocol/compass/internal/writer"
@@ -135,10 +134,6 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 			mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		}
 		listen = NewMessenger(cs)
-		logger.Info("Listen event", "chain", cfg.Name, "event", cfg.Events)
-		for _, e := range cfg.Events {
-			fmt.Println(e, "------------------ ", e.GetTopic())
-		}
 	} else if role == mapprotocol.RoleOfMaintainer { // Maintainer is used by default
 		listen = NewMaintainer(cs)
 	} else if role == mapprotocol.RoleOfMonitor {
