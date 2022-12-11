@@ -144,6 +144,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
+	//m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
@@ -151,11 +152,13 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		var message msg.Message
 		// getOrderId
 		orderId := log.Data[:32]
+		method := mapprotocol.MethodOfTransferIn
+		if log.Topics[0] == mapprotocol.HashOfDepositIn {
+			method = mapprotocol.MethodOfDepositIn
+		} else if log.Topics[0] == mapprotocol.HashOfSwapIn {
+			method = mapprotocol.MethodOfSwapIn
+		}
 		if m.Cfg.SyncToMap {
-			method := mapprotocol.MethodOfTransferIn
-			if log.Topics[0] != mapprotocol.HashOfTransferIn {
-				method = mapprotocol.MethodOfDepositIn
-			}
 			// when syncToMap we need to assemble a tx proof
 			txsHash, err := getTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
 			if err != nil {
@@ -186,7 +189,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-			_, toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID)
+			_, toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
