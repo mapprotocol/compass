@@ -184,8 +184,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := Key2Hex(key, len(proof))
-	//if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
-	if name, _ := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; strings.ToLower(name) != "near" {
+	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
 		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 		nr := mapprotocol.MapTxReceipt{
 			PostStateOrStatus: receipt.PostStateOrStatus,

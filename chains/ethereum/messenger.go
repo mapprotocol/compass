@@ -144,7 +144,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
-	m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
+	//m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
