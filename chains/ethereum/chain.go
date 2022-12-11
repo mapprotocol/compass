@@ -134,6 +134,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 			mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		}
 		listen = NewMessenger(cs)
+		logger.Info("Listen event", "chain", cfg.Name, "event", cfg.Events)
 	} else if role == mapprotocol.RoleOfMaintainer { // Maintainer is used by default
 		listen = NewMaintainer(cs)
 	} else if role == mapprotocol.RoleOfMonitor {
