@@ -173,7 +173,7 @@ Ethereum chains support the following additional options:
 
 The blockstore is used to record the last block the maintainer processed, so it can pick up where it left off.
 
-To disable loading from the chunk library, specify the "-- fresh" flag. Add the fresh flag, and the program will execute from height 0，
+To disable loading from the chunk library, specify the "--fresh" flag. Add the fresh flag, and the program will execute from height 0，
 
 In addition, the configuration file provides the "startBlock" option, and the program will execute from the startBlock
 

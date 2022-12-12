@@ -264,8 +264,10 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 		}
 
 		method := mapprotocol.MethodOfTransferIn
-		if !strings.HasPrefix(tg.ExecutionOutcome.Outcome.Logs[1], mapprotocol.NearOfTransferIn) {
+		if strings.HasPrefix(tg.ExecutionOutcome.Outcome.Logs[1], mapprotocol.NearOfDepositIn) {
 			method = mapprotocol.MethodOfDepositIn
+		} else if strings.HasPrefix(tg.ExecutionOutcome.Outcome.Logs[1], mapprotocol.NearOfSwapIn) {
+			method = mapprotocol.MethodOfSwapIn
 		}
 		input, err := mapprotocol.Mcs.Pack(method, new(big.Int).SetUint64(uint64(m.cfg.id)), all)
 		//input, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(m.cfg.id)), all)
