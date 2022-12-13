@@ -52,18 +52,18 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 				w.log.Info("Sync Header to map tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
 				time.Sleep(time.Second * 2)
 				// waited till successful mined
-				err = w.blockForPending(tx.Hash())
+				//err = w.blockForPending(tx.Hash())
+				//if err != nil {
+				//	w.log.Warn("Sync Header to map blockForPending error, will retry", "err", err)
+				//} else {
+				err = w.txStatus(tx.Hash())
 				if err != nil {
-					w.log.Warn("Sync Header to map blockForPending error, will retry", "err", err)
+					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
 				} else {
-					err = w.txStatus(tx.Hash())
-					if err != nil {
-						w.log.Warn("TxHash Status is not successful, will retry", "err", err)
-					} else {
-						m.DoneCh <- struct{}{}
-						return true
-					}
+					m.DoneCh <- struct{}{}
+					return true
 				}
+				//}
 			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
 				w.log.Info(constant.EthOrderExistPrint, "err", err)
 				m.DoneCh <- struct{}{}
