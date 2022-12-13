@@ -10,6 +10,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/chains/eth2"
 	"github.com/mapprotocol/compass/chains/klaytn"
 	"github.com/mapprotocol/compass/chains/matic"
 	"net/http"
@@ -331,6 +332,11 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			}
 		} else if chain.Type == chains.Klaytn {
 			newChain, err = klaytn.InitializeChain(chainConfig, logger, sysErr, m, role)
+			if err != nil {
+				return err
+			}
+		} else if chain.Type == chains.Eth2 {
+			newChain, err = eth2.InitializeChain(chainConfig, logger, sysErr, m, role)
 			if err != nil {
 				return err
 			}

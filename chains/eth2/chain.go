@@ -4,22 +4,26 @@ import (
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/connections/eth2"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	w "github.com/mapprotocol/compass/internal/writer"
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
 var _ core.Chain = new(Chain)
 
 type Chain struct {
-	cfg    *core.ChainConfig // The config of the chain
-	conn   chain.KConnection // The chains connection
-	writer *w.Writer         // The writer of the chain
+	cfg    *core.ChainConfig    // The config of the chain
+	conn   chain.Eth2Connection // The chains connection
+	writer *w.Writer            // The writer of the chain
+	listen chains.Listener      // The listener of this chain
 	stop   chan<- int
-	listen chains.Listener // The listener of this chain
 }
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
@@ -34,14 +38,13 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		return nil, err
 	}
 	kp, _ := kpI.(*secp256k1.Keypair)
-
 	bs, err := chain.SetupBlockStore(cfg, kp, role)
 	if err != nil {
 		return nil, err
 	}
 
 	stop := make(chan int)
-	conn := connection.NewConnection(cfg.Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice,
+	conn := eth2.NewConnection(cfg.Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice,
 		cfg.GasMultiplier, cfg.EgsApiKey, cfg.EgsSpeed)
 	err = conn.Connect()
 	if err != nil {
@@ -63,12 +66,12 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		//fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
 		//height, err := fn()
 		//if err != nil {
-		//	return nil, errors.Wrap(err, "klaytn get init headerHeight failed")
+		//	return nil, errors.Wrap(err, "eth2 get init headerHeight failed")
 		//}
-		//logger.Info("map2Klaytn Current situation", "height", height, "lightNode", cfg.LightNode)
+		//logger.Info("map2eth2 Current situation", "height", height, "lightNode", cfg.LightNode)
 		//mapprotocol.SyncOtherMap[cfg.Id] = height
 		//mapprotocol.Map2OtherHeight[cfg.Id] = fn
-		listen = NewMaintainer(cs, conn.KClient())
+		listen = NewMaintainer(cs, conn.Eth2Client())
 	} else if role == mapprotocol.RoleOfMessenger {
 		err = conn.EnsureHasBytecode(cfg.McsContract)
 		if err != nil {
@@ -78,11 +81,11 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		//fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
 		//left, right, err := fn()
 		//if err != nil {
-		//	return nil, errors.Wrap(err, "kalytn get init verifyHeight failed")
+		//	return nil, errors.Wrap(err, "eth2 get init verifyHeight failed")
 		//}
-		//logger.Info("Map2Klaytn Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
+		//logger.Info("Map2eth2 Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
 		//mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
-		listen = NewMessenger(cs, conn.KClient())
+		//listen = NewMessenger(cs, conn.Eth2Client())
 	}
 	wri := w.New(conn, cfg, logger, stop, sysErr, m)
 

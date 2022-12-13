@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/eth2"
 	"math/big"
 	"time"
 
@@ -18,13 +19,13 @@ import (
 type Maintainer struct {
 	*chain.CommonSync
 	syncedHeight *big.Int
-	confirms     *big.Int
+	eth2Client   *eth2.Client
 }
 
-func NewMaintainer(cs *chain.CommonSync, confirms *big.Int) *Maintainer {
+func NewMaintainer(cs *chain.CommonSync, eth2Client *eth2.Client) *Maintainer {
 	return &Maintainer{
 		CommonSync:   cs,
-		confirms:     confirms,
+		eth2Client:   eth2Client,
 		syncedHeight: new(big.Int),
 	}
 }
@@ -61,7 +62,7 @@ func (m *Maintainer) sync() error {
 		m.syncedHeight = syncedHeight
 
 		if syncedHeight.Cmp(currentBlock) != 0 {
-			currentBlock.Add(syncedHeight, new(big.Int).SetInt64(m.confirms.Int64()+2))
+			currentBlock.Add(syncedHeight, new(big.Int).SetInt64(1))
 			m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
 				"syncedHeight", syncedHeight, "currentBlock", currentBlock)
 		}
@@ -78,6 +79,25 @@ func (m *Maintainer) sync() error {
 				m.Log.Error("Polling failed, retries exceeded")
 				m.SysErr <- constant.ErrFatalPolling
 				return nil
+			}
+
+			resp, err := m.eth2Client.BeaconHeaders(context.Background(), constant.FinalBlockIdOfEth2)
+			if err != nil {
+				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+
+			lastFinalizedSlotOnContract := m.syncedHeight
+			lastFinalizedSlotOnEth, ok := new(big.Int).SetString(resp.Data.Header.Message.Slot, 10)
+			if !ok {
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+
+			if !m.isEnoughBlocksForLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth) {
+				time.Sleep(constant.BlockRetryInterval)
+				continue
 			}
 
 			latestBlock, err := m.Conn.LatestBlock()
@@ -127,6 +147,24 @@ func (m *Maintainer) sync() error {
 	}
 }
 
+func (m *Maintainer) isEnoughBlocksForLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) bool {
+	// todo 第一个参数
+	if (new(big.Int).Int64() - lastFinalizedSlotOnContract.Int64()) < (constant.SlotsPerEpoch * 1) {
+		m.Log.Info("Light client update were send less then 1 epochs ago. Skipping sending light client update")
+		return false
+	}
+	if lastFinalizedSlotOnEth.Uint64() <= lastFinalizedSlotOnContract.Uint64() {
+		m.Log.Info("Last finalized slot on Eth equal to last finalized slot on NEAR. Skipping sending light client update.")
+		return false
+	}
+
+	return true
+}
+
+func (m *Maintainer) getPeriodForSlot(slot uint64) uint64 {
+	return slot / uint64(constant.SlotsPerEpoch*constant.EpochsPerPeriod)
+}
+
 // syncHeaderToMap listen header from current chain to Map chain
 func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 	// It is checked whether the latest height is higher than the current height
@@ -158,7 +196,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 
 	err = m.Router.Send(message)
 	if err != nil {
-		m.Log.Error("subscription error: failed to route message", "err", err)
+		m.Log.Error("Subscription error: failed to route message", "err", err)
 		return err
 	}
 
