@@ -279,7 +279,7 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 		}
 
 		if receipt.Status == types.ReceiptStatusSuccessful {
-			w.log.Info("mcsTx receipt status is success", "hash", txHash)
+			w.log.Info("Tx receipt status is success", "hash", txHash)
 			return nil
 		}
 		return fmt.Errorf("txHash(%s), status not success, current status is (%d)", txHash, receipt.Status)

@@ -306,7 +306,7 @@ func TestUpdateHeader(t *testing.T) {
 		}
 
 		h := mapprotocol.ConvertHeader(header)
-		aggPK, _, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
+		aggPK, _, _, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
 		if err != nil {
 			t.Fatalf(err.Error())
 		}
@@ -358,7 +358,7 @@ func TestVerifyProofData(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	aggPK, _, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
+	aggPK, _, _, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

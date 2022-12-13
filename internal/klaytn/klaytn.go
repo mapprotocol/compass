@@ -181,7 +181,7 @@ func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*ty
 	}
 	pd := ReceiptProof{
 		Header:   header,
-		LogIndex: new(big.Int).SetInt64(int64(log.Index)),
+		LogIndex: new(big.Int).SetInt64(int64(log.TxIndex)),
 		Receipts: receiptRlps,
 	}
 
