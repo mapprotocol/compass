@@ -76,6 +76,10 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 				w.log.Info(constant.InvalidStartBlockPrint, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
+			} else if strings.Index(err.Error(), constant.InvalidSyncBlock) != -1 {
+				w.log.Info(constant.InvalidSyncBlockPrint, "err", err)
+				m.DoneCh <- struct{}{}
+				return true
 			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
 				w.log.Error("Sync Header to map Nonce too low, will retry")
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
