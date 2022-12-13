@@ -442,6 +442,24 @@ const (
 		  "type": "function"
 		},
 		{
+		  "inputs": [
+			{
+			  "internalType": "uint256",
+			  "name": "_chainId",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "bytes",
+			  "name": "_receiptProof",
+			  "type": "bytes"
+			}
+		  ],
+		  "name": "swapIn",
+		  "outputs": [],
+		  "stateMutability": "nonpayable",
+		  "type": "function"
+		},
+		{
 			"inputs": [
 				{
 					"internalType": "uint256",

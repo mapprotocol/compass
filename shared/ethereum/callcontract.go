@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -164,12 +165,12 @@ type MapTxProve struct {
 }
 
 func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
-	header *maptypes.Header, fId msg.ChainId) (uint64, uint64, []byte, error) {
+	header *maptypes.Header, fId msg.ChainId, method string) (uint64, uint64, []byte, error) {
 	//toChainID := log.Data[128:160]
 	toChainID := log.Topics[2]
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
-	aggPK, ist, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
+	aggPK, ist, aggPKBytes, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return 0, 0, nil, err
 	}
@@ -213,7 +214,8 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
 
-		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfTransferIn, big.NewInt(0).SetUint64(uint64(fId)), pack)
+		fmt.Println("getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
+		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
 		//payloads, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
 			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
@@ -235,10 +237,10 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 	m := map[string]interface{}{
 		"header": mapprotocol.ConvertNearNeedHeader(header),
 		"agg_pk": map[string]interface{}{
-			"xr": "0x" + common.Bytes2Hex(aggPK.Xr.Bytes()),
-			"xi": "0x" + common.Bytes2Hex(aggPK.Xi.Bytes()),
-			"yi": "0x" + common.Bytes2Hex(aggPK.Yi.Bytes()),
-			"yr": "0x" + common.Bytes2Hex(aggPK.Yr.Bytes()),
+			"xr": "0x" + common.Bytes2Hex(aggPKBytes[32:64]),
+			"xi": "0x" + common.Bytes2Hex(aggPKBytes[:32]),
+			"yi": "0x" + common.Bytes2Hex(aggPKBytes[64:96]),
+			"yr": "0x" + common.Bytes2Hex(aggPKBytes[96:128]),
 		},
 		"key_index": "0x" + common.Bytes2Hex(key),
 		"receipt":   ConvertNearReceipt(receipt),

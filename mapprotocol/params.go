@@ -19,6 +19,7 @@ const (
 	MethodOfHeaderHeight        = "headerHeight"
 	MethodOfTransferIn          = "transferIn"
 	MethodOfDepositIn           = "depositIn"
+	MethodOfSwapIn              = "swapIn"
 	MethodOfRegister            = "register"
 	MethodOfBindWorker          = "bind"
 	MethodOfOrderList           = "orderList"
@@ -34,7 +35,7 @@ const (
 )
 
 const (
-	EpochOfMap          = 50000
+	EpochOfMap          = 4000
 	EpochOfBsc          = 200
 	HeaderCountOfBsc    = 12
 	HeaderCountOfMatic  = 64
@@ -50,10 +51,12 @@ var (
 )
 
 var (
-	ZeroAddress      = common.HexToAddress("0x0000000000000000000000000000000000000000")
-	RelayerAddress   = common.HexToAddress("0x000068656164657273746F726541646472657373")
-	HashOfTransferIn = common.HexToHash("0x44ff77018688dad4b245e8ab97358ed57ed92269952ece7ffd321366ce078622")
-	NearOfTransferIn = "2ef1cdf83614a69568ed2c96a275dd7fb2e63a464aa3a0ffe79f55d538c8b3b5"
+	ZeroAddress     = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	RelayerAddress  = common.HexToAddress("0x000068656164657273746F726541646472657373")
+	HashOfDepositIn = common.HexToHash("0xb7100086a8e13ebae772a0f09b07046e389a6b036406d22b86f2d2e5b860a8d9")
+	HashOfSwapIn    = common.HexToHash("0xca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5")
+	NearOfDepositIn = "150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377"
+	NearOfSwapIn    = "ca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5"
 )
 
 var (
