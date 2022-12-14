@@ -107,7 +107,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		if err != nil {
 			return nil, errors.Wrap(err, "near get init verifyHeight failed")
 		}
-		logger.Info("Map2Bsc Current verify range", "chain", cfg.name, "left", left, "right", right, "lightNode", cfg.lightNode)
+		logger.Info("Map2Near Current verify range", "left", left, "right", right, "lightNode", cfg.lightNode)
 		mapprotocol.Map2OtherVerifyRange[cfg.id] = fn
 		listen = NewMessenger(cs)
 	} else if role == mapprotocol.RoleOfMaintainer {
@@ -116,7 +116,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		if err != nil {
 			return nil, errors.Wrap(err, "near get init headerHeight failed")
 		}
-		logger.Info("map2near Current situation", "chain", cfg.name, "height", height, "lightNode", cfg.lightNode)
+		logger.Info("Map2Near Current situation", "height", height, "lightNode", cfg.lightNode)
 		mapprotocol.SyncOtherMap[cfg.id] = height
 		mapprotocol.Map2OtherHeight[cfg.id] = fn
 		listen = NewMaintainer(cs)

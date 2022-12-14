@@ -52,40 +52,44 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 				w.log.Info("Sync Header to map tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
 				time.Sleep(time.Second * 2)
 				// waited till successful mined
-				err = w.blockForPending(tx.Hash())
+				//err = w.blockForPending(tx.Hash())
+				//if err != nil {
+				//	w.log.Warn("Sync Header to map blockForPending error, will retry", "err", err)
+				//} else {
+				err = w.txStatus(tx.Hash())
 				if err != nil {
-					w.log.Warn("Sync Header to map blockForPending error, will retry", "err", err)
+					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
 				} else {
-					err = w.txStatus(tx.Hash())
-					if err != nil {
-						w.log.Warn("TxHash Status is not successful, will retry", "err", err)
-					} else {
-						m.DoneCh <- struct{}{}
-						return true
-					}
+					m.DoneCh <- struct{}{}
+					return true
 				}
+				//}
 			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
-				w.log.Info(constant.EthOrderExistPrint, "err", err)
+				w.log.Info(constant.EthOrderExistPrint, "id", id, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), constant.HeaderIsHave) != -1 {
-				w.log.Info(constant.HeaderIsHavePrint, "err", err)
+				w.log.Info(constant.HeaderIsHavePrint, "id", id, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), constant.InvalidStartBlock) != -1 {
-				w.log.Info(constant.InvalidStartBlockPrint, "err", err)
+				w.log.Info(constant.InvalidStartBlockPrint, "id", id, "err", err)
+				m.DoneCh <- struct{}{}
+				return true
+			} else if strings.Index(err.Error(), constant.InvalidSyncBlock) != -1 {
+				w.log.Info(constant.InvalidSyncBlockPrint, "id", id, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
-				w.log.Error("Sync Header to map Nonce too low, will retry")
+				w.log.Error("Sync Header to map Nonce too low, will retry", "id", id)
 			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
-				w.log.Error("Sync Header to map encounter EOF, will retry")
+				w.log.Error("Sync Header to map encounter EOF, will retry", "id", id)
 			} else if strings.Index(err.Error(), "max fee per gas less than block base fee") != -1 {
-				w.log.Error("gas maybe less than base fee, will retry")
+				w.log.Error("gas maybe less than base fee, will retry", "id", id)
 			} else if strings.Index(err.Error(), constant.NotEnoughGas) != -1 {
-				w.log.Error(constant.NotEnoughGasPrint)
+				w.log.Error(constant.NotEnoughGasPrint, "id", id)
 			} else {
-				w.log.Warn("Sync Header to map Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+				w.log.Warn("Sync Header to map Execution failed, header may already been synced", "gasLimit", gasLimit, "gasPrice", gasPrice, "id", id, "err", err)
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}
