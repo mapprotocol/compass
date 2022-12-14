@@ -3,17 +3,13 @@ package eth2
 import (
 	"context"
 	"errors"
-	"fmt"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 )
 
 type Maintainer struct {
@@ -100,12 +96,12 @@ func (m *Maintainer) sync() error {
 				continue
 			}
 
-			//latestBlock, err := m.Conn.LatestBlock()
-			//if err != nil {
-			//	m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-			//	time.Sleep(constant.BlockRetryInterval)
-			//	continue
-			//}
+			latestBlock, err := m.Conn.LatestBlock()
+			if err != nil {
+				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
 			//
 			//if m.Metrics != nil {
 			//	m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
@@ -177,27 +173,4 @@ func (m *Maintainer) syncHeaderToMap(latestBlock, lastFinalizedSlotOnContract, l
 	}
 
 	return nil
-}
-
-func rlpEthereumHeaders(source, destination msg.ChainId, headers []types.Header) ([]byte, error) {
-	h, err := rlp.EncodeToBytes(&headers)
-	if err != nil {
-		return nil, fmt.Errorf("rpl encode ethereum headers error: %v", err)
-	}
-
-	params := struct {
-		From    *big.Int
-		To      *big.Int
-		Headers []byte
-	}{
-		From:    big.NewInt(int64(source)),
-		To:      big.NewInt(int64(destination)),
-		Headers: h,
-	}
-
-	enc, err := rlp.EncodeToBytes(params)
-	if err != nil {
-		return nil, fmt.Errorf("rpl encode params error: %v", err)
-	}
-	return enc, nil
 }
