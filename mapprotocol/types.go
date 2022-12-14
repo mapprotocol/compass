@@ -113,7 +113,7 @@ func ConvertIstanbulExtra(istanbulExtra *types.IstanbulExtra) *IstanbulExtra {
 		for _, v := range avgpk {
 			data = append(data, v)
 		}
-		addedValidatorsG1PublicKeys = append(addedPubKey, data)
+		addedValidatorsG1PublicKeys = append(addedValidatorsG1PublicKeys, data)
 	}
 
 	return &IstanbulExtra{

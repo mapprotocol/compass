@@ -131,6 +131,7 @@ func (m Maintainer) sync() error {
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					retry--
+					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
 			} else if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
@@ -139,6 +140,7 @@ func (m Maintainer) sync() error {
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					retry--
+					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
 			}

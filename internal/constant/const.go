@@ -20,7 +20,7 @@ var (
 )
 
 var (
-	BlockRetryLimit    = 5
+	BlockRetryLimit    = 20
 	BlockRetryInterval = time.Second * 5
 	RetryLongInterval  = time.Second * 10
 	AlarmMinute        = int64(3000)
@@ -44,6 +44,8 @@ var (
 	HeaderIsHavePrint            = "Header is have, Continue to the next"
 	InvalidStartBlock            = "invalid start block"
 	InvalidStartBlockPrint       = "invalid start block, Continue to the next"
+	InvalidSyncBlock             = "invalid syncing block"
+	InvalidSyncBlockPrint        = "invalid syncing block, Continue to the next"
 	NotPerMission                = "mosRelay :: only admin"
 	NotPerMissionPrint           = "mosRelay :: only admin, will retry"
 	AddressIsZero                = "address is zero"
