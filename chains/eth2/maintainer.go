@@ -100,26 +100,26 @@ func (m *Maintainer) sync() error {
 				continue
 			}
 
-			latestBlock, err := m.Conn.LatestBlock()
-			if err != nil {
-				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-
-			if m.Metrics != nil {
-				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
-			}
-
-			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
-			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
-				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
+			//latestBlock, err := m.Conn.LatestBlock()
+			//if err != nil {
+			//	m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
+			//	time.Sleep(constant.BlockRetryInterval)
+			//	continue
+			//}
+			//
+			//if m.Metrics != nil {
+			//	m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
+			//}
+			//
+			//// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
+			//if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
+			//	m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
+			//	time.Sleep(constant.BlockRetryInterval)
+			//	continue
+			//}
 
 			if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
-				err = m.syncHeaderToMap(currentBlock)
+				err = m.syncHeaderToMap(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					retry--
@@ -166,44 +166,16 @@ func (m *Maintainer) getPeriodForSlot(slot uint64) uint64 {
 }
 
 // syncHeaderToMap listen header from current chain to Map chain
-func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
-	// It is checked whether the latest height is higher than the current height
-	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	syncedHeight, err := mapprotocol.Get2MapByLight()
-	if err != nil {
-		m.Log.Error("Get synced Height failed", "err", err)
-		return err
-	}
-	// If the current block is lower than the latest height, it will not be synchronized
-	if latestBlock.Cmp(syncedHeight) <= 0 {
-		m.Log.Info("currentBlock less than synchronized headerHeight", "synced height", syncedHeight,
-			"current height", latestBlock)
-		return nil
-	}
-	m.Log.Info("Sync Header to Map Chain", "current", latestBlock)
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
-	if err != nil {
-		return err
-	}
-	enc, err := rlpEthereumHeaders(m.Cfg.Id, m.Cfg.MapChainID, []types.Header{*header})
-	if err != nil {
-		m.Log.Error("failed to rlp ethereum headers", "err", err)
-		return err
-	}
-	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
-	msgpayload := []interface{}{id, enc}
-	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
+func (m *Maintainer) syncHeaderToMap(latestBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) error {
+	lastEth2PeriodOnContract := m.getPeriodForSlot(lastFinalizedSlotOnContract.Uint64())
+	endPeriod := m.getPeriodForSlot(lastFinalizedSlotOnEth.Uint64())
 
-	err = m.Router.Send(message)
-	if err != nil {
-		m.Log.Error("Subscription error: failed to route message", "err", err)
-		return err
+	if lastEth2PeriodOnContract == endPeriod {
+
+	} else {
+
 	}
 
-	err = m.WaitUntilMsgHandled(1)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
