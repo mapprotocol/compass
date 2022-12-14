@@ -25,6 +25,7 @@ import (
 const (
 	AbiMethodOfUpdateBlockHeader = "update_block_header"
 	AbiMethodOfTransferIn        = "transfer_in"
+	AbiMethodOfSwapIn            = "swap_in"
 )
 
 var (
@@ -117,9 +118,13 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			if len(m.Payload) > 3 {
 				inputHash = m.Payload[3]
 			}
-			w.log.Info("send transaction", "addr", w.cfg.mcsContract, "srcHash", inputHash)
+			method := AbiMethodOfTransferIn
+			if m.Payload[4].(string) == mapprotocol.MethodOfSwapIn {
+				method = AbiMethodOfSwapIn
+			}
+			w.log.Info("send transaction", "addr", w.cfg.mcsContract, "srcHash", inputHash, "method", method)
 			// sendtx using general method
-			txHash, err := w.sendTx(w.cfg.mcsContract, AbiMethodOfTransferIn, m.Payload[0].([]byte))
+			txHash, err := w.sendTx(w.cfg.mcsContract, method, m.Payload[0].([]byte))
 			w.conn.UnlockOpts()
 			if err == nil {
 				// message successfully handled
@@ -179,7 +184,7 @@ func (w *writer) sendTx(toAddress string, method string, input []byte) (hash.Cry
 	w.log.Info("sendTx", "toAddress", toAddress)
 	ctx := client.ContextWithKeyPair(context.Background(), *w.conn.Keypair())
 	b := types.Balance{}
-	if method == AbiMethodOfTransferIn {
+	if method == AbiMethodOfTransferIn || method == AbiMethodOfSwapIn {
 		b, _ = types.BalanceFromString(near.Deposit)
 	}
 	res, err := w.conn.Client().TransactionSendAwait(
