@@ -101,10 +101,11 @@ func (m *Messenger) sync() error {
 			}
 			// messager
 			// Parse out events
-			count, err := m.getEventsForBlock(currentBlock, left)
+			count, err := m.getEventsForBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				retry--
+				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
 
@@ -132,7 +133,7 @@ func (m *Messenger) sync() error {
 }
 
 // getEventsForBlock looks for the deposit event in the latest block
-func (m *Messenger) getEventsForBlock(latestBlock, left *big.Int) (int, error) {
+func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	m.Log.Debug("Querying block for events", "block", latestBlock)
 	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
 	// querying for logs
