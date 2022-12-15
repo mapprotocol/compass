@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -46,6 +47,7 @@ func (m *Monitor) Sync() error {
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Monitor) sync() error {
 	addr := common.HexToAddress(m.Cfg.From)
+	env := os.Getenv("compass")
 	for {
 		select {
 		case <-m.Stop:
@@ -69,14 +71,15 @@ func (m *Monitor) sync() error {
 				if balance.Cmp(constant.MapWaterline) == -1 {
 					// alarm
 					m.alarm(context.Background(),
-						fmt.Sprintf("Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", m.Cfg.Name, m.Cfg.From,
+						fmt.Sprintf("%s Balance Less than %d MAP,\nchain=%s,addr=%s,balance=%d", env,
+							new(big.Int).Div(constant.MapWaterline, constant.Wei), m.Cfg.Name, m.Cfg.From,
 							balance.Div(balance, constant.Wei)))
 				}
 			} else {
 				if balance.Cmp(constant.Waterline) == -1 {
 					// alarm
 					m.alarm(context.Background(),
-						fmt.Sprintf("Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", m.Cfg.Name, m.Cfg.From,
+						fmt.Sprintf("%s Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", env, m.Cfg.Name, m.Cfg.From,
 							balance.Div(balance, constant.Wei)))
 				}
 			}
@@ -84,8 +87,8 @@ func (m *Monitor) sync() error {
 			if (time.Now().Unix() - m.timestamp) > constant.AlarmMinute {
 				// alarm
 				m.alarm(context.Background(),
-					fmt.Sprintf("No transaction occurred in addr in the last %d seconds,\n"+
-						"chain=%s,addr=%s,balance=%d", constant.AlarmMinute, m.Cfg.Name, m.Cfg.From,
+					fmt.Sprintf("%s No transaction occurred in addr in the last %d seconds,\n"+
+						"chain=%s,addr=%s,balance=%d", env, constant.AlarmMinute, m.Cfg.Name, m.Cfg.From,
 						balance.Div(balance, constant.Wei)))
 			}
 
