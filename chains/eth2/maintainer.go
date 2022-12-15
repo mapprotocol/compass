@@ -166,11 +166,22 @@ func (m *Maintainer) syncHeaderToMap(latestBlock, lastFinalizedSlotOnContract, l
 	lastEth2PeriodOnContract := m.getPeriodForSlot(lastFinalizedSlotOnContract.Uint64())
 	endPeriod := m.getPeriodForSlot(lastFinalizedSlotOnEth.Uint64())
 
+	var lightUpdateData = eth2.LightClientUpdate{}
 	if lastEth2PeriodOnContract == endPeriod {
-
+		resp, err := m.eth2Client.FinallyUpdate(context.Background())
+		if err != nil {
+			return err
+		}
+		lightUpdateData.AttestedBeaconHeader = resp.Data.AttestedHeader
+		lightUpdateData.SyncAggregate = resp.Data.SyncAggregate
+		//lightUpdateData.SignatureSlot
 	} else {
 
 	}
 
 	return nil
+}
+
+func (m *Maintainer) getSignatureSlot(ah *eth2.AttestedHeader) {
+
 }
