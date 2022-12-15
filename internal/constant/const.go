@@ -20,7 +20,7 @@ var (
 )
 
 var (
-	BlockRetryLimit    = 5
+	BlockRetryLimit    = 20
 	BlockRetryInterval = time.Second * 5
 	RetryLongInterval  = time.Second * 10
 	AlarmMinute        = int64(3000)
