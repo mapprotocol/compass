@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"strconv"
 	"strings"
 
@@ -65,6 +66,7 @@ type Config struct {
 	SyncMap            map[msg.ChainId]*big.Int
 	Events             []utils.EventSig
 	SkipError          bool
+	HooksUrl           string
 }
 
 // ParseConfig uses a core.ChainConfig to construct a corresponding Config
@@ -212,6 +214,9 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 			config.Events = append(config.Events, utils.EventSig(s))
 		}
 	}
+
+	config.HooksUrl = os.Getenv("hooks")
+	fmt.Println("monitor url is ", config.HooksUrl)
 
 	return config, nil
 }
