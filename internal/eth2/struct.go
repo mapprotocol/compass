@@ -1,25 +1,27 @@
 package eth2
 
-/*
-pub struct LightClientUpdate {
-    pub attested_beacon_header: BeaconBlockHeader,
-    pub sync_aggregate: SyncAggregate,
-    #[cfg_attr(
-        not(target_arch = "wasm32"),
-        serde(with = "eth2_serde_utils::quoted_u64")
-    )]
-    pub signature_slot: Slot,
-    pub finality_update: FinalizedHeaderUpdate,
-    pub sync_committee_update: Option<SyncCommitteeUpdate>,
-}
-*/
-
 type LightClientUpdate struct {
+	AttestedBeaconHeader AttestedHeader        `json:"attested_beacon_header"`
+	SyncAggregate        SyncAggregate         `json:"sync_aggregate"`
+	SignatureSlot        Slot                  `json:"signature_slot"`  // todo 难点
+	FinalizedUpdate      FinalizedHeaderUpdate `json:"finality_update"` // todo 难点
+	SyncCommitteeUpdate  SyncCommitteeUpdate   `json:"sync_committee_update"`
 }
 
 type Slot uint64
 
-type BeaconBlockHeader struct {
-	Slot          Slot   `json:"slot"`
-	ProposerIndex uint64 `json:"proposer_index"`
+type FinalizedHeaderUpdate struct {
+	HeaderUpdate   HeaderUpdate `json:"header_update"`
+	FinalityBranch []string     `json:"finality_branch"`
+}
+
+type HeaderUpdate struct {
+	BeaconHeader        AttestedHeader `json:"beacon_header"`
+	ExecutionBlockHash  string         `json:"execution_block_hash"`
+	ExecutionHashBranch []string       `json:"execution_hash_branch"`
+}
+
+type SyncCommitteeUpdate struct {
+	NextSyncCommittee       NextSyncCommittee `json:"next_sync_committee"`
+	NextSyncCommitteeBranch []string          `json:"next_sync_committee_branch"`
 }
