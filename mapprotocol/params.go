@@ -38,7 +38,7 @@ const (
 	EpochOfMap          = 50000
 	EpochOfBsc          = 200
 	HeaderCountOfBsc    = 12
-	HeaderCountOfMatic  = 64
+	HeaderCountOfMatic  = 16
 	EpochOfKlaytn       = 3600
 	HeaderCountOfKlaytn = 1
 )

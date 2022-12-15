@@ -3,6 +3,7 @@ package near
 import (
 	"context"
 	"errors"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"time"
 
@@ -72,6 +73,7 @@ func (m Maintainer) sync() error {
 				if err != nil {
 					m.log.Error("Failed to listen header for block", "block", latestBlock, "err", err)
 					retry--
+					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
 			}
