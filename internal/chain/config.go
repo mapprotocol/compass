@@ -31,7 +31,7 @@ var (
 	GasMultiplier         = "gasMultiplier"
 	HttpOpt               = "http"
 	StartBlockOpt         = "startBlock"
-	BlockConfirmationsOpt = "BlockConfirmations"
+	BlockConfirmationsOpt = "blockConfirmations"
 	EGSApiKey             = "egsApiKey"
 	EGSSpeed              = "egsSpeed"
 	SyncToMap             = "syncToMap"
