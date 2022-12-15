@@ -3,9 +3,12 @@ package eth2
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
 	"math/big"
+	"strconv"
 	"time"
 
 	"github.com/mapprotocol/compass/internal/chain"
@@ -115,7 +118,7 @@ func (m *Maintainer) sync() error {
 			//}
 
 			if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
-				err = m.syncHeaderToMap(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth)
+				err = m.sendRegularLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					retry--
@@ -161,27 +164,89 @@ func (m *Maintainer) getPeriodForSlot(slot uint64) uint64 {
 	return slot / uint64(constant.SlotsPerEpoch*constant.EpochsPerPeriod)
 }
 
-// syncHeaderToMap listen header from current chain to Map chain
-func (m *Maintainer) syncHeaderToMap(latestBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) error {
+// sendRegularLightClientUpdate listen header from current chain to Map chain
+func (m *Maintainer) sendRegularLightClientUpdate(latestBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) error {
 	lastEth2PeriodOnContract := m.getPeriodForSlot(lastFinalizedSlotOnContract.Uint64())
 	endPeriod := m.getPeriodForSlot(lastFinalizedSlotOnEth.Uint64())
 
-	var lightUpdateData = eth2.LightClientUpdate{}
+	var (
+		err             error
+		lightUpdateData = &eth2.LightClientUpdate{}
+	)
 	if lastEth2PeriodOnContract == endPeriod {
-		resp, err := m.eth2Client.FinallyUpdate(context.Background())
-		if err != nil {
-			return err
-		}
-		lightUpdateData.AttestedBeaconHeader = resp.Data.AttestedHeader
-		lightUpdateData.SyncAggregate = resp.Data.SyncAggregate
-		//lightUpdateData.SignatureSlot
+		lightUpdateData, err = m.getFinalityLightClientUpdate()
 	} else {
 
 	}
+	if err != nil {
+		return err
+	}
+	fmt.Println(lightUpdateData)
 
 	return nil
 }
 
-func (m *Maintainer) getSignatureSlot(ah *eth2.AttestedHeader) {
+func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, error) {
+	resp, err := m.eth2Client.FinallyUpdate(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	signatureSlot, err := m.getSignatureSlot(&resp.Data.AttestedHeader, &resp.Data.SyncAggregate)
+	if err != nil {
+		return nil, err
+	}
 
+	slot, _ := big.NewInt(0).SetString(resp.Data.AttestedHeader.Slot, 10)
+	proposerIndex, ok := big.NewInt(0).SetString(resp.Data.AttestedHeader.ProposerIndex, 10)
+	if !ok {
+		return nil, errors.New("") // todo
+	}
+
+	return &eth2.LightClientUpdate{
+		SignatureSlot: signatureSlot,
+		SyncAggregate: eth2.ContractSyncAggregate{
+			SyncCommitteeBits:      resp.Data.SyncAggregate.SyncCommitteeBits,
+			SyncCommitteeSignature: resp.Data.SyncAggregate.SyncCommitteeSignature,
+		},
+		AttestedHeader: eth2.BeaconBlockHeader{
+			Slot:          slot.Uint64(),
+			ProposerIndex: proposerIndex.Uint64(),
+			ParentRoot:    common.HexToHash(resp.Data.AttestedHeader.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data.AttestedHeader.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data.AttestedHeader.BodyRoot),
+		},
+		NextSyncCommittee:       eth2.ContractSyncCommittee{},
+		NextSyncCommitteeBranch: nil,
+
+		FinalizedHeader:    eth2.BeaconBlockHeader{},
+		FinalityBranch:     nil,
+		ExeFinalityBranch:  nil,
+		FinalizedExeHeader: eth2.BlockHeader{},
+	}, nil
+}
+
+func (m *Maintainer) getSignatureSlot(ah *eth2.AttestedHeader, sa *eth2.SyncAggregate) (uint64, error) {
+	var CheckSlotsForwardLimit uint64 = 10
+	ahSlot, ok := big.NewInt(0).SetString(ah.Slot, 10)
+	if !ok {
+		return 0, errors.New("ahSlot not number")
+	}
+	var signatureSlot = ahSlot.Uint64() + 1
+	for {
+		blocks, err := m.eth2Client.GetBlocks(context.Background(), strconv.FormatUint(signatureSlot, 10))
+		if err != nil {
+			m.Log.Info("GetSignatureSlot GetBlocks failed", "blockId", signatureSlot, "err", err)
+		}
+
+		if blocks != nil && blocks.Data.Message.Body.SyncAggregate.SyncCommitteeSignature == sa.SyncCommitteeSignature {
+			break
+		}
+
+		signatureSlot += 1
+		if signatureSlot-ahSlot.Uint64() > CheckSlotsForwardLimit {
+			return 0, errors.New("signature slot not found")
+		}
+	}
+
+	return signatureSlot, nil
 }
