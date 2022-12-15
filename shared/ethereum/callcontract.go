@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -214,7 +213,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
 		}
 
-		fmt.Println("getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
+		//fmt.Println("getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
 		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
 		//payloads, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
