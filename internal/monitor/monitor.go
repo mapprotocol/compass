@@ -65,11 +65,20 @@ func (m *Monitor) sync() error {
 				m.timestamp = time.Now().Unix()
 			}
 
-			if balance.Cmp(constant.Waterline) == -1 {
-				// alarm
-				m.alarm(context.Background(),
-					fmt.Sprintf("Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", m.Cfg.Name, m.Cfg.From,
-						balance.Div(balance, constant.Wei)))
+			if m.Cfg.Id == m.Cfg.MapChainID {
+				if balance.Cmp(constant.MapWaterline) == -1 {
+					// alarm
+					m.alarm(context.Background(),
+						fmt.Sprintf("Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", m.Cfg.Name, m.Cfg.From,
+							balance.Div(balance, constant.Wei)))
+				}
+			} else {
+				if balance.Cmp(constant.Waterline) == -1 {
+					// alarm
+					m.alarm(context.Background(),
+						fmt.Sprintf("Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", m.Cfg.Name, m.Cfg.From,
+							balance.Div(balance, constant.Wei)))
+				}
 			}
 
 			if (time.Now().Unix() - m.timestamp) > constant.AlarmMinute {
@@ -92,8 +101,7 @@ func (m *Monitor) alarm(ctx context.Context, msg string) {
 	if err != nil {
 		return
 	}
-	req, err := http.NewRequestWithContext(ctx, "POST",
-		"https://hooks.slack.com/services/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", ioutil.NopCloser(bytes.NewReader(body)))
+	req, err := http.NewRequestWithContext(ctx, "POST", m.Cfg.HooksUrl, ioutil.NopCloser(bytes.NewReader(body)))
 	if err != nil {
 		return
 	}
