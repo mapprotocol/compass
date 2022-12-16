@@ -201,7 +201,16 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 	if !ok {
 		return nil, errors.New("") // todo
 	}
+	finalityBranch := make([][32]byte, 0, len(resp.Data.FinalityBranch))
+	for _, fb := range resp.Data.FinalityBranch {
+		finalityBranch = append(finalityBranch, common.HexToHash(fb))
+	}
 
+	fhSlot, _ := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Slot, 10)
+	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data.FinalizedHeader.ProposerIndex, 10)
+	if !ok {
+		return nil, errors.New("") // todo
+	}
 	return &eth2.LightClientUpdate{
 		SignatureSlot: signatureSlot,
 		SyncAggregate: eth2.ContractSyncAggregate{
@@ -217,9 +226,14 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 		},
 		NextSyncCommittee:       eth2.ContractSyncCommittee{},
 		NextSyncCommitteeBranch: nil,
-
-		FinalizedHeader:    eth2.BeaconBlockHeader{},
-		FinalityBranch:     nil,
+		FinalityBranch:          finalityBranch,
+		FinalizedHeader: eth2.BeaconBlockHeader{
+			Slot:          fhSlot.Uint64(),
+			ProposerIndex: fhProposerIndex.Uint64(),
+			ParentRoot:    common.HexToHash(resp.Data.FinalizedHeader.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.BodyRoot),
+		},
 		ExeFinalityBranch:  nil,
 		FinalizedExeHeader: eth2.BlockHeader{},
 	}, nil
