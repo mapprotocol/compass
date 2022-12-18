@@ -72,7 +72,6 @@ func (m *Messenger) sync() error {
 			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				retry--
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
@@ -106,7 +105,6 @@ func (m *Messenger) sync() error {
 			count, err := m.getEventsForBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
-				retry--
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}

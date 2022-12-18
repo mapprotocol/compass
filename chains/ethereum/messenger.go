@@ -107,7 +107,6 @@ func (m *Messenger) sync() error {
 			count, err := m.getEventsForBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
-				retry--
 				continue
 			}
 

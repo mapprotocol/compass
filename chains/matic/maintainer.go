@@ -79,7 +79,6 @@ func (m Maintainer) sync() error {
 			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				retry--
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
