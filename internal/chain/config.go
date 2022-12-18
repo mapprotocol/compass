@@ -20,7 +20,7 @@ import (
 const (
 	DefaultGasLimit           = 6721975
 	DefaultGasPrice           = 20000000000
-	DefaultBlockConfirmations = 10
+	DefaultBlockConfirmations = 20
 	DefaultGasMultiplier      = 1
 )
 
