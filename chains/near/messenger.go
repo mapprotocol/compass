@@ -204,7 +204,7 @@ func (m *Messenger) match(log string) bool {
 func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWithReceipt) (int, error) {
 	ret := 0
 	for _, tg := range target {
-		m.log.Debug("makeMessage 收到一条数据", "tg", tg)
+		m.log.Debug("makeMessage receive one message", "tg", tg)
 		time.Sleep(time.Second * 3)
 		var (
 			err        error
