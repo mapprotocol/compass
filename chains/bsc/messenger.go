@@ -104,7 +104,6 @@ func (m *Messenger) sync() error {
 			count, err := m.getEventsForBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
-				retry--
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
@@ -142,7 +141,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
-	//m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
+	m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {

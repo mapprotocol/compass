@@ -72,7 +72,6 @@ func (m Maintainer) sync() error {
 				err = m.syncHeaderToMapChain(latestBlock)
 				if err != nil {
 					m.log.Error("Failed to listen header for block", "block", latestBlock, "err", err)
-					retry--
 					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
