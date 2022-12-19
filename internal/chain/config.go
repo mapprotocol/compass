@@ -39,6 +39,8 @@ var (
 	SyncIDList            = "syncIdList"
 	LightNode             = "lightnode"
 	Event                 = "event"
+	WaterLine             = "waterLine"
+	ChangeInterval        = "changeInterval"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
@@ -67,6 +69,8 @@ type Config struct {
 	Events             []utils.EventSig
 	SkipError          bool
 	HooksUrl           string
+	WaterLine          string
+	ChangeInterval     string
 }
 
 // ParseConfig uses a core.ChainConfig to construct a corresponding Config
@@ -90,6 +94,8 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		EgsSpeed:           "",
 		Events:             make([]utils.EventSig, 0),
 		SkipError:          chainCfg.SkipError,
+		WaterLine:          "",
+		ChangeInterval:     "",
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
@@ -206,6 +212,14 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 
 	if lightnode, ok := chainCfg.Opts[LightNode]; ok && lightnode != "" {
 		config.LightNode = common.HexToAddress(lightnode)
+	}
+
+	if waterLine, ok := chainCfg.Opts[WaterLine]; ok && waterLine != "" {
+		config.WaterLine = waterLine
+	}
+
+	if alarmSecond, ok := chainCfg.Opts[ChangeInterval]; ok && alarmSecond != "" {
+		config.ChangeInterval = alarmSecond
 	}
 
 	if v, ok := chainCfg.Opts[Event]; ok && v != "" {
