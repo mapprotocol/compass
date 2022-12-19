@@ -199,7 +199,7 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 	slot, _ := big.NewInt(0).SetString(resp.Data.AttestedHeader.Slot, 10)
 	proposerIndex, ok := big.NewInt(0).SetString(resp.Data.AttestedHeader.ProposerIndex, 10)
 	if !ok {
-		return nil, errors.New("") // todo
+		return nil, errors.New("AttestedHeader Slot Not Number")
 	}
 	finalityBranch := make([][32]byte, 0, len(resp.Data.FinalityBranch))
 	for _, fb := range resp.Data.FinalityBranch {
@@ -209,7 +209,12 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 	fhSlot, _ := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Slot, 10)
 	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data.FinalizedHeader.ProposerIndex, 10)
 	if !ok {
-		return nil, errors.New("") // todo
+		return nil, errors.New("FinalizedHeader  Slot Not Number")
+	}
+
+	exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Endpoint)
+	if err != nil {
+		return nil, err
 	}
 	return &eth2.LightClientUpdate{
 		SignatureSlot: signatureSlot,
@@ -234,8 +239,8 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.StateRoot),
 			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.BodyRoot),
 		},
-		ExeFinalityBranch:  nil,
-		FinalizedExeHeader: eth2.BlockHeader{},
+		ExeFinalityBranch:  exeFinalityBranch,
+		FinalizedExeHeader: eth2.BlockHeader{}, // getBlock 接口返回的 execution_payload 里面的 block_number获取
 	}, nil
 }
 
@@ -263,4 +268,83 @@ func (m *Maintainer) getSignatureSlot(ah *eth2.AttestedHeader, sa *eth2.SyncAggr
 	}
 
 	return signatureSlot, nil
+}
+
+func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdate, error) {
+	headers, err := m.eth2Client.BeaconHeaders(context.Background(), constant.HeadBlockIdOfEth2)
+	if err != nil {
+		return nil, err
+	}
+
+	headerSlot, ok := big.NewInt(0).SetString(headers.Data.Header.Message.Slot, 10)
+	if !ok {
+		return nil, errors.New("BeaconHeaders Slot Not Number")
+	}
+
+	lastPeriod := m.getPeriodForSlot(headerSlot.Uint64())
+	resp, err := m.eth2Client.LightClientUpdate(context.Background(), lastPeriod)
+	if err != nil {
+		return nil, err
+	}
+
+	slot, _ := big.NewInt(0).SetString(resp.Data[0].AttestedHeader.Slot, 10)
+	proposerIndex, ok := big.NewInt(0).SetString(resp.Data[0].AttestedHeader.ProposerIndex, 10)
+	if !ok {
+		return nil, errors.New("AttestedHeader Slot Not Number")
+	}
+
+	signatureSlot, err := m.getSignatureSlot(&resp.Data[0].AttestedHeader, &resp.Data[0].SyncAggregate)
+	if err != nil {
+		return nil, err
+	}
+	nextSyncCommitteeBranch := make([][32]byte, 0, len(resp.Data[0].NextSyncCommitteeBranch))
+	for _, b := range resp.Data[0].NextSyncCommitteeBranch {
+		nextSyncCommitteeBranch = append(nextSyncCommitteeBranch, common.HexToHash(b))
+	}
+	pubKeys := make([]byte, 0, len(resp.Data[0].NextSyncCommittee.Pubkeys))
+	for _, pk := range resp.Data[0].NextSyncCommittee.Pubkeys {
+		pubKeys = append(pubKeys, common.Hex2Bytes(pk)...)
+	}
+	finalityBranch := make([][32]byte, 0, len(resp.Data[0].FinalityBranch))
+	for _, fb := range resp.Data[0].FinalityBranch {
+		finalityBranch = append(finalityBranch, common.HexToHash(fb))
+	}
+	fhSlot, _ := big.NewInt(0).SetString(resp.Data[0].FinalizedHeader.Slot, 10)
+	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data[0].FinalizedHeader.ProposerIndex, 10)
+	if !ok {
+		return nil, errors.New("FinalizedHeader  Slot Not Number")
+	}
+	exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+	return &eth2.LightClientUpdate{
+		AttestedHeader: eth2.BeaconBlockHeader{
+			Slot:          slot.Uint64(),
+			ProposerIndex: proposerIndex.Uint64(),
+			ParentRoot:    common.HexToHash(resp.Data[0].AttestedHeader.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data[0].AttestedHeader.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data[0].AttestedHeader.BodyRoot),
+		},
+		SyncAggregate: eth2.ContractSyncAggregate{
+			SyncCommitteeBits:      resp.Data[0].SyncAggregate.SyncCommitteeBits,
+			SyncCommitteeSignature: resp.Data[0].SyncAggregate.SyncCommitteeSignature,
+		},
+		SignatureSlot:           signatureSlot,
+		NextSyncCommitteeBranch: nextSyncCommitteeBranch,
+		NextSyncCommittee: eth2.ContractSyncCommittee{
+			PubKeys:         pubKeys,
+			AggregatePubKey: common.Hex2Bytes(resp.Data[0].NextSyncCommittee.AggregatePubkey),
+		},
+		FinalityBranch: finalityBranch,
+		FinalizedHeader: eth2.BeaconBlockHeader{
+			Slot:          fhSlot.Uint64(),
+			ProposerIndex: fhProposerIndex.Uint64(),
+			ParentRoot:    common.HexToHash(resp.Data[0].FinalizedHeader.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data[0].FinalizedHeader.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data[0].FinalizedHeader.BodyRoot),
+		},
+		ExeFinalityBranch:  exeFinalityBranch,
+		FinalizedExeHeader: eth2.BlockHeader{}, // todo getBlock 接口返回的 execution_payload 里面的 block_number获取
+	}, nil
 }
