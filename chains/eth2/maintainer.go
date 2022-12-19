@@ -176,7 +176,7 @@ func (m *Maintainer) sendRegularLightClientUpdate(latestBlock, lastFinalizedSlot
 	if lastEth2PeriodOnContract == endPeriod {
 		lightUpdateData, err = m.getFinalityLightClientUpdate()
 	} else {
-
+		lightUpdateData, err = m.getLightClientUpdateForLastPeriod()
 	}
 	if err != nil {
 		return err
@@ -212,7 +212,25 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 		return nil, errors.New("FinalizedHeader  Slot Not Number")
 	}
 
-	exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Endpoint)
+	exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Eth2Endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Slot)
+	if err != nil {
+		return nil, err
+	}
+
+	blockNumber, ok := new(big.Int).SetString(block.Data.Message.Body.ExecutionPayload.BlockNumber, 10)
+	if !ok {
+		return nil, errors.New("block executionPayload blockNumber Not Number")
+	}
+	header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	nonce, err := header.Nonce.MarshalText()
 	if err != nil {
 		return nil, err
 	}
@@ -239,8 +257,25 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.StateRoot),
 			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.BodyRoot),
 		},
-		ExeFinalityBranch:  exeFinalityBranch,
-		FinalizedExeHeader: eth2.BlockHeader{}, // getBlock 接口返回的 execution_payload 里面的 block_number获取
+		ExeFinalityBranch: exeFinalityBranch,
+		FinalizedExeHeader: eth2.BlockHeader{
+			ParentHash:       header.ParentHash.Bytes(),
+			Sha3Uncles:       header.UncleHash.Bytes(),
+			Miner:            header.Coinbase,
+			StateRoot:        header.Root.Bytes(),
+			TransactionsRoot: header.TxHash.Bytes(),
+			ReceiptsRoot:     header.ReceiptHash.Bytes(),
+			LogsBloom:        header.Bloom.Bytes(),
+			Difficulty:       header.Difficulty,
+			Number:           header.Number,
+			GasLimit:         new(big.Int).SetUint64(header.GasLimit),
+			GasUsed:          new(big.Int).SetUint64(header.GasUsed),
+			Timestamp:        new(big.Int).SetUint64(header.Time),
+			ExtraData:        header.Extra,
+			MixHash:          header.MixDigest.Bytes(),
+			Nonce:            nonce,
+			BaseFeePerGas:    header.BaseFee,
+		},
 	}, nil
 }
 
@@ -314,7 +349,25 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdat
 	if !ok {
 		return nil, errors.New("FinalizedHeader  Slot Not Number")
 	}
-	exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Endpoint)
+	exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Eth2Endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data[0].FinalizedHeader.Slot)
+	if err != nil {
+		return nil, err
+	}
+
+	blockNumber, ok := new(big.Int).SetString(block.Data.Message.Body.ExecutionPayload.BlockNumber, 10)
+	if !ok {
+		return nil, errors.New("block executionPayload blockNumber Not Number")
+	}
+	header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	nonce, err := header.Nonce.MarshalText()
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +397,24 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdat
 			StateRoot:     common.HexToHash(resp.Data[0].FinalizedHeader.StateRoot),
 			BodyRoot:      common.HexToHash(resp.Data[0].FinalizedHeader.BodyRoot),
 		},
-		ExeFinalityBranch:  exeFinalityBranch,
-		FinalizedExeHeader: eth2.BlockHeader{}, // todo getBlock 接口返回的 execution_payload 里面的 block_number获取
+		ExeFinalityBranch: exeFinalityBranch,
+		FinalizedExeHeader: eth2.BlockHeader{
+			ParentHash:       header.ParentHash.Bytes(),
+			Sha3Uncles:       header.UncleHash.Bytes(),
+			Miner:            header.Coinbase,
+			StateRoot:        header.Root.Bytes(),
+			TransactionsRoot: header.TxHash.Bytes(),
+			ReceiptsRoot:     header.ReceiptHash.Bytes(),
+			LogsBloom:        header.Bloom.Bytes(),
+			Difficulty:       header.Difficulty,
+			Number:           header.Number,
+			GasLimit:         new(big.Int).SetUint64(header.GasLimit),
+			GasUsed:          new(big.Int).SetUint64(header.GasUsed),
+			Timestamp:        new(big.Int).SetUint64(header.Time),
+			ExtraData:        header.Extra,
+			MixHash:          header.MixDigest.Bytes(),
+			Nonce:            nonce,
+			BaseFeePerGas:    header.BaseFee,
+		},
 	}, nil
 }

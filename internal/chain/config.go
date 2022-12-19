@@ -39,6 +39,7 @@ var (
 	SyncIDList            = "syncIdList"
 	LightNode             = "lightnode"
 	Event                 = "event"
+	Eth2Url               = "eth2Url"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
@@ -67,6 +68,7 @@ type Config struct {
 	Events             []utils.EventSig
 	SkipError          bool
 	HooksUrl           string
+	Eth2Endpoint       string
 }
 
 // ParseConfig uses a core.ChainConfig to construct a corresponding Config
@@ -90,6 +92,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		EgsSpeed:           "",
 		Events:             make([]utils.EventSig, 0),
 		SkipError:          chainCfg.SkipError,
+		Eth2Endpoint:       "",
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
@@ -213,6 +216,10 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		for _, s := range vs {
 			config.Events = append(config.Events, utils.EventSig(s))
 		}
+	}
+
+	if eth2Url, ok := chainCfg.Opts[Eth2Url]; ok && eth2Url != "" {
+		config.Eth2Endpoint = eth2Url
 	}
 
 	config.HooksUrl = os.Getenv("hooks")
