@@ -48,6 +48,16 @@ func (m *Monitor) Sync() error {
 func (m *Monitor) sync() error {
 	addr := common.HexToAddress(m.Cfg.From)
 	env := os.Getenv("compass")
+	waterLine, ok := new(big.Int).SetString(m.Cfg.WaterLine, 10)
+	if !ok {
+		m.SysErr <- fmt.Errorf("%s waterLine Not Number", m.Cfg.Name)
+		return nil
+	}
+	changeInterval, ok := new(big.Int).SetString(m.Cfg.ChangeInterval, 10)
+	if !ok {
+		m.SysErr <- fmt.Errorf("%s changeInterval Not Number", m.Cfg.Name)
+		return nil
+	}
 	for {
 		select {
 		case <-m.Stop:
@@ -60,36 +70,28 @@ func (m *Monitor) sync() error {
 				continue
 			}
 
-			m.Log.Info("Get balance result", "account", addr, "balance", balance)
+			//m.Log.Info("Get balance result", "account", addr, "balance", balance)
 
 			if balance.Cmp(m.balance) != 0 {
 				m.balance = balance
 				m.timestamp = time.Now().Unix()
 			}
 
-			if m.Cfg.Id == m.Cfg.MapChainID {
-				if balance.Cmp(constant.MapWaterline) == -1 {
-					// alarm
-					m.alarm(context.Background(),
-						fmt.Sprintf("%s Balance Less than %d MAP,\nchain=%s,addr=%s,balance=%d", env,
-							new(big.Int).Div(constant.MapWaterline, constant.Wei), m.Cfg.Name, m.Cfg.From,
-							balance.Div(balance, constant.Wei)))
-				}
-			} else {
-				if balance.Cmp(constant.Waterline) == -1 {
-					// alarm
-					m.alarm(context.Background(),
-						fmt.Sprintf("%s Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", env, m.Cfg.Name, m.Cfg.From,
-							balance.Div(balance, constant.Wei)))
-				}
+			if balance.Cmp(waterLine) == -1 {
+				// alarm
+				m.alarm(context.Background(),
+					fmt.Sprintf("%s Balance Less than %0.4f Balance,\nchain=%s addr=%s balance=%0.4f", env,
+						float64(new(big.Int).Div(waterLine, constant.Wei).Int64())/float64(constant.Wei.Int64()), m.Cfg.Name, m.Cfg.From,
+						float64(balance.Div(balance, constant.Wei).Int64())/float64(constant.Wei.Int64())))
 			}
 
-			if (time.Now().Unix() - m.timestamp) > constant.AlarmMinute {
+			if (time.Now().Unix() - m.timestamp) > changeInterval.Int64() {
+				time.Sleep(time.Second * 30)
 				// alarm
 				m.alarm(context.Background(),
 					fmt.Sprintf("%s No transaction occurred in addr in the last %d seconds,\n"+
-						"chain=%s,addr=%s,balance=%d", env, constant.AlarmMinute, m.Cfg.Name, m.Cfg.From,
-						balance.Div(balance, constant.Wei)))
+						"chain=%s addr=%s balance=%0.4f", env, changeInterval.Int64(), m.Cfg.Name, m.Cfg.From,
+						float64(balance.Div(balance, constant.Wei).Int64())/float64(constant.Wei.Int64())))
 			}
 
 			time.Sleep(constant.BalanceRetryInterval)

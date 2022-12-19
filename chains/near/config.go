@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/chain"
 	"math/big"
+	"os"
 	"strconv"
 	"strings"
 
@@ -65,6 +67,9 @@ type Config struct {
 	redisUrl           string
 	events             []string
 	skipError          bool
+	HooksUrl           string
+	WaterLine          string
+	ChangeInterval     string
 }
 
 // parseChainConfig uses a core.ChainConfig to construct a corresponding Config
@@ -88,6 +93,8 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		egsSpeed:           "",
 		redisUrl:           "",
 		skipError:          chainCfg.SkipError,
+		WaterLine:          "",
+		ChangeInterval:     "",
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
@@ -213,6 +220,17 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		delete(chainCfg.Opts, LightNode)
 	}
 
+	if waterLine, ok := chainCfg.Opts[chain.WaterLine]; ok && waterLine != "" {
+		config.WaterLine = waterLine
+		delete(chainCfg.Opts, chain.WaterLine)
+	}
+
+	if alarmSecond, ok := chainCfg.Opts[chain.ChangeInterval]; ok && alarmSecond != "" {
+		config.ChangeInterval = alarmSecond
+		delete(chainCfg.Opts, chain.ChangeInterval)
+	}
+	//1030
+	//5
 	if v, ok := chainCfg.Opts[Event]; ok && v != "" {
 		vs := strings.Split(v, "|")
 		for _, s := range vs {
@@ -224,6 +242,9 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 	if len(chainCfg.Opts) != 0 {
 		return nil, fmt.Errorf("unknown Opts Encountered: %#v", chainCfg.Opts)
 	}
+
+	config.HooksUrl = os.Getenv("hooks")
+	fmt.Println("monitor url is ", config.HooksUrl)
 
 	return config, nil
 }
