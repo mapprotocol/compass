@@ -7,7 +7,7 @@ import (
 
 type LightClientUpdate struct {
 	AttestedHeader          BeaconBlockHeader     `json:"attested_header"`
-	SignatureSlot           uint64                `json:"signature_slot"` // todo 难点
+	SignatureSlot           uint64                `json:"signature_slot"`
 	SyncAggregate           ContractSyncAggregate `json:"sync_aggregate"`
 	NextSyncCommittee       ContractSyncCommittee `json:"next_sync_committee"`
 	NextSyncCommitteeBranch [][32]byte            `json:"next_sync_committee_branch"`
