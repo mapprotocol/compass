@@ -28,6 +28,7 @@ const (
 	MethodOfGetHeadersBytes     = "getHeadersBytes"
 	MethodOfGetConfirms         = "confirms"
 	MethodOfGetUpdatesBytes     = "getUpdateBytes"
+	MethodUpdateLightClient     = "updateLightClient"
 )
 
 const (

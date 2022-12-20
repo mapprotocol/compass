@@ -186,15 +186,22 @@ func (m *Maintainer) sendRegularLightClientUpdate(latestBlock, lastFinalizedSlot
 	if err != nil {
 		return err
 	}
-	input, err := mapprotocol.Eth2.Methods[mapprotocol.MethodOfGetUpdatesBytes].Inputs.Pack(lightUpdateData)
+	lightClientInput, err := mapprotocol.Eth2.Methods[mapprotocol.MethodOfGetUpdatesBytes].Inputs.Pack(lightUpdateData)
 	if err != nil {
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
 	}
 
-	fmt.Println("input --", "0x"+common.Bytes2Hex(input))
+	headers := make([]eth2.BlockHeader, 0)
+	headers = append(headers, lightUpdateData.FinalizedExeHeader)
+	headerInput, err := mapprotocol.Eth2.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(headers)
+	if err != nil {
+		m.Log.Error("Failed to abi pack", "err", err)
+		return err
+	}
+
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
-	msgpayload := []interface{}{id, input}
+	msgpayload := []interface{}{id, headerInput, true, lightClientInput}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
 	err = m.Router.Send(message)
 	if err != nil {
@@ -205,6 +212,7 @@ func (m *Maintainer) sendRegularLightClientUpdate(latestBlock, lastFinalizedSlot
 	if err != nil {
 		return err
 	}
+	fmt.Println("-------------------------- break ")
 	return nil
 }
 
