@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -44,6 +45,18 @@ func (m *Monitor) Sync() error {
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Monitor) sync() error {
+	env := os.Getenv("compass")
+	waterLine, ok := new(big.Int).SetString(m.cfg.WaterLine, 10)
+	if !ok {
+		m.sysErr <- errors.New("near waterLine Not Number")
+		return nil
+	}
+	waterLine = waterLine.Div(waterLine, constant.WeiOfNear)
+	changeInterval, ok := new(big.Int).SetString(m.cfg.ChangeInterval, 10)
+	if !ok {
+		m.sysErr <- errors.New("near changeInterval Not Number")
+		return nil
+	}
 	for {
 		select {
 		case <-m.stop:
@@ -64,20 +77,21 @@ func (m *Monitor) sync() error {
 				m.timestamp = time.Now().Unix()
 			}
 
-			v = v.Div(v, constant.WeiOfNear)
-			if v.Cmp(constant.WaterlineOfNear) == -1 {
+			conversion := new(big.Int).Div(v, constant.WeiOfNear)
+			if conversion.Cmp(waterLine) == -1 {
 				// alarm
 				m.alarm(context.Background(),
-					fmt.Sprintf("Balance Less than five yuan,\nchain=%s,addr=%s,balance=%d", m.cfg.name, m.cfg.from,
-						v.Div(v, constant.WeiOfNear)))
+					fmt.Sprintf("%s Balance Less than %d Near \nchain=%s addr=%s near=%d", env, waterLine.Int64(),
+						m.cfg.name, m.cfg.from, conversion.Int64()))
 			}
 
-			if (time.Now().Unix() - m.timestamp) > constant.AlarmMinute {
+			if (time.Now().Unix() - m.timestamp) > changeInterval.Int64() {
+				time.Sleep(time.Second * 30)
 				// alarm
 				m.alarm(context.Background(),
-					fmt.Sprintf("No transaction occurred in addr in the last %d seconds,\n"+
-						"chain=%s,addr=%s,balance=%d", constant.AlarmMinute, m.cfg.name, m.cfg.from,
-						v.Div(v, constant.Wei)))
+					fmt.Sprintf("%s No transaction occurred in addr in the last %d seconds,\n"+
+						"chain=%s addr=%s near=%d", env, changeInterval.Int64(), m.cfg.name, m.cfg.from,
+						v.Div(v, constant.WeiOfNear)))
 			}
 
 			time.Sleep(constant.BalanceRetryInterval)
@@ -92,8 +106,7 @@ func (m *Monitor) alarm(ctx context.Context, msg string) {
 	if err != nil {
 		return
 	}
-	req, err := http.NewRequestWithContext(ctx, "POST",
-		"https://hooks.slack.com/services/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", ioutil.NopCloser(bytes.NewReader(body)))
+	req, err := http.NewRequestWithContext(ctx, "POST", m.cfg.HooksUrl, ioutil.NopCloser(bytes.NewReader(body)))
 	if err != nil {
 		return
 	}
