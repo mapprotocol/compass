@@ -223,7 +223,6 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 	}
 
 	config.HooksUrl = os.Getenv("hooks")
-	fmt.Println("monitor url is ", config.HooksUrl)
 
 	return config, nil
 }

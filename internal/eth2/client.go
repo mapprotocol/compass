@@ -65,7 +65,6 @@ func (c *Client) BeaconHeaders(ctx context.Context, blockId constant.BlockIdOfEt
 
 func (c *Client) LightClientUpdate(ctx context.Context, startPeriod uint64) (*LightClientUpdatesResp, error) {
 	urlPath := fmt.Sprintf("%s/%s?start_period=%d&count=1", c.endpoint, "eth/v1/beacon/light_client/updates", startPeriod)
-	fmt.Println("urlPath", urlPath)
 	var ret LightClientUpdatesResp
 	err := c.CallContext(ctx, urlPath, &ret)
 	if err != nil {
@@ -131,7 +130,6 @@ func (c *Client) CallContext(ctx context.Context, url string, result interface{}
 		return errors.New(resp.Error)
 	default:
 		data, _ := json.Marshal(resp)
-		fmt.Println("-------------- data ", string(data))
 		return json.Unmarshal(data, &result)
 	}
 }

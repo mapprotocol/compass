@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
+	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"strconv"
 	"time"
@@ -94,7 +95,7 @@ func (m *Maintainer) sync() error {
 				continue
 			}
 
-			if !m.isEnoughBlocksForLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth) {
+			if !m.isEnoughBlocksForLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth) {
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
@@ -121,7 +122,6 @@ func (m *Maintainer) sync() error {
 				err = m.sendRegularLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
-					retry--
 					continue
 				}
 			}
@@ -146,14 +146,15 @@ func (m *Maintainer) sync() error {
 	}
 }
 
-func (m *Maintainer) isEnoughBlocksForLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) bool {
-	// todo 第一个参数
-	if (new(big.Int).Int64() - lastFinalizedSlotOnContract.Int64()) < (constant.SlotsPerEpoch * 1) {
-		m.Log.Info("Light client update were send less then 1 epochs ago. Skipping sending light client update")
+func (m *Maintainer) isEnoughBlocksForLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) bool {
+	if (lastFinalizedSlotOnEth.Int64() - lastFinalizedSlotOnContract.Int64()) < (constant.SlotsPerEpoch * 1) {
+		m.Log.Info("Light client update were send less then 1 epochs ago. Skipping sending light client update",
+			"currentBlock", currentBlock, "lastFinalizedSlotOnContract", lastFinalizedSlotOnContract)
 		return false
 	}
 	if lastFinalizedSlotOnEth.Uint64() <= lastFinalizedSlotOnContract.Uint64() {
-		m.Log.Info("Last finalized slot on Eth equal to last finalized slot on NEAR. Skipping sending light client update.")
+		m.Log.Info("Last finalized slot on Eth equal to last finalized slot on Contract. Skipping sending light client update.",
+			"lastFinalizedSlotOnEth", lastFinalizedSlotOnEth, "lastFinalizedSlotOnContract", lastFinalizedSlotOnContract)
 		return false
 	}
 
@@ -173,16 +174,37 @@ func (m *Maintainer) sendRegularLightClientUpdate(latestBlock, lastFinalizedSlot
 		err             error
 		lightUpdateData = &eth2.LightClientUpdate{}
 	)
+	m.Log.Info("period check", "lastEth2PeriodOnContract", lastEth2PeriodOnContract, "endPeriod", endPeriod,
+		"slotOnEth", lastFinalizedSlotOnEth, "slotOnContract", lastFinalizedSlotOnContract)
 	if lastEth2PeriodOnContract == endPeriod {
+		fmt.Println("--------------------------")
 		lightUpdateData, err = m.getFinalityLightClientUpdate()
 	} else {
+		fmt.Println("-------------------------- not equal ")
 		lightUpdateData, err = m.getLightClientUpdateForLastPeriod()
 	}
 	if err != nil {
 		return err
 	}
-	fmt.Println(lightUpdateData)
+	input, err := mapprotocol.Eth2.Methods[mapprotocol.MethodOfGetUpdatesBytes].Inputs.Pack(lightUpdateData)
+	if err != nil {
+		m.Log.Error("Failed to abi pack", "err", err)
+		return err
+	}
 
+	fmt.Println("input --", "0x"+common.Bytes2Hex(input))
+	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
+	msgpayload := []interface{}{id, input}
+	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
+	err = m.Router.Send(message)
+	if err != nil {
+		m.Log.Error("subscription error: failed to route message", "err", err)
+		return nil
+	}
+	err = m.WaitUntilMsgHandled(1)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -237,8 +259,8 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 	return &eth2.LightClientUpdate{
 		SignatureSlot: signatureSlot,
 		SyncAggregate: eth2.ContractSyncAggregate{
-			SyncCommitteeBits:      resp.Data.SyncAggregate.SyncCommitteeBits,
-			SyncCommitteeSignature: resp.Data.SyncAggregate.SyncCommitteeSignature,
+			SyncCommitteeBits:      common.Hex2Bytes(resp.Data.SyncAggregate.SyncCommitteeBits),
+			SyncCommitteeSignature: common.Hex2Bytes(resp.Data.SyncAggregate.SyncCommitteeSignature),
 		},
 		AttestedHeader: eth2.BeaconBlockHeader{
 			Slot:          slot.Uint64(),
@@ -247,7 +269,10 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 			StateRoot:     common.HexToHash(resp.Data.AttestedHeader.StateRoot),
 			BodyRoot:      common.HexToHash(resp.Data.AttestedHeader.BodyRoot),
 		},
-		NextSyncCommittee:       eth2.ContractSyncCommittee{},
+		NextSyncCommittee: eth2.ContractSyncCommittee{
+			Pubkeys:         make([]byte, 0),
+			AggregatePubkey: make([]byte, 0),
+		},
 		NextSyncCommitteeBranch: nil,
 		FinalityBranch:          finalityBranch,
 		FinalizedHeader: eth2.BeaconBlockHeader{
@@ -380,14 +405,14 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdat
 			BodyRoot:      common.HexToHash(resp.Data[0].AttestedHeader.BodyRoot),
 		},
 		SyncAggregate: eth2.ContractSyncAggregate{
-			SyncCommitteeBits:      resp.Data[0].SyncAggregate.SyncCommitteeBits,
-			SyncCommitteeSignature: resp.Data[0].SyncAggregate.SyncCommitteeSignature,
+			SyncCommitteeBits:      common.Hex2Bytes(resp.Data[0].SyncAggregate.SyncCommitteeBits),
+			SyncCommitteeSignature: common.Hex2Bytes(resp.Data[0].SyncAggregate.SyncCommitteeSignature),
 		},
 		SignatureSlot:           signatureSlot,
 		NextSyncCommitteeBranch: nextSyncCommitteeBranch,
 		NextSyncCommittee: eth2.ContractSyncCommittee{
-			PubKeys:         pubKeys,
-			AggregatePubKey: common.Hex2Bytes(resp.Data[0].NextSyncCommittee.AggregatePubkey),
+			Pubkeys:         pubKeys,
+			AggregatePubkey: common.Hex2Bytes(resp.Data[0].NextSyncCommittee.AggregatePubkey),
 		},
 		FinalityBranch: finalityBranch,
 		FinalizedHeader: eth2.BeaconBlockHeader{
