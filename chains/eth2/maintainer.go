@@ -260,10 +260,6 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 	if err != nil {
 		return nil, err
 	}
-	nonce, err := header.Nonce.MarshalText()
-	if err != nil {
-		return nil, err
-	}
 	return &eth2.LightClientUpdate{
 		SignatureSlot: signatureSlot,
 		SyncAggregate: eth2.ContractSyncAggregate{
@@ -306,7 +302,7 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 			Timestamp:        new(big.Int).SetUint64(header.Time),
 			ExtraData:        header.Extra,
 			MixHash:          header.MixDigest.Bytes(),
-			Nonce:            nonce,
+			Nonce:            header.Nonce[:],
 			BaseFeePerGas:    header.BaseFee,
 		},
 	}, nil
@@ -400,10 +396,26 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdat
 	if err != nil {
 		return nil, err
 	}
-	nonce, err := header.Nonce.MarshalText()
-	if err != nil {
-		return nil, err
-	}
+
+	printHeader(eth2.BlockHeader{
+		ParentHash:       header.ParentHash.Bytes(),
+		Sha3Uncles:       header.UncleHash.Bytes(),
+		Miner:            header.Coinbase,
+		StateRoot:        header.Root.Bytes(),
+		TransactionsRoot: header.TxHash.Bytes(),
+		ReceiptsRoot:     header.ReceiptHash.Bytes(),
+		LogsBloom:        header.Bloom.Bytes(),
+		Difficulty:       header.Difficulty,
+		Number:           header.Number,
+		GasLimit:         new(big.Int).SetUint64(header.GasLimit),
+		GasUsed:          new(big.Int).SetUint64(header.GasUsed),
+		Timestamp:        new(big.Int).SetUint64(header.Time),
+		ExtraData:        header.Extra,
+		MixHash:          header.MixDigest.Bytes(),
+		Nonce:            header.Nonce[:],
+		BaseFeePerGas:    header.BaseFee,
+	})
+
 	return &eth2.LightClientUpdate{
 		AttestedHeader: eth2.BeaconBlockHeader{
 			Slot:          slot.Uint64(),
@@ -446,8 +458,28 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdat
 			Timestamp:        new(big.Int).SetUint64(header.Time),
 			ExtraData:        header.Extra,
 			MixHash:          header.MixDigest.Bytes(),
-			Nonce:            nonce,
+			Nonce:            header.Nonce[:],
 			BaseFeePerGas:    header.BaseFee,
 		},
 	}, nil
+}
+
+func printHeader(mh eth2.BlockHeader) {
+	fmt.Println("Number ", mh.Number)
+	fmt.Println("ParentHash ", "0x"+common.Bytes2Hex(mh.ParentHash))
+	fmt.Println("Sha3Uncles ", "0x"+common.Bytes2Hex(mh.Sha3Uncles))
+	fmt.Println("StateRoot ", "0x"+common.Bytes2Hex(mh.StateRoot))
+	fmt.Println("TransactionsRoot ", "0x"+common.Bytes2Hex(mh.TransactionsRoot))
+	fmt.Println("ReceiptsRoot ", "0x"+common.Bytes2Hex(mh.ReceiptsRoot))
+	fmt.Println("LogsBloom ", "0x"+common.Bytes2Hex(mh.LogsBloom))
+	fmt.Println("ExtraData ", "0x"+common.Bytes2Hex(mh.ExtraData))
+	fmt.Println("MixHash ", "0x"+common.Bytes2Hex(mh.MixHash))
+	fmt.Println("Nonce ", "0x"+common.Bytes2Hex(mh.Nonce))
+	fmt.Println("Miner ", mh.Miner)
+	fmt.Println("Difficulty ", mh.Difficulty)
+	fmt.Println("GasLimit ", mh.GasLimit)
+	fmt.Println("GasUsed ", mh.GasUsed)
+	fmt.Println("Timestamp ", mh.Timestamp)
+	fmt.Println("BaseFeePerGas ", mh.BaseFeePerGas)
+	fmt.Println("Number ", mh.Number)
 }

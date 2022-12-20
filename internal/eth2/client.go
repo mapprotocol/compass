@@ -112,6 +112,7 @@ func (c *Client) CallContext(ctx context.Context, url string, result interface{}
 	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
 		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
 	}
+	fmt.Println("url ---------------------- ", url)
 
 	op := &requestOp{ids: []json.RawMessage{c.nextID()}, resp: make(chan *CommonData, 1)}
 
