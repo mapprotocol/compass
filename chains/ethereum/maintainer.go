@@ -130,7 +130,6 @@ func (m Maintainer) sync() error {
 				err = m.syncMapHeader(currentBlock)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
-					retry--
 					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
@@ -139,7 +138,6 @@ func (m Maintainer) sync() error {
 				err = m.syncHeaderToMap(currentBlock)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
-					retry--
 					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
