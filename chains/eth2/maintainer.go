@@ -10,6 +10,7 @@ import (
 	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mapprotocol/compass/internal/chain"
@@ -365,10 +366,12 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdat
 	for _, b := range resp.Data[0].NextSyncCommitteeBranch {
 		nextSyncCommitteeBranch = append(nextSyncCommitteeBranch, common.HexToHash(b))
 	}
-	pubKeys := make([]byte, 0, len(resp.Data[0].NextSyncCommittee.Pubkeys))
+	pubKeys := make([]byte, 0, len(resp.Data[0].NextSyncCommittee.Pubkeys)*48)
 	for _, pk := range resp.Data[0].NextSyncCommittee.Pubkeys {
-		pubKeys = append(pubKeys, common.Hex2Bytes(pk)...)
+		fmt.Println("bytes ", common.Hex2Bytes(strings.TrimPrefix(pk, "0x")))
+		pubKeys = append(pubKeys, common.Hex2Bytes(strings.TrimPrefix(pk, "0x"))...)
 	}
+	fmt.Println("pubKeys ", len(pubKeys))
 	finalityBranch := make([][32]byte, 0, len(resp.Data[0].FinalityBranch))
 	for _, fb := range resp.Data[0].FinalityBranch {
 		finalityBranch = append(finalityBranch, common.HexToHash(fb))
@@ -396,25 +399,6 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdat
 	if err != nil {
 		return nil, err
 	}
-
-	printHeader(eth2.BlockHeader{
-		ParentHash:       header.ParentHash.Bytes(),
-		Sha3Uncles:       header.UncleHash.Bytes(),
-		Miner:            header.Coinbase,
-		StateRoot:        header.Root.Bytes(),
-		TransactionsRoot: header.TxHash.Bytes(),
-		ReceiptsRoot:     header.ReceiptHash.Bytes(),
-		LogsBloom:        header.Bloom.Bytes(),
-		Difficulty:       header.Difficulty,
-		Number:           header.Number,
-		GasLimit:         new(big.Int).SetUint64(header.GasLimit),
-		GasUsed:          new(big.Int).SetUint64(header.GasUsed),
-		Timestamp:        new(big.Int).SetUint64(header.Time),
-		ExtraData:        header.Extra,
-		MixHash:          header.MixDigest.Bytes(),
-		Nonce:            header.Nonce[:],
-		BaseFeePerGas:    header.BaseFee,
-	})
 
 	return &eth2.LightClientUpdate{
 		AttestedHeader: eth2.BeaconBlockHeader{
