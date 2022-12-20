@@ -1,7 +1,6 @@
 package eth2
 
 import (
-	"fmt"
 	log "github.com/ChainSafe/log15"
 	"os"
 	"os/exec"
@@ -23,7 +22,7 @@ func init() {
 
 func Generate(slot, endpoint string) ([][32]byte, error) {
 	c := exec.Command(execPath, "generate", "--slot", slot, "--endpoint", endpoint)
-	log.Info("eth exec", "path", execPath, "cmd", c.String())
+	log.Debug("eth exec", "path", execPath, "cmd", c.String())
 	subOutPut, err := c.CombinedOutput()
 	if err != nil {
 		return nil, errors.Wrap(err, "command exec failed")
@@ -35,7 +34,6 @@ func Generate(slot, endpoint string) ([][32]byte, error) {
 		if !strings.HasPrefix(op, "0x") {
 			continue
 		}
-		fmt.Println("op --------------- ", op)
 		ret = append(ret, common.HexToHash(op))
 	}
 
