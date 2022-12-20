@@ -27,6 +27,7 @@ const (
 	MethodOfGetBytes            = "getBytes"
 	MethodOfGetHeadersBytes     = "getHeadersBytes"
 	MethodOfGetConfirms         = "confirms"
+	MethodOfGetUpdatesBytes     = "getUpdateBytes"
 )
 
 const (
@@ -70,6 +71,7 @@ var (
 	Height, _      = abi.JSON(strings.NewReader(HeightAbiJson))
 	Verify, _      = abi.JSON(strings.NewReader(VerifiableHeaderRangeAbiJson))
 	Matic, _       = abi.JSON(strings.NewReader(MaticAbiJson))
+	Eth2, _        = abi.JSON(strings.NewReader(Eth2AbiJson))
 )
 
 type Role string
