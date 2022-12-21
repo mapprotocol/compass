@@ -1863,6 +1863,36 @@ const (
 	Eth2AbiJson = `[
 		{
 			"inputs":[
+		
+			],
+			"name":"exeHeaderEndNumber",
+			"outputs":[
+				{
+					"internalType":"uint256",
+					"name":"",
+					"type":"uint256"
+				}
+			],
+			"stateMutability":"view",
+			"type":"function"
+		},
+		{
+			"inputs":[
+		
+			],
+			"name":"exeHeaderStartNumber",
+			"outputs":[
+				{
+					"internalType":"uint256",
+					"name":"",
+					"type":"uint256"
+				}
+			],
+			"stateMutability":"view",
+			"type":"function"
+		},
+		{
+			"inputs":[
 				{
 					"components":[
 						{

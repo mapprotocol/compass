@@ -312,6 +312,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
 				mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
+				mapprotocol.Init2GetEth22MapNumber(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 			}

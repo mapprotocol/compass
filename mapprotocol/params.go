@@ -29,6 +29,8 @@ const (
 	MethodOfGetConfirms         = "confirms"
 	MethodOfGetUpdatesBytes     = "getUpdateBytes"
 	MethodUpdateLightClient     = "updateLightClient"
+	MethodExeHeaderEndNumber    = "exeHeaderEndNumber"
+	MethodExeHeaderStartNumber  = "exeHeaderStartNumber"
 )
 
 const (
@@ -89,5 +91,5 @@ var (
 
 var (
 	ConfirmsOfMatic    = big.NewInt(10)
-	InputOfConfirms, _ = PackInput(Matic, MethodOfGetConfirms)
+	HeaderLengthOfEth2 = 20
 )
