@@ -1,8 +1,10 @@
 package eth2
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type LightClientUpdate struct {
@@ -52,4 +54,25 @@ type BlockHeader struct {
 	MixHash          []byte         `json:"mixHash"`
 	Nonce            []byte         `json:"nonce"`
 	BaseFeePerGas    *big.Int       `json:"baseFeePerGas"`
+}
+
+func ConvertHeader(header *types.Header) *BlockHeader {
+	return &BlockHeader{
+		ParentHash:       header.ParentHash.Bytes(),
+		Sha3Uncles:       header.UncleHash.Bytes(),
+		Miner:            header.Coinbase,
+		StateRoot:        header.Root.Bytes(),
+		TransactionsRoot: header.TxHash.Bytes(),
+		ReceiptsRoot:     header.ReceiptHash.Bytes(),
+		LogsBloom:        header.Bloom.Bytes(),
+		Difficulty:       header.Difficulty,
+		Number:           header.Number,
+		GasLimit:         new(big.Int).SetUint64(header.GasLimit),
+		GasUsed:          new(big.Int).SetUint64(header.GasUsed),
+		Timestamp:        new(big.Int).SetUint64(header.Time),
+		ExtraData:        header.Extra,
+		MixHash:          header.MixDigest.Bytes(),
+		Nonce:            header.Nonce[:],
+		BaseFeePerGas:    header.BaseFee,
+	}
 }

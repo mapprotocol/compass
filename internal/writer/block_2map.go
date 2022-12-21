@@ -21,27 +21,23 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 			id, _ := m.Payload[0].(*big.Int)
 			marshal, _ := m.Payload[1].([]byte)
 			isEth2 := false
-			lightClient := make([]byte, 0)
-			// eth2新流程
-			if len(m.Payload) >= 4 {
+			// Eth2 exclusive process
+			if len(m.Payload) >= 3 {
 				isEth2, _ = m.Payload[2].(bool)
-				lightClient, _ = m.Payload[3].([]byte)
 			}
 
+			method := mapprotocol.MethodUpdateBlockHeader
 			if isEth2 {
-				err := w.toMap(m, id, lightClient, mapprotocol.MethodUpdateLightClient)
-				if err != nil {
-					time.Sleep(constant.TxRetryInterval)
-					continue
-				}
+				method = mapprotocol.MethodUpdateLightClient
 			}
 
-			err := w.toMap(m, id, marshal, mapprotocol.MethodUpdateBlockHeader)
+			err := w.toMap(m, id, marshal, method)
 			if err != nil {
 				time.Sleep(constant.TxRetryInterval)
 				continue
 			}
 			m.DoneCh <- struct{}{}
+			return true
 		}
 	}
 }
@@ -66,7 +62,7 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 	w.conn.UnlockOpts()
 	if err == nil {
 		// message successfully handled
-		w.log.Info("Sync Header to map tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
+		w.log.Info("Sync Header to map tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination, "method", method)
 		time.Sleep(time.Second * 2)
 		err = w.txStatus(tx.Hash())
 		if err != nil {

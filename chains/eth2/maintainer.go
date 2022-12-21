@@ -8,9 +8,9 @@ import (
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mapprotocol/compass/internal/chain"
@@ -82,6 +82,32 @@ func (m *Maintainer) sync() error {
 				return nil
 			}
 
+			// step1 获取 exeHeaderStartNumber exeHeaderEndNumber， 判断是否为0。不为空，先调用 mapprotocol.MethodUpdateBlockHeader
+			startNumber, err := mapprotocol.GetEth22MapNumber(mapprotocol.MethodExeHeaderStartNumber)
+			if err != nil {
+				m.Log.Error("Get startNumber failed", "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+
+			endNumber, err := mapprotocol.GetEth22MapNumber(mapprotocol.MethodExeHeaderEndNumber)
+			if err != nil {
+				m.Log.Error("Get endNumber failed", "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+
+			fmt.Println("startNumber --- ", startNumber, "endNumber --- ", endNumber)
+			if startNumber.Int64() != 0 && endNumber.Int64() != 0 {
+				// updateHeader 流程
+				err = m.updateHeaders(startNumber, endNumber)
+				if err != nil {
+					m.Log.Error("updateHeaders failed", "err", err)
+					time.Sleep(constant.BlockRetryInterval)
+					continue
+				}
+			}
+
 			resp, err := m.eth2Client.BeaconHeaders(context.Background(), constant.FinalBlockIdOfEth2)
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
@@ -107,20 +133,9 @@ func (m *Maintainer) sync() error {
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
-			//
-			//if m.Metrics != nil {
-			//	m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
-			//}
-			//
-			//// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
-			//if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
-			//	m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
-			//	time.Sleep(constant.BlockRetryInterval)
-			//	continue
-			//}
 
-			if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
-				err = m.sendRegularLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth)
+			if m.Cfg.SyncToMap {
+				err = m.sendRegularLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					continue
@@ -167,7 +182,7 @@ func (m *Maintainer) getPeriodForSlot(slot uint64) uint64 {
 }
 
 // sendRegularLightClientUpdate listen header from current chain to Map chain
-func (m *Maintainer) sendRegularLightClientUpdate(latestBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) error {
+func (m *Maintainer) sendRegularLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) error {
 	lastEth2PeriodOnContract := m.getPeriodForSlot(lastFinalizedSlotOnContract.Uint64())
 	endPeriod := m.getPeriodForSlot(lastFinalizedSlotOnEth.Uint64())
 
@@ -178,10 +193,8 @@ func (m *Maintainer) sendRegularLightClientUpdate(latestBlock, lastFinalizedSlot
 	m.Log.Info("period check", "lastEth2PeriodOnContract", lastEth2PeriodOnContract, "endPeriod", endPeriod,
 		"slotOnEth", lastFinalizedSlotOnEth, "slotOnContract", lastFinalizedSlotOnContract)
 	if lastEth2PeriodOnContract == endPeriod {
-		fmt.Println("--------------------------")
 		lightUpdateData, err = m.getFinalityLightClientUpdate()
 	} else {
-		fmt.Println("-------------------------- not equal ")
 		lightUpdateData, err = m.getLightClientUpdateForLastPeriod()
 	}
 	if err != nil {
@@ -193,27 +206,18 @@ func (m *Maintainer) sendRegularLightClientUpdate(latestBlock, lastFinalizedSlot
 		return err
 	}
 
-	headers := make([]eth2.BlockHeader, 0)
-	headers = append(headers, lightUpdateData.FinalizedExeHeader)
-	headerInput, err := mapprotocol.Eth2.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(headers)
-	if err != nil {
-		m.Log.Error("Failed to abi pack", "err", err)
-		return err
-	}
-
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
-	msgpayload := []interface{}{id, headerInput, true, lightClientInput}
+	msgpayload := []interface{}{id, lightClientInput, true}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
 	err = m.Router.Send(message)
 	if err != nil {
-		m.Log.Error("subscription error: failed to route message", "err", err)
+		m.Log.Error("Subscription error: failed to route message", "err", err)
 		return nil
 	}
 	err = m.WaitUntilMsgHandled(1)
 	if err != nil {
 		return err
 	}
-	fmt.Println("-------------------------- break ")
 	return nil
 }
 
@@ -264,8 +268,8 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 	return &eth2.LightClientUpdate{
 		SignatureSlot: signatureSlot,
 		SyncAggregate: eth2.ContractSyncAggregate{
-			SyncCommitteeBits:      common.Hex2Bytes(resp.Data.SyncAggregate.SyncCommitteeBits),
-			SyncCommitteeSignature: common.Hex2Bytes(resp.Data.SyncAggregate.SyncCommitteeSignature),
+			SyncCommitteeBits:      util.FromHexString(resp.Data.SyncAggregate.SyncCommitteeBits),
+			SyncCommitteeSignature: util.FromHexString(resp.Data.SyncAggregate.SyncCommitteeSignature),
 		},
 		AttestedHeader: eth2.BeaconBlockHeader{
 			Slot:          slot.Uint64(),
@@ -287,25 +291,8 @@ func (m *Maintainer) getFinalityLightClientUpdate() (*eth2.LightClientUpdate, er
 			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.StateRoot),
 			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.BodyRoot),
 		},
-		ExeFinalityBranch: exeFinalityBranch,
-		FinalizedExeHeader: eth2.BlockHeader{
-			ParentHash:       header.ParentHash.Bytes(),
-			Sha3Uncles:       header.UncleHash.Bytes(),
-			Miner:            header.Coinbase,
-			StateRoot:        header.Root.Bytes(),
-			TransactionsRoot: header.TxHash.Bytes(),
-			ReceiptsRoot:     header.ReceiptHash.Bytes(),
-			LogsBloom:        header.Bloom.Bytes(),
-			Difficulty:       header.Difficulty,
-			Number:           header.Number,
-			GasLimit:         new(big.Int).SetUint64(header.GasLimit),
-			GasUsed:          new(big.Int).SetUint64(header.GasUsed),
-			Timestamp:        new(big.Int).SetUint64(header.Time),
-			ExtraData:        header.Extra,
-			MixHash:          header.MixDigest.Bytes(),
-			Nonce:            header.Nonce[:],
-			BaseFeePerGas:    header.BaseFee,
-		},
+		ExeFinalityBranch:  exeFinalityBranch,
+		FinalizedExeHeader: *eth2.ConvertHeader(header),
 	}, nil
 }
 
@@ -368,10 +355,8 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdat
 	}
 	pubKeys := make([]byte, 0, len(resp.Data[0].NextSyncCommittee.Pubkeys)*48)
 	for _, pk := range resp.Data[0].NextSyncCommittee.Pubkeys {
-		fmt.Println("bytes ", common.Hex2Bytes(strings.TrimPrefix(pk, "0x")))
-		pubKeys = append(pubKeys, common.Hex2Bytes(strings.TrimPrefix(pk, "0x"))...)
+		pubKeys = append(pubKeys, util.FromHexString(pk)...)
 	}
-	fmt.Println("pubKeys ", len(pubKeys))
 	finalityBranch := make([][32]byte, 0, len(resp.Data[0].FinalityBranch))
 	for _, fb := range resp.Data[0].FinalityBranch {
 		finalityBranch = append(finalityBranch, common.HexToHash(fb))
@@ -409,14 +394,14 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdat
 			BodyRoot:      common.HexToHash(resp.Data[0].AttestedHeader.BodyRoot),
 		},
 		SyncAggregate: eth2.ContractSyncAggregate{
-			SyncCommitteeBits:      common.Hex2Bytes(resp.Data[0].SyncAggregate.SyncCommitteeBits),
-			SyncCommitteeSignature: common.Hex2Bytes(resp.Data[0].SyncAggregate.SyncCommitteeSignature),
+			SyncCommitteeBits:      util.FromHexString(resp.Data[0].SyncAggregate.SyncCommitteeBits),
+			SyncCommitteeSignature: util.FromHexString(resp.Data[0].SyncAggregate.SyncCommitteeSignature),
 		},
 		SignatureSlot:           signatureSlot,
 		NextSyncCommitteeBranch: nextSyncCommitteeBranch,
 		NextSyncCommittee: eth2.ContractSyncCommittee{
 			Pubkeys:         pubKeys,
-			AggregatePubkey: common.Hex2Bytes(resp.Data[0].NextSyncCommittee.AggregatePubkey),
+			AggregatePubkey: util.FromHexString(resp.Data[0].NextSyncCommittee.AggregatePubkey),
 		},
 		FinalityBranch: finalityBranch,
 		FinalizedHeader: eth2.BeaconBlockHeader{
@@ -426,44 +411,48 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod() (*eth2.LightClientUpdat
 			StateRoot:     common.HexToHash(resp.Data[0].FinalizedHeader.StateRoot),
 			BodyRoot:      common.HexToHash(resp.Data[0].FinalizedHeader.BodyRoot),
 		},
-		ExeFinalityBranch: exeFinalityBranch,
-		FinalizedExeHeader: eth2.BlockHeader{
-			ParentHash:       header.ParentHash.Bytes(),
-			Sha3Uncles:       header.UncleHash.Bytes(),
-			Miner:            header.Coinbase,
-			StateRoot:        header.Root.Bytes(),
-			TransactionsRoot: header.TxHash.Bytes(),
-			ReceiptsRoot:     header.ReceiptHash.Bytes(),
-			LogsBloom:        header.Bloom.Bytes(),
-			Difficulty:       header.Difficulty,
-			Number:           header.Number,
-			GasLimit:         new(big.Int).SetUint64(header.GasLimit),
-			GasUsed:          new(big.Int).SetUint64(header.GasUsed),
-			Timestamp:        new(big.Int).SetUint64(header.Time),
-			ExtraData:        header.Extra,
-			MixHash:          header.MixDigest.Bytes(),
-			Nonce:            header.Nonce[:],
-			BaseFeePerGas:    header.BaseFee,
-		},
+		ExeFinalityBranch:  exeFinalityBranch,
+		FinalizedExeHeader: *eth2.ConvertHeader(header),
 	}, nil
 }
 
-func printHeader(mh eth2.BlockHeader) {
-	fmt.Println("Number ", mh.Number)
-	fmt.Println("ParentHash ", "0x"+common.Bytes2Hex(mh.ParentHash))
-	fmt.Println("Sha3Uncles ", "0x"+common.Bytes2Hex(mh.Sha3Uncles))
-	fmt.Println("StateRoot ", "0x"+common.Bytes2Hex(mh.StateRoot))
-	fmt.Println("TransactionsRoot ", "0x"+common.Bytes2Hex(mh.TransactionsRoot))
-	fmt.Println("ReceiptsRoot ", "0x"+common.Bytes2Hex(mh.ReceiptsRoot))
-	fmt.Println("LogsBloom ", "0x"+common.Bytes2Hex(mh.LogsBloom))
-	fmt.Println("ExtraData ", "0x"+common.Bytes2Hex(mh.ExtraData))
-	fmt.Println("MixHash ", "0x"+common.Bytes2Hex(mh.MixHash))
-	fmt.Println("Nonce ", "0x"+common.Bytes2Hex(mh.Nonce))
-	fmt.Println("Miner ", mh.Miner)
-	fmt.Println("Difficulty ", mh.Difficulty)
-	fmt.Println("GasLimit ", mh.GasLimit)
-	fmt.Println("GasUsed ", mh.GasUsed)
-	fmt.Println("Timestamp ", mh.Timestamp)
-	fmt.Println("BaseFeePerGas ", mh.BaseFeePerGas)
-	fmt.Println("Number ", mh.Number)
+func (m *Maintainer) updateHeaders(startNumber, endNumber *big.Int) error {
+	headers := make([]eth2.BlockHeader, mapprotocol.HeaderLengthOfEth2)
+	idx := mapprotocol.HeaderLengthOfEth2 - 1
+	for i := endNumber.Int64(); i >= startNumber.Int64(); i-- {
+		header, err := m.Conn.Client().HeaderByNumber(context.Background(), new(big.Int).SetInt64(i))
+		if err != nil {
+			return err
+		}
+
+		headers[idx] = *eth2.ConvertHeader(header)
+		idx--
+		if idx != -1 && i != startNumber.Int64() {
+			continue
+		}
+		if i == startNumber.Int64() {
+			headers = headers[idx+1:]
+		}
+		input, err := mapprotocol.Eth2.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(headers)
+		if err != nil {
+			m.Log.Error("Failed to header abi pack", "err", err)
+			return err
+		}
+
+		id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
+		msgPayload := []interface{}{id, input}
+		message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+		err = m.Router.Send(message)
+		if err != nil {
+			m.Log.Error("Subscription header error: failed to route message", "err", err)
+			return nil
+		}
+		err = m.WaitUntilMsgHandled(1)
+		if err != nil {
+			return err
+		}
+		idx = mapprotocol.HeaderLengthOfEth2 - 1
+	}
+
+	return nil
 }
