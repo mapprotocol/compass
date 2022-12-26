@@ -32,7 +32,7 @@ var (
 	GasMultiplier         = "gasMultiplier"
 	HttpOpt               = "http"
 	StartBlockOpt         = "startBlock"
-	BlockConfirmationsOpt = "BlockConfirmations"
+	BlockConfirmationsOpt = "blockConfirmations"
 	EGSApiKey             = "egsApiKey"
 	EGSSpeed              = "egsSpeed"
 	SyncToMap             = "syncToMap"
@@ -41,6 +41,7 @@ var (
 	Event                 = "event"
 	WaterLine             = "waterLine"
 	ChangeInterval        = "changeInterval"
+	Eth2Url               = "eth2Url"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
@@ -71,6 +72,7 @@ type Config struct {
 	HooksUrl           string
 	WaterLine          string
 	ChangeInterval     string
+	Eth2Endpoint       string
 }
 
 // ParseConfig uses a core.ChainConfig to construct a corresponding Config
@@ -96,6 +98,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		SkipError:          chainCfg.SkipError,
 		WaterLine:          "",
 		ChangeInterval:     "",
+		Eth2Endpoint:       "",
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
@@ -229,8 +232,11 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		}
 	}
 
+	if eth2Url, ok := chainCfg.Opts[Eth2Url]; ok && eth2Url != "" {
+		config.Eth2Endpoint = eth2Url
+	}
+
 	config.HooksUrl = os.Getenv("hooks")
-	fmt.Println("monitor url is ", config.HooksUrl)
 
 	return config, nil
 }

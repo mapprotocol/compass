@@ -22,6 +22,7 @@ const (
 	Bsc      = "bsc"
 	Matic    = "matic"
 	Klaytn   = "klaytn"
+	Eth2     = "eth2"
 	Near     = "near"
 	Ethereum = "ethereum"
 )

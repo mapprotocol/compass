@@ -10,6 +10,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/chains/eth2"
 	"github.com/mapprotocol/compass/chains/klaytn"
 	"github.com/mapprotocol/compass/chains/matic"
 	"net/http"
@@ -310,7 +311,8 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			if idx == 0 {
 				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
-				//mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
+				mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
+				mapprotocol.Init2GetEth22MapNumber(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 			}
@@ -331,6 +333,11 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			}
 		} else if chain.Type == chains.Klaytn {
 			newChain, err = klaytn.InitializeChain(chainConfig, logger, sysErr, m, role)
+			if err != nil {
+				return err
+			}
+		} else if chain.Type == chains.Eth2 {
+			newChain, err = eth2.InitializeChain(chainConfig, logger, sysErr, m, role)
 			if err != nil {
 				return err
 			}

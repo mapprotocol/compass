@@ -39,6 +39,7 @@ var (
 	Map2OtherVerifyRange = make(map[msg.ChainId]GetVerifyRange)                                           // get map to other right verify range function collect
 	Get2MapVerifyRange   = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // get other chain to map verify height
 	Get2MapByLight       = func() (*big.Int, error) { return nil, nil }
+	GetEth22MapNumber    = func(method string) (*big.Int, error) { return nil, nil }
 )
 
 type GetHeight func() (*big.Int, error)
@@ -56,6 +57,33 @@ func Init2MapHeightByLight(lightNode common.Address) {
 			return nil, errors.Wrap(err, "get other2map headerHeight failed")
 		}
 		return height, nil
+	}
+}
+
+func Init2GetEth22MapNumber(lightNode common.Address) {
+	GetEth22MapNumber = func(method string) (*big.Int, error) {
+		input, err := PackInput(Eth2, method)
+		if err != nil {
+			return nil, errors.Wrap(err, "get other2map packInput failed")
+		}
+
+		output, err := GlobalMapConn.CallContract(context.Background(),
+			goeth.CallMsg{From: ZeroAddress, To: &lightNode, Data: input}, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		outputs := Eth2.Methods[method].Outputs
+		unpack, err := outputs.Unpack(output)
+		if err != nil {
+			return big.NewInt(0), err
+		}
+
+		number := new(big.Int)
+		if err = outputs.Copy(&number, unpack); err != nil {
+			return big.NewInt(0), err
+		}
+		return number, nil
 	}
 }
 
