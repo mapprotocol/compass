@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/klaytn"
 	"math/big"
 
@@ -27,4 +28,9 @@ type Connection interface {
 type KConnection interface {
 	Connection
 	KClient() *klaytn.Client
+}
+
+type Eth2Connection interface {
+	Connection
+	Eth2Client() *eth2.Client
 }

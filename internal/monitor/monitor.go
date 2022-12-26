@@ -70,7 +70,7 @@ func (m *Monitor) sync() error {
 				continue
 			}
 
-			//m.Log.Info("Get balance result", "account", addr, "balance", balance)
+			m.Log.Info("Get balance result", "account", addr, "balance", balance)
 
 			if balance.Cmp(m.balance) != 0 {
 				m.balance = balance

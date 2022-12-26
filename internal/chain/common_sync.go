@@ -3,6 +3,7 @@ package chain
 import (
 	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/mapprotocol"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"math/big"
 	"time"
@@ -75,4 +76,15 @@ func (c *CommonSync) BuildQuery(contract ethcommon.Address, sig []utils.EventSig
 		Topics:    [][]ethcommon.Hash{topics},
 	}
 	return query
+}
+
+func (c *CommonSync) GetMethod(topic ethcommon.Hash) string {
+	method := mapprotocol.MethodOfTransferIn
+	if topic == mapprotocol.HashOfDepositIn {
+		method = mapprotocol.MethodOfDepositIn
+	} else if topic == mapprotocol.HashOfSwapIn {
+		method = mapprotocol.MethodOfSwapIn
+	}
+
+	return method
 }

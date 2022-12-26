@@ -85,8 +85,6 @@ func (m *Monitor) sync() error {
 						m.cfg.name, m.cfg.from, conversion.Int64()))
 			}
 
-			m.log.Info("Get balance result", "timeCha", time.Now().Unix()-m.timestamp,
-				"changeInterval", changeInterval.Int64())
 			if (time.Now().Unix() - m.timestamp) > changeInterval.Int64() {
 				time.Sleep(time.Second * 30)
 				// alarm

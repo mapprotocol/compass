@@ -210,7 +210,6 @@ func multiplyGasPrice(gasEstimate *big.Int, gasMultiplier *big.Float) *big.Int {
 // and gas price.
 func (c *Connection) LockAndUpdateOpts() error {
 	c.optsLock.Lock()
-
 	head, err := c.conn.HeaderByNumber(context.TODO(), nil)
 	// cos map chain dont have this section in return,this err will be raised
 	if err != nil && err.Error() != "missing required field 'sha3Uncles' for Header" {
