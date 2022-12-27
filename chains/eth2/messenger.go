@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/tx"
 	"math/big"
 	"time"
 
 	"github.com/mapprotocol/compass/msg"
 
-	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
 type Messenger struct {
@@ -94,11 +93,11 @@ func (m *Messenger) sync() error {
 			//}
 
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
-			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
-				m.Log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
+			//if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
+			//	m.Log.Info("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
+			//	time.Sleep(constant.BlockRetryInterval)
+			//	continue
+			//}
 			// messager
 			// Parse out events
 			count, err := m.getEventsForBlock(currentBlock)
@@ -132,15 +131,15 @@ func (m *Messenger) sync() error {
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
-	m.Log.Debug("Querying block for events", "block", latestBlock)
-	query := m.buildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
+	m.Log.Info("Querying block for events", "block", latestBlock)
+	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
-	m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
+	m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
@@ -150,6 +149,10 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		orderId := log.Data[:32]
 		method := m.GetMethod(log.Topics[0])
 		if m.Cfg.SyncToMap {
+			header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
+			if err != nil {
+				return 0, err
+			}
 			// when syncToMap we need to assemble a tx proof
 			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
 			if err != nil {
@@ -159,7 +162,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-			payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, m.Cfg.McsContract, receipts, method, m.Cfg.Id, m.Cfg.MapChainID)
+			payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
@@ -177,19 +180,4 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	}
 
 	return count, nil
-}
-
-// buildQuery constructs a query for the bridgeContract by hashing sig to get the event topic
-func (m *Messenger) buildQuery(contract ethcommon.Address, sig []utils.EventSig, startBlock *big.Int, endBlock *big.Int) eth.FilterQuery {
-	topics := make([]ethcommon.Hash, 0, len(sig))
-	for _, s := range sig {
-		topics = append(topics, s.GetTopic())
-	}
-	query := eth.FilterQuery{
-		FromBlock: startBlock,
-		ToBlock:   endBlock,
-		Addresses: []ethcommon.Address{contract},
-		Topics:    [][]ethcommon.Hash{topics},
-	}
-	return query
 }

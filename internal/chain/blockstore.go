@@ -4,6 +4,7 @@ import (
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"math/big"
 )
 
 // SetupBlockStore queries the blockstore for the latest known block. If the latest block is
@@ -18,6 +19,9 @@ func SetupBlockStore(cfg *Config, kp *secp256k1.Keypair, role mapprotocol.Role) 
 		latestBlock, err := bs.TryLoadLatestBlock()
 		if err != nil {
 			return nil, err
+		}
+		if latestBlock == nil {
+			latestBlock = new(big.Int)
 		}
 
 		if latestBlock.Cmp(cfg.StartBlock) == 1 {
