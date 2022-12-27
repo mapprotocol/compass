@@ -454,6 +454,7 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 }
 
 func (m *Maintainer) updateHeaders(startNumber, endNumber *big.Int) error {
+	m.Log.Info("Sync Header", "startNumber", startNumber, "endNumber", endNumber)
 	headers := make([]eth2.BlockHeader, mapprotocol.HeaderLengthOfEth2)
 	idx := mapprotocol.HeaderLengthOfEth2 - 1
 	for i := endNumber.Int64(); i >= startNumber.Int64(); i-- {
