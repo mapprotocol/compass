@@ -14,6 +14,7 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/pkg/errors"
 )
 
 var _ core.Chain = new(Chain)
@@ -63,28 +64,28 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	var listen chains.Listener
 	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMaintainer {
-		//fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
-		//height, err := fn()
-		//if err != nil {
-		//	return nil, errors.Wrap(err, "eth2 get init headerHeight failed")
-		//}
-		//logger.Info("map2eth2 Current situation", "height", height, "lightNode", cfg.LightNode)
-		//mapprotocol.SyncOtherMap[cfg.Id] = height
-		//mapprotocol.Map2OtherHeight[cfg.Id] = fn
+		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
+		height, err := fn()
+		if err != nil {
+			return nil, errors.Wrap(err, "eth2 get init headerHeight failed")
+		}
+		logger.Info("map2eth2 Current situation", "height", height, "lightNode", cfg.LightNode)
+		mapprotocol.SyncOtherMap[cfg.Id] = height
+		mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		listen = NewMaintainer(cs, conn.Eth2Client())
 	} else if role == mapprotocol.RoleOfMessenger {
 		err = conn.EnsureHasBytecode(cfg.McsContract)
 		if err != nil {
 			return nil, err
 		}
-		//// verify range
-		//fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
-		//left, right, err := fn()
-		//if err != nil {
-		//	return nil, errors.Wrap(err, "eth2 get init verifyHeight failed")
-		//}
-		//logger.Info("Map2eth2 Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
-		//mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
+		// verify range
+		fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
+		left, right, err := fn()
+		if err != nil {
+			return nil, errors.Wrap(err, "eth2 get init verifyHeight failed")
+		}
+		logger.Info("Map2eth2 Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
+		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		listen = NewMessenger(cs)
 	}
 	wri := w.New(conn, cfg, logger, stop, sysErr, m)

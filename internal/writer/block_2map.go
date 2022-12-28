@@ -51,8 +51,8 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 	// These store the gas limit and price before a transaction is sent for logging in case of a failure
 	// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 	// save header data
-	//data, err := mapprotocol.PackInput(mapprotocol.LightManger, method, id, marshal)
-	data, err := mapprotocol.PackInput(mapprotocol.Bsc, method, marshal)
+	data, err := mapprotocol.PackInput(mapprotocol.LightManger, method, id, marshal)
+	//data, err := mapprotocol.PackInput(mapprotocol.Bsc, method, marshal)
 	if err != nil {
 		w.log.Error("block2Map Failed to pack abi data", "err", err)
 		w.conn.UnlockOpts()

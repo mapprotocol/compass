@@ -131,7 +131,6 @@ func (m *Messenger) sync() error {
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
-	m.Log.Info("Querying block for events", "block", latestBlock)
 	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
@@ -139,7 +138,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
-	m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
