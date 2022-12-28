@@ -168,8 +168,8 @@ func (m *Maintainer) sync() error {
 }
 
 func (m *Maintainer) updateSyncHeight() error {
-	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	syncedHeight, err := mapprotocol.Get2MapByLight()
+	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {
 		m.Log.Error("Get synced Height failed", "err", err)
 		return err
