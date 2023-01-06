@@ -39,7 +39,7 @@ var (
 	Map2OtherVerifyRange = make(map[msg.ChainId]GetVerifyRange)                                           // get map to other right verify range function collect
 	Get2MapVerifyRange   = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // get other chain to map verify height
 	Get2MapByLight       = func() (*big.Int, error) { return nil, nil }
-	GetEth22MapNumber    = func(method string) (*big.Int, error) { return nil, nil }
+	GetEth22MapNumber    = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil }
 )
 
 type GetHeight func() (*big.Int, error)
@@ -61,29 +61,42 @@ func Init2MapHeightByLight(lightNode common.Address) {
 }
 
 func Init2GetEth22MapNumber(lightNode common.Address) {
-	GetEth22MapNumber = func(method string) (*big.Int, error) {
-		input, err := PackInput(Eth2, method)
+	GetEth22MapNumber = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { // lightManger 增加 big.Int
+		input, err := PackInput(LightManger, MethodClientState, big.NewInt(int64(chainId)))
 		if err != nil {
-			return nil, errors.Wrap(err, "get other2map packInput failed")
+			return nil, nil, errors.Wrap(err, "get eth22map packInput failed")
 		}
 
 		output, err := GlobalMapConn.CallContract(context.Background(),
 			goeth.CallMsg{From: ZeroAddress, To: &lightNode, Data: input}, nil)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		outputs := Eth2.Methods[method].Outputs
+		outputs := LightManger.Methods[MethodClientState].Outputs
 		unpack, err := outputs.Unpack(output)
 		if err != nil {
-			return big.NewInt(0), err
+			return nil, nil, err
 		}
 
-		number := new(big.Int)
-		if err = outputs.Copy(&number, unpack); err != nil {
-			return big.NewInt(0), err
+		back := make([]byte, 0)
+		if err = outputs.Copy(&back, unpack); err != nil {
+			return nil, nil, err
 		}
-		return number, nil
+
+		ret := struct {
+			StartNumber *big.Int
+			EndNumber   *big.Int
+		}{}
+		analysis, err := Eth2.Methods[MethodClientStateAnalysis].Outputs.Unpack(back)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "analysis")
+		}
+		if err = Eth2.Methods[MethodClientStateAnalysis].Outputs.Copy(&ret, analysis); err != nil {
+			return nil, nil, errors.Wrap(err, "analysis copy")
+		}
+
+		return ret.StartNumber, ret.EndNumber, nil
 	}
 }
 
@@ -193,7 +206,6 @@ func InitOtherChain2MapVerifyRange(lightManager common.Address) {
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "get other2map verifyRange by lightManager failed")
 		}
-		//fmt.Println("get verify param ", big.NewInt(int64(chainId)), "min", left, "max", right)
 		return left, right, nil
 	}
 }

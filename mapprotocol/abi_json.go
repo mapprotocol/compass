@@ -727,6 +727,43 @@ const (
 	]`
 	LightMangerAbi = `[
 		{
+			"inputs": [
+				{
+					"internalType":"uint256",
+					"name":"_chainId",
+					"type":"uint256"
+				},
+				{
+					"internalType": "bytes",
+					"name": "_data",
+					"type": "bytes"
+				}
+			],
+			"name": "updateLightClient",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType":"uint256",
+					"name":"_chainId",
+					"type":"uint256"
+				}
+			],
+			"name": "clientState",
+			"outputs": [
+				{
+					"internalType": "bytes",
+					"name": "",
+					"type": "bytes"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
 			"inputs":[
 				{
 					"internalType":"uint256",
@@ -1862,34 +1899,35 @@ const (
 	]`
 	Eth2AbiJson = `[
 		{
-			"inputs":[
-		
-			],
-			"name":"exeHeaderEndNumber",
-			"outputs":[
+			"inputs": [],
+			"name": "clientState",
+			"outputs": [
 				{
-					"internalType":"uint256",
-					"name":"",
-					"type":"uint256"
+					"internalType": "bytes",
+					"name": "",
+					"type": "bytes"
 				}
 			],
-			"stateMutability":"view",
-			"type":"function"
+			"stateMutability": "view",
+			"type": "function"
 		},
 		{
-			"inputs":[
-		
-			],
-			"name":"exeHeaderStartNumber",
-			"outputs":[
+			"inputs": [],
+			"name": "clientStateAnalysis",
+			"outputs": [
 				{
-					"internalType":"uint256",
-					"name":"",
-					"type":"uint256"
+				  "internalType": "uint256",
+				  "name": "startNumber",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "endNumber",
+				  "type": "uint256"
 				}
 			],
-			"stateMutability":"view",
-			"type":"function"
+			"stateMutability": "view",
+			"type": "function"
 		},
 		{
 			"inputs":[
