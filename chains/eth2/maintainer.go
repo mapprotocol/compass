@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
@@ -87,21 +88,14 @@ func (m *Maintainer) sync() error {
 				}
 			}
 
-			// step1 获取 exeHeaderStartNumber exeHeaderEndNumber， 判断是否为0。不为空，先调用 mapprotocol.MethodUpdateBlockHeader
-			startNumber, err := mapprotocol.GetEth22MapNumber(mapprotocol.MethodExeHeaderStartNumber)
+			startNumber, endNumber, err := mapprotocol.GetEth22MapNumber(m.Cfg.Id)
 			if err != nil {
 				m.Log.Error("Get startNumber failed", "err", err)
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
 
-			endNumber, err := mapprotocol.GetEth22MapNumber(mapprotocol.MethodExeHeaderEndNumber)
-			if err != nil {
-				m.Log.Error("Get endNumber failed", "err", err)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-
+			log.Info("updateRange ", "startNumber", startNumber, "endNumber", endNumber)
 			if startNumber.Int64() != 0 && endNumber.Int64() != 0 {
 				// updateHeader 流程
 				err = m.updateHeaders(startNumber, endNumber)
