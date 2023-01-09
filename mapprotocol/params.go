@@ -26,11 +26,10 @@ const (
 	MethodOfIsUsedEvent         = "is_used_event"
 	MethodOfGetBytes            = "getBytes"
 	MethodOfGetHeadersBytes     = "getHeadersBytes"
-	MethodOfGetConfirms         = "confirms"
 	MethodOfGetUpdatesBytes     = "getUpdateBytes"
 	MethodUpdateLightClient     = "updateLightClient"
-	MethodExeHeaderEndNumber    = "exeHeaderEndNumber"
-	MethodExeHeaderStartNumber  = "exeHeaderStartNumber"
+	MethodClientState           = "clientState"
+	MethodClientStateAnalysis   = "clientStateAnalysis"
 )
 
 const (

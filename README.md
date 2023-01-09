@@ -139,7 +139,7 @@ A chain configurations take this form:
 ```
 {
     "name": "eth",                      // Human-readable name
-    "type": "ethereum",                 // Chain type (only "ethereum" is supported for now)
+    "type": "ethereum",                 // Chain type (Please see the following cousin for details)
     "id": "0",                          // Chain ID
     "endpoint": "ws://<host>:<port>",   // Node endpoint
     "from": "0xff93...",                // On-chain address of maintainer
@@ -147,6 +147,15 @@ A chain configurations take this form:
     "opts": {},                         // Chain-specific configuration options (see below)
 }
 ```
+
+|chain| type |
+| :-----------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ethereum | ethereum |
+| bsc | bsc |
+| goerli | eth2 |
+| polygon | matic |
+| near | near |
+| klaytn | klaytn |
 
 See `config.json.example` for an example configuration.
 
