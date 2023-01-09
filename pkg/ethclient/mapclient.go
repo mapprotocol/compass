@@ -4,19 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
-
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/atlas/consensus/istanbul/backend"
 	"github.com/mapprotocol/atlas/core/types"
+	"math/big"
+	"strings"
 )
 
 type rpcMAPBlock struct {
-	Hash           common.Hash           `json:"hash"`
-	Transactions   []rpcMAPTransaction   `json:"transactions"`
-	Randomness     *types.Randomness     `json:"randomness"`
-	EpochSnarkData *types.EpochSnarkData `json:"epochSnarkData"`
+	Hash           common.Hash         `json:"hash"`
+	Transactions   []rpcMAPTransaction `json:"transactions"`
+	Randomness     *types.Randomness   `json:"randomness"`
+	EpochSnarkData *EpochSnarkData     `json:"epochSnarkData"`
+}
+
+type EpochSnarkData struct {
+	Bitmap    string
+	Signature string
 }
 
 type rpcMAPTransaction struct {
@@ -62,7 +67,12 @@ func (ec *Client) getMAPBlock(ctx context.Context, method string, args ...interf
 		}
 		txs[i] = tx.tx
 	}
-	return types.NewBlockWithHeader(head).WithBody(txs, body.Randomness, body.EpochSnarkData), nil
+	blockSnark := &types.EpochSnarkData{
+		Bitmap:    big.NewInt(0),
+		Signature: common.Hex2Bytes(body.EpochSnarkData.Signature),
+	}
+	blockSnark.Bitmap.SetString(strings.TrimPrefix(body.EpochSnarkData.Bitmap, "0x"), 16)
+	return types.NewBlockWithHeader(head).WithBody(txs, body.Randomness, blockSnark), nil
 }
 
 // MAPBlockByHash returns the given full block.
