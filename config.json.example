@@ -80,6 +80,23 @@
          "event": "mapTransferOut(uint256,uint256,bytes32,bytes,bytes,bytes,uint256,bytes)|mapDepositOut(uint256,uint256,bytes32,address,bytes,address,uint256)",
          "syncToMap": "true"
        }
+     },
+     {
+       "name": "eth2",
+       "type": "eth2",
+       "id": "5",
+       "endpoint": "http://18.142.54.137:8545",
+       "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
+       "opts": {
+         "mcs": "0xae194f5d43ccab94c6dea994ff19001708d0e2eb",
+         "lightnode": "0x05634BdfbDa8aC4653Ff0655d71719F61A0922C4",
+         "http": "true",
+         "gasLimit": "400000000000",
+         "maxGasPrice": "200000000000",
+         "event": "mapTransferOut(uint256,uint256,bytes32,bytes,bytes,bytes,uint256,bytes)|mapDepositOut(uint256,uint256,bytes32,address,bytes,address,uint256)|mapSwapOut(uint256,uint256,bytes32,bytes,bytes,bytes,uint256,bytes)",
+         "syncToMap": "true",
+         "eth2Url": "http://18.138.248.113:9596"
+       }
      }
   ]
 }

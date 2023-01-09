@@ -8,6 +8,7 @@ import (
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/tx"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"math/big"
 	"time"
 
@@ -77,27 +78,27 @@ func (m *Messenger) sync() error {
 				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
-			//left, right, err := mapprotocol.Get2MapVerifyRange(m.Cfg.Id)
-			//if err != nil {
-			//	m.Log.Warn("Get2MapVerifyRange failed", "err", err)
-			//}
-			//if right != nil && right.Uint64() != 0 && right.Cmp(currentBlock) == -1 {
-			//	m.Log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "maxVerify", right)
-			//	time.Sleep(time.Minute)
-			//	continue
-			//}
-			//
-			//if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
-			//	currentBlock = left
-			//	m.Log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
-			//}
+			left, right, err := mapprotocol.Get2MapVerifyRange(m.Cfg.Id)
+			if err != nil {
+				m.Log.Warn("Get2MapVerifyRange failed", "err", err)
+			}
+			if right != nil && right.Uint64() != 0 && right.Cmp(currentBlock) == -1 {
+				m.Log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "maxVerify", right)
+				time.Sleep(time.Minute)
+				continue
+			}
 
-			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
-			//if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
-			//	m.Log.Info("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
-			//	time.Sleep(constant.BlockRetryInterval)
-			//	continue
-			//}
+			if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
+				currentBlock = left
+				m.Log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
+			}
+
+			//Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
+			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
+				m.Log.Info("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
 			// messager
 			// Parse out events
 			count, err := m.getEventsForBlock(currentBlock)
@@ -131,7 +132,6 @@ func (m *Messenger) sync() error {
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
-	m.Log.Info("Querying block for events", "block", latestBlock)
 	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
@@ -139,7 +139,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
-	m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
