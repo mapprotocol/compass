@@ -68,10 +68,12 @@ func (ec *Client) getMAPBlock(ctx context.Context, method string, args ...interf
 		txs[i] = tx.tx
 	}
 	blockSnark := &types.EpochSnarkData{
-		Bitmap:    big.NewInt(0),
-		Signature: common.Hex2Bytes(body.EpochSnarkData.Signature),
+		Bitmap: big.NewInt(0),
 	}
-	blockSnark.Bitmap.SetString(strings.TrimPrefix(body.EpochSnarkData.Bitmap, "0x"), 16)
+	if body.EpochSnarkData != nil {
+		blockSnark.Signature = common.Hex2Bytes(body.EpochSnarkData.Signature)
+		blockSnark.Bitmap.SetString(strings.TrimPrefix(body.EpochSnarkData.Bitmap, "0x"), 16)
+	}
 	return types.NewBlockWithHeader(head).WithBody(txs, body.Randomness, blockSnark), nil
 }
 
