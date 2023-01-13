@@ -109,6 +109,7 @@ func AssembleProof(headers []BlockHeader, log types.Log, fId msg.ChainId, receip
 	if err != nil {
 		return nil, err
 	}
+	// fmt.Println("matic -------- input", "0x"+common.Bytes2Hex(input))
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
 	//pack, err := mapprotocol.Near.Pack(mapprotocol.MethodVerifyProofData, input)
 	if err != nil {
