@@ -189,6 +189,16 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
+			//
+			remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfMap))
+			if remainder.Cmp(mapprotocol.Big0) == 0 {
+				lr, err := getLastReceipt(m.Conn.Client(), latestBlock)
+				if err != nil {
+					return 0, fmt.Errorf("unable to get last receipts in epoch last %w", err)
+				}
+				receipts = append(receipts, lr)
+			}
+
 			_, toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)

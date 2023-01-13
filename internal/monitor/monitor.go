@@ -86,7 +86,6 @@ func (m *Monitor) sync() error {
 			}
 
 			if (time.Now().Unix() - m.timestamp) > changeInterval.Int64() {
-				time.Sleep(time.Second * 30)
 				// alarm
 				m.alarm(context.Background(),
 					fmt.Sprintf("%s No transaction occurred in addr in the last %d seconds,\n"+
@@ -123,4 +122,5 @@ func (m *Monitor) alarm(ctx context.Context, msg string) {
 		return
 	}
 	m.Log.Info("send alarm message", "resp", string(data))
+	time.Sleep(time.Second * 30)
 }
