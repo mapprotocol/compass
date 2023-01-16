@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
 	"time"
@@ -25,6 +26,8 @@ func (w *Writer) exeSwapMsg(m msg.Message) bool {
 
 // callContractWithMsg contract using address and function signature with message info
 func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
+	var errorCount int64
+	var checkOIdCount int64
 	for {
 		select {
 		case <-w.stop:
@@ -36,6 +39,11 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
 				if err != nil {
 					w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
+					errorCount++
+					if checkOIdCount == 10 {
+						util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
+						checkOIdCount = 0
+					}
 				}
 				if exits {
 					w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
@@ -111,6 +119,11 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Error(constant.ChainTypeErrorPrint, "srcHash", inputHash, "err", err)
 			} else {
 				w.log.Warn("Execution failed, will retry", "srcHash", inputHash, "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+			}
+			errorCount++
+			if errorCount == 10 {
+				util.Alarm(context.Background(), fmt.Sprintf("writer mos failed, err is %s", err.Error()))
+				errorCount = 0
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}

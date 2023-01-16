@@ -2,9 +2,11 @@ package klaytn
 
 import (
 	"context"
+	"fmt"
 	"github.com/mapprotocol/compass/internal/klaytn"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
 
@@ -110,6 +112,7 @@ func (m Maintainer) sync() error {
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					time.Sleep(constant.BlockRetryInterval)
+					util.Alarm(context.Background(), fmt.Sprintf("klaytn sync header failed, err is %s", err.Error()))
 					continue
 				}
 			}

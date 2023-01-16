@@ -27,7 +27,7 @@ var (
 )
 
 var (
-	BalanceRetryInterval = time.Second * 30
+	BalanceRetryInterval = time.Second * 60
 	Wei                  = new(big.Int).SetUint64(1000000000)
 	WeiOfNear, _         = new(big.Int).SetString("1000000000000000000000000", 10)
 )

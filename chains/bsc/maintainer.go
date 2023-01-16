@@ -2,7 +2,9 @@ package bsc
 
 import (
 	"context"
+	"fmt"
 	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
 
@@ -111,6 +113,7 @@ func (m Maintainer) sync() error {
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					time.Sleep(constant.BlockRetryInterval)
+					util.Alarm(context.Background(), fmt.Sprintf("bsc sync header failed, err is %s", err.Error()))
 					continue
 				}
 			}
