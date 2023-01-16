@@ -2,6 +2,8 @@ package matic
 
 import (
 	"context"
+	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"time"
 
@@ -175,6 +177,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 		return err
 	}
 
+	fmt.Println("matic getBytes input ", "0x"+common.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
