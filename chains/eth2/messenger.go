@@ -9,6 +9,7 @@ import (
 	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
 
@@ -104,6 +105,8 @@ func (m *Messenger) sync() error {
 			count, err := m.getEventsForBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				util.Alarm(context.Background(), fmt.Sprintf("eth2 mos failed, err is %s", err.Error()))
 				continue
 			}
 

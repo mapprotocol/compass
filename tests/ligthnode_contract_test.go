@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 	"log"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -295,38 +297,212 @@ func TestLoadPrivate(t *testing.T) {
 	fmt.Println("============================== addr: ", addr)
 	fmt.Printf("============================== private key: %x\n", crypto.FromECDSA(private))
 }
+
+func getMapTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
+	block, err := conn.MAPBlockByNumber(context.Background(), number)
+	if err != nil {
+		return nil, err
+	}
+
+	txs := make([]common.Hash, 0, len(block.Transactions()))
+	fmt.Println("block.Transactions() ------------- ", len(block.Transactions()))
+	for _, tx := range block.Transactions() {
+		txs = append(txs, tx.Hash())
+	}
+	return txs, nil
+}
+
+func getReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*types.Receipt, error) {
+	rs := make([]*types.Receipt, 0, len(txsHash))
+	for _, h := range txsHash {
+		r, err := conn.TransactionReceipt(context.Background(), h)
+		if err != nil {
+			return nil, err
+		}
+		rs = append(rs, r)
+	}
+	return rs, nil
+}
+
+func getLastReceipt(conn *ethclient.Client, latestBlock *big.Int) (*types.Receipt, error) {
+	fmt.Println("--------------------------------- 进来了 ")
+	query := eth.FilterQuery{
+		FromBlock: latestBlock,
+		ToBlock:   latestBlock,
+	}
+	lastLog, err := conn.FilterLogs(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	receipt := maptypes.NewReceipt(nil, false, 0)
+	rl := make([]*maptypes.Log, 0, len(lastLog))
+	el := make([]*types.Log, 0, len(lastLog))
+	for idx, ll := range lastLog {
+		if idx == 0 {
+			continue
+		}
+		if ll.TxHash != ll.BlockHash {
+			continue
+		}
+
+		rl = append(rl, &maptypes.Log{
+			Address:     ll.Address,
+			Topics:      ll.Topics,
+			Data:        ll.Data,
+			BlockNumber: ll.BlockNumber,
+			TxHash:      common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+			TxIndex:     ll.TxIndex,
+			BlockHash:   common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+			Index:       ll.Index,
+			Removed:     ll.Removed,
+		})
+		tl := ll
+		el = append(el, &tl)
+	}
+	d, _ := json.Marshal(rl)
+	fmt.Println("ddd ------------------ ", string(d))
+	receipt.Logs = rl
+	receipt.Bloom = maptypes.CreateBloom(maptypes.Receipts{receipt})
+	fmt.Println("receipt.Bloom ------------------ ", receipt.Bloom)
+	return &types.Receipt{
+		Type:              receipt.Type,
+		PostState:         receipt.PostState,
+		Status:            receipt.Status,
+		CumulativeGasUsed: receipt.CumulativeGasUsed,
+		Bloom:             types.BytesToBloom(receipt.Bloom.Bytes()),
+		Logs:              el,
+		TxHash:            receipt.TxHash,
+		ContractAddress:   receipt.ContractAddress,
+		GasUsed:           receipt.GasUsed,
+		BlockHash:         receipt.BlockHash,
+		BlockNumber:       receipt.BlockNumber,
+		TransactionIndex:  receipt.TransactionIndex,
+	}, nil
+}
+
+// deriveBufferPool holds temporary encoder buffers for DeriveSha and TX encoding.
+var encodeBufferPool = sync.Pool{
+	New: func() interface{} { return new(bytes.Buffer) },
+}
+
+type DerivableList interface {
+	Len() int
+	EncodeIndex(int, *bytes.Buffer)
+}
+
+func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
+	buf.Reset()
+	list.EncodeIndex(i, buf)
+	// It's really unfortunate that we need to do perform this copy.
+	// StackTrie holds onto the values until Hash is called, so the values
+	// written to it must not alias.
+	return common.CopyBytes(buf.Bytes())
+}
+
+func DeriveTire(rs types.Receipts, tr *trie.Trie) *trie.Trie {
+	valueBuf := encodeBufferPool.Get().(*bytes.Buffer)
+	defer encodeBufferPool.Put(valueBuf)
+
+	var indexBuf []byte
+	for i := 1; i < rs.Len() && i <= 0x7f; i++ {
+		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))
+		value := encodeForDerive(rs, i, valueBuf)
+		tr.Update(indexBuf, value)
+	}
+	if rs.Len() > 0 {
+		indexBuf = rlp.AppendUint64(indexBuf[:0], 0)
+		value := encodeForDerive(rs, 0, valueBuf)
+		tr.Update(indexBuf, value)
+	}
+	for i := 0x80; i < rs.Len(); i++ {
+		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))
+		value := encodeForDerive(rs, i, valueBuf)
+		tr.Update(indexBuf, value)
+	}
+	return tr
+}
+
+func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
+	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
+	if err != nil {
+		return nil, err
+	}
+
+	tr = DeriveTire(receipts, tr)
+	ns := light.NewNodeSet()
+	key, err := rlp.EncodeToBytes(txIndex)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("hash ------------------- ", tr.Hash())
+	if err = tr.Prove(key, 0, ns); err != nil {
+		return nil, err
+	}
+
+	proof := make([][]byte, 0, len(ns.NodeList()))
+	for _, v := range ns.NodeList() {
+		proof = append(proof, v)
+	}
+
+	return proof, nil
+}
+
 func TestUpdateHeader(t *testing.T) {
 	cli := dialConn()
-	for i := 1; i < 21; i++ {
-		number := int64(i * 1000)
-		fmt.Println("============================== number: ", number)
-		header, err := cli.MAPHeaderByNumber(context.Background(), big.NewInt(number))
-		if err != nil {
-			t.Fatalf(err.Error())
-		}
-
-		h := mapprotocol.ConvertHeader(header)
-		aggPK, _, _, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
-		if err != nil {
-			t.Fatalf(err.Error())
-		}
-
-		//printHeader(header)
-		//printAggPK(aggPK)
-		//_ = h
-
-		input, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
-		if err != nil {
-			t.Fatalf(err.Error())
-		}
-
-		path := "/Users/xm/Desktop/WL/code/atlas/node-1/keystore/UTC--2022-06-15T07-51-25.301943000Z--e0dc8d7f134d0a79019bef9c2fd4b2013a64fcd6"
-		password := "1234"
-		from, private := LoadPrivate(path, password)
-		if err := SendContractTransaction(cli, from, ContractAddr, nil, private, input); err != nil {
-			t.Fatalf(err.Error())
-		}
+	header, err := cli.MAPHeaderByNumber(context.Background(), new(big.Int).SetUint64(1156000))
+	if err != nil {
+		t.Fatal("err ", err)
 	}
+	t.Log("online header.ReceiptHash", header.ReceiptHash)
+
+	txsHash, err := getMapTransactionsHashByBlockNumber(cli, new(big.Int).SetUint64(1156000))
+	if err != nil {
+		t.Fatal("err ", fmt.Errorf("idSame unable to get tx hashes Logs: %w", err))
+	}
+
+	receipts, err := getReceiptsByTxsHash(cli, txsHash)
+	if err != nil {
+		t.Fatal("err ", fmt.Errorf("unable to get receipts hashes Logs: %w", err))
+	}
+	fmt.Println("receipts ", len(receipts))
+
+	lr, err := getLastReceipt(cli, new(big.Int).SetUint64(1156000))
+	if err != nil {
+		t.Fatal("err ", fmt.Errorf("unable to get last receipts in epoch last %w", err))
+	}
+	receipts = append(receipts, lr)
+	t.Log("receipts ----------- ", len(receipts))
+	t.Log("third ------------- ", types.DeriveSha(types.Receipts(receipts), trie.NewStackTrie(nil)))
+	//for i := 1; i < 21; i++ {
+	//	number := int64(i * 1000)
+	//	fmt.Println("============================== number: ", number)
+	//	header, err := cli.MAPHeaderByNumber(context.Background(), big.NewInt(number))
+	//	if err != nil {
+	//		t.Fatalf(err.Error())
+	//	}
+	//
+	//	h := mapprotocol.ConvertHeader(header)
+	//	aggPK, _, _, err := mapprotocol.GetAggPK(cli, header.Number, header.Extra)
+	//	if err != nil {
+	//		t.Fatalf(err.Error())
+	//	}
+	//
+	//	//printHeader(header)
+	//	//printAggPK(aggPK)
+	//	//_ = h
+	//
+	//	input, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, h, aggPK)
+	//	if err != nil {
+	//		t.Fatalf(err.Error())
+	//	}
+	//
+	//	path := "/Users/xm/Desktop/WL/code/atlas/node-1/keystore/UTC--2022-06-15T07-51-25.301943000Z--e0dc8d7f134d0a79019bef9c2fd4b2013a64fcd6"
+	//	password := "1234"
+	//	from, private := LoadPrivate(path, password)
+	//	if err := SendContractTransaction(cli, from, ContractAddr, nil, private, input); err != nil {
+	//		t.Fatalf(err.Error())
+	//	}
+	//}
 }
 
 func TestVerifyProofData(t *testing.T) {
@@ -645,29 +821,6 @@ func printProof(proof [][]byte) {
 	fmt.Println("============================== proof: ", p)
 }
 
-func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
-	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-	if err != nil {
-		return nil, err
-	}
-
-	tr = utils.DeriveTire(receipts, tr)
-	ns := light.NewNodeSet()
-	key, err := rlp.EncodeToBytes(txIndex)
-	if err != nil {
-		return nil, err
-	}
-	if err = tr.Prove(key, 0, ns); err != nil {
-		return nil, err
-	}
-
-	proof := make([][]byte, 0, len(ns.NodeList()))
-	for _, v := range ns.NodeList() {
-		proof = append(proof, v)
-	}
-	return proof, nil
-}
-
 func getTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
 	block, err := conn.MAPBlockByNumber(context.Background(), number)
 	if err != nil {
@@ -679,18 +832,6 @@ func getTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) (
 		txs = append(txs, tx.Hash())
 	}
 	return txs, nil
-}
-
-func getReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*types.Receipt, error) {
-	rs := make([]*types.Receipt, 0, len(txsHash))
-	for _, h := range txsHash {
-		r, err := conn.TransactionReceipt(context.Background(), h)
-		if err != nil {
-			return nil, err
-		}
-		rs = append(rs, r)
-	}
-	return rs, nil
 }
 
 func keyBytesToHex(str []byte) []byte {

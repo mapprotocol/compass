@@ -2,6 +2,9 @@ package matic
 
 import (
 	"context"
+	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
 
@@ -106,8 +109,8 @@ func (m Maintainer) sync() error {
 				err = m.syncHeaderToMap(currentBlock)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
-					retry--
 					time.Sleep(constant.BlockRetryInterval)
+					util.Alarm(context.Background(), fmt.Sprintf("matic sync header failed, err is %s", err.Error()))
 					continue
 				}
 			}
@@ -175,6 +178,7 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 		return err
 	}
 
+	fmt.Println("matic getBytes input ", "0x"+common.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
