@@ -8,6 +8,7 @@ import (
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/klaytn"
 	"github.com/mapprotocol/compass/internal/tx"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
 
@@ -106,6 +107,7 @@ func (m *Messenger) sync() error {
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				time.Sleep(constant.BlockRetryInterval)
+				util.Alarm(context.Background(), fmt.Sprintf("klaytn mos failed, err is %s", err.Error()))
 				continue
 			}
 

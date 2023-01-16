@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
 	"time"
@@ -131,6 +132,7 @@ func (m Maintainer) sync() error {
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					time.Sleep(constant.BlockRetryInterval)
+					util.Alarm(context.Background(), fmt.Sprintf("map sync header to other failed, err is %s", err.Error()))
 					continue
 				}
 			} else if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
@@ -139,6 +141,7 @@ func (m Maintainer) sync() error {
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					time.Sleep(constant.BlockRetryInterval)
+					util.Alarm(context.Background(), fmt.Sprintf("ethereum sync header failed, err is %s", err.Error()))
 					continue
 				}
 			}

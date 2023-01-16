@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
 
@@ -104,6 +105,7 @@ func (m *Messenger) sync() error {
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				time.Sleep(constant.BlockRetryInterval)
+				util.Alarm(context.Background(), fmt.Sprintf("matic mos failed, err is %s", err.Error()))
 				continue
 			}
 

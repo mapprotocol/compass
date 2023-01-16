@@ -3,7 +3,9 @@ package near
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
 
@@ -73,6 +75,7 @@ func (m Maintainer) sync() error {
 				if err != nil {
 					m.log.Error("Failed to listen header for block", "block", latestBlock, "err", err)
 					time.Sleep(constant.BlockRetryInterval)
+					util.Alarm(context.Background(), fmt.Sprintf("near sync header failed, err is %s", err.Error()))
 					continue
 				}
 			}

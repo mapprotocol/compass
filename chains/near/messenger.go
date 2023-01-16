@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
 	"time"
@@ -87,6 +88,7 @@ func (m *Messenger) sync() error {
 			if err != nil {
 				m.log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				time.Sleep(RetryInterval)
+				util.Alarm(context.Background(), fmt.Sprintf("near mos failed, err is %s", err.Error()))
 				continue
 			}
 
