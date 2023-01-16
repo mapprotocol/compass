@@ -9,7 +9,6 @@ import (
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
-	"os"
 	"time"
 )
 
@@ -44,7 +43,6 @@ func (m *Monitor) Sync() error {
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Monitor) sync() error {
 	addr := common.HexToAddress(m.Cfg.From)
-	env := os.Getenv("compass")
 	waterLine, ok := new(big.Int).SetString(m.Cfg.WaterLine, 10)
 	if !ok {
 		m.SysErr <- fmt.Errorf("%s waterLine Not Number", m.Cfg.Name)
@@ -77,7 +75,7 @@ func (m *Monitor) sync() error {
 			if balance.Cmp(waterLine) == -1 {
 				// alarm
 				util.Alarm(context.Background(),
-					fmt.Sprintf("%s Balance Less than %0.4f Balance,\nchain=%s addr=%s balance=%0.4f", env,
+					fmt.Sprintf("Balance Less than %0.4f Balance,\nchain=%s addr=%s balance=%0.4f",
 						float64(new(big.Int).Div(waterLine, constant.Wei).Int64())/float64(constant.Wei.Int64()), m.Cfg.Name, m.Cfg.From,
 						float64(balance.Div(balance, constant.Wei).Int64())/float64(constant.Wei.Int64())))
 			}
@@ -86,8 +84,8 @@ func (m *Monitor) sync() error {
 				time.Sleep(time.Second * 30)
 				// alarm
 				util.Alarm(context.Background(),
-					fmt.Sprintf("%s No transaction occurred in addr in the last %d seconds,\n"+
-						"chain=%s addr=%s balance=%0.4f", env, changeInterval.Int64(), m.Cfg.Name, m.Cfg.From,
+					fmt.Sprintf("No transaction occurred in addr in the last %d seconds,\n"+
+						"chain=%s addr=%s balance=%0.4f", changeInterval.Int64(), m.Cfg.Name, m.Cfg.From,
 						float64(balance.Div(balance, constant.Wei).Int64())/float64(constant.Wei.Int64())))
 			}
 

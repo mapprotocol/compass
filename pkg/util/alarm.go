@@ -4,11 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/ethereum/go-ethereum/log"
 	"io/ioutil"
 	"net/http"
 	"os"
 )
+
+var Env = ""
+
+func init() {
+	Env = os.Getenv("compass")
+}
 
 func Alarm(ctx context.Context, msg string) {
 	hooksUrl := os.Getenv("hooks")
@@ -17,7 +24,7 @@ func Alarm(ctx context.Context, msg string) {
 		return
 	}
 	body, err := json.Marshal(map[string]interface{}{
-		"text": msg,
+		"text": fmt.Sprintf("%s %s", Env, msg),
 	})
 	if err != nil {
 		return
