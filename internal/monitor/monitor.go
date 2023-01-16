@@ -96,7 +96,7 @@ func (m *Monitor) sync() error {
 
 			} else {
 				height, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-				m.Log.Info("Check Height", "syncHeight", height)
+				m.Log.Info("Check Height", "syncHeight", height, "record", m.syncedHeight)
 				if err != nil {
 					m.Log.Error("get2MapHeight failed", "err", err)
 				} else {
