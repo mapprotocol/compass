@@ -1,8 +1,11 @@
 package writer
 
 import (
+	"context"
+	"fmt"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/util"
 	"strings"
 	"time"
 )
@@ -10,6 +13,7 @@ import (
 // execMap2OtherMsg executes sync msg, and send tx to the destination blockchain
 func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 	//return w.callContractWithMsg(,  m)
+	var errorCount int64
 	for {
 		select {
 		case <-w.stop:
@@ -59,6 +63,11 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 			} else {
 				w.log.Warn("Sync Map Header to other chain Execution failed, header may already been synced",
 					"gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+			}
+			errorCount++
+			if errorCount == 10 {
+				util.Alarm(context.Background(), fmt.Sprintf("writer map to other header failed, err is %s", err.Error()))
+				errorCount = 0
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}

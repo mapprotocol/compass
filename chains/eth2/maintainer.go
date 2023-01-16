@@ -102,6 +102,7 @@ func (m *Maintainer) sync() error {
 				if err != nil {
 					m.Log.Error("updateHeaders failed", "err", err)
 					time.Sleep(constant.BlockRetryInterval)
+					util.Alarm(context.Background(), fmt.Sprintf("eth2 sync header failed, err is %s", err.Error()))
 					continue
 				}
 			}
@@ -137,6 +138,7 @@ func (m *Maintainer) sync() error {
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					time.Sleep(constant.BlockRetryInterval)
+					util.Alarm(context.Background(), fmt.Sprintf("eth2 sync lightClient failed, err is %s", err.Error()))
 					continue
 				}
 			}

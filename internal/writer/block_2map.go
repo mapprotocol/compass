@@ -1,6 +1,9 @@
 package writer
 
 import (
+	"context"
+	"fmt"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
 	"time"
@@ -13,6 +16,7 @@ import (
 // execToMapMsg executes sync msg, and send tx to the destination blockchain
 // the current function is only responsible for sending messages and is not responsible for processing data formats，
 func (w *Writer) execToMapMsg(m msg.Message) bool {
+	var errorCount int64
 	for {
 		select {
 		case <-w.stop:
@@ -34,6 +38,12 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 			err := w.toMap(m, id, marshal, method)
 			if err != nil {
 				time.Sleep(constant.TxRetryInterval)
+				errorCount++
+				if errorCount == 10 {
+					util.Alarm(context.Background(), fmt.Sprintf("writer other to map header failed, id=(%d), err is %s",
+						id.Uint64(), err.Error()))
+					errorCount = 0
+				}
 				continue
 			}
 			m.DoneCh <- struct{}{}
