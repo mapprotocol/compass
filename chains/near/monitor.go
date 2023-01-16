@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
 	"math/big"
@@ -13,14 +14,15 @@ import (
 
 type Monitor struct {
 	*CommonListen
-	balance   *big.Int
-	timestamp int64
+	balance, syncedHeight      *big.Int
+	timestamp, heightTimestamp int64
 }
 
 func NewMonitor(cs *CommonListen) *Monitor {
 	return &Monitor{
 		CommonListen: cs,
 		balance:      new(big.Int),
+		syncedHeight: new(big.Int),
 	}
 }
 
@@ -81,12 +83,29 @@ func (m *Monitor) sync() error {
 			}
 
 			if (time.Now().Unix() - m.timestamp) > changeInterval.Int64() {
-				time.Sleep(time.Second * 30)
+				time.Sleep(time.Second * 5)
 				// alarm
 				util.Alarm(context.Background(),
 					fmt.Sprintf("No transaction occurred in addr in the last %d seconds,\n"+
 						"chain=%s addr=%s near=%d", changeInterval.Int64(), m.cfg.name, m.cfg.from,
 						v.Div(v, constant.WeiOfNear)))
+			}
+
+			height, err := mapprotocol.Get2MapHeight(m.cfg.id)
+			m.log.Info("Check Height", "syncHeight", height, "record", m.syncedHeight)
+			if err != nil {
+				m.log.Error("get2MapHeight failed", "err", err)
+			} else {
+				if height.Cmp(m.syncedHeight) != 0 {
+					m.syncedHeight = height
+					m.heightTimestamp = time.Now().Unix()
+				}
+				if (time.Now().Unix() - m.heightTimestamp) > changeInterval.Int64() {
+					time.Sleep(time.Second * 30)
+					// alarm
+					util.Alarm(context.Background(),
+						fmt.Sprintf("Near2Map height in %d seconds no change, height=%d\n", m.syncedHeight.Uint64()))
+				}
 			}
 
 			time.Sleep(constant.BalanceRetryInterval)
