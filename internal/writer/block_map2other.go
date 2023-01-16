@@ -65,7 +65,7 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 					"gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 			}
 			errorCount++
-			if errorCount == 10 {
+			if errorCount >= 10 {
 				util.Alarm(context.Background(), fmt.Sprintf("writer map to other header failed, err is %s", err.Error()))
 				errorCount = 0
 			}
