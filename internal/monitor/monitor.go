@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
@@ -14,14 +15,15 @@ import (
 
 type Monitor struct {
 	*chain.CommonSync
-	balance   *big.Int
-	timestamp int64
+	balance, syncedHeight *big.Int
+	timestamp             int64
 }
 
 func New(cs *chain.CommonSync) *Monitor {
 	return &Monitor{
-		CommonSync: cs,
-		balance:    new(big.Int),
+		CommonSync:   cs,
+		balance:      new(big.Int),
+		syncedHeight: new(big.Int),
 	}
 }
 
@@ -53,6 +55,7 @@ func (m *Monitor) sync() error {
 		m.SysErr <- fmt.Errorf("%s changeInterval Not Number", m.Cfg.Name)
 		return nil
 	}
+	var heightCount int64
 	for {
 		select {
 		case <-m.Stop:
@@ -81,12 +84,34 @@ func (m *Monitor) sync() error {
 			}
 
 			if (time.Now().Unix() - m.timestamp) > changeInterval.Int64() {
-				time.Sleep(time.Second * 30)
+				time.Sleep(time.Second * 5)
 				// alarm
 				util.Alarm(context.Background(),
 					fmt.Sprintf("No transaction occurred in addr in the last %d seconds,\n"+
 						"chain=%s addr=%s balance=%0.4f", changeInterval.Int64(), m.Cfg.Name, m.Cfg.From,
 						float64(balance.Div(balance, constant.Wei).Int64())/float64(constant.Wei.Int64())))
+			}
+
+			if m.Cfg.Id == m.Cfg.MapChainID {
+
+			} else {
+				height, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+				m.Log.Info("Check Height", "syncHeight", height, "record", m.syncedHeight)
+				if err != nil {
+					m.Log.Error("get2MapHeight failed", "err", err)
+				} else {
+					if m.syncedHeight == height {
+						heightCount++
+						if heightCount >= 20 {
+							util.Alarm(context.Background(),
+								fmt.Sprintf("Maintainer Sync Height No change within 15 minutes chain=%s, height=%d",
+									m.Cfg.Name, height.Uint64()))
+						}
+					} else {
+						heightCount = 0
+					}
+					m.syncedHeight = height
+				}
 			}
 
 			time.Sleep(constant.BalanceRetryInterval)

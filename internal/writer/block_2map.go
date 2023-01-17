@@ -39,7 +39,7 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 			if err != nil {
 				time.Sleep(constant.TxRetryInterval)
 				errorCount++
-				if errorCount == 10 {
+				if errorCount >= 10 {
 					util.Alarm(context.Background(), fmt.Sprintf("writer other to map header failed, id=(%d), err is %s",
 						id.Uint64(), err.Error()))
 					errorCount = 0

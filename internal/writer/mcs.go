@@ -121,7 +121,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Warn("Execution failed, will retry", "srcHash", inputHash, "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
 			}
 			errorCount++
-			if errorCount == 10 {
+			if errorCount >= 10 {
 				util.Alarm(context.Background(), fmt.Sprintf("writer mos failed, err is %s", err.Error()))
 				errorCount = 0
 			}
