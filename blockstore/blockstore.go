@@ -45,6 +45,9 @@ func NewBlockstore(path string, chain msg.ChainId, relayer string, role mapproto
 		}
 		path = def
 	}
+	if role == mapprotocol.RoleOfMonitor {
+		path = "./monitor"
+	}
 
 	return &Blockstore{
 		path:     path,
