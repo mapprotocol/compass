@@ -100,7 +100,6 @@ func (m *Monitor) sync() error {
 			if m.Cfg.Id == m.Cfg.MapChainID {
 				InitSql()
 				m.Log.Info("Monitor Mos", "id", id)
-				// mysql 获取对应的
 				ret := BridgeTransactionInfo{}
 				err = db.QueryRow("select id, source_hash, source_chain_id, complete_time, created_at "+
 					"from bridge_transaction_info where id = ?",
@@ -115,11 +114,12 @@ func (m *Monitor) sync() error {
 						fmt.Sprintf("Mos Have Tx Not Cross The Chain hash=%s,sourceId=%d, createTime=%s",
 							ret.SourceHash, ret.SourceChainId, ret.CreatedAt))
 				} else {
-					id.Add(id, big.NewInt(1))
-					// Write to block store. Not a critical operation, no need to retry
-					err = m.BlockStore.StoreBlock(id)
-					if err != nil {
-						m.Log.Error("Failed to write latest block to blockstore", "id", id, "err", err)
+					if !errors.Is(err, sql.ErrNoRows) {
+						id.Add(id, big.NewInt(1))
+						err = m.BlockStore.StoreBlock(id)
+						if err != nil {
+							m.Log.Error("Failed to write latest block to blockstore", "id", id, "err", err)
+						}
 					}
 				}
 			} else {
