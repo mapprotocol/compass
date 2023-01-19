@@ -87,6 +87,9 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 	} else if strings.Index(err.Error(), constant.HeaderIsHave) != -1 {
 		w.log.Info(constant.HeaderIsHavePrint, "id", id, "method", method, "err", err)
 		return nil
+	} else if strings.Index(err.Error(), constant.HeaderIsHave2) != -1 {
+		w.log.Info(constant.HeaderIsHavePrint2, "id", id, "method", method, "err", err)
+		return nil
 	} else if strings.Index(err.Error(), constant.InvalidStartBlock) != -1 {
 		w.log.Info(constant.InvalidStartBlockPrint, "id", id, "method", method, "err", err)
 		return nil

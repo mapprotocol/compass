@@ -223,10 +223,11 @@ Configure the environment you need, for example:
 
 `
   export NEAR_CLI_LOCALNET_RPC_SERVER_URL=https://archival-rpc.testnet.near.org
+
   export NEAR_ENV=testnet
 `
 
-Use the 'near generate key' command , Creates a key pair locally in `.near-credentials` with an implicit account as the accountId. (hash representation of the public key)
+Use the 'near login' command , Creates a key pair locally in `.near-credentials` with an implicit account as the accountId. (hash representation of the public key)
 
 And record the directory to the keystorePath option in the configuration file
 
