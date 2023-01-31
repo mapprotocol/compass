@@ -110,7 +110,9 @@ func (m Maintainer) sync() error {
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					time.Sleep(constant.BlockRetryInterval)
-					util.Alarm(context.Background(), fmt.Sprintf("matic sync header failed, err is %s", err.Error()))
+					if err.Error() != "not found" {
+						util.Alarm(context.Background(), fmt.Sprintf("matic sync header failed, err is %s", err.Error()))
+					}
 					continue
 				}
 			}
