@@ -153,12 +153,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		// getOrderId
 		orderId := log.Data[:32]
 		if m.Cfg.SyncToMap {
-			method := mapprotocol.MethodOfTransferIn
-			if log.Topics[0] == mapprotocol.HashOfDepositIn {
-				method = mapprotocol.MethodOfDepositIn
-			} else if log.Topics[0] == mapprotocol.HashOfSwapIn {
-				method = mapprotocol.MethodOfSwapIn
-			}
+			method := m.GetMethod(log.Topics[0])
 			// when syncToMap we need to assemble a tx proof
 			txsHash, err := klaytn.GetTxsHashByBlockNumber(m.kClient, latestBlock)
 			if err != nil {

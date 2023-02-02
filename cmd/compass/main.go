@@ -300,7 +300,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		if ctx.Bool(config.MetricsFlag.Name) {
 			m = metrics.NewChainMetrics(chain.Name)
 		}
-		logger.Info("this task set skip error", "skip", ctx.Bool(config.SkipErrorFlag.Name))
+		logger.Info("This task set skip error", "skip", ctx.Bool(config.SkipErrorFlag.Name))
 
 		if chain.Type == chains.Ethereum {
 			// only support eth

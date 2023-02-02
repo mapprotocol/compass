@@ -145,7 +145,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 		nil,
 	)
 	if err != nil {
-		w.log.Error("mcs callContract failed", "err", err.Error())
+		w.log.Error("mcs callContract verify failed", "err", err.Error())
 		return err
 	}
 
