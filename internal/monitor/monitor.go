@@ -109,7 +109,8 @@ func (m *Monitor) sync() error {
 					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
-				if ret.Id != 0 && ret.CompleteTime == nil && (time.Now().Unix()-ret.CreatedAt.Unix()) >= 900 {
+				if ret.SourceHash != nil && ret.Id != 0 && ret.CompleteTime == nil &&
+					(time.Now().Unix()-ret.CreatedAt.Unix()) >= 900 {
 					util.Alarm(context.Background(),
 						fmt.Sprintf("Mos Have Tx Not Cross The Chain hash=%s,sourceId=%d, createTime=%s",
 							ret.SourceHash, ret.SourceChainId, ret.CreatedAt))
