@@ -2,8 +2,8 @@ package matic
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
@@ -174,13 +174,14 @@ func (m *Maintainer) syncHeaderToMap(latestBlock *big.Int) error {
 		mHeaders = append(mHeaders, matic.ConvertHeader(h))
 	}
 
+	d, _ := json.Marshal(mHeaders)
+	fmt.Println("matic getBytes input ", string(d))
 	input, err := mapprotocol.Matic.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(mHeaders)
 	if err != nil {
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
 	}
 
-	fmt.Println("matic getBytes input ", "0x"+common.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
