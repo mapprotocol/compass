@@ -84,6 +84,8 @@ func (c *CommonSync) GetMethod(topic ethcommon.Hash) string {
 		method = mapprotocol.MethodOfDepositIn
 	} else if topic == mapprotocol.HashOfSwapIn {
 		method = mapprotocol.MethodOfSwapIn
+	} else if topic == mapprotocol.HashOfDataIn {
+		method = mapprotocol.MethodOfExecuteIn
 	}
 
 	return method
