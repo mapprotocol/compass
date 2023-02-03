@@ -154,12 +154,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		var message msg.Message
 		// getOrderId
 		orderId := log.Data[:32]
-		method := mapprotocol.MethodOfTransferIn
-		if log.Topics[0] == mapprotocol.HashOfDepositIn {
-			method = mapprotocol.MethodOfDepositIn
-		} else if log.Topics[0] == mapprotocol.HashOfSwapIn {
-			method = mapprotocol.MethodOfSwapIn
-		}
+		method := m.GetMethod(log.Topics[0])
 		if m.Cfg.SyncToMap {
 			// when syncToMap we need to assemble a tx proof
 			txsHash, err := getTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
