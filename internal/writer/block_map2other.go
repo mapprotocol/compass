@@ -12,7 +12,6 @@ import (
 
 // execMap2OtherMsg executes sync msg, and send tx to the destination blockchain
 func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
-	//return w.callContractWithMsg(,  m)
 	var errorCount int64
 	for {
 		select {
@@ -33,11 +32,6 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 			if err == nil {
 				// message successfully handled
 				w.log.Info("Sync Map Header to other chain tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
-				// waited till successful mined
-				//err = w.blockForPending(tx.Hash())
-				//if err != nil {
-				//	w.log.Warn("Sync Map Header to other chain blockForPending error", "err", err)
-				//} else {
 				err = w.txStatus(tx.Hash())
 				if err != nil {
 					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
@@ -45,28 +39,27 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 					m.DoneCh <- struct{}{}
 					return true
 				}
-				//}
 			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
-				w.log.Info(constant.EthOrderExistPrint, "err", err)
+				w.log.Info(constant.EthOrderExistPrint, "id", m.Destination, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), constant.HeaderIsHave) != -1 {
-				w.log.Info(constant.HeaderIsHavePrint, "err", err)
+				w.log.Info(constant.HeaderIsHavePrint, "id", m.Destination, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), "EOF") != -1 {
-				w.log.Error("Sync Header to map encounter EOF, will retry")
+				w.log.Error("Sync Header to map encounter EOF, will retry", "id", m.Destination)
 			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
-				w.log.Error("Sync Map Header to other chain Nonce too low, will retry")
+				w.log.Error("Sync Map Header to other chain Nonce too low, will retry", "id", m.Destination)
 			} else if strings.Index(err.Error(), constant.NotEnoughGas) != -1 {
-				w.log.Error(constant.NotEnoughGasPrint)
+				w.log.Error(constant.NotEnoughGasPrint, "id", m.Destination)
 			} else {
 				w.log.Warn("Sync Map Header to other chain Execution failed, header may already been synced",
-					"gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+					"gasLimit", gasLimit, "gasPrice", gasPrice, "id", m.Destination, "err", err)
 			}
 			errorCount++
 			if errorCount >= 10 {
-				util.Alarm(context.Background(), fmt.Sprintf("writer map to other header failed, err is %s", err.Error()))
+				util.Alarm(context.Background(), fmt.Sprintf("writer map to other(%d) header failed, err is %s", m.Destination, err.Error()))
 				errorCount = 0
 			}
 			time.Sleep(constant.TxRetryInterval)
