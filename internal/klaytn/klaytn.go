@@ -1,6 +1,7 @@
 package klaytn
 
 import (
+	"bytes"
 	"context"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -11,8 +12,10 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
+	"github.com/pkg/errors"
 	"math/big"
 	"strings"
+	"sync"
 )
 
 type Header struct {
@@ -134,17 +137,42 @@ func GetTxsHashByBlockNumber(conn *Client, number *big.Int) ([]common.Hash, erro
 	return txs, nil
 }
 
-type ReceiptProof struct {
-	Header   Header
-	LogIndex *big.Int
-	Receipts [][]byte
+type ReceiptProofOriginal struct {
+	Header    Header
+	Proof     [][]byte
+	TxReceipt mapprotocol.TxReceipt
+	KeyIndex  []byte
 }
+
+type ReceiptProof struct {
+	Proof     []byte
+	DeriveSha DeriveShaOriginal
+}
+
+type DeriveShaOriginal uint8
+
+const (
+	DeriveShaOrigin DeriveShaOriginal = iota
+	DeriveShaSimple
+	DeriveShaConcat
+)
 
 type ReceiptRLP struct {
 	Status  uint
 	GasUsed uint64
 	Bloom   types.Bloom
 	Logs    []*types.Log
+}
+
+// ReceiptRlps implements DerivableList for receipts.
+type ReceiptRlps []*ReceiptRLP
+
+// Len returns the number of receipts in this list.
+func (rs ReceiptRlps) Len() int { return len(rs) }
+
+// EncodeIndex encodes the i'th receipt to w.
+func (rs ReceiptRlps) EncodeIndex(i int, w *bytes.Buffer) {
+	rlp.Encode(w, rs[i])
 }
 
 type TxLog struct {
@@ -154,7 +182,7 @@ type TxLog struct {
 }
 
 func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
-	receiptRlps := make([][]byte, 0, len(receipts))
+	receiptRlps := make(ReceiptRlps, 0, len(receipts))
 	for _, receipt := range receipts {
 		logs := make([]TxLog, 0, len(receipt.Logs))
 		for _, lg := range receipt.Logs {
@@ -168,27 +196,44 @@ func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*ty
 				Data:   lg.Data,
 			})
 		}
-		data, err := rlp.EncodeToBytes(&ReceiptRLP{
+		receiptRlps = append(receiptRlps, &ReceiptRLP{
 			Status:  uint(receipt.Status),
 			GasUsed: receipt.GasUsed,
 			Bloom:   receipt.Bloom,
 			Logs:    receipt.Logs,
 		})
-		if err != nil {
-			return nil, err
-		}
-		receiptRlps = append(receiptRlps, data)
 	}
-	pd := ReceiptProof{
-		Header:   header,
-		LogIndex: new(big.Int).SetInt64(int64(log.TxIndex)),
-		Receipts: receiptRlps,
+	proof, err := getProof(receiptRlps, log.TxIndex)
+	if err != nil {
+		return nil, err
+	}
+	var key []byte
+	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
+	ek := utils.Key2Hex(key, len(proof))
+	receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
+	if err != nil {
+		return nil, err
+	}
+	pd := ReceiptProofOriginal{
+		Header:    header,
+		Proof:     proof,
+		TxReceipt: *receipt,
+		KeyIndex:  ek,
 	}
 
 	input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "getBytes pack")
 	}
+	finpd := ReceiptProof{
+		Proof:     input,
+		DeriveSha: DeriveShaOrigin,
+	}
+	input, err = mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetFinalBytes].Inputs.Pack(finpd)
+	if err != nil {
+		return nil, errors.Wrap(err, "getFinalBytes pack")
+	}
+
 	//fmt.Println("proof hex ------------ ", "0x"+common.Bytes2Hex(input))
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
 	//pack, err := mapprotocol.Near.Pack(mapprotocol.MethodVerifyProofData, input)
@@ -199,13 +244,13 @@ func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*ty
 	return pack, nil
 }
 
-func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
+func getProof(receipts utils.DerivableList, txIndex uint) ([][]byte, error) {
 	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
 	if err != nil {
 		return nil, err
 	}
 
-	tr = utils.DeriveTire(receipts, tr)
+	tr = DeriveTire(receipts, tr)
 	ns := light.NewNodeSet()
 	key, err := rlp.EncodeToBytes(txIndex)
 	if err != nil {
@@ -221,4 +266,37 @@ func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
 	}
 
 	return proof, nil
+}
+
+var encodeBufferPool = sync.Pool{
+	New: func() interface{} { return new(bytes.Buffer) },
+}
+
+func encodeForDerive(list utils.DerivableList, i int, buf *bytes.Buffer) []byte {
+	buf.Reset()
+	list.EncodeIndex(i, buf)
+	return common.CopyBytes(buf.Bytes())
+}
+
+func DeriveTire(rs utils.DerivableList, tr *trie.Trie) *trie.Trie {
+	valueBuf := encodeBufferPool.Get().(*bytes.Buffer)
+	defer encodeBufferPool.Put(valueBuf)
+
+	var indexBuf []byte
+	for i := 1; i < rs.Len() && i <= 0x7f; i++ {
+		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))
+		value := encodeForDerive(rs, i, valueBuf)
+		tr.Update(indexBuf, value)
+	}
+	if rs.Len() > 0 {
+		indexBuf = rlp.AppendUint64(indexBuf[:0], 0)
+		value := encodeForDerive(rs, 0, valueBuf)
+		tr.Update(indexBuf, value)
+	}
+	for i := 0x80; i < rs.Len(); i++ {
+		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))
+		value := encodeForDerive(rs, i, valueBuf)
+		tr.Update(indexBuf, value)
+	}
+	return tr
 }

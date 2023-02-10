@@ -26,6 +26,7 @@ const (
 	MethodOfOrderList           = "orderList"
 	MethodOfIsUsedEvent         = "is_used_event"
 	MethodOfGetBytes            = "getBytes"
+	MethodOfGetFinalBytes       = "getFinalBytes"
 	MethodOfGetHeadersBytes     = "getHeadersBytes"
 	MethodOfGetUpdatesBytes     = "getUpdateBytes"
 	MethodUpdateLightClient     = "updateLightClient"
