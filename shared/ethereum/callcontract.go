@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -27,50 +26,6 @@ import (
 
 var (
 	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-
-	bytesTy, _   = abi.NewType("bytes", "", nil)
-	bytes32Ty, _ = abi.NewType("bytes32", "", nil)
-	uint256Ty, _ = abi.NewType("uint256", "", nil)
-	addressTy, _ = abi.NewType("address", "", nil)
-
-	SwapInArgs = abi.Arguments{
-		{
-			Name: "_hash",
-			Type: bytes32Ty,
-		},
-		{
-			Name: "_token",
-			Type: addressTy,
-		},
-		{
-			Name: "_from",
-			Type: addressTy,
-		},
-		{
-			Name: "_to",
-			Type: addressTy,
-		},
-		{
-			Name: "_amount",
-			Type: uint256Ty,
-		},
-		{
-			Name: "_fromChainID",
-			Type: uint256Ty,
-		},
-		{
-			Name: "_toChainID",
-			Type: uint256Ty,
-		},
-		{
-			Name: "_router",
-			Type: addressTy,
-		},
-		{
-			Name: "_txProof",
-			Type: bytesTy,
-		},
-	}
 )
 
 type TxParams struct {
