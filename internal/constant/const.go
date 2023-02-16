@@ -16,7 +16,7 @@ const (
 var (
 	ErrNonceTooLow   = errors.New("nonce too low")
 	ErrTxUnderpriced = errors.New("replacement transaction underpriced")
-	ErrFatalTx       = errors.New("submission of transaction failed")
+	ErrUnWantedSync  = errors.New("unwanted Sync")
 )
 
 var (
