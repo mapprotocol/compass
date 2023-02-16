@@ -138,7 +138,9 @@ func (m *Maintainer) sync() error {
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					time.Sleep(constant.BlockRetryInterval)
-					util.Alarm(context.Background(), fmt.Sprintf("eth2 sync lightClient failed, err is %s", err.Error()))
+					if !errors.Is(err, constant.ErrUnWantedSync) {
+						util.Alarm(context.Background(), fmt.Sprintf("eth2 sync lightClient failed, err is %s", err.Error()))
+					}
 					continue
 				}
 			}
@@ -263,7 +265,8 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 	}
 
 	if fhSlot.Cmp(lastFinalizedSlotOnContract) <= 0 {
-		return nil, fmt.Errorf("finaliy slot(%d) less than slot on contract(%d)", fhSlot.Int64(), lastFinalizedSlotOnContract.Int64())
+		m.Log.Warn("Finally slot less than slot on contract", "slot", fhSlot.Int64(), "contract.Int64()", lastFinalizedSlotOnContract.Int64())
+		return nil, constant.ErrUnWantedSync
 	}
 
 	m.Log.Info("Slot compare", "fhSlot", resp.Data.FinalizedHeader.Slot, "fsOnContract ", lastFinalizedSlotOnContract)
