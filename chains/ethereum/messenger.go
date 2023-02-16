@@ -202,7 +202,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			}
 
 			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
-				m.Log.Debug("Found a log that is not the current task ", "toChainID", toChainID)
+				m.Log.Info("Found a log that is not the current task ", "toChainID", toChainID)
 				continue
 			}
 
