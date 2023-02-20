@@ -287,9 +287,9 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 		if err != nil {
 			if strings.Index(err.Error(), "not found") != -1 {
 				w.log.Info("Tx is temporary not found, please wait...", "tx", txHash)
-				time.Sleep(time.Millisecond * 900)
+				time.Sleep(time.Second * 3)
 				count++
-				if count == 20 {
+				if count == 40 {
 					return err
 				}
 				continue

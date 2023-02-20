@@ -250,7 +250,8 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		"count", count, "512Len", bitvector512.Len())
 
 	if count*3 < bitvector512.Len()*2 {
-		return nil, fmt.Errorf("not enought sync committe count %d", count)
+		m.Log.Warn(fmt.Sprintf("not enought sync committe count %d", count))
+		return nil, constant.ErrUnWantedSync
 	}
 
 	signatureSlot, err := m.getSignatureSlot(&resp.Data.AttestedHeader, &resp.Data.SyncAggregate)

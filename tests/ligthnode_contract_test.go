@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mapprotocol/compass/internal/eth2"
+	"github.com/mapprotocol/compass/pkg/util"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -43,6 +44,10 @@ var (
 	err        error
 	eth2Client *eth2.Client
 )
+
+func TestClient_Alarm(t *testing.T) {
+	util.Alarm(context.Background(), "test messenger")
+}
 
 func TestClient_BeaconHeaders(t *testing.T) {
 	t.Log("------------- ")
