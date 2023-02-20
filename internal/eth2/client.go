@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 const (
@@ -43,8 +44,11 @@ func DialHttp(endpoint string) (*Client, error) {
 	headers := make(http.Header, 2)
 	headers.Set("accept", contentType)
 	headers.Set("content-type", contentType)
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
 	return &Client{
-		client:    new(http.Client),
+		client:    client,
 		endpoint:  endpoint,
 		closeOnce: sync.Once{},
 		closch:    make(chan interface{}),

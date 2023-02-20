@@ -282,6 +282,13 @@ func (m *Maintainer) syncMapHeader(latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
+	tmp := map[string]interface{}{
+		"header":        h,
+		"aggpk":         aggPK,
+		"istanbulExtra": istanbulExtra,
+	}
+	tmpData, _ := json.Marshal(tmp)
+	m.Log.Info("sync block ", "current", latestBlock, "data", string(tmpData))
 	msgpayload := []interface{}{input}
 	waitCount := len(m.Cfg.SyncChainIDList)
 	for _, cid := range m.Cfg.SyncChainIDList {
