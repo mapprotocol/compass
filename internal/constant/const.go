@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	TxRetryInterval = time.Second * 3 // TxRetryInterval Time between retrying a failed tx
+	TxRetryInterval = time.Second * 5 // TxRetryInterval Time between retrying a failed tx
 	TxRetryLimit    = 10              // TxRetryLimit Maximum number of tx retries before exiting
 	HttpTimeOut     = 10 * time.Second
 	Agent           = "compass-go"
@@ -43,6 +43,8 @@ var (
 	HeaderIsHavePrint2           = "New block must have higher height, Continue to the next"
 	InvalidStartBlock            = "invalid start block"
 	InvalidStartBlockPrint       = "invalid start block, Continue to the next"
+	InitializedEpoch             = "initialized or unknown epoch"
+	InitializedEpochPrint        = "initialized or unknown epoch, Continue to the next"
 	InvalidSyncBlock             = "invalid syncing block"
 	InvalidSyncBlockPrint        = "invalid syncing block, Continue to the next"
 	NotPerMission                = "mosRelay :: only admin"
