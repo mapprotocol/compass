@@ -93,6 +93,9 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 	} else if strings.Index(err.Error(), constant.InvalidStartBlock) != -1 {
 		w.log.Info(constant.InvalidStartBlockPrint, "id", id, "method", method, "err", err)
 		return nil
+	} else if strings.Index(err.Error(), constant.InitializedEpoch) != -1 {
+		w.log.Info(constant.InitializedEpochPrint, "id", id, "method", method, "err", err)
+		return nil
 	} else if strings.Index(err.Error(), constant.InvalidSyncBlock) != -1 {
 		w.log.Info(constant.InvalidSyncBlockPrint, "id", id, "method", method, "err", err)
 		return nil

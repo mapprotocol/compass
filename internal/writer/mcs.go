@@ -198,7 +198,7 @@ func (w *Writer) sendMcsTx(toAddress *common.Address, value *big.Int, input []by
 		return nil, err
 	}
 
-	gasLimit = gasLimit * 2
+	//gasLimit = gasLimit * 2
 	// td interface
 	var td types.TxData
 	// EIP-1559
