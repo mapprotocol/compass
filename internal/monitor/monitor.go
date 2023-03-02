@@ -135,7 +135,6 @@ func Handler(resp http.ResponseWriter, req *http.Request) {
 	ret := map[string]interface{}{
 		"proof": "0x" + common.Bytes2Hex(data),
 	}
-	fmt.Println("------------- ", "0x"+common.Bytes2Hex(data))
 
 	d, _ := json.Marshal(ret)
 	_, _ = resp.Write(d)
