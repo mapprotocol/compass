@@ -147,7 +147,6 @@ func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, me
 
 func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
 	header *maptypes.Header, fId msg.ChainId, method string) (uint64, []byte, error) {
-	fmt.Println("log ----------------- ", log)
 	//toChainID := log.Data[128:160]
 	toChainID := log.Topics[2]
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
@@ -196,14 +195,12 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			return 0, nil, errors.Wrap(err, "getBytes failed")
 		}
 
-		fmt.Println("map getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
-		fmt.Println("map getBytes after hex ------------ ", fId)
+		//fmt.Println("map getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
 		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
 		//payloads, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
 			return 0, nil, errors.Wrap(err, "eth pack failed")
 		}
-		fmt.Println("map getBytes after hex ------------ ", "0x"+common.Bytes2Hex(payloads))
 
 		return uToChainID, payloads, nil
 	}
