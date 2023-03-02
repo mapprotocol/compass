@@ -490,6 +490,7 @@ func (m *Maintainer) updateHeaders(startNumber, endNumber *big.Int) error {
 			return err
 		}
 		idx = mapprotocol.HeaderLengthOfEth2 - 1
+		time.Sleep(time.Second * 2)
 	}
 
 	return nil
