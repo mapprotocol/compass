@@ -13,6 +13,7 @@ import (
 	"github.com/mapprotocol/compass/chains/eth2"
 	"github.com/mapprotocol/compass/chains/klaytn"
 	"github.com/mapprotocol/compass/chains/matic"
+	"github.com/mapprotocol/compass/internal/monitor"
 	"net/http"
 	"os"
 
@@ -86,6 +87,7 @@ var bindFlags = []cli.Flag{
 
 var monitorFlags = []cli.Flag{
 	config.ConfigFileFlag,
+	config.ExposePortFlag,
 }
 
 var accountCommand = cli.Command{
@@ -166,10 +168,10 @@ var messengerCommand = cli.Command{
 }
 
 var monitorCommand = cli.Command{
-	Name:        "monitor",
+	Name:        "expose",
 	Usage:       "monitor account balance",
 	Description: "The messenger command is used to sync the log information of transactions in the block",
-	Action:      monitor,
+	Action:      expose,
 	Flags:       append(app.Flags, monitorFlags...),
 }
 
@@ -227,7 +229,7 @@ func messenger(ctx *cli.Context) error {
 	return run(ctx, mapprotocol.RoleOfMessenger)
 }
 
-func monitor(ctx *cli.Context) error {
+func expose(ctx *cli.Context) error {
 	return run(ctx, mapprotocol.RoleOfMonitor)
 }
 
@@ -346,6 +348,8 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		}
 
 		mapprotocol.OnlineChaId[chainConfig.Id] = chainConfig.Name
+		fmt.Println("mapprotocol.OnlineChaId ", mapprotocol.OnlineChaId)
+		mapprotocol.OnlineChainCfg[chainConfig.Id] = chainConfig
 		c.AddChain(newChain)
 	}
 
@@ -372,6 +376,17 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 				log.Error("Error serving metrics", "err", err)
 			}
 		}()
+	}
+
+	if role == mapprotocol.RoleOfMonitor {
+		port := ctx.Int(config.ExposePortFlag.Name)
+		http.HandleFunc("/get/proof", monitor.Handler)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+		if errors.Is(err, http.ErrServerClosed) {
+			log.Info("Health status server is shutting down", err)
+		} else {
+			log.Error("Error serving metrics", "err", err)
+		}
 	}
 
 	c.Start()

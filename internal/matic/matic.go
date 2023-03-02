@@ -1,14 +1,18 @@
 package matic
 
 import (
+	"context"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"math/big"
 )
@@ -78,6 +82,33 @@ type ReceiptProof struct {
 	TxReceipt mapprotocol.TxReceipt
 	KeyIndex  []byte
 	Proof     [][]byte
+}
+
+func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, method string, fId msg.ChainId) ([]byte, error) {
+	txsHash, err := tx.GetTxsHashByBlockNumber(client, latestBlock)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+
+	headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
+	for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
+		headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
+		tmp, err := client.HeaderByNumber(context.Background(), headerHeight)
+		if err != nil {
+			return nil, fmt.Errorf("getHeader failed, err is %v", err)
+		}
+		headers[i] = tmp
+	}
+
+	mHeaders := make([]BlockHeader, 0, len(headers))
+	for _, h := range headers {
+		mHeaders = append(mHeaders, ConvertHeader(h))
+	}
+	return AssembleProof(mHeaders, *log, fId, receipts, method)
 }
 
 func AssembleProof(headers []BlockHeader, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {

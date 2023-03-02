@@ -53,8 +53,8 @@ type Receipt struct {
 }
 
 type Action struct {
-	Actions []interface{} `json:"actions"` // todo 这里是个坑
-	//Actions             []map[string]interface{} `json:"actions"` // todo 这里是个坑
+	Actions []interface{} `json:"actions"` //
+	//Actions             []map[string]interface{} `json:"actions"` //
 	GasPrice            string        `json:"gas_price"`
 	InputDataIds        []interface{} `json:"input_data_ids"`
 	OutputDataReceivers []interface{} `json:"output_data_receivers"`
