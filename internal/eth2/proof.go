@@ -1,6 +1,8 @@
 package eth2
 
 import (
+	"context"
+	"fmt"
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -8,8 +10,10 @@ import (
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"github.com/pkg/errors"
 	"math/big"
@@ -53,6 +57,23 @@ type ReceiptProof struct {
 	TxReceipt mapprotocol.TxReceipt
 	KeyIndex  []byte
 	Proof     [][]byte
+}
+
+func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, method string, fId msg.ChainId) ([]byte, error) {
+	header, err := client.HeaderByNumber(context.Background(), latestBlock)
+	if err != nil {
+		return nil, err
+	}
+	// when syncToMap we need to assemble a tx proof
+	txsHash, err := tx.GetTxsHashByBlockNumber(client, latestBlock)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+	return AssembleProof(*ConvertHeader(header), *log, receipts, method, fId)
 }
 
 func AssembleProof(header BlockHeader, log types.Log, receipts []*types.Receipt, method string, fId msg.ChainId) ([]byte, error) {
