@@ -14,6 +14,7 @@ import (
 	"github.com/mapprotocol/compass/chains/klaytn"
 	"github.com/mapprotocol/compass/chains/matic"
 	"github.com/mapprotocol/compass/internal/monitor"
+	"github.com/rs/cors"
 	"net/http"
 	"os"
 
@@ -380,8 +381,14 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 
 	if role == mapprotocol.RoleOfMonitor {
 		port := ctx.Int(config.ExposePortFlag.Name)
-		http.HandleFunc("/get/proof", monitor.Handler)
-		err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+		mux := http.NewServeMux()
+		mux.HandleFunc("/get/proof", monitor.Handler)
+
+		// cors.Default() setup the middleware with default options being
+		// all origins accepted with simple methods (GET, POST). See
+		// documentation below for more options.
+		handler := cors.Default().Handler(mux)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", port), handler)
 		if errors.Is(err, http.ErrServerClosed) {
 			log.Info("Health status server is shutting down", err)
 		} else {
