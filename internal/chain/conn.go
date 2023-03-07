@@ -16,7 +16,7 @@ type Connection interface {
 	Keypair() *secp256k1.Keypair
 	Opts() *bind.TransactOpts
 	CallOpts() *bind.CallOpts
-	LockAndUpdateOpts() error
+	LockAndUpdateOpts(bool) error
 	UnlockOpts()
 	Client() *ethclient.Client
 	EnsureHasBytecode(address common.Address) error

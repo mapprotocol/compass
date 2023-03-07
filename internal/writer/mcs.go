@@ -26,8 +26,10 @@ func (w *Writer) exeSwapMsg(m msg.Message) bool {
 
 // callContractWithMsg contract using address and function signature with message info
 func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
-	var errorCount int64
-	var checkOIdCount int64
+	var (
+		errorCount, checkIdCount int64
+		needNonce                = true
+	)
 	for {
 		select {
 		case <-w.stop:
@@ -40,9 +42,9 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				if err != nil {
 					w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
 					errorCount++
-					if checkOIdCount == 10 {
+					if checkIdCount == 10 {
 						util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
-						checkOIdCount = 0
+						checkIdCount = 0
 					}
 				}
 				if exits {
@@ -52,7 +54,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				}
 			}
 
-			err := w.conn.LockAndUpdateOpts()
+			err := w.conn.LockAndUpdateOpts(needNonce)
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
 				return false
@@ -63,11 +65,9 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			if len(m.Payload) > 3 {
 				inputHash = m.Payload[3]
 			}
-			w.log.Info("send transaction", "addr", addr, "srcHash", inputHash)
+			w.log.Info("send transaction", "addr", addr, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
 			// These store the gas limit and price before a transaction is sent for logging in case of a failure
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
-			gasLimit := w.conn.Opts().GasLimit
-			gasPrice := w.conn.Opts().GasPrice
 			mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
 			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
 			if err == nil {
@@ -118,8 +118,9 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			} else if strings.Index(err.Error(), constant.ChainTypeError) != -1 {
 				w.log.Error(constant.ChainTypeErrorPrint, "srcHash", inputHash, "err", err)
 			} else {
-				w.log.Warn("Execution failed, will retry", "srcHash", inputHash, "gasLimit", gasLimit, "gasPrice", gasPrice, "err", err)
+				w.log.Warn("Execution failed, will retry", "srcHash", inputHash, "err", err)
 			}
+			needNonce = false
 			errorCount++
 			if errorCount >= 10 {
 				util.Alarm(context.Background(), fmt.Sprintf("writer mos failed, err is %s", err.Error()))
@@ -283,11 +284,30 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 	var count int64
 	time.Sleep(time.Second * 2)
 	for {
-		receipt, err := w.conn.Client().TransactionReceipt(context.Background(), txHash)
+		_, pending, err := w.conn.Client().TransactionByHash(context.Background(), txHash) // Query whether it is on the chain
+		if pending {
+			w.log.Info("Tx is Pending, please wait...", "tx", txHash)
+			time.Sleep(constant.QueryRetryInterval)
+			count++
+			if count == 60 {
+				return err
+			}
+			continue
+		}
+		if err != nil {
+			time.Sleep(time.Second * 10)
+			w.log.Error("Tx Found failed, please wait...", "tx", txHash, "err", err)
+			continue
+		}
+		break
+	}
+	count = 0
+	for {
+		receipt, err := w.conn.Client().TransactionReceipt(context.Background(), txHash) // Query receipt after chaining
 		if err != nil {
 			if strings.Index(err.Error(), "not found") != -1 {
 				w.log.Info("Tx is temporary not found, please wait...", "tx", txHash)
-				time.Sleep(time.Second * 3)
+				time.Sleep(constant.QueryRetryInterval)
 				count++
 				if count == 40 {
 					return err
