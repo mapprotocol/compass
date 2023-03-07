@@ -16,7 +16,10 @@ import (
 // execToMapMsg executes sync msg, and send tx to the destination blockchain
 // the current function is only responsible for sending messages and is not responsible for processing data formats，
 func (w *Writer) execToMapMsg(m msg.Message) bool {
-	var errorCount int64
+	var (
+		errorCount int64
+		needNonce  = true
+	)
 	for {
 		select {
 		case <-w.stop:
@@ -35,8 +38,9 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 				method = mapprotocol.MethodUpdateLightClient
 			}
 
-			err := w.toMap(m, id, marshal, method)
+			err := w.toMap(m, id, marshal, method, needNonce)
 			if err != nil {
+				needNonce = false
 				time.Sleep(constant.TxRetryInterval)
 				errorCount++
 				if errorCount >= 10 {
@@ -52,8 +56,8 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 	}
 }
 
-func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string) error {
-	err := w.conn.LockAndUpdateOpts()
+func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string, needNonce bool) error {
+	err := w.conn.LockAndUpdateOpts(needNonce)
 	if err != nil {
 		w.log.Error("BlockToMap Failed to update nonce", "err", err)
 		return err
@@ -72,12 +76,11 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 	w.conn.UnlockOpts()
 	if err == nil {
 		// message successfully handled
-		w.log.Info("Sync Header to map tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination, "method", method)
-		time.Sleep(time.Second * 2)
+		w.log.Info("Sync Header to map tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination,
+			"method", method, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
 		err = w.txStatus(tx.Hash())
 		if err != nil {
 			w.log.Warn("TxHash Status is not successful, will retry", "err", err)
-			return err
 		} else {
 			return nil
 		}

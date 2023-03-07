@@ -111,7 +111,7 @@ func multiplyGasPrice(gasEstimate *big.Int, gasMultiplier *big.Float) *big.Int {
 
 // LockAndUpdateOpts acquires a lock on the opts before updating the nonce
 // and gas price.
-func (c *Connection) LockAndUpdateOpts() error {
+func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 	c.optsLock.Lock()
 	return nil
 }

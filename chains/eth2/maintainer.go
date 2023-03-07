@@ -122,7 +122,7 @@ func (m *Maintainer) sync() error {
 			}
 
 			if !m.isEnoughBlocksForLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth) {
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
 

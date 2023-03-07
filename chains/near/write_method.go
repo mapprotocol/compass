@@ -55,7 +55,7 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 		case <-w.stop:
 			return false
 		default:
-			err := w.conn.LockAndUpdateOpts()
+			err := w.conn.LockAndUpdateOpts(false)
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
 				return false
@@ -108,7 +108,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				}
 			}
 
-			err := w.conn.LockAndUpdateOpts()
+			err := w.conn.LockAndUpdateOpts(false)
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
 				return false

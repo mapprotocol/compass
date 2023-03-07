@@ -208,7 +208,7 @@ func multiplyGasPrice(gasEstimate *big.Int, gasMultiplier *big.Float) *big.Int {
 
 // LockAndUpdateOpts acquires a lock on the opts before updating the nonce
 // and gas price.
-func (c *Connection) LockAndUpdateOpts() error {
+func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 	c.optsLock.Lock()
 	head, err := c.conn.HeaderByNumber(context.TODO(), nil)
 	// cos map chain dont have this section in return,this err will be raised
@@ -242,6 +242,9 @@ func (c *Connection) LockAndUpdateOpts() error {
 		c.opts.GasPrice = gasPrice
 	}
 
+	if !needNewNonce {
+		return nil
+	}
 	nonce, err := c.conn.PendingNonceAt(context.Background(), c.opts.From)
 	if err != nil {
 		c.optsLock.Unlock()
