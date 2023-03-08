@@ -29,50 +29,18 @@ var (
 
 var (
 	BalanceRetryInterval = time.Second * 60
-	Wei                  = new(big.Int).SetUint64(1000000000)
 	WeiOfNear, _         = new(big.Int).SetString("1000000000000000000000000", 10)
 )
 
-var (
-	NotEnoughGas                 = "insufficient funds for gas * price + value"
-	NotEnoughGasPrint            = "insufficient funds for gas * price + value, will retry"
-	EthOrderExist                = "order exist"
-	EthOrderExistPrint           = "Order Exist, Continue to the next"
-	HeaderIsHave                 = "Header is have"
-	HeaderIsHavePrint            = "Header is have, Continue to the next"
-	SlotDelay                    = "the update finalized slot should be higher than the finalized slot"
-	SlotDelayPrint               = "The update finalized slot should be higher than the finalized slot, Continue to the next"
-	HeaderIsHave2                = "New block must have higher height"
-	HeaderIsHavePrint2           = "New block must have higher height, Continue to the next"
-	InvalidStartBlock            = "invalid start block"
-	InvalidStartBlockPrint       = "invalid start block, Continue to the next"
-	InitializedEpoch             = "initialized or unknown epoch"
-	InitializedEpochPrint        = "initialized or unknown epoch, Continue to the next"
-	InvalidSyncBlock             = "invalid syncing block"
-	InvalidSyncBlockPrint        = "invalid syncing block, Continue to the next"
-	NotPerMission                = "mosRelay :: only admin"
-	NotPerMissionPrint           = "mosRelay :: only admin, will retry"
-	AddressIsZero                = "address is zero"
-	AddressIsZeroPrint           = "address is zero, will retry"
-	VaultNotRegister             = "vault token not registered"
-	VaultNotRegisterPrint        = "vault token not registered, will retry"
-	InvalidVaultToken            = "Invalid vault token"
-	InvalidVaultTokenPrint       = "Invalid vault token, will retry"
-	InvalidMosContract           = "invalid mos contract"
-	InvalidMosContractPrint      = "invalid mos contract, will retry"
-	InvalidChainId               = "invalid chain id"
-	InvalidChainIdPrint          = "invalid chain id, will retry"
-	MapTokenNotRegistered        = "map token not registered"
-	MapTokenNotRegisteredPrint   = "map token not registered, will retry"
-	OutTokenNotRegistered        = "out token not registered"
-	OutTokenNotRegisteredPrint   = "out token not registered, will retry"
-	BalanceTooLow                = "balance too low"
-	BalanceTooLowPrint           = "balance too low, will retry"
-	VaultTokenNotRegistered      = "vault token not registered"
-	VaultTokenNotRegisteredPrint = "vault token not registered, will retry"
-	ChainTypeError               = "chain type error"
-	ChainTypeErrorPrint          = "chain type error, will retry"
-)
+var IgnoreError = map[string]struct{}{
+	"order exist":                       {},
+	"Header is have":                    {},
+	"invalid start block":               {},
+	"invalid syncing block":             {},
+	"initialized or unknown epoch":      {},
+	"New block must have higher height": {},
+	"the update finalized slot should be higher than the finalized slot": {},
+}
 
 type BlockIdOfEth2 string
 

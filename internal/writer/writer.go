@@ -2,10 +2,9 @@ package writer
 
 import (
 	"context"
-	"errors"
 	"math/big"
-	"strings"
-	"time"
+
+	"github.com/mapprotocol/compass/internal/constant"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
@@ -46,7 +45,7 @@ func (w *Writer) start() error {
 // ResolveMessage handles any given message based on type
 // A bool is returned to indicate failure/success, this should be ignored except for within tests.
 func (w *Writer) ResolveMessage(m msg.Message) bool {
-	w.log.Info("Attempting to resolve message", "type", m.Type, "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
+	w.log.Info("Attempting to resolve message", "type", m.Type, "src", m.Source, "dst", m.Destination)
 
 	switch m.Type {
 	case msg.SyncToMap:
@@ -87,7 +86,8 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 		return nil, err
 	}
 
-	w.log.Info("gasPrice ---------------------- ", "gasPrice", gasPrice)
+	w.log.Info("sendTx gasPrice ", "gasPrice", gasPrice,
+		"w.conn.Opts().GasTipCap", w.conn.Opts().GasTipCap, "w.conn.Opts().GasFeeCap", w.conn.Opts().GasFeeCap)
 	// td interface
 	var td types.TxData
 	// EIP-1559
@@ -132,27 +132,10 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	return signedTx, nil
 }
 
-// this function will block for the txhash given
-func (w *Writer) blockForPending(txHash common.Hash) error {
-	for {
-		_, isPending, err := w.conn.Client().TransactionByHash(context.Background(), txHash)
-		if err != nil {
-			w.log.Info("blockForPending tx is temporary not found", "err is not found?", errors.Is(err, errors.New("not found")), "err", err)
-			if strings.Index(err.Error(), "not found") != -1 {
-				w.log.Info("tx is temporary not found, please wait...", "tx", txHash)
-				time.Sleep(time.Millisecond * 900)
-				continue
-			}
-			return err
-		}
-
-		if isPending {
-			w.log.Info("tx is pending, please wait...")
-			time.Sleep(time.Millisecond * 900)
-			continue
-		}
-		w.log.Info("tx is successful", "tx", txHash)
-		break
+func (w *Writer) needNonce(err error) bool {
+	if err == nil || err.Error() == constant.ErrNonceTooLow.Error() {
+		return true
 	}
-	return nil
+
+	return false
 }
