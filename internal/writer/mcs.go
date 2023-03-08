@@ -3,11 +3,12 @@ package writer
 import (
 	"context"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/mapprotocol/compass/mapprotocol"
 
@@ -203,6 +204,7 @@ func (w *Writer) sendMcsTx(toAddress *common.Address, value *big.Int, input []by
 	// td interface
 	var td types.TxData
 	// EIP-1559
+	w.log.Info("sendMcsTx gasPrice ---------------------- ", "gasPrice", gasPrice)
 	if gasPrice != nil {
 		// legacy branch
 		td = &types.LegacyTx{

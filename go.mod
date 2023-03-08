@@ -9,7 +9,6 @@ require (
 	github.com/ethereum/go-ethereum v1.10.10
 	github.com/fjl/memsize v0.0.1 // indirect
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/go-sql-driver/mysql v1.4.1
 	github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd
 	github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5
 	github.com/mattn/go-colorable v0.1.12 // indirect
@@ -18,7 +17,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/prometheus/client_golang v1.12.2
-	github.com/rs/cors v1.8.2 // indirect
+	github.com/rs/cors v1.8.2
 	github.com/status-im/keycard-go v0.0.0-20211109104530-b0e0482ba91d // indirect
 	github.com/stretchr/testify v1.8.0
 	github.com/urfave/cli/v2 v2.10.2

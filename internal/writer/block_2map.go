@@ -3,10 +3,11 @@ package writer
 import (
 	"context"
 	"fmt"
-	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -101,6 +102,10 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 		return nil
 	} else if strings.Index(err.Error(), constant.InvalidSyncBlock) != -1 {
 		w.log.Info(constant.InvalidSyncBlockPrint, "id", id, "method", method, "err", err)
+		return nil
+	} else if strings.Index(err.Error(), constant.SlotDelay) != -1 {
+		w.log.Info(constant.SlotDelayPrint, "id", m.Destination, "err", err)
+		m.DoneCh <- struct{}{}
 		return nil
 	} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
 		w.log.Error("Sync Header to map Nonce too low, will retry", "id", id, "method", method)
