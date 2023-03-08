@@ -40,6 +40,8 @@ var (
 	EthOrderExistPrint           = "Order Exist, Continue to the next"
 	HeaderIsHave                 = "Header is have"
 	HeaderIsHavePrint            = "Header is have, Continue to the next"
+	SlotDelay                    = "the update finalized slot should be higher than the finalized slot"
+	SlotDelayPrint               = "The update finalized slot should be higher than the finalized slot, Continue to the next"
 	HeaderIsHave2                = "New block must have higher height"
 	HeaderIsHavePrint2           = "New block must have higher height, Continue to the next"
 	InvalidStartBlock            = "invalid start block"
