@@ -41,7 +41,7 @@ func (w *writer) start() error {
 // ResolveMessage handles any given message based on type
 // A bool is returned to indicate failure/success, this should be ignored except for within tests.
 func (w *writer) ResolveMessage(m msg.Message) bool {
-	w.log.Info("Near Attempting to resolve message", "type", m.Type, "src", m.Source, "dst", m.Destination, "nonce", m.DepositNonce)
+	w.log.Info("Near Attempting to resolve message", "type", m.Type, "src", m.Source, "dst", m.Destination)
 
 	switch m.Type {
 	case msg.SyncFromMap:
