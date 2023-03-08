@@ -122,7 +122,7 @@ func (m *Maintainer) sync() error {
 			}
 
 			if !m.isEnoughBlocksForLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth) {
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
 
@@ -490,6 +490,7 @@ func (m *Maintainer) updateHeaders(startNumber, endNumber *big.Int) error {
 			return err
 		}
 		idx = mapprotocol.HeaderLengthOfEth2 - 1
+		time.Sleep(time.Second * 2)
 	}
 
 	return nil

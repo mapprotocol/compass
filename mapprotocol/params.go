@@ -4,6 +4,7 @@
 package mapprotocol
 
 import (
+	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"strings"
@@ -88,7 +89,15 @@ var (
 )
 
 var (
-	OnlineChaId = map[msg.ChainId]string{}
+	OnlineChaId    = map[msg.ChainId]string{}
+	OnlineChainCfg = map[msg.ChainId]*core.ChainConfig{}
+	Event          = map[common.Hash]string{
+		common.HexToHash("0x56877b1dbedc6754c111b951146b820fe6b723af0213fc415d44b05e1758dd85"): MethodOfTransferIn,
+		common.HexToHash("0xf4397fd41454e34a9a4015d05a670124ecd71fe7f1d05578a62f8009b1a57f8a"): MethodOfTransferIn,
+		common.HexToHash("0xca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5"): MethodOfSwapIn,
+		common.HexToHash("0xb7100086a8e13ebae772a0f09b07046e389a6b036406d22b86f2d2e5b860a8d9"): MethodOfDepositIn,
+		common.HexToHash("0x44ff77018688dad4b245e8ab97358ed57ed92269952ece7ffd321366ce078622"): MethodOfTransferIn,
+	}
 )
 
 var (

@@ -157,11 +157,11 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		method := m.GetMethod(log.Topics[0])
 		if m.Cfg.SyncToMap {
 			// when syncToMap we need to assemble a tx proof
-			txsHash, err := getTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
+			txsHash, err := mapprotocol.GetTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
 			if err != nil {
 				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 			}
-			receipts, err := getReceiptsByTxsHash(m.Conn.Client(), txsHash)
+			receipts, err := mapprotocol.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
@@ -178,25 +178,25 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to query header Logs: %w", err)
 			}
-			txsHash, err := getMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
+			txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
 			if err != nil {
 				return 0, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
 			}
-			receipts, err := getReceiptsByTxsHash(m.Conn.Client(), txsHash)
+			receipts, err := mapprotocol.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
 			//
 			remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfMap))
 			if remainder.Cmp(mapprotocol.Big0) == 0 {
-				lr, err := getLastReceipt(m.Conn.Client(), latestBlock)
+				lr, err := mapprotocol.GetLastReceipt(m.Conn.Client(), latestBlock)
 				if err != nil {
 					return 0, fmt.Errorf("unable to get last receipts in epoch last %w", err)
 				}
 				receipts = append(receipts, lr)
 			}
 
-			_, toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method)
+			toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
