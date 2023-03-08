@@ -3,14 +3,17 @@ package klaytn
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"github.com/pkg/errors"
 	"math/big"
@@ -179,6 +182,27 @@ type TxLog struct {
 	Addr   common.Address
 	Topics [][]byte
 	Data   []byte
+}
+
+func GetProof(client *ethclient.Client, kClient *Client, latestBlock *big.Int, log *types.Log, method string, fId msg.ChainId) ([]byte, error) {
+	txsHash, err := GetTxsHashByBlockNumber(kClient, latestBlock)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+	// get block
+	header, err := client.HeaderByNumber(context.Background(), latestBlock)
+	if err != nil {
+		return nil, err
+	}
+	kHeader, err := kClient.BlockByNumber(context.Background(), latestBlock)
+	if err != nil {
+		return nil, err
+	}
+	return AssembleProof(ConvertContractHeader(header, kHeader), *log, fId, receipts, method)
 }
 
 func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {

@@ -135,3 +135,11 @@ var (
 		Usage: "Applies a predetermined test keystore to the chains.",
 	}
 )
+
+var (
+	ExposePortFlag = &cli.IntFlag{
+		Name:  "exposePort",
+		Usage: "Port to serve on",
+		Value: 8002,
+	}
+)

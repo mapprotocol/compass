@@ -19,6 +19,7 @@ type Listener interface {
 }
 
 const (
+	Map      = "map"
 	Bsc      = "bsc"
 	Matic    = "matic"
 	Klaytn   = "klaytn"

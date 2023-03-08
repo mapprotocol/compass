@@ -24,7 +24,7 @@ type Connection interface {
 	Keypair() *key.KeyPair
 	Opts() *bind.TransactOpts
 	CallOpts() *bind.CallOpts
-	LockAndUpdateOpts() error
+	LockAndUpdateOpts(bool) error
 	UnlockOpts()
 	Client() *nearclient.Client
 	EnsureHasBytecode(address string) error

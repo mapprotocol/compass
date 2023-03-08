@@ -12,26 +12,27 @@ import (
 
 // execMap2OtherMsg executes sync msg, and send tx to the destination blockchain
 func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
-	var errorCount int64
+	var (
+		errorCount int64
+		needNonce  = true
+	)
 	for {
 		select {
 		case <-w.stop:
 			return false
 		default:
-			err := w.conn.LockAndUpdateOpts()
+			err := w.conn.LockAndUpdateOpts(needNonce)
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
 				return false
 			}
 			// These store the gas limit and price before a transaction is sent for logging in case of a failure
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
-			gasLimit := w.conn.Opts().GasLimit
-			gasPrice := w.conn.Opts().GasPrice
 			tx, err := w.sendTx(&w.cfg.LightNode, nil, m.Payload[0].([]byte))
 			w.conn.UnlockOpts()
 			if err == nil {
 				// message successfully handled
-				w.log.Info("Sync Map Header to other chain tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination)
+				w.log.Info("Sync Map Header to other chain tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
 				err = w.txStatus(tx.Hash())
 				if err != nil {
 					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
@@ -54,9 +55,9 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 			} else if strings.Index(err.Error(), constant.NotEnoughGas) != -1 {
 				w.log.Error(constant.NotEnoughGasPrint, "id", m.Destination)
 			} else {
-				w.log.Warn("Sync Map Header to other chain Execution failed, header may already been synced",
-					"gasLimit", gasLimit, "gasPrice", gasPrice, "id", m.Destination, "err", err)
+				w.log.Warn("Sync Map Header to other chain Execution failed, header may already been synced", "id", m.Destination, "err", err)
 			}
+			needNonce = false
 			errorCount++
 			if errorCount >= 10 {
 				util.Alarm(context.Background(), fmt.Sprintf("writer map to other(%d) header failed, err is %s", m.Destination, err.Error()))

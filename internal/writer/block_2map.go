@@ -3,10 +3,11 @@ package writer
 import (
 	"context"
 	"fmt"
-	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -16,7 +17,10 @@ import (
 // execToMapMsg executes sync msg, and send tx to the destination blockchain
 // the current function is only responsible for sending messages and is not responsible for processing data formats，
 func (w *Writer) execToMapMsg(m msg.Message) bool {
-	var errorCount int64
+	var (
+		errorCount int64
+		needNonce  = true
+	)
 	for {
 		select {
 		case <-w.stop:
@@ -35,8 +39,9 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 				method = mapprotocol.MethodUpdateLightClient
 			}
 
-			err := w.toMap(m, id, marshal, method)
+			err := w.toMap(m, id, marshal, method, needNonce)
 			if err != nil {
+				needNonce = false
 				time.Sleep(constant.TxRetryInterval)
 				errorCount++
 				if errorCount >= 10 {
@@ -52,8 +57,8 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 	}
 }
 
-func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string) error {
-	err := w.conn.LockAndUpdateOpts()
+func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string, needNonce bool) error {
+	err := w.conn.LockAndUpdateOpts(needNonce)
 	if err != nil {
 		w.log.Error("BlockToMap Failed to update nonce", "err", err)
 		return err
@@ -72,12 +77,11 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 	w.conn.UnlockOpts()
 	if err == nil {
 		// message successfully handled
-		w.log.Info("Sync Header to map tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination, "method", method)
-		time.Sleep(time.Second * 2)
+		w.log.Info("Sync Header to map tx execution", "tx", tx.Hash(), "src", m.Source, "dst", m.Destination,
+			"method", method, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
 		err = w.txStatus(tx.Hash())
 		if err != nil {
 			w.log.Warn("TxHash Status is not successful, will retry", "err", err)
-			return err
 		} else {
 			return nil
 		}
@@ -98,6 +102,10 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 		return nil
 	} else if strings.Index(err.Error(), constant.InvalidSyncBlock) != -1 {
 		w.log.Info(constant.InvalidSyncBlockPrint, "id", id, "method", method, "err", err)
+		return nil
+	} else if strings.Index(err.Error(), constant.SlotDelay) != -1 {
+		w.log.Info(constant.SlotDelayPrint, "id", m.Destination, "err", err)
+		m.DoneCh <- struct{}{}
 		return nil
 	} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
 		w.log.Error("Sync Header to map Nonce too low, will retry", "id", id, "method", method)

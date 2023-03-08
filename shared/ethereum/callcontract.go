@@ -5,8 +5,10 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -100,8 +102,8 @@ func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, 
 		return nil, err
 	}
 
-	//pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), payloads)
-	pack, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, payloads)
+	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), payloads)
+	//pack, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, payloads)
 	if err != nil {
 		return nil, errors.Wrap(err, "transferIn pack failed")
 	}
@@ -117,21 +119,47 @@ type MapTxProve struct {
 	TxIndex     uint
 }
 
+func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, method string, fId msg.ChainId) ([]byte, error) {
+	header, err := client.MAPHeaderByNumber(context.Background(), latestBlock)
+	if err != nil {
+		return nil, fmt.Errorf("unable to query header Logs: %w", err)
+	}
+	txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(client, latestBlock)
+	if err != nil {
+		return nil, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := mapprotocol.GetReceiptsByTxsHash(client, txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+	//
+	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfMap))
+	if remainder.Cmp(mapprotocol.Big0) == 0 {
+		lr, err := mapprotocol.GetLastReceipt(client, latestBlock)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get last receipts in epoch last %w", err)
+		}
+		receipts = append(receipts, lr)
+	}
+	_, data, err := AssembleMapProof(client, *log, receipts, header, fId, method)
+	return data, err
+}
+
 func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
-	header *maptypes.Header, fId msg.ChainId, method string) (uint64, uint64, []byte, error) {
+	header *maptypes.Header, fId msg.ChainId, method string) (uint64, []byte, error) {
 	//toChainID := log.Data[128:160]
 	toChainID := log.Topics[2]
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
 	aggPK, ist, aggPKBytes, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
-		return 0, 0, nil, err
+		return 0, nil, err
 	}
 
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	proof, err := getProof(receipts, txIndex)
 	if err != nil {
-		return 0, 0, nil, err
+		return 0, nil, err
 	}
 
 	var key []byte
@@ -148,7 +176,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 
 		nrRlp, err := rlp.EncodeToBytes(nr)
 		if err != nil {
-			return 0, 0, nil, err
+			return 0, nil, err
 		}
 		rp := mapprotocol.NewMapReceiptProof{
 			Header:   mapprotocol.ConvertHeader(header),
@@ -164,23 +192,23 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 
 		pack, err := mapprotocol.Mcs.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp)
 		if err != nil {
-			return 0, 0, nil, errors.Wrap(err, "getBytes failed")
+			return 0, nil, errors.Wrap(err, "getBytes failed")
 		}
 
-		//fmt.Println("getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
+		//fmt.Println("map getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
 		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
 		//payloads, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
-			return 0, 0, nil, errors.Wrap(err, "eth pack failed")
+			return 0, nil, errors.Wrap(err, "eth pack failed")
 		}
 
-		return uint64(fId), uToChainID, payloads, nil
+		return uToChainID, payloads, nil
 	}
 
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	err = binary.Write(bytesBuffer, binary.LittleEndian, uint64(txIndex))
 	if err != nil {
-		return 0, 0, nil, err
+		return 0, nil, err
 	}
 
 	nProof := make([]string, 0, len(proof))
@@ -218,7 +246,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 		"receipt_proof": m,
 		"index":         idx,
 	})
-	return uint64(fId), uToChainID, data, nil
+	return uToChainID, data, nil
 }
 
 func Key2Hex(str []byte, proofLength int) []byte {
