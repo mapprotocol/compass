@@ -3,7 +3,6 @@ package writer
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
@@ -69,7 +68,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			w.log.Info("send transaction", "addr", addr, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
 			// These store the gas limit and price before a transaction is sent for logging in case of a failure
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
-			mcsTx, err := w.sendMcsTx(&addr, nil, m.Payload[0].([]byte))
+			mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
 			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
 			if err == nil {
 				// message successfully handled]
@@ -82,46 +81,21 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 					m.DoneCh <- struct{}{}
 					return true
 				}
-			} else if strings.Index(err.Error(), constant.EthOrderExist) != -1 {
-				w.log.Info(constant.EthOrderExistPrint, "srcHash", inputHash)
-				m.DoneCh <- struct{}{}
-				return true
-			} else if err.Error() == constant.ErrNonceTooLow.Error() || err.Error() == constant.ErrTxUnderpriced.Error() {
-				w.log.Error("Nonce too low, will retry", "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), "EOF") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
-				w.log.Error("Mcs encounter EOF, will retry", "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.NotEnoughGas) != -1 {
-				w.log.Error(constant.NotEnoughGasPrint, "srcHash", inputHash, "err", err)
 			} else if w.cfg.SkipError {
 				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "srcHash", inputHash, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
-			} else if strings.Index(err.Error(), constant.NotPerMission) != -1 {
-				w.log.Error(constant.NotPerMissionPrint, "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.AddressIsZero) != -1 {
-				w.log.Error(constant.AddressIsZeroPrint, "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.VaultNotRegister) != -1 {
-				w.log.Error(constant.VaultNotRegisterPrint, "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.InvalidVaultToken) != -1 {
-				w.log.Error(constant.InvalidVaultTokenPrint, "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.InvalidMosContract) != -1 {
-				w.log.Error(constant.InvalidMosContractPrint, "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.InvalidChainId) != -1 {
-				w.log.Error(constant.InvalidChainIdPrint, "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.MapTokenNotRegistered) != -1 {
-				w.log.Error(constant.MapTokenNotRegisteredPrint, "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.OutTokenNotRegistered) != -1 {
-				w.log.Error(constant.OutTokenNotRegisteredPrint, "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.BalanceTooLow) != -1 {
-				w.log.Error(constant.BalanceTooLowPrint, "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.VaultTokenNotRegistered) != -1 {
-				w.log.Error(constant.VaultTokenNotRegisteredPrint, "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), constant.ChainTypeError) != -1 {
-				w.log.Error(constant.ChainTypeErrorPrint, "srcHash", inputHash, "err", err)
 			} else {
+				for e := range constant.IgnoreError {
+					if strings.Index(err.Error(), e) != -1 {
+						w.log.Info("Ignore This Error, Continue to the next", "id", m.Destination, "err", err)
+						m.DoneCh <- struct{}{}
+						return true
+					}
+				}
 				w.log.Warn("Execution failed, will retry", "srcHash", inputHash, "err", err)
 			}
-			needNonce = false
+			needNonce = w.needNonce(err)
 			errorCount++
 			if errorCount >= 10 {
 				util.Alarm(context.Background(), fmt.Sprintf("writer mos failed, err is %s", err.Error()))
@@ -130,10 +104,6 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
-	//w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination,
-	//	"depositNonce", m.DepositNonce)
-	//w.sysErr <- constant.ErrFatalTx
-	//return false
 }
 
 func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) error {
@@ -178,72 +148,6 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	}
 
 	return nil
-}
-
-// sendTx send tx to an address with value and input data
-func (w *Writer) sendMcsTx(toAddress *common.Address, value *big.Int, input []byte) (*types.Transaction, error) {
-	gasPrice := w.conn.Opts().GasPrice
-	nonce := w.conn.Opts().Nonce
-	from := w.conn.Keypair().CommonAddress()
-
-	msg := ethereum.CallMsg{
-		From:     from,
-		To:       toAddress,
-		GasPrice: gasPrice,
-		Value:    value,
-		Data:     input,
-	}
-	w.log.Debug("eth CallMsg", "msg", msg)
-	gasLimit, err := w.conn.Client().EstimateGas(context.Background(), msg)
-	if err != nil {
-		w.log.Error("EstimateGas failed", "error:", err.Error())
-		return nil, err
-	}
-
-	//gasLimit = gasLimit * 2
-	// td interface
-	var td types.TxData
-	// EIP-1559
-	w.log.Info("sendMcsTx gasPrice ---------------------- ", "gasPrice", gasPrice)
-	if gasPrice != nil {
-		// legacy branch
-		td = &types.LegacyTx{
-			Nonce:    nonce.Uint64(),
-			Value:    value,
-			To:       toAddress,
-			Gas:      gasLimit,
-			GasPrice: gasPrice,
-			Data:     input,
-		}
-	} else {
-		// london branch
-		td = &types.DynamicFeeTx{
-			Nonce:     nonce.Uint64(),
-			Value:     value,
-			To:        toAddress,
-			Gas:       gasLimit,
-			GasTipCap: w.conn.Opts().GasTipCap,
-			GasFeeCap: w.conn.Opts().GasFeeCap,
-			Data:      input,
-		}
-	}
-
-	tx := types.NewTx(td)
-	chainID := big.NewInt(int64(w.cfg.Id))
-	privateKey := w.conn.Keypair().PrivateKey()
-
-	signedTx, err := types.SignTx(tx, types.NewLondonSigner(chainID), privateKey)
-	if err != nil {
-		w.log.Error("SignTx failed", "error:", err.Error())
-		return nil, err
-	}
-
-	err = w.conn.Client().SendTransaction(context.Background(), signedTx)
-	if err != nil {
-		w.log.Error("SendTransaction failed", "error:", err.Error())
-		return nil, err
-	}
-	return signedTx, nil
 }
 
 func (w *Writer) checkOrderId(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) (bool, error) {
