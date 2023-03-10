@@ -201,7 +201,11 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 			continue
 		}
 		if err != nil {
-			time.Sleep(time.Second * 10)
+			time.Sleep(constant.QueryRetryInterval)
+			count++
+			if count == 60 {
+				return err
+			}
 			w.log.Error("Tx Found failed, please wait...", "tx", txHash, "err", err)
 			continue
 		}
