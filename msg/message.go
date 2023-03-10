@@ -3,24 +3,8 @@
 
 package msg
 
-import (
-	"math/big"
-)
-
 type ChainId uint64
 type TransferType string
-
-// type ResourceId [32]byte
-
-// func (r ResourceId) Hex() string {
-// 	return fmt.Sprintf("%x", r)
-// }
-
-type Nonce uint64
-
-func (n Nonce) Big() *big.Int {
-	return big.NewInt(int64(n))
-}
 
 var (
 	SwapTransfer     TransferType = "SwapTransfer"
@@ -32,23 +16,12 @@ var (
 
 // Message is used as a generic format to communicate between chains
 type Message struct {
-	Source       ChainId         // Source where message was initiated
-	Destination  ChainId         // Destination chain of message
-	Type         TransferType    // type of bridge transfer
-	DepositNonce Nonce           // Nonce for the deposit
-	Payload      []interface{}   // data associated with event sequence
-	DoneCh       chan<- struct{} // notify message is handled
+	Source      ChainId         // Source where message was initiated
+	Destination ChainId         // Destination chain of message
+	Type        TransferType    // type of bridge transfer
+	Payload     []interface{}   // data associated with event sequence
+	DoneCh      chan<- struct{} // notify message is handled
 	// ResourceId   ResourceId
-}
-
-func NewSwapTransfer(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {
-	return Message{
-		Source:      fromChainID,
-		Destination: toChainID,
-		Type:        SwapTransfer,
-		Payload:     payloads,
-		DoneCh:      ch,
-	}
 }
 
 func NewSyncToMap(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {

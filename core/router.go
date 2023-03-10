@@ -38,7 +38,7 @@ func (r *Router) Send(msg msg.Message) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	r.log.Trace("Routing message", "src", msg.Source, "dest", msg.Destination, "nonce", msg.DepositNonce)
+	r.log.Trace("Routing message", "src", msg.Source, "dest", msg.Destination)
 	dest := msg.Destination
 
 	w := r.registry[dest]
