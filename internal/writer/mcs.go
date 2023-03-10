@@ -66,14 +66,9 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				inputHash = m.Payload[3]
 			}
 			w.log.Info("send transaction", "addr", addr, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
-			// These store the gas limit and price before a transaction is sent for logging in case of a failure
-			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
 			mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
-			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
 			if err == nil {
-				// message successfully handled]
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash, "mcsTx", mcsTx.Hash())
-				// Query transaction status
 				err = w.txStatus(mcsTx.Hash())
 				if err != nil {
 					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
@@ -196,7 +191,7 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 			time.Sleep(constant.QueryRetryInterval)
 			count++
 			if count == 60 {
-				return err
+				return errors.New("The Tx pending state is too long")
 			}
 			continue
 		}
