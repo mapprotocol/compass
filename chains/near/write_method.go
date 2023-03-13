@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/mapprotocol/compass/internal/near"
 	"github.com/mapprotocol/compass/msg"
@@ -82,7 +83,7 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
-	w.log.Error("Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	w.log.Error("Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination)
 	w.sysErr <- ErrFatalTx
 	return false
 }
@@ -174,7 +175,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
-	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination, "depositNonce", m.DepositNonce)
+	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination)
 	w.sysErr <- ErrFatalTx
 	return false
 }
