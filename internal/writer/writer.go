@@ -84,6 +84,8 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 		return nil, err
 	}
 
+	w.log.Info("sendTx gasPrice ", "gasPrice", gasPrice,
+		"w.conn.Opts().GasTipCap", w.conn.Opts().GasTipCap, "w.conn.Opts().GasFeeCap", w.conn.Opts().GasFeeCap)
 	// td interface
 	var td types.TxData
 	// EIP-1559
