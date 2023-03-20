@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/pkg/util"
 
 	rds "github.com/go-redis/redis/v8"
 	"github.com/mapprotocol/compass/internal/near"
@@ -276,7 +277,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 		if err != nil {
 			return 0, errors.Wrap(err, "transferIn pack failed")
 		}
-		fmt.Println("near msc pack hex ------------ ", "0x"+common.Bytes2Hex(input))
+		//fmt.Println("near msc pack hex ------------ ", "0x"+common.Bytes2Hex(input))
 
 		ids := common.HexToHash(out.OrderId)
 		orderId := make([]byte, 0, len(ids))

@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"strconv"
+	"time"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
-	"math/big"
-	"strconv"
-	"time"
 
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -101,7 +102,7 @@ func (m *Maintainer) sync() error {
 				err = m.updateHeaders(startNumber, endNumber)
 				if err != nil {
 					m.Log.Error("updateHeaders failed", "err", err)
-					time.Sleep(constant.BlockRetryInterval)
+					time.Sleep(constant.QueryRetryInterval)
 					util.Alarm(context.Background(), fmt.Sprintf("eth2 sync header failed, err is %s", err.Error()))
 					continue
 				}
