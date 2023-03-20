@@ -3,12 +3,13 @@ package klaytn
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/mapprotocol/compass/internal/klaytn"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
-	"math/big"
-	"time"
 
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
@@ -102,7 +103,7 @@ func (m Maintainer) sync() error {
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.QueryRetryInterval)
 				continue
 			}
 
