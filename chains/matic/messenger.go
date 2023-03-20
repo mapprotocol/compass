@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
+
+	"github.com/mapprotocol/compass/pkg/util"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -96,7 +97,7 @@ func (m *Messenger) sync() error {
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
 			// messager

@@ -101,7 +101,7 @@ func (m *Messenger) sync() error {
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
 			// messager

@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/chain"
-	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -122,7 +123,7 @@ func (m Maintainer) sync() error {
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.QueryRetryInterval)
 				continue
 			}
 
@@ -131,7 +132,7 @@ func (m Maintainer) sync() error {
 				err = m.syncMapHeader(currentBlock)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
-					time.Sleep(constant.BlockRetryInterval)
+					time.Sleep(constant.QueryRetryInterval)
 					util.Alarm(context.Background(), fmt.Sprintf("map sync header to other failed, err is %s", err.Error()))
 					continue
 				}
@@ -140,7 +141,7 @@ func (m Maintainer) sync() error {
 				err = m.syncHeaderToMap(currentBlock)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
-					time.Sleep(constant.BlockRetryInterval)
+					time.Sleep(constant.QueryRetryInterval)
 					util.Alarm(context.Background(), fmt.Sprintf("ethereum sync header failed, err is %s", err.Error()))
 					continue
 				}
