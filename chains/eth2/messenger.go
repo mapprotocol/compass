@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/util"
-	"math/big"
-	"time"
 
 	"github.com/mapprotocol/compass/msg"
 
@@ -97,7 +98,7 @@ func (m *Messenger) sync() error {
 			//Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
-				time.Sleep(constant.BlockRetryInterval)
+				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
 			// messager
