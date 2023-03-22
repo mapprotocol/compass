@@ -56,7 +56,7 @@ type Config struct {
 	McsContract        common.Address
 	GasLimit           *big.Int
 	MaxGasPrice        *big.Int
-	GasMultiplier      *big.Float
+	GasMultiplier      float64
 	Http               bool // Config for type of connection
 	StartBlock         *big.Int
 	BlockConfirmations *big.Int
@@ -88,7 +88,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		McsContract:        utils.ZeroAddress,
 		GasLimit:           big.NewInt(DefaultGasLimit),
 		MaxGasPrice:        big.NewInt(DefaultGasPrice),
-		GasMultiplier:      big.NewFloat(DefaultGasMultiplier),
+		GasMultiplier:      DefaultGasMultiplier,
 		Http:               false,
 		StartBlock:         big.NewInt(0),
 		BlockConfirmations: big.NewInt(0),
@@ -131,10 +131,9 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 	}
 
 	if gasMultiplier, ok := chainCfg.Opts[GasMultiplier]; ok {
-		multilier := big.NewFloat(1)
-		_, pass := multilier.SetString(gasMultiplier)
-		if pass {
-			config.GasMultiplier = multilier
+		float, err := strconv.ParseFloat(gasMultiplier, 64)
+		if err == nil {
+			config.GasMultiplier = float
 			delete(chainCfg.Opts, GasMultiplier)
 		} else {
 			return nil, errors.New("unable to parse gasMultiplier to float")
