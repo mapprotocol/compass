@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/mapprotocol/compass/connections/ethereum/egs"
-	"github.com/mapprotocol/compass/internal/klaytn"
 	"math/big"
 	"sync"
 	"time"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/connections/ethereum/egs"
+	"github.com/mapprotocol/compass/internal/klaytn"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
@@ -42,14 +43,15 @@ type Connection struct {
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
 func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
-	gasMultiplier *big.Float, gsnApiKey, gsnSpeed string) chain.KConnection {
+	gasMultiplier float64, gsnApiKey, gsnSpeed string) chain.KConnection {
+	bigFloat := new(big.Float).SetFloat64(gasMultiplier)
 	return &Connection{
 		endpoint:      endpoint,
 		http:          http,
 		kp:            kp,
 		gasLimit:      gasLimit,
 		maxGasPrice:   gasPrice,
-		gasMultiplier: gasMultiplier,
+		gasMultiplier: bigFloat,
 		egsApiKey:     gsnApiKey,
 		egsSpeed:      gsnSpeed,
 		log:           log,

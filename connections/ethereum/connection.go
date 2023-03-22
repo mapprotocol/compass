@@ -44,14 +44,15 @@ type Connection struct {
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
 func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
-	gasMultiplier *big.Float, gsnApiKey, gsnSpeed string) *Connection {
+	gasMultiplier float64, gsnApiKey, gsnSpeed string) *Connection {
+	bigFloat := new(big.Float).SetFloat64(gasMultiplier)
 	return &Connection{
 		endpoint:      endpoint,
 		http:          http,
 		kp:            kp,
 		gasLimit:      gasLimit,
 		maxGasPrice:   gasPrice,
-		gasMultiplier: gasMultiplier,
+		gasMultiplier: bigFloat,
 		egsApiKey:     gsnApiKey,
 		egsSpeed:      gsnSpeed,
 		log:           log,
