@@ -52,19 +52,11 @@ func (m *Messenger) Sync() error {
 func (m *Messenger) sync() error {
 	var currentBlock = m.cfg.startBlock
 
-	var retry = RetryLimit
 	for {
 		select {
 		case <-m.stop:
 			return errors.New("polling terminated")
 		default:
-			// No more retries, goto next block
-			if retry == 0 {
-				m.log.Error("Polling failed, retries exceeded")
-				m.sysErr <- ErrFatalPolling
-				return nil
-			}
-
 			latestBlock, err := m.conn.LatestBlock()
 			if err != nil {
 				m.log.Error("Unable to get latest block", "err", err)
@@ -109,7 +101,6 @@ func (m *Messenger) sync() error {
 
 			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			retry = RetryLimit
 			time.Sleep(RetryInterval)
 		}
 	}

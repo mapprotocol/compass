@@ -1,18 +1,62 @@
 package chain
 
 import (
+	"math/big"
+	"time"
+
 	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/mapprotocol"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
-	"math/big"
-	"time"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/chains"
 )
+
+type (
+	SyncOpt        func(*CommonSync)
+	SyncMap2Other  func(*Maintainer, *big.Int) error
+	SyncHeader2Map func(*Maintainer, *big.Int) error
+	Mos            func(*Messenger, *big.Int) (int, error)
+)
+
+func OptOfMetrics(m *metrics.ChainMetrics) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.Metrics = m
+	}
+}
+
+func OptOfStore(bs blockstore.Blockstorer) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.BlockStore = bs
+	}
+}
+
+func OptOfInitHeight(height int64) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.height = height
+	}
+}
+
+func OptOfSync2Map(fn SyncHeader2Map) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.syncHeaderToMap = fn
+	}
+}
+
+func OptOfMos(fn Mos) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.mosHandler = fn
+	}
+}
+
+func OptOfSyncMap2Other(fn SyncMap2Other) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.syncMap2Other = fn
+	}
+}
 
 type CommonSync struct {
 	Cfg                Config
@@ -26,12 +70,16 @@ type CommonSync struct {
 	Metrics            *metrics.ChainMetrics
 	BlockConfirmations *big.Int
 	BlockStore         blockstore.Blockstorer
+	height             int64
+	syncMap2Other      SyncMap2Other
+	syncHeaderToMap    SyncHeader2Map
+	mosHandler         Mos
 }
 
 // NewCommonSync creates and returns a listener
 func NewCommonSync(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
-	m *metrics.ChainMetrics, bs blockstore.Blockstorer) *CommonSync {
-	return &CommonSync{
+	m *metrics.ChainMetrics, bs blockstore.Blockstorer, opts ...SyncOpt) *CommonSync {
+	cs := &CommonSync{
 		Cfg:                *cfg,
 		Conn:               conn,
 		Log:                log,
@@ -42,7 +90,13 @@ func NewCommonSync(conn Connection, cfg *Config, log log15.Logger, stop <-chan i
 		BlockConfirmations: cfg.BlockConfirmations,
 		MsgCh:              make(chan struct{}),
 		BlockStore:         bs,
+		height:             1,
 	}
+	for _, op := range opts {
+		op(cs)
+	}
+
+	return cs
 }
 
 func (c *CommonSync) SetRouter(r chains.Router) {
