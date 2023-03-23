@@ -24,8 +24,6 @@ package ethereum
 
 import (
 	"github.com/mapprotocol/compass/internal/chain"
-	"github.com/mapprotocol/compass/internal/monitor"
-	w "github.com/mapprotocol/compass/internal/writer"
 	"github.com/pkg/errors"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
@@ -45,7 +43,7 @@ var _ core.Chain = &Chain{}
 type Chain struct {
 	cfg    *core.ChainConfig // The config of the chain
 	conn   chain.Connection  // The chains connection
-	writer *w.Writer         // The writer of the chain
+	writer *chain.Writer     // The writer of the chain
 	stop   chan<- int
 	listen chains.Listener // The listener of this chain
 }
@@ -117,10 +115,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		logger.Info("Listen event", "chain", cfg.Name, "event", cfg.Events)
 	} else if role == mapprotocol.RoleOfMaintainer { // Maintainer is used by default
 		listen = NewMaintainer(cs)
-	} else if role == mapprotocol.RoleOfMonitor {
-		listen = monitor.New(cs)
 	}
-	writer := w.New(conn, cfg, logger, stop, sysErr, m)
+	writer := chain.NewWriter(conn, cfg, logger, stop, sysErr, m)
 
 	return &Chain{
 		cfg:    chainCfg,

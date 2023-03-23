@@ -58,19 +58,11 @@ func (m *Messenger) sync() error {
 		}
 	}
 
-	var retry = constant.BlockRetryLimit
 	for {
 		select {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
-			// No more retries, goto next block
-			if retry == 0 {
-				m.Log.Error("Polling failed, retries exceeded")
-				m.SysErr <- constant.ErrFatalPolling
-				return nil
-			}
-
 			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
@@ -130,7 +122,7 @@ func (m *Messenger) sync() error {
 
 			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			retry = constant.BlockRetryLimit
+			time.Sleep(time.Second * 3)
 		}
 	}
 }

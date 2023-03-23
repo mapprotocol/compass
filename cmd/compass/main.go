@@ -10,33 +10,32 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/chains/eth2"
-	"github.com/mapprotocol/compass/chains/klaytn"
-	"github.com/mapprotocol/compass/chains/matic"
-	"github.com/mapprotocol/compass/internal/monitor"
-	"github.com/rs/cors"
 	"net/http"
 	"os"
+	"strconv"
+
+	"github.com/mapprotocol/compass/chains/platon"
 
 	"github.com/mapprotocol/compass/chains/bsc"
-
-	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/mapprotocol/compass/chains"
-	"github.com/mapprotocol/compass/chains/near"
-	chain2 "github.com/mapprotocol/compass/internal/chain"
-
-	"strconv"
 
 	"github.com/ChainSafe/chainbridge-utils/metrics/health"
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	log "github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/chains/eth2"
 	"github.com/mapprotocol/compass/chains/ethereum"
+	"github.com/mapprotocol/compass/chains/klaytn"
+	"github.com/mapprotocol/compass/chains/matic"
+	"github.com/mapprotocol/compass/chains/near"
 	"github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/core"
+	chain2 "github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/monitor"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/cors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -305,51 +304,39 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		}
 		logger.Info("This task set skip error", "skip", ctx.Bool(config.SkipErrorFlag.Name))
 
-		if chain.Type == chains.Ethereum {
-			// only support eth
+		switch chain.Type {
+		case chains.Ethereum:
 			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, role)
 			if err != nil {
 				return err
 			}
 			if idx == 0 {
-				// assign global map conn
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
 				mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.Init2GetEth22MapNumber(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 			}
-		} else if chain.Type == chains.Near {
+		case chains.Near:
 			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role)
-			if err != nil {
-				return err
-			}
-		} else if chain.Type == chains.Bsc {
+		case chains.Bsc:
 			newChain, err = bsc.InitializeChain(chainConfig, logger, sysErr, m, role)
-			if err != nil {
-				return err
-			}
-		} else if chain.Type == chains.Matic {
+		case chains.Matic:
 			newChain, err = matic.InitializeChain(chainConfig, logger, sysErr, m, role)
-			if err != nil {
-				return err
-			}
-		} else if chain.Type == chains.Klaytn {
+		case chains.Klaytn:
 			newChain, err = klaytn.InitializeChain(chainConfig, logger, sysErr, m, role)
-			if err != nil {
-				return err
-			}
-		} else if chain.Type == chains.Eth2 {
+		case chains.Eth2:
 			newChain, err = eth2.InitializeChain(chainConfig, logger, sysErr, m, role)
-			if err != nil {
-				return err
-			}
-		} else {
+		case chains.Platon:
+			newChain, err = platon.InitializeChain(chainConfig, logger, sysErr, m, role)
+		default:
 			return errors.New("unrecognized Chain Type")
+		}
+		if err != nil {
+			return err
 		}
 
 		mapprotocol.OnlineChaId[chainConfig.Id] = chainConfig.Name
-		fmt.Println("mapprotocol.OnlineChaId ", mapprotocol.OnlineChaId)
 		mapprotocol.OnlineChainCfg[chainConfig.Id] = chainConfig
 		c.AddChain(newChain)
 	}
@@ -384,9 +371,6 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/get/proof", monitor.Handler)
 
-		// cors.Default() setup the middleware with default options being
-		// all origins accepted with simple methods (GET, POST). See
-		// documentation below for more options.
 		handler := cors.Default().Handler(mux)
 		err := http.ListenAndServe(fmt.Sprintf(":%d", port), handler)
 		if errors.Is(err, http.ErrServerClosed) {

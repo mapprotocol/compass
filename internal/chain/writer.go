@@ -1,4 +1,4 @@
-package writer
+package chain
 
 import (
 	"context"
@@ -11,21 +11,20 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/msg"
 )
 
 type Writer struct {
-	cfg     chain.Config
-	conn    chain.Connection
+	cfg     Config
+	conn    Connection
 	log     log15.Logger
 	stop    <-chan int
 	sysErr  chan<- error // Reports fatal error to core
 	metrics *metrics.ChainMetrics
 }
 
-// New creates and returns Writer
-func New(conn chain.Connection, cfg *chain.Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
+// NewWriter creates and returns Writer
+func NewWriter(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
 	m *metrics.ChainMetrics) *Writer {
 	return &Writer{
 		cfg:     *cfg,
