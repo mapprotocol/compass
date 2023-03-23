@@ -1,4 +1,4 @@
-package bsc
+package chain
 
 import (
 	"context"
@@ -7,24 +7,16 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/mapprotocol/compass/internal/bsc"
-	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/internal/tx"
-	"github.com/mapprotocol/compass/pkg/util"
-
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
-
-	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/pkg/util"
 )
 
 type Messenger struct {
-	*chain.CommonSync
+	*CommonSync
 }
 
-func NewMessenger(cs *chain.CommonSync) *Messenger {
+func NewMessenger(cs *CommonSync) *Messenger {
 	return &Messenger{
 		CommonSync: cs,
 	}
@@ -57,19 +49,11 @@ func (m *Messenger) sync() error {
 		}
 	}
 
-	var retry = constant.BlockRetryLimit
 	for {
 		select {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
-			// No more retries, goto next block
-			if retry == 0 {
-				m.Log.Error("Polling failed, retries exceeded")
-				m.SysErr <- constant.ErrFatalPolling
-				return nil
-			}
-
 			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
@@ -103,7 +87,7 @@ func (m *Messenger) sync() error {
 			}
 			// messager
 			// Parse out events
-			count, err := m.getEventsForBlock(currentBlock)
+			count, err := m.mosHandler(m, currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				time.Sleep(constant.BlockRetryInterval)
@@ -114,7 +98,6 @@ func (m *Messenger) sync() error {
 			// hold until all messages are handled
 			_ = m.WaitUntilMsgHandled(count)
 
-			// Write to block store. Not a critical operation, no need to retry
 			err = m.BlockStore.StoreBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
@@ -127,76 +110,7 @@ func (m *Messenger) sync() error {
 			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)
 			m.LatestBlock.LastUpdated = time.Now()
 
-			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			retry = constant.BlockRetryLimit
 		}
 	}
-}
-
-// getEventsForBlock looks for the deposit event in the latest block
-func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
-	m.Log.Debug("Querying block for events", "block", latestBlock)
-	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
-	// querying for logs
-	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
-	if err != nil {
-		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
-	}
-
-	m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
-	count := 0
-	// read through the log events and handle their deposit event if handler is recognized
-	for _, log := range logs {
-		// evm event to msg
-		var message msg.Message
-		// getOrderId
-		orderId := log.Data[:32]
-		if m.Cfg.SyncToMap {
-			method := m.GetMethod(log.Topics[0])
-			// when syncToMap we need to assemble a tx proof
-			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-			}
-			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-			}
-
-			headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
-			for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
-				headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
-				header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
-				if err != nil {
-					return 0, err
-				}
-				headers[i] = *header
-			}
-
-			params := make([]bsc.Header, 0, len(headers))
-			for _, h := range headers {
-				params = append(params, bsc.ConvertHeader(h))
-			}
-
-			payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id)
-			if err != nil {
-				return 0, fmt.Errorf("unable to Parse Log: %w", err)
-			}
-
-			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
-
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-				"orderId", ethcommon.Bytes2Hex(orderId))
-			err = m.Router.Send(message)
-			if err != nil {
-				m.Log.Error("subscription error: failed to route message", "err", err)
-			}
-			count++
-		}
-
-	}
-
-	return count, nil
 }

@@ -24,6 +24,7 @@ const (
 	Matic    = "matic"
 	Klaytn   = "klaytn"
 	Eth2     = "eth2"
+	Platon   = "platon"
 	Near     = "near"
 	Ethereum = "ethereum"
 )

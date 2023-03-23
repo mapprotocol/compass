@@ -4,8 +4,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/internal/chain"
-	"github.com/mapprotocol/compass/internal/monitor"
-	"github.com/mapprotocol/compass/internal/writer"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/pkg/errors"
 
@@ -24,7 +22,7 @@ var _ core.Chain = new(Chain)
 type Chain struct {
 	cfg    *core.ChainConfig // The config of the chain
 	conn   chain.Connection  // The chains connection
-	writer *writer.Writer    // The writer of the chain
+	writer *chain.Writer     // The writer of the chain
 	stop   chan<- int
 	listen chains.Listener // The listener of this chain
 }
@@ -89,10 +87,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		logger.Info("Map2Matic Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
 		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		listen = NewMessenger(cs)
-	} else if role == mapprotocol.RoleOfMonitor {
-		listen = monitor.New(cs)
 	}
-	w := writer.New(conn, cfg, logger, stop, sysErr, m)
+	w := chain.NewWriter(conn, cfg, logger, stop, sysErr, m)
 
 	return &Chain{
 		cfg:    chainCfg,

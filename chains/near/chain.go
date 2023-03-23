@@ -1,9 +1,10 @@
 package near
 
 import (
+	"math/big"
+
 	"github.com/mapprotocol/compass/pkg/redis"
 	"github.com/pkg/errors"
-	"math/big"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
@@ -120,8 +121,6 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		mapprotocol.SyncOtherMap[cfg.id] = height
 		mapprotocol.Map2OtherHeight[cfg.id] = fn
 		listen = NewMaintainer(cs)
-	} else if role == mapprotocol.RoleOfMonitor {
-		listen = NewMonitor(cs)
 	}
 	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
 
