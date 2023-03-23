@@ -195,7 +195,8 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			return 0, nil, errors.Wrap(err, "getBytes failed")
 		}
 
-		//fmt.Println("map getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
+		fmt.Println("map getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
+		fmt.Println("map id ------------ ", fId)
 		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
 		//payloads, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
