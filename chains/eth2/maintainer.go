@@ -67,19 +67,11 @@ func (m *Maintainer) sync() error {
 		}
 	}
 
-	var retry = constant.BlockRetryLimit
 	for {
 		select {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
-			// No more retries, goto next block
-			if retry == 0 {
-				m.Log.Error("Polling failed, retries exceeded")
-				m.SysErr <- constant.ErrFatalPolling
-				return nil
-			}
-
 			if m.Cfg.SyncToMap {
 				err := m.updateSyncHeight()
 				if err != nil {
@@ -161,7 +153,7 @@ func (m *Maintainer) sync() error {
 			m.LatestBlock.LastUpdated = time.Now()
 
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			retry = constant.BlockRetryLimit
+			time.Sleep(time.Millisecond * 500)
 		}
 	}
 }
