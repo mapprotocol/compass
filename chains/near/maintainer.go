@@ -45,19 +45,11 @@ func (m *Maintainer) Sync() error {
 // Polling begins at the block defined in `m.cfg.startBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to RetryLimit times before continuing to the next block.
 func (m Maintainer) sync() error {
-	var retry = RetryLimit
 	for {
 		select {
 		case <-m.stop:
 			return errors.New("polling terminated")
 		default:
-			// No more retries, goto next block
-			if retry == 0 {
-				m.log.Error("Polling failed, retries exceeded")
-				m.sysErr <- ErrFatalPolling
-				return nil
-			}
-
 			latestBlock, err := m.conn.LatestBlock()
 			if err != nil {
 				m.log.Error("Unable to get latest block", "block", latestBlock, "err", err)
@@ -88,7 +80,6 @@ func (m Maintainer) sync() error {
 
 			m.latestBlock.Height = big.NewInt(0).Set(latestBlock)
 			m.latestBlock.LastUpdated = time.Now()
-			retry = RetryLimit
 		}
 	}
 }
