@@ -28,6 +28,11 @@ var (
 )
 
 var (
+	MaintainerInterval = time.Millisecond * 500
+	MessengerInterval  = time.Second * 1
+)
+
+var (
 	BalanceRetryInterval = time.Second * 60
 	WeiOfNear, _         = new(big.Int).SetString("1000000000000000000000000", 10)
 )

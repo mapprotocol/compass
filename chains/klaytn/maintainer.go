@@ -125,7 +125,7 @@ func (m Maintainer) sync() error {
 			m.LatestBlock.LastUpdated = time.Now()
 
 			currentBlock.Add(currentBlock, big.NewInt(3600))
-			time.Sleep(time.Second * 3)
+			time.Sleep(constant.MaintainerInterval)
 		}
 	}
 }
