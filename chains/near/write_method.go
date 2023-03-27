@@ -24,9 +24,10 @@ import (
 )
 
 const (
-	AbiMethodOfUpdateBlockHeader = "update_block_header"
-	AbiMethodOfTransferIn        = "transfer_in"
-	AbiMethodOfSwapIn            = "swap_in"
+	MethodOfUpdateBlockHeader  = "update_block_header"
+	MethodOfTransferIn         = "transfer_in"
+	MethodOfSwapIn             = "swap_in"
+	MethodOfVerifyReceiptProof = "verify_receipt_proof"
 )
 
 var (
@@ -38,20 +39,19 @@ var (
 var (
 	OrderIdIsUsed         = "the event with order id"
 	OrderIdIsUsedFlag2    = "is used"
-	ToAddressError        = "invalid to address"
-	ValidChainToken       = "invalid to chain token address"
-	TransferInToken       = "transfer in token failed, maybe TO account does not exist"
 	VerifyRangeMatch      = "cannot get epoch record for block"
 	VerifyRangeMatchFlag2 = "expected range"
-	TokenNotSupport       = "to_chain_token"
-	TokenNotSupportFlag2  = "is not mcs token or fungible token or native token"
-	TokenFailed           = "transfer in token failed"
-	WithdrawFailed        = "near withdraw failed"
 )
+
+var ignoreError = map[string]struct{}{
+	"invalid to address":                                        {},
+	"invalid to chain token address":                            {},
+	"transfer in token failed, maybe TO account does not exist": {},
+}
 
 // exeSyncMapMsg executes sync msg, and send tx to the destination blockchain
 func (w *writer) exeSyncMapMsg(m msg.Message) bool {
-	for i := 0; i < constant.TxRetryLimit; i++ {
+	for {
 		select {
 		case <-w.stop:
 			return false
@@ -62,17 +62,13 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 				return false
 			}
 
-			txHash, err := w.sendTx(w.cfg.lightNode, AbiMethodOfUpdateBlockHeader, m.Payload[0].([]byte))
+			txHash, err := w.sendTx(w.cfg.lightNode, MethodOfUpdateBlockHeader, m.Payload[0].([]byte))
 			w.conn.UnlockOpts()
 			if err == nil {
 				// message successfully handled
 				w.log.Info("Sync MapHeader to Near tx execution", "tx", txHash.String(), "src", m.Source, "dst", m.Destination)
 				m.DoneCh <- struct{}{}
 				return true
-			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
-				w.log.Error("Nonce too low, will retry", "err", err)
-			} else if strings.Index(err.Error(), "EOF") != -1 || strings.Index(err.Error(), "unexpected end of JSON input") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
-				w.log.Error("Sync Header to map encounter EOF, will retry")
 			} else if strings.Index(err.Error(), "block header height is incorrect") != -1 {
 				w.log.Error("The header may have been synchronized，Continue to execute the next header")
 				m.DoneCh <- struct{}{}
@@ -83,69 +79,75 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
-	w.log.Error("Submission of Sync MapHeader transaction failed", "source", m.Source, "dest", m.Destination)
-	w.sysErr <- ErrFatalTx
-	return false
 }
 
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *writer) exeSwapMsg(m msg.Message) bool {
-	for i := 0; i < constant.TxRetryLimit; i++ {
-		select {
-		case <-w.stop:
+	var inputHash interface{}
+	if len(m.Payload) > 3 {
+		inputHash = m.Payload[3]
+	}
+	data := m.Payload[0].([]byte)
+
+	for {
+		// First request whether the orderId already exists
+		if len(m.Payload) > 1 {
+			orderId := m.Payload[1].([]byte)
+			exits, err := w.checkOrderId(w.cfg.mcsContract, orderId)
+			if err != nil {
+				w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
+			}
+			if exits {
+				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
+				m.DoneCh <- struct{}{}
+				return true
+			}
+		}
+
+		md := make(map[string]interface{}, 0)
+		_ = json.Unmarshal(data, &md)
+		verify, err := json.Marshal(map[string]interface{}{
+			"receipt_proof": md["receipt_proof"],
+		})
+		if err != nil {
+			w.log.Error("Verify Execution failed, Will retry", "srcHash", inputHash, "err", err)
 			return false
-		default:
-			// First request whether the orderId already exists
-			if len(m.Payload) > 1 {
-				orderId := m.Payload[1].([]byte)
-				exits, err := w.checkOrderId(w.cfg.mcsContract, orderId)
-				if err != nil {
-					w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
-				}
-				if exits {
-					w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
+		}
+		txHash, err := w.sendTx(w.cfg.mcsContract, MethodOfVerifyReceiptProof, verify)
+		if err == nil {
+			w.log.Info("Verify Success", "mcsTx", txHash.String(), "srcHash", inputHash)
+			time.Sleep(time.Second)
+			break
+		} else {
+			for e := range ignoreError {
+				if strings.Index(err.Error(), e) != -1 {
+					w.log.Info("Ignore This Error, Continue to the next", "method", MethodOfVerifyReceiptProof, "srcHash", inputHash, "err", err)
 					m.DoneCh <- struct{}{}
 					return true
 				}
 			}
+			w.log.Warn("Verify Execution failed, Will retry", "srcHash", inputHash, "err", err)
+			time.Sleep(constant.TxRetryInterval)
+		}
+	}
 
-			err := w.conn.LockAndUpdateOpts(false)
-			if err != nil {
-				w.log.Error("Failed to update nonce", "err", err)
-				return false
-			}
-
-			var inputHash interface{}
-			if len(m.Payload) > 3 {
-				inputHash = m.Payload[3]
-			}
-			method := AbiMethodOfTransferIn
+	for {
+		select {
+		case <-w.stop:
+			return false
+		default:
+			method := MethodOfTransferIn
 			if m.Payload[4].(string) == mapprotocol.MethodOfSwapIn {
-				method = AbiMethodOfSwapIn
+				method = MethodOfSwapIn
 			}
-			w.log.Info("send transaction", "addr", w.cfg.mcsContract, "srcHash", inputHash, "method", method)
-			// sendtx using general method
-			txHash, err := w.sendTx(w.cfg.mcsContract, method, m.Payload[0].([]byte))
-			w.conn.UnlockOpts()
+			w.log.Info("Send transaction", "addr", w.cfg.mcsContract, "srcHash", inputHash, "method", method)
+			txHash, err := w.sendTx(w.cfg.mcsContract, method, data)
 			if err == nil {
-				// message successfully handled
-				w.log.Info("Submitted cross tx execution", "mcsTx", txHash.String(), "src", m.Source, "dst", m.Destination, "srcHash", inputHash)
+				w.log.Info("Submitted cross tx execution", "mcsTx", txHash.String(), "srcHash", inputHash)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), OrderIdIsUsed) != -1 && strings.Index(err.Error(), OrderIdIsUsedFlag2) != -1 {
 				w.log.Info("Order id is used, Continue to the next", "srcHash", inputHash, "err", err)
-				m.DoneCh <- struct{}{}
-				return true
-			} else if strings.Index(err.Error(), ToAddressError) != -1 {
-				w.log.Info("Tx to address is error, Continue to the next", "srcHash", inputHash, "err", err)
-				m.DoneCh <- struct{}{}
-				return true
-			} else if strings.Index(err.Error(), ValidChainToken) != -1 {
-				w.log.Info("Tx have invalid to chain token address, Continue to the next", "srcHash", inputHash, "err", err)
-				m.DoneCh <- struct{}{}
-				return true
-			} else if strings.Index(err.Error(), TransferInToken) != -1 {
-				w.log.Info("Tx transfer in token failed, maybe TO account does not exist", "srcHash", inputHash, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
 			} else if strings.Index(err.Error(), VerifyRangeMatch) != -1 && strings.Index(err.Error(), VerifyRangeMatchFlag2) != -1 {
@@ -159,25 +161,19 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "srcHash", inputHash, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
-			} else if err.Error() == ErrNonceTooLow.Error() || err.Error() == ErrTxUnderpriced.Error() {
-				w.log.Error("Nonce too low, will retry", "srcHash", inputHash)
-			} else if strings.Index(err.Error(), "EOF") != -1 || strings.Index(err.Error(), "unexpected end of JSON input") != -1 { // When requesting the lightNode to return EOF, it indicates that there may be a problem with the network and it needs to be retried
-				w.log.Error("Mcs encounter EOF, will retry", "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), TokenNotSupport) != -1 && strings.Index(err.Error(), TokenNotSupportFlag2) != -1 {
-				w.log.Error("Transfer Token is not supported", "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), TokenFailed) != -1 {
-				w.log.Error("Insufficient vault balance of NEP141 Or The target user does not exist, Please check", "srcHash", inputHash, "err", err)
-			} else if strings.Index(err.Error(), WithdrawFailed) != -1 {
-				w.log.Error("Insufficient vault when native token is transferred in", "srcHash", inputHash, "err", err)
 			} else {
+				for e := range ignoreError {
+					if strings.Index(err.Error(), e) != -1 {
+						w.log.Info("Ignore This Error, Continue to the next", "method", method, "srcHash", inputHash, "err", err)
+						m.DoneCh <- struct{}{}
+						return true
+					}
+				}
 				w.log.Warn("Execution failed, tx may already be complete", "srcHash", inputHash, "err", err)
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
-	w.log.Error("Submission of Execute transaction failed", "source", m.Source, "dest", m.Destination)
-	w.sysErr <- ErrFatalTx
-	return false
 }
 
 // sendTx send tx to an address with value and input data
@@ -185,7 +181,7 @@ func (w *writer) sendTx(toAddress string, method string, input []byte) (hash.Cry
 	w.log.Info("sendTx", "toAddress", toAddress)
 	ctx := client.ContextWithKeyPair(context.Background(), *w.conn.Keypair())
 	b := types.Balance{}
-	if method == AbiMethodOfTransferIn || method == AbiMethodOfSwapIn {
+	if method == MethodOfTransferIn || method == MethodOfSwapIn || method == MethodOfVerifyReceiptProof {
 		b, _ = types.BalanceFromString(near.Deposit)
 	}
 	res, err := w.conn.Client().TransactionSendAwait(
