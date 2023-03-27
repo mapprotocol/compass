@@ -2522,4 +2522,207 @@ const (
 			"type":"function"
 		}
 	]`
+	PlatonAbiJson = `[
+		{
+		  "inputs": [
+			{
+			  "components": [
+				{
+				  "components": [
+					{
+					  "internalType": "uint256",
+					  "name": "epoch",
+					  "type": "uint256"
+					},
+					{
+					  "internalType": "uint256",
+					  "name": "viewNumber",
+					  "type": "uint256"
+					},
+					{
+					  "internalType": "bytes32",
+					  "name": "blockHash",
+					  "type": "bytes32"
+					},
+					{
+					  "internalType": "uint256",
+					  "name": "blockNumber",
+					  "type": "uint256"
+					},
+					{
+					  "internalType": "uint256",
+					  "name": "blockIndex",
+					  "type": "uint256"
+					},
+					{
+					  "internalType": "bytes",
+					  "name": "signature",
+					  "type": "bytes"
+					},
+					{
+					  "internalType": "uint256",
+					  "name": "validatorSignBitMap",
+					  "type": "uint256"
+					},
+					{
+					  "internalType": "uint256",
+					  "name": "signedCount",
+					  "type": "uint256"
+					}
+				  ],
+				  "internalType": "struct Verify.QuorumCert",
+				  "name": "quorumCert",
+				  "type": "tuple"
+				},
+				{
+				  "components": [
+					{
+					  "internalType": "bytes",
+					  "name": "parentHash",
+					  "type": "bytes"
+					},
+					{
+					  "internalType": "address",
+					  "name": "miner",
+					  "type": "address"
+					},
+					{
+					  "internalType": "bytes",
+					  "name": "stateRoot",
+					  "type": "bytes"
+					},
+					{
+					  "internalType": "bytes",
+					  "name": "transactionsRoot",
+					  "type": "bytes"
+					},
+					{
+					  "internalType": "bytes",
+					  "name": "receiptsRoot",
+					  "type": "bytes"
+					},
+					{
+					  "internalType": "bytes",
+					  "name": "logsBloom",
+					  "type": "bytes"
+					},
+					{
+					  "internalType": "uint256",
+					  "name": "number",
+					  "type": "uint256"
+					},
+					{
+					  "internalType": "uint256",
+					  "name": "gasLimit",
+					  "type": "uint256"
+					},
+					{
+					  "internalType": "uint256",
+					  "name": "gasUsed",
+					  "type": "uint256"
+					},
+					{
+					  "internalType": "uint256",
+					  "name": "timestamp",
+					  "type": "uint256"
+					},
+					{
+					  "internalType": "bytes",
+					  "name": "extraData",
+					  "type": "bytes"
+					},
+					{
+					  "internalType": "bytes",
+					  "name": "nonce",
+					  "type": "bytes"
+					}
+				  ],
+				  "internalType": "struct Verify.BlockHeader",
+				  "name": "header",
+				  "type": "tuple"
+				},
+				{
+				  "components": [
+					{
+					  "components": [
+						{
+						  "internalType": "uint256",
+						  "name": "receiptType",
+						  "type": "uint256"
+						},
+						{
+						  "internalType": "bytes",
+						  "name": "postStateOrStatus",
+						  "type": "bytes"
+						},
+						{
+						  "internalType": "uint256",
+						  "name": "cumulativeGasUsed",
+						  "type": "uint256"
+						},
+						{
+						  "internalType": "bytes",
+						  "name": "bloom",
+						  "type": "bytes"
+						},
+						{
+						  "components": [
+							{
+							  "internalType": "address",
+							  "name": "addr",
+							  "type": "address"
+							},
+							{
+							  "internalType": "bytes[]",
+							  "name": "topics",
+							  "type": "bytes[]"
+							},
+							{
+							  "internalType": "bytes",
+							  "name": "data",
+							  "type": "bytes"
+							}
+						  ],
+						  "internalType": "struct Verify.TxLog[]",
+						  "name": "logs",
+						  "type": "tuple[]"
+						}
+					  ],
+					  "internalType": "struct Verify.TxReceipt",
+					  "name": "txReceipt",
+					  "type": "tuple"
+					},
+					{
+					  "internalType": "bytes",
+					  "name": "keyIndex",
+					  "type": "bytes"
+					},
+					{
+					  "internalType": "bytes[]",
+					  "name": "proof",
+					  "type": "bytes[]"
+					}
+				  ],
+				  "internalType": "struct Verify.ReceiptProof",
+				  "name": "receiptProof",
+				  "type": "tuple"
+				}
+			  ],
+			  "internalType": "struct LightNode.ProofData",
+			  "name": "_proof",
+			  "type": "tuple"
+			}
+		  ],
+		  "name": "getBytes",
+		  "outputs": [
+			{
+			  "internalType": "bytes",
+			  "name": "",
+			  "type": "bytes"
+			}
+		  ],
+		  "stateMutability": "pure",
+		  "type": "function"
+		}
+	]`
 )

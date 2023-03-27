@@ -2,7 +2,13 @@ package platon
 
 import (
 	"context"
+	"fmt"
 	"math/big"
+
+	"github.com/mapprotocol/compass/internal/platon"
+
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/internal/tx"
 
 	"github.com/ethereum/go-ethereum/core/types"
 
@@ -17,7 +23,7 @@ import (
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
 	role mapprotocol.Role) (core.Chain, error) {
-	return chain.New(chainCfg, logger, sysErr, m, role, chain.OptOfSync2Map(syncHeaderToMap))
+	return chain.New(chainCfg, logger, sysErr, m, role, chain.OptOfSync2Map(syncHeaderToMap), chain.OptOfMos(mos))
 }
 
 func syncHeaderToMap(m *chain.Maintainer, needSyncHeight *big.Int) error {
@@ -73,4 +79,54 @@ func syncHeaderToMap(m *chain.Maintainer, needSyncHeight *big.Int) error {
 		return err
 	}
 	return nil
+}
+
+func mos(m *chain.Messenger, latestBlock *big.Int) (int, error) {
+	if !m.Cfg.SyncToMap {
+		return 0, nil
+	}
+	m.Log.Debug("Querying block for events", "block", latestBlock)
+	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
+	// querying for logs
+	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
+	if err != nil {
+		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
+	}
+
+	m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
+	count := 0
+	// read through the log events and handle their deposit event if handler is recognized
+	for _, log := range logs {
+		// evm event to msg
+		var message msg.Message
+		// getOrderId
+		orderId := log.Data[:32]
+		method := m.GetMethod(log.Topics[0])
+		txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
+		if err != nil {
+			return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+		}
+		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+		if err != nil {
+			return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+		}
+
+		payload, err := platon.AssembleProof(log, receipts, method, m.Cfg.Id)
+		if err != nil {
+			return 0, fmt.Errorf("unable to Parse Log: %w", err)
+		}
+
+		msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+
+		m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+			"orderId", ethcommon.Bytes2Hex(orderId))
+		err = m.Router.Send(message)
+		if err != nil {
+			m.Log.Error("Subscription error: failed to route message", "err", err)
+		}
+		count++
+	}
+
+	return count, nil
 }
