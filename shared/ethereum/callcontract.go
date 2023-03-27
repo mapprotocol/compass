@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
+	iproof "github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
@@ -157,7 +158,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 	}
 
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
-	proof, err := getProof(receipts, txIndex)
+	proof, err := iproof.Get(receipts, txIndex)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -298,32 +299,6 @@ func ConvertNearReceipt(h *mapprotocol.TxReceipt) *TxReceipt {
 		Logs:              logs,
 	}
 }
-
-func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
-	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-	if err != nil {
-		return nil, err
-	}
-
-	tr = DeriveTire(receipts, tr)
-	ns := light.NewNodeSet()
-	key, err := rlp.EncodeToBytes(txIndex)
-	if err != nil {
-		return nil, err
-	}
-	if err = tr.Prove(key, 0, ns); err != nil {
-		return nil, err
-	}
-
-	proof := make([][]byte, 0, len(ns.NodeList()))
-	for _, v := range ns.NodeList() {
-		proof = append(proof, v)
-	}
-
-	return proof, nil
-}
-
-/****** below is some code from atlas/core/types/hashing.go ******/
 
 // deriveBufferPool holds temporary encoder buffers for DeriveSha and TX encoding.
 var encodeBufferPool = sync.Pool{

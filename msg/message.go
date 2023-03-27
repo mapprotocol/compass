@@ -21,7 +21,6 @@ type Message struct {
 	Type        TransferType    // type of bridge transfer
 	Payload     []interface{}   // data associated with event sequence
 	DoneCh      chan<- struct{} // notify message is handled
-	// ResourceId   ResourceId
 }
 
 func NewSyncToMap(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {
@@ -63,9 +62,3 @@ func NewSwapWithMapProof(fromChainID, toChainID ChainId, payloads []interface{},
 		DoneCh:      ch,
 	}
 }
-
-// func ResourceIdFromSlice(in []byte) ResourceId {
-// 	var res ResourceId
-// 	copy(res[:], in)
-// 	return res
-// }

@@ -584,3 +584,18 @@ func sendTransaction(ec *Client) error {
 	// Send transaction
 	return ec.SendTransaction(context.Background(), signedTx)
 }
+
+func TestClient_GetValidatorByNumber(t *testing.T) {
+	rpcClient, err := rpc.DialHTTP("https://devnet2openapi.platon.network/rpc")
+	if err != nil {
+		t.Fatalf("err is %v", err)
+	}
+	ec := NewClient(rpcClient)
+	got, err := ec.PlatonGetValidatorByNumber(context.Background(), big.NewInt(21729621))
+	t.Log("got ----------- ", got)
+	t.Log("err ----------- ", err)
+
+	got1, err := ec.PlatonGetBlockQuorumCertByHash(context.Background(), []common.Hash{common.HexToHash("0xed9ae646e199cf8f64a891451bc7d24e36de3bccb7b69852393f1b7078c9de80")})
+	t.Log("got ----------- ", got1)
+	t.Log("err ----------- ", err)
+}

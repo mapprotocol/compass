@@ -4,10 +4,11 @@
 package mapprotocol
 
 import (
-	"github.com/mapprotocol/compass/core"
-	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"strings"
+
+	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/msg"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -78,6 +79,7 @@ var (
 	Verify, _      = abi.JSON(strings.NewReader(VerifiableHeaderRangeAbiJson))
 	Matic, _       = abi.JSON(strings.NewReader(MaticAbiJson))
 	Eth2, _        = abi.JSON(strings.NewReader(Eth2AbiJson))
+	Platon, _      = abi.JSON(strings.NewReader(PlatonAbiJson))
 )
 
 type Role string

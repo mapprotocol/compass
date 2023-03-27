@@ -2,21 +2,16 @@ package constant
 
 import (
 	"errors"
-	"math/big"
 	"time"
 )
 
 const (
 	TxRetryInterval = time.Second * 5 // TxRetryInterval Time between retrying a failed tx
-	TxRetryLimit    = 10              // TxRetryLimit Maximum number of tx retries before exiting
-	HttpTimeOut     = 10 * time.Second
-	Agent           = "compass-go"
 )
 
 var (
-	ErrNonceTooLow   = errors.New("nonce too low")
-	ErrTxUnderpriced = errors.New("replacement transaction underpriced")
-	ErrUnWantedSync  = errors.New("unwanted Sync")
+	ErrNonceTooLow  = errors.New("nonce too low")
+	ErrUnWantedSync = errors.New("unwanted Sync")
 )
 
 var (
@@ -24,7 +19,6 @@ var (
 	BlockRetryInterval = time.Second * 5
 	RetryLongInterval  = time.Second * 10
 	QueryRetryInterval = time.Second * 30
-	ErrFatalPolling    = errors.New("listener block polling failed")
 )
 
 var (
@@ -34,7 +28,6 @@ var (
 
 var (
 	BalanceRetryInterval = time.Second * 60
-	WeiOfNear, _         = new(big.Int).SetString("1000000000000000000000000", 10)
 )
 
 var IgnoreError = map[string]struct{}{
