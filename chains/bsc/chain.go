@@ -80,6 +80,9 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 }
 
 func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
+	if !m.Cfg.SyncToMap {
+		return 0, nil
+	}
 	m.Log.Debug("Querying block for events", "block", latestBlock)
 	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
 	// querying for logs
@@ -96,50 +99,47 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 		var message msg.Message
 		// getOrderId
 		orderId := log.Data[:32]
-		if m.Cfg.SyncToMap {
-			method := m.GetMethod(log.Topics[0])
-			// when syncToMap we need to assemble a tx proof
-			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-			}
-			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-			}
-
-			headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
-			for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
-				headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
-				header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
-				if err != nil {
-					return 0, err
-				}
-				headers[i] = *header
-			}
-
-			params := make([]bsc.Header, 0, len(headers))
-			for _, h := range headers {
-				params = append(params, bsc.ConvertHeader(h))
-			}
-
-			payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id)
-			if err != nil {
-				return 0, fmt.Errorf("unable to Parse Log: %w", err)
-			}
-
-			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
-
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-				"orderId", ethcommon.Bytes2Hex(orderId))
-			err = m.Router.Send(message)
-			if err != nil {
-				m.Log.Error("subscription error: failed to route message", "err", err)
-			}
-			count++
+		method := m.GetMethod(log.Topics[0])
+		// when syncToMap we need to assemble a tx proof
+		txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
+		if err != nil {
+			return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+		}
+		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+		if err != nil {
+			return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 		}
 
+		headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
+		for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
+			headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
+			header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+			if err != nil {
+				return 0, err
+			}
+			headers[i] = *header
+		}
+
+		params := make([]bsc.Header, 0, len(headers))
+		for _, h := range headers {
+			params = append(params, bsc.ConvertHeader(h))
+		}
+
+		payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id)
+		if err != nil {
+			return 0, fmt.Errorf("unable to Parse Log: %w", err)
+		}
+
+		msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+
+		m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+			"orderId", ethcommon.Bytes2Hex(orderId))
+		err = m.Router.Send(message)
+		if err != nil {
+			m.Log.Error("Subscription error: failed to route message", "err", err)
+		}
+		count++
 	}
 
 	return count, nil

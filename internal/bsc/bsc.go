@@ -7,10 +7,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
+	iproof "github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
@@ -117,7 +115,7 @@ func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, me
 		return nil, err
 	}
 
-	proof, err := getProof(receipts, txIndex)
+	proof, err := iproof.Get(receipts, txIndex)
 	if err != nil {
 		return nil, err
 	}
@@ -145,28 +143,4 @@ func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, me
 		return nil, err
 	}
 	return pack, nil
-}
-
-func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
-	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-	if err != nil {
-		return nil, err
-	}
-
-	tr = utils.DeriveTire(receipts, tr)
-	ns := light.NewNodeSet()
-	key, err := rlp.EncodeToBytes(txIndex)
-	if err != nil {
-		return nil, err
-	}
-	if err = tr.Prove(key, 0, ns); err != nil {
-		return nil, err
-	}
-
-	proof := make([][]byte, 0, len(ns.NodeList()))
-	for _, v := range ns.NodeList() {
-		proof = append(proof, v)
-	}
-
-	return proof, nil
 }

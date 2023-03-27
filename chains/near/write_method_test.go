@@ -65,7 +65,7 @@ func Test_writer_sendTx(t *testing.T) {
 		from,
 		endPoint,
 		[]action.Action{
-			action.NewFunctionCall(AbiMethodOfUpdateBlockHeader, []byte(s), types.DefaultFunctionCallGas, types.Balance{}),
+			action.NewFunctionCall(MethodOfUpdateBlockHeader, []byte(s), types.DefaultFunctionCallGas, types.Balance{}),
 		},
 		client.WithLatestBlock(),
 		client.WithKeyPair(kp),

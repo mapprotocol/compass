@@ -554,3 +554,39 @@ func toCallArg(msg ethereum.CallMsg) interface{} {
 	}
 	return arg
 }
+
+// platon
+
+func (ec *Client) PlatonGetValidatorByNumber(ctx context.Context, number *big.Int) (string, error) {
+	var ret string
+	err := ec.c.CallContext(ctx, &ret, "debug_getValidatorByBlockNumber", number)
+	if err == nil && ret == "" {
+		err = ethereum.NotFound
+	}
+	return ret, err
+}
+
+func (ec *Client) PlatonGetBlockQuorumCertByHash(ctx context.Context, hash []common.Hash) ([]QuorumCert, error) {
+	var ret []QuorumCert
+	err := ec.c.CallContext(ctx, &ret, "platon_getBlockQuorumCertByHash", hash)
+	if err == nil && ret == nil {
+		err = ethereum.NotFound
+	}
+	return ret, err
+}
+
+type Validator struct {
+	Address   common.Hash
+	NodeId    string
+	BlsPubKey string
+}
+
+type QuorumCert struct {
+	BlockHash    string `json:"blockHash"`
+	BlockIndex   int    `json:"blockIndex"`
+	BlockNumber  int    `json:"blockNumber"`
+	Epoch        int    `json:"epoch"`
+	Signature    string `json:"signature"`
+	ValidatorSet string `json:"validatorSet"`
+	ViewNumber   int    `json:"viewNumber"`
+}
