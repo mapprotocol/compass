@@ -1,6 +1,7 @@
 package platon
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/mapprotocol/compass/pkg/ethclient"
@@ -34,7 +35,7 @@ type BlockHeader struct {
 type UpdateBlock struct {
 	Header     *BlockHeader
 	Validators []ethclient.Validator
-	Certs      []ethclient.QuorumCert
+	Cert       *QuorumCert
 }
 
 func ConvertHeader(header *types.Header) *BlockHeader {
@@ -81,6 +82,12 @@ type QuorumCert struct {
 	// ValidatorSet        []byte   `json:"validatorSet"`
 }
 
+type Validator struct {
+	Address   common.Address
+	NodeId    []byte
+	BlsPubKey []byte
+}
+
 type ReceiptProof struct {
 	TxReceipt *mapprotocol.TxReceipt
 	KeyIndex  []byte
@@ -109,32 +116,10 @@ func AssembleProof(block *UpdateBlock, log types.Log, receipts []*types.Receipt,
 		Proof:     proof,
 	}
 
-	cert := &QuorumCert{
-		BlockHash:           [32]byte{},
-		BlockIndex:          big.NewInt(0),
-		BlockNumber:         big.NewInt(0),
-		Epoch:               big.NewInt(0),
-		ViewNumber:          big.NewInt(0),
-		Signature:           make([]byte, 0),
-		ValidatorSignBitMap: big.NewInt(0),
-		SignedCount:         big.NewInt(0),
-	}
-	if len(block.Certs) > 0 {
-		cert = &QuorumCert{
-			BlockHash:           common.HexToHash(block.Certs[0].BlockHash),
-			BlockIndex:          big.NewInt(block.Certs[0].BlockIndex),
-			BlockNumber:         big.NewInt(block.Certs[0].BlockNumber),
-			Epoch:               big.NewInt(block.Certs[0].Epoch),
-			ViewNumber:          big.NewInt(block.Certs[0].ViewNumber),
-			Signature:           common.Hex2Bytes(block.Certs[0].Signature),
-			ValidatorSignBitMap: big.NewInt(0),
-			SignedCount:         big.NewInt(0),
-		}
-	}
 	input, err := mapprotocol.Platon.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(ProofData{
 		ReceiptProof: rp,
 		Header:       block.Header,
-		QuorumCert:   cert,
+		QuorumCert:   block.Cert,
 	})
 	if err != nil {
 		return nil, err
@@ -145,4 +130,62 @@ func AssembleProof(block *UpdateBlock, log types.Log, receipts []*types.Receipt,
 		return nil, err
 	}
 	return pack, nil
+}
+
+func GetHeaderParam(client *ethclient.Client, latestBlock *big.Int) (*UpdateBlock, error) {
+	header, err := client.HeaderByNumber(context.Background(), latestBlock)
+	if err != nil {
+		return nil, err
+	}
+	pHeader := ConvertHeader(header)
+	validator, err := client.PlatonGetValidatorByNumber(context.Background(), pHeader.Number)
+	if err != nil {
+		return nil, err
+	}
+	quorumCert, err := client.PlatonGetBlockQuorumCertByHash(context.Background(), []common.Hash{header.Hash()})
+	if err != nil {
+		return nil, err
+	}
+
+	cert := &QuorumCert{
+		BlockHash:           [32]byte{},
+		BlockIndex:          big.NewInt(0),
+		BlockNumber:         big.NewInt(0),
+		Epoch:               big.NewInt(0),
+		ViewNumber:          big.NewInt(0),
+		Signature:           make([]byte, 0),
+		ValidatorSignBitMap: big.NewInt(0),
+		SignedCount:         big.NewInt(0),
+	}
+	if len(quorumCert) > 0 {
+		vsb, sc := handlerValidatorSet(quorumCert[0].ValidatorSet)
+		cert = &QuorumCert{
+			BlockHash:           common.HexToHash(quorumCert[0].BlockHash),
+			BlockIndex:          big.NewInt(quorumCert[0].BlockIndex),
+			BlockNumber:         big.NewInt(quorumCert[0].BlockNumber),
+			Epoch:               big.NewInt(quorumCert[0].Epoch),
+			ViewNumber:          big.NewInt(quorumCert[0].ViewNumber),
+			Signature:           common.Hex2Bytes(quorumCert[0].Signature),
+			ValidatorSignBitMap: big.NewInt(vsb),
+			SignedCount:         big.NewInt(sc),
+		}
+	}
+
+	return &UpdateBlock{
+		Header:     pHeader,
+		Validators: validator,
+		Cert:       cert,
+	}, nil
+}
+
+func handlerValidatorSet(set string) (int64, int64) {
+	var validatorSignBitMap, signedCount int64
+	for idx, x := range set {
+		if x != 'x' {
+			continue
+		}
+		signedCount++
+		validatorSignBitMap += int64(1 << (len(set) - idx - 1))
+	}
+	return validatorSignBitMap, signedCount
 }

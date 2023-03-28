@@ -1,8 +1,12 @@
 package chain
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 
 	"math/big"
@@ -21,12 +25,12 @@ func NewMaintainer(cs *CommonSync) *Maintainer {
 	}
 }
 
-func (bm *Maintainer) Sync() error {
-	bm.Log.Debug("Starting listener...")
+func (m *Maintainer) Sync() error {
+	m.Log.Debug("Starting listener...")
 	go func() {
-		err := bm.sync()
+		err := m.sync()
 		if err != nil {
-			bm.Log.Error("Polling blocks failed", "err", err)
+			m.Log.Error("Polling blocks failed", "err", err)
 		}
 	}()
 
@@ -34,82 +38,89 @@ func (bm *Maintainer) Sync() error {
 }
 
 // sync function of Maintainer will poll for the latest block and proceed to parse the associated events as it sees new blocks.
-// Polling begins at the block defined in `bm.Cfg.StartBlock`. Failed attempts to fetch the latest block or parse
+// Polling begins at the block defined in `m.Cfg.StartBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
-func (bm *Maintainer) sync() error {
-	var currentBlock = bm.Cfg.StartBlock
-	bm.Log.Info("Polling Blocks...", "block", currentBlock)
+func (m *Maintainer) sync() error {
+	var currentBlock = m.Cfg.StartBlock
+	m.Log.Info("Polling Blocks...", "block", currentBlock)
 
-	if bm.Cfg.SyncToMap {
-		syncedHeight, err := mapprotocol.Get2MapHeight(bm.Cfg.Id)
-		//syncedHeight, err := mapprotocol.Get2MapByLight()
+	if m.Cfg.SyncToMap {
+		//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+		syncedHeight, err := mapprotocol.Get2MapByLight()
 		if err != nil {
-			bm.Log.Error("Get synced Height failed", "err", err)
+			m.Log.Error("Get synced Height failed", "err", err)
 			return err
 		}
 
-		bm.Log.Info("Check Sync Status...", "synced", syncedHeight)
-		bm.syncedHeight = syncedHeight
+		m.Log.Info("Check Sync Status...", "synced", syncedHeight)
+		m.syncedHeight = syncedHeight
 
 		if syncedHeight.Cmp(currentBlock) != 0 {
-			currentBlock.Add(syncedHeight, new(big.Int).SetInt64(bm.height))
-			bm.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
+			currentBlock.Add(syncedHeight, new(big.Int).SetInt64(m.height))
+			m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
 				"syncedHeight", syncedHeight, "currentBlock", currentBlock)
 		}
-	} else if bm.Cfg.Id == bm.Cfg.MapChainID {
+	} else if m.Cfg.Id == m.Cfg.MapChainID {
 		minHeight := big.NewInt(0)
 		for cId, height := range mapprotocol.SyncOtherMap {
 			if minHeight.Uint64() == 0 || minHeight.Cmp(height) == 1 {
-				bm.Log.Info("map to other chain find min sync height ", "chainId", cId,
+				m.Log.Info("map to other chain find min sync height ", "chainId", cId,
 					"syncedHeight", minHeight, "currentHeight", height)
 				minHeight = height
 			}
 		}
-		if bm.Cfg.StartBlock.Cmp(minHeight) != 0 { // When the synchronized height is less than or more than the local starting height, use height
+		if m.Cfg.StartBlock.Cmp(minHeight) != 0 { // When the synchronized height is less than or more than the local starting height, use height
 			currentBlock = big.NewInt(minHeight.Int64() + 1)
-			bm.Log.Info("map2other chain", "initial height", currentBlock)
+			m.Log.Info("map2other chain", "initial height", currentBlock)
 		}
 	}
 
 	for {
 		select {
-		case <-bm.Stop:
+		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
-			latestBlock, err := bm.Conn.LatestBlock()
+			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
-				bm.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
+				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
-			if bm.Metrics != nil {
-				bm.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
+			if m.Metrics != nil {
+				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
-			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(bm.BlockConfirmations) == -1 {
-				bm.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
+			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
+				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.QueryRetryInterval)
 				continue
 			}
 			// latestBlock must less than blockNumber of chain online，otherwise time.sleep
 			difference := new(big.Int).Sub(currentBlock, latestBlock)
 			if difference.Int64() > 0 {
-				bm.Log.Info("chain online blockNumber less than local latestBlock, waiting...", "chainBlcNum", latestBlock,
+				m.Log.Info("chain online blockNumber less than local latestBlock, waiting...", "chainBlcNum", latestBlock,
 					"localBlock", currentBlock, "waiting", difference.Int64())
 				time.Sleep(constant.BlockRetryInterval * time.Duration(difference.Int64()))
 			}
 
-			if bm.Cfg.Id == bm.Cfg.MapChainID && len(bm.Cfg.SyncChainIDList) > 0 {
-				err = bm.syncMap2Other(bm, currentBlock)
+			if m.Cfg.Id == m.Cfg.MapChainID && len(m.Cfg.SyncChainIDList) > 0 {
+				err = m.syncMap2Other(m, currentBlock)
 				if err != nil {
-					bm.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
+					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
+					time.Sleep(constant.QueryRetryInterval)
+					util.Alarm(context.Background(), fmt.Sprintf("map sync header to other failed, err is %s", err.Error()))
 					continue
 				}
-			} else if bm.Cfg.SyncToMap && currentBlock.Cmp(bm.syncedHeight) == 1 {
-				err = bm.syncHeaderToMap(bm, currentBlock)
+
+			} else if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
+				err = m.syncHeaderToMap(m, currentBlock)
 				if err != nil {
-					bm.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
+					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
+					time.Sleep(constant.QueryRetryInterval)
+					if err.Error() != "not found" {
+						util.Alarm(context.Background(), fmt.Sprintf("%s sync header failed, err is %s", m.Cfg.Name, err.Error()))
+					}
 					continue
 				}
 			} else {
@@ -117,21 +128,21 @@ func (bm *Maintainer) sync() error {
 			}
 
 			// Write to block store. Not a critical operation, no need to retry
-			err = bm.BlockStore.StoreBlock(currentBlock)
+			err = m.BlockStore.StoreBlock(currentBlock)
 			if err != nil {
-				bm.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
+				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
 
-			if bm.Metrics != nil {
-				bm.Metrics.BlocksProcessed.Inc()
-				bm.Metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
+			if m.Metrics != nil {
+				m.Metrics.BlocksProcessed.Inc()
+				m.Metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
 			}
 
-			bm.LatestBlock.Height = big.NewInt(0).Set(latestBlock)
-			bm.LatestBlock.LastUpdated = time.Now()
+			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)
+			m.LatestBlock.LastUpdated = time.Now()
 
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			if latestBlock.Int64()-currentBlock.Int64() <= bm.Cfg.BlockConfirmations.Int64() {
+			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
 				time.Sleep(constant.MaintainerInterval)
 			}
 		}
