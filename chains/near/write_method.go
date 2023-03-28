@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -28,12 +27,6 @@ const (
 	MethodOfTransferIn         = "transfer_in"
 	MethodOfSwapIn             = "swap_in"
 	MethodOfVerifyReceiptProof = "verify_receipt_proof"
-)
-
-var (
-	ErrNonceTooLow   = errors.New("nonce too low")
-	ErrFatalTx       = errors.New("submission of transaction failed")
-	ErrTxUnderpriced = errors.New("replacement transaction underpriced")
 )
 
 var (

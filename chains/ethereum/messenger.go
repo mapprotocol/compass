@@ -124,7 +124,6 @@ func (m *Messenger) sync() error {
 
 			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			time.Sleep(constant.MessengerInterval)
 		}
 	}
 }

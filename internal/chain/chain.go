@@ -63,7 +63,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
 		height, err := fn()
 		if err != nil {
-			return nil, errors.Wrap(err, "bsc get init headerHeight failed")
+			return nil, errors.Wrap(err, "get init headerHeight failed")
 		}
 		logger.Info("Map2other Current situation", "id", cfg.Id, "height", height, "lightNode", cfg.LightNode)
 		mapprotocol.SyncOtherMap[cfg.Id] = height
@@ -78,7 +78,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 		fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
 		left, right, err := fn()
 		if err != nil {
-			return nil, errors.Wrap(err, "bsc get init verifyHeight failed")
+			return nil, errors.Wrap(err, "get init verifyHeight failed")
 		}
 		logger.Info("Map2other Current verify range", "id", cfg.Id, "left", left, "right", right, "lightNode", cfg.LightNode)
 		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn

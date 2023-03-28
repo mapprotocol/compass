@@ -2723,6 +2723,156 @@ const (
 		  ],
 		  "stateMutability": "pure",
 		  "type": "function"
+		},
+		{
+		  "inputs": [
+			{
+			  "components": [
+				{
+				  "internalType": "bytes",
+				  "name": "parentHash",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "address",
+				  "name": "miner",
+				  "type": "address"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "stateRoot",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "transactionsRoot",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "receiptsRoot",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "logsBloom",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "number",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "gasLimit",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "gasUsed",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "timestamp",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "extraData",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "nonce",
+				  "type": "bytes"
+				}
+			  ],
+			  "internalType": "struct Verify.BlockHeader",
+			  "name": "_blockHeader",
+			  "type": "tuple"
+			},
+			{
+			  "components": [
+				{
+				  "internalType": "uint256",
+				  "name": "epoch",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "viewNumber",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "bytes32",
+				  "name": "blockHash",
+				  "type": "bytes32"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "blockNumber",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "blockIndex",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "signature",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "validatorSignBitMap",
+				  "type": "uint256"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "signedCount",
+				  "type": "uint256"
+				}
+			  ],
+			  "internalType": "struct Verify.QuorumCert",
+			  "name": "_quorumCert",
+			  "type": "tuple"
+			},
+			{
+			  "components": [
+				{
+				  "internalType": "address",
+				  "name": "Address",
+				  "type": "address"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "NodeId",
+				  "type": "bytes"
+				},
+				{
+				  "internalType": "bytes",
+				  "name": "BlsPubKey",
+				  "type": "bytes"
+				}
+			  ],
+			  "internalType": "struct Verify.Validator[]",
+			  "name": "_validators",
+			  "type": "tuple[]"
+			}
+		  ],
+		  "name": "getHeadersBytes",
+		  "outputs": [
+			{
+			  "internalType": "bytes",
+			  "name": "",
+			  "type": "bytes"
+			}
+		  ],
+		  "stateMutability": "pure",
+		  "type": "function"
 		}
 	]`
 )
