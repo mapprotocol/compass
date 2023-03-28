@@ -557,11 +557,16 @@ func toCallArg(msg ethereum.CallMsg) interface{} {
 
 // platon
 
-func (ec *Client) PlatonGetValidatorByNumber(ctx context.Context, number *big.Int) (string, error) {
-	var ret string
-	err := ec.c.CallContext(ctx, &ret, "debug_getValidatorByBlockNumber", number)
-	if err == nil && ret == "" {
+func (ec *Client) PlatonGetValidatorByNumber(ctx context.Context, number *big.Int) ([]Validator, error) {
+	var resp string
+	err := ec.c.CallContext(ctx, &resp, "debug_getValidatorByBlockNumber", number)
+	if err == nil && resp == "" {
 		err = ethereum.NotFound
+	}
+	var ret []Validator
+	err = json.Unmarshal([]byte(resp), &ret)
+	if err != nil {
+		return nil, err
 	}
 	return ret, err
 }
@@ -576,17 +581,17 @@ func (ec *Client) PlatonGetBlockQuorumCertByHash(ctx context.Context, hash []com
 }
 
 type Validator struct {
-	Address   common.Hash
+	Address   string
 	NodeId    string
 	BlsPubKey string
 }
 
 type QuorumCert struct {
+	Epoch        int64  `json:"epoch"`
+	ViewNumber   int64  `json:"viewNumber"`
 	BlockHash    string `json:"blockHash"`
-	BlockIndex   int    `json:"blockIndex"`
-	BlockNumber  int    `json:"blockNumber"`
-	Epoch        int    `json:"epoch"`
+	BlockIndex   int64  `json:"blockIndex"`
+	BlockNumber  int64  `json:"blockNumber"`
 	Signature    string `json:"signature"`
 	ValidatorSet string `json:"validatorSet"`
-	ViewNumber   int    `json:"viewNumber"`
 }

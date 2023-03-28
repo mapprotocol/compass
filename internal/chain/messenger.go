@@ -91,7 +91,7 @@ func (m *Messenger) sync() error {
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				time.Sleep(constant.BlockRetryInterval)
-				util.Alarm(context.Background(), fmt.Sprintf("bsc mos failed, err is %s", err.Error()))
+				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				continue
 			}
 
@@ -111,7 +111,9 @@ func (m *Messenger) sync() error {
 			m.LatestBlock.LastUpdated = time.Now()
 
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			time.Sleep(constant.MessengerInterval)
+			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
+				time.Sleep(constant.MessengerInterval)
+			}
 		}
 	}
 }

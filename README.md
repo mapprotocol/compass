@@ -156,6 +156,7 @@ A chain configurations take this form:
 | polygon | matic |
 | near | near |
 | klaytn | klaytn |
+| platon | platon |
 
 See `config.json.example` for an example configuration.
 

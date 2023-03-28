@@ -22,7 +22,7 @@ var (
 )
 
 var (
-	MaintainerInterval = time.Millisecond * 500
+	MaintainerInterval = time.Second * 3
 	MessengerInterval  = time.Second * 1
 )
 
@@ -32,12 +32,15 @@ var (
 
 var IgnoreError = map[string]struct{}{
 	"order exist":                       {},
+	"already known":                     {},
 	"Header is have":                    {},
 	"invalid start block":               {},
 	"invalid syncing block":             {},
 	"initialized or unknown epoch":      {},
+	"no need to update exe headers":     {},
 	"New block must have higher height": {},
-	"the update finalized slot should be higher than the finalized slot": {},
+	"the update finalized slot should be higher than the finalized slot":      {},
+	"previous exe block headers should be updated before update light client": {},
 }
 
 type BlockIdOfEth2 string

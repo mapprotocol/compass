@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/mapprotocol/compass/pkg/ethclient"
+
 	"github.com/mapprotocol/compass/internal/platon"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -27,8 +29,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 }
 
 func syncHeaderToMap(m *chain.Maintainer, needSyncHeight *big.Int) error {
-	remainder := big.NewInt(0).Mod(new(big.Int).Sub(needSyncHeight, new(big.Int).SetInt64(mapprotocol.HeaderCountOfBsc-1)),
-		big.NewInt(mapprotocol.EpochOfBsc))
+	remainder := big.NewInt(0).Mod(needSyncHeight, big.NewInt(mapprotocol.HeaderCountOfPlaton))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
@@ -92,15 +93,21 @@ func mos(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
-
 	m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
+	if len(logs) == 0 {
+		return 0, nil
+	}
+	headerParam, err := getHeaderParam(m.Conn.Client(), latestBlock)
+	if err != nil {
+		return 0, err
+	}
 	count := 0
 	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
 		// evm event to msg
 		var message msg.Message
 		// getOrderId
-		orderId := log.Data[:32]
+		orderId := log.Data[:]
 		method := m.GetMethod(log.Topics[0])
 		txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
 		if err != nil {
@@ -111,7 +118,7 @@ func mos(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 		}
 
-		payload, err := platon.AssembleProof(log, receipts, method, m.Cfg.Id)
+		payload, err := platon.AssembleProof(headerParam, log, receipts, method, m.Cfg.Id)
 		if err != nil {
 			return 0, fmt.Errorf("unable to Parse Log: %w", err)
 		}
@@ -129,4 +136,25 @@ func mos(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 	}
 
 	return count, nil
+}
+
+func getHeaderParam(client *ethclient.Client, latestBlock *big.Int) (*platon.UpdateBlock, error) {
+	header, err := client.HeaderByNumber(context.Background(), latestBlock)
+	if err != nil {
+		return nil, err
+	}
+	pHeader := platon.ConvertHeader(header)
+	validator, err := client.PlatonGetValidatorByNumber(context.Background(), pHeader.Number)
+	if err != nil {
+		return nil, err
+	}
+	quorumCert, err := client.PlatonGetBlockQuorumCertByHash(context.Background(), []ethcommon.Hash{header.Hash()})
+	if err != nil {
+		return nil, err
+	}
+	return &platon.UpdateBlock{
+		Header:     pHeader,
+		Validators: validator,
+		Certs:      quorumCert,
+	}, nil
 }

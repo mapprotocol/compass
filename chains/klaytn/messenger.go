@@ -122,7 +122,9 @@ func (m *Messenger) sync() error {
 
 			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			time.Sleep(constant.MessengerInterval)
+			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
+				time.Sleep(constant.MessengerInterval)
+			}
 		}
 	}
 }

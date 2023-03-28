@@ -22,7 +22,6 @@ const (
 	MethodOfTransferIn          = "transferIn"
 	MethodOfDepositIn           = "depositIn"
 	MethodOfSwapIn              = "swapIn"
-	MethodOfExecuteIn           = "executeIn"
 	MethodOfRegister            = "register"
 	MethodOfBindWorker          = "bind"
 	MethodOfOrderList           = "orderList"
@@ -46,6 +45,7 @@ const (
 	EpochOfBsc          = 200
 	HeaderCountOfBsc    = 12
 	HeaderCountOfMatic  = 16
+	HeaderCountOfPlaton = 430
 	EpochOfKlaytn       = 3600
 	HeaderCountOfKlaytn = 1
 )

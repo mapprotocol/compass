@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"math/bits"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // FromHexString returns a byte array given a hex string
@@ -52,4 +54,12 @@ func (b Bitvector512) Count() uint64 {
 		c += bits.OnesCount8(bt)
 	}
 	return uint64(c)
+}
+
+func HashToByte(h common.Hash) []byte {
+	ret := make([]byte, 0, len(h))
+	for _, b := range h {
+		ret = append(ret, b)
+	}
+	return ret
 }

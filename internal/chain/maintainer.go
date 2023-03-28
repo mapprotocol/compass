@@ -131,7 +131,9 @@ func (bm *Maintainer) sync() error {
 			bm.LatestBlock.LastUpdated = time.Now()
 
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			time.Sleep(constant.MaintainerInterval)
+			if latestBlock.Int64()-currentBlock.Int64() <= bm.Cfg.BlockConfirmations.Int64() {
+				time.Sleep(constant.MaintainerInterval)
+			}
 		}
 	}
 }
