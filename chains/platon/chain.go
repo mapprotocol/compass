@@ -5,19 +5,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/mapprotocol/compass/pkg/ethclient"
-
 	"github.com/mapprotocol/compass/internal/platon"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/tx"
 
-	"github.com/ethereum/go-ethereum/core/types"
-
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/core"
-	"github.com/mapprotocol/compass/internal/bsc"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
@@ -28,38 +23,45 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	return chain.New(chainCfg, logger, sysErr, m, role, chain.OptOfSync2Map(syncHeaderToMap), chain.OptOfMos(mos))
 }
 
-func syncHeaderToMap(m *chain.Maintainer, needSyncHeight *big.Int) error {
-	remainder := big.NewInt(0).Mod(needSyncHeight, big.NewInt(mapprotocol.HeaderCountOfPlaton))
+func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
+	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.HeaderCountOfPlaton))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
 	// synced height check
-	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+	syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {
 		m.Log.Error("Get current synced Height failed", "err", err)
 		return err
 	}
-	if needSyncHeight.Cmp(syncedHeight) <= 0 {
+	if latestBlock.Cmp(syncedHeight) <= 0 {
 		m.Log.Info("CurrentBlock less than synchronized headerHeight", "synced height", syncedHeight,
-			"current height", needSyncHeight)
+			"current height", latestBlock)
 		return nil
 	}
-	m.Log.Info("find sync block", "current height", needSyncHeight)
-	headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
-	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
-		headerHeight := new(big.Int).Sub(needSyncHeight, new(big.Int).SetInt64(int64(i)))
-		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
-		if err != nil {
-			return err
-		}
-		headers[mapprotocol.HeaderCountOfBsc-i-1] = *header
+	m.Log.Info("find sync block", "current height", latestBlock)
+	headers := make([]*platon.BlockHeader, 1)
+	header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
+	if err != nil {
+		return err
+	}
+	headers = append(headers, platon.ConvertHeader(header))
+
+	block, err := platon.GetHeaderParam(m.Conn.Client(), latestBlock)
+	if err != nil {
+		return err
 	}
 
-	params := make([]bsc.Header, 0, len(headers))
-	for _, h := range headers {
-		params = append(params, bsc.ConvertHeader(h))
+	validators := make([]platon.Validator, 0, len(block.Validators))
+	for _, v := range block.Validators {
+		validators = append(validators, platon.Validator{
+			Address:   ethcommon.HexToAddress(v.Address),
+			NodeId:    ethcommon.Hex2Bytes(v.NodeId),
+			BlsPubKey: ethcommon.Hex2Bytes(v.BlsPubKey),
+		})
 	}
-	input, err := mapprotocol.Bsc.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(params)
+	input, err := mapprotocol.Platon.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(block.Header, block.Cert, validators)
 	if err != nil {
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
@@ -97,7 +99,7 @@ func mos(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 	if len(logs) == 0 {
 		return 0, nil
 	}
-	headerParam, err := getHeaderParam(m.Conn.Client(), latestBlock)
+	headerParam, err := platon.GetHeaderParam(m.Conn.Client(), latestBlock)
 	if err != nil {
 		return 0, err
 	}
@@ -107,7 +109,7 @@ func mos(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 		// evm event to msg
 		var message msg.Message
 		// getOrderId
-		orderId := log.Data[:]
+		orderId := log.Data[:32]
 		method := m.GetMethod(log.Topics[0])
 		txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
 		if err != nil {
@@ -136,25 +138,4 @@ func mos(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 	}
 
 	return count, nil
-}
-
-func getHeaderParam(client *ethclient.Client, latestBlock *big.Int) (*platon.UpdateBlock, error) {
-	header, err := client.HeaderByNumber(context.Background(), latestBlock)
-	if err != nil {
-		return nil, err
-	}
-	pHeader := platon.ConvertHeader(header)
-	validator, err := client.PlatonGetValidatorByNumber(context.Background(), pHeader.Number)
-	if err != nil {
-		return nil, err
-	}
-	quorumCert, err := client.PlatonGetBlockQuorumCertByHash(context.Background(), []ethcommon.Hash{header.Hash()})
-	if err != nil {
-		return nil, err
-	}
-	return &platon.UpdateBlock{
-		Header:     pHeader,
-		Validators: validator,
-		Certs:      quorumCert,
-	}, nil
 }
