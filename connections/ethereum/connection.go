@@ -181,18 +181,16 @@ func (c *Connection) EstimateGasLondon(ctx context.Context, baseFee *big.Int) (*
 	if err != nil {
 		return nil, nil, err
 	}
+	c.log.Info("EstimateGasLondon", "maxPriorityFeePerGas", maxPriorityFeePerGas)
 
 	maxFeePerGas = new(big.Int).Add(
 		maxPriorityFeePerGas,
-		new(big.Int).Mul(baseFee, big.NewInt(2)),
+		baseFee,
 	)
-
-	if maxFeePerGas.Cmp(maxPriorityFeePerGas) < 0 {
-		return nil, nil, fmt.Errorf("maxFeePerGas (%v) < maxPriorityFeePerGas (%v)", maxFeePerGas, maxPriorityFeePerGas)
-	}
 
 	// Check we aren't exceeding our limit
 	if maxFeePerGas.Cmp(c.maxGasPrice) == 1 {
+		c.log.Info("EstimateGasLondon maxFeePerGas more than set", "maxFeePerGas", maxFeePerGas, "baseFee", baseFee)
 		maxPriorityFeePerGas.Sub(c.maxGasPrice, baseFee)
 		maxFeePerGas = c.maxGasPrice
 	}
