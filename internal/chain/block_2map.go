@@ -45,8 +45,8 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 				time.Sleep(constant.TxRetryInterval)
 				errorCount++
 				if errorCount >= 10 {
-					util.Alarm(context.Background(), fmt.Sprintf("writer other to map header failed, id=(%d), err is %s",
-						id.Uint64(), err.Error()))
+					util.Alarm(context.Background(), fmt.Sprintf("%s2map updateHeader failed, err is %s",
+						mapprotocol.OnlineChaId[m.Source], err.Error()))
 					errorCount = 0
 				}
 				continue
