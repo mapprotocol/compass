@@ -93,12 +93,17 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			needNonce = w.needNonce(err)
 			errorCount++
 			if errorCount >= 10 {
-				util.Alarm(context.Background(), fmt.Sprintf("writer mos failed, err is %s", err.Error()))
+				w.mosAlarm(m, inputHash, err)
 				errorCount = 0
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
+}
+
+func (w *Writer) mosAlarm(m msg.Message, tx interface{}, err error) {
+	util.Alarm(context.Background(), fmt.Sprintf("mos %s2%s failed, srcHash=%v err is %s", mapprotocol.OnlineChaId[m.Source],
+		mapprotocol.OnlineChaId[m.Destination], tx, err.Error()))
 }
 
 func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) error {
