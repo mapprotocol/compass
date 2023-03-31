@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mapprotocol/compass/mapprotocol"
+
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
@@ -54,7 +56,7 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 			needNonce = w.needNonce(err)
 			errorCount++
 			if errorCount >= 10 {
-				util.Alarm(context.Background(), fmt.Sprintf("writer map to other(%d) header failed, err is %s", m.Destination, err.Error()))
+				util.Alarm(context.Background(), fmt.Sprintf("map2%s updateHeader failed, err is %s", mapprotocol.OnlineChaId[m.Destination], err.Error()))
 				errorCount = 0
 			}
 			time.Sleep(constant.TxRetryInterval)
