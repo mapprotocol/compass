@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mapprotocol/compass/pkg/util"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -44,6 +46,7 @@ var ignoreError = map[string]struct{}{
 
 // exeSyncMapMsg executes sync msg, and send tx to the destination blockchain
 func (w *writer) exeSyncMapMsg(m msg.Message) bool {
+	var errorCount int64
 	for {
 		select {
 		case <-w.stop:
@@ -69,6 +72,11 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 			} else {
 				w.log.Warn("Execution failed will retry", "err", err)
 			}
+			errorCount++
+			if errorCount >= 10 {
+				util.Alarm(context.Background(), fmt.Sprintf("map2Near updateHeader failed, err is %s", err.Error()))
+				errorCount = 0
+			}
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
@@ -76,6 +84,7 @@ func (w *writer) exeSyncMapMsg(m msg.Message) bool {
 
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *writer) exeSwapMsg(m msg.Message) bool {
+	var errorCount int64
 	var inputHash interface{}
 	if len(m.Payload) > 3 {
 		inputHash = m.Payload[3]
@@ -120,10 +129,16 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				}
 			}
 			w.log.Warn("Verify Execution failed, Will retry", "srcHash", inputHash, "err", err)
+			errorCount++
+			if errorCount >= 10 {
+				util.Alarm(context.Background(), fmt.Sprintf("map2Near mos(verify_receipt_proof) failed, srcHash=%v err is %s", inputHash, err.Error()))
+				errorCount = 0
+			}
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
 
+	errorCount = 0
 	for {
 		select {
 		case <-w.stop:
@@ -163,6 +178,11 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 					}
 				}
 				w.log.Warn("Execution failed, tx may already be complete", "srcHash", inputHash, "err", err)
+				errorCount++
+				if errorCount >= 10 {
+					util.Alarm(context.Background(), fmt.Sprintf("map2Near mos(%s) failed, srcHash=%v err is %s", method, inputHash, err.Error()))
+					errorCount = 0
+				}
 			}
 			time.Sleep(constant.TxRetryInterval)
 		}
