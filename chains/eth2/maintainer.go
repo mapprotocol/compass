@@ -49,22 +49,23 @@ func (m *Maintainer) Sync() error {
 // Polling begins at the block defined in `m.Cfg.StartBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 func (m *Maintainer) sync() error {
+	if !m.Cfg.SyncToMap {
+		time.Sleep(time.Hour * 2400)
+		return nil
+	}
 	var currentBlock = m.Cfg.StartBlock
 	m.Log.Info("Polling Blocks...", "block", currentBlock)
 
-	if m.Cfg.SyncToMap {
-		// check whether needs quick listen
-		err := m.updateSyncHeight()
-		if err != nil {
-			m.Log.Error("Get synced Height failed", "err", err)
-			return err
-		}
+	err := m.updateSyncHeight()
+	if err != nil {
+		m.Log.Error("Get synced Height failed", "err", err)
+		return err
+	}
 
-		if m.syncedHeight.Cmp(currentBlock) != 0 {
-			currentBlock.Add(m.syncedHeight, new(big.Int).SetInt64(1))
-			m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
-				"syncedHeight", m.syncedHeight, "currentBlock", currentBlock)
-		}
+	if m.syncedHeight.Cmp(currentBlock) != 0 {
+		currentBlock.Add(m.syncedHeight, new(big.Int).SetInt64(1))
+		m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
+			"syncedHeight", m.syncedHeight, "currentBlock", currentBlock)
 	}
 
 	for {
@@ -72,13 +73,11 @@ func (m *Maintainer) sync() error {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
-			if m.Cfg.SyncToMap {
-				err := m.updateSyncHeight()
-				if err != nil {
-					m.Log.Error("UpdateSyncHeight failed", "err", err)
-					time.Sleep(constant.BlockRetryInterval)
-					continue
-				}
+			err := m.updateSyncHeight()
+			if err != nil {
+				m.Log.Error("UpdateSyncHeight failed", "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
 			}
 
 			startNumber, endNumber, err := mapprotocol.GetEth22MapNumber(m.Cfg.Id)
@@ -88,7 +87,7 @@ func (m *Maintainer) sync() error {
 				continue
 			}
 
-			log.Info("updateRange ", "startNumber", startNumber, "endNumber", endNumber)
+			log.Info("UpdateRange ", "startNumber", startNumber, "endNumber", endNumber)
 			if startNumber.Int64() != 0 && endNumber.Int64() != 0 {
 				// updateHeader 流程
 				err = m.updateHeaders(startNumber, endNumber)
@@ -114,8 +113,8 @@ func (m *Maintainer) sync() error {
 				continue
 			}
 
-			if !m.isEnoughBlocksForLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth) {
-				time.Sleep(constant.BalanceRetryInterval)
+			if !m.isEnoughBlocksForLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth) {
+				time.Sleep(time.Second * 60)
 				continue
 			}
 
@@ -126,16 +125,14 @@ func (m *Maintainer) sync() error {
 				continue
 			}
 
-			if m.Cfg.SyncToMap {
-				err = m.sendRegularLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth)
-				if err != nil {
-					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
-					time.Sleep(constant.BlockRetryInterval)
-					if !errors.Is(err, constant.ErrUnWantedSync) {
-						util.Alarm(context.Background(), fmt.Sprintf("eth2 sync lightClient failed, err is %s", err.Error()))
-					}
-					continue
+			err = m.sendRegularLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth)
+			if err != nil {
+				m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
+				if !errors.Is(err, constant.ErrUnWantedSync) {
+					util.Alarm(context.Background(), fmt.Sprintf("eth2 sync lightClient failed, err is %s", err.Error()))
 				}
+				time.Sleep(constant.BlockRetryInterval)
+				continue
 			}
 
 			// Write to block store. Not a critical operation, no need to retry
@@ -154,15 +151,15 @@ func (m *Maintainer) sync() error {
 
 			currentBlock.Add(currentBlock, big.NewInt(1))
 			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
-				time.Sleep(constant.MaintainerInterval)
+				time.Sleep(time.Second * 10)
 			}
 		}
 	}
 }
 
 func (m *Maintainer) updateSyncHeight() error {
-	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	//syncedHeight, err := mapprotocol.Get2MapByLight()
+	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+	syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {
 		m.Log.Error("Get synced Height failed", "err", err)
 		return err
@@ -173,10 +170,10 @@ func (m *Maintainer) updateSyncHeight() error {
 	return nil
 }
 
-func (m *Maintainer) isEnoughBlocksForLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) bool {
+func (m *Maintainer) isEnoughBlocksForLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) bool {
 	if (lastFinalizedSlotOnEth.Int64() - lastFinalizedSlotOnContract.Int64()) < (constant.SlotsPerEpoch * 1) {
 		m.Log.Info("Light client update were send less then 1 epochs ago. Skipping sending light client update",
-			"currentBlock", currentBlock, "lastFinalizedSlotOnContract", lastFinalizedSlotOnContract)
+			"lastFinalizedSlotOnEth", lastFinalizedSlotOnEth, "lastFinalizedSlotOnContract", lastFinalizedSlotOnContract)
 		return false
 	}
 	if lastFinalizedSlotOnEth.Uint64() <= lastFinalizedSlotOnContract.Uint64() {
@@ -201,7 +198,7 @@ func (m *Maintainer) sendRegularLightClientUpdate(lastFinalizedSlotOnContract, l
 		err             error
 		lightUpdateData = &eth2.LightClientUpdate{}
 	)
-	m.Log.Info("period check", "periodOnContract", lastEth2PeriodOnContract, "endPeriod", endPeriod,
+	m.Log.Info("Period check", "periodOnContract", lastEth2PeriodOnContract, "endPeriod", endPeriod,
 		"slotOnEth", lastFinalizedSlotOnEth, "slotOnContract", lastFinalizedSlotOnContract)
 	if lastEth2PeriodOnContract == endPeriod {
 		lightUpdateData, err = m.getFinalityLightClientUpdate(lastFinalizedSlotOnContract)
@@ -216,6 +213,7 @@ func (m *Maintainer) sendRegularLightClientUpdate(lastFinalizedSlotOnContract, l
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
 	}
+	fmt.Println("lightClientInput ", "0x"+common.Bytes2Hex(lightClientInput))
 
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, lightClientInput, true}
@@ -249,13 +247,13 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		return nil, constant.ErrUnWantedSync
 	}
 
-	signatureSlot, err := m.getSignatureSlot(&resp.Data.AttestedHeader, &resp.Data.SyncAggregate)
+	signatureSlot, err := m.getSignatureSlot(resp.Data.AttestedHeader.Beacon.Slot, &resp.Data.SyncAggregate)
 	if err != nil {
 		return nil, err
 	}
 
-	fhSlot, _ := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Slot, 10)
-	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data.FinalizedHeader.ProposerIndex, 10)
+	fhSlot, _ := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Beacon.Slot, 10)
+	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Beacon.ProposerIndex, 10)
 	if !ok {
 		return nil, errors.New("FinalizedHeader Slot Not Number")
 	}
@@ -265,9 +263,9 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		return nil, constant.ErrUnWantedSync
 	}
 
-	m.Log.Info("Slot compare", "fhSlot", resp.Data.FinalizedHeader.Slot, "fsOnContract ", lastFinalizedSlotOnContract)
-	slot, _ := big.NewInt(0).SetString(resp.Data.AttestedHeader.Slot, 10)
-	proposerIndex, ok := big.NewInt(0).SetString(resp.Data.AttestedHeader.ProposerIndex, 10)
+	m.Log.Info("Slot compare", "fhSlot", resp.Data.FinalizedHeader.Beacon.Slot, "fsOnContract ", lastFinalizedSlotOnContract)
+	slot, _ := big.NewInt(0).SetString(resp.Data.AttestedHeader.Beacon.Slot, 10)
+	proposerIndex, ok := big.NewInt(0).SetString(resp.Data.AttestedHeader.Beacon.ProposerIndex, 10)
 	if !ok {
 		return nil, errors.New("AttestedHeader Slot Not Number")
 	}
@@ -276,24 +274,32 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		finalityBranch = append(finalityBranch, common.HexToHash(fb))
 	}
 
-	exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Eth2Endpoint)
+	//exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Eth2Endpoint)
+	//if err != nil {
+	//	return nil, err
+	//}
+	branches := make([]string, 0, len(resp.Data.FinalizedHeader.ExecutionBranch))
+	branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
+	exeFinalityBranch := eth2.GenerateByApi(branches)
+
+	//block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Slot)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	//blockNumber, ok := new(big.Int).SetString(block.Data.Message.Body.ExecutionPayload.BlockNumber, 10)
+	//if !ok {
+	//	return nil, errors.New("block executionPayload blockNumber Not Number")
+	//}
+	//header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
+	//if err != nil {
+	//	return nil, err
+	//}
+	execution, err := eth2.ConvertExecution(&resp.Data.FinalizedHeader.Execution)
 	if err != nil {
 		return nil, err
 	}
 
-	block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Slot)
-	if err != nil {
-		return nil, err
-	}
-
-	blockNumber, ok := new(big.Int).SetString(block.Data.Message.Body.ExecutionPayload.BlockNumber, 10)
-	if !ok {
-		return nil, errors.New("block executionPayload blockNumber Not Number")
-	}
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
-	if err != nil {
-		return nil, err
-	}
 	return &eth2.LightClientUpdate{
 		SignatureSlot: signatureSlot,
 		SyncAggregate: eth2.ContractSyncAggregate{
@@ -303,9 +309,9 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		AttestedHeader: eth2.BeaconBlockHeader{
 			Slot:          slot.Uint64(),
 			ProposerIndex: proposerIndex.Uint64(),
-			ParentRoot:    common.HexToHash(resp.Data.AttestedHeader.ParentRoot),
-			StateRoot:     common.HexToHash(resp.Data.AttestedHeader.StateRoot),
-			BodyRoot:      common.HexToHash(resp.Data.AttestedHeader.BodyRoot),
+			ParentRoot:    common.HexToHash(resp.Data.AttestedHeader.Beacon.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data.AttestedHeader.Beacon.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data.AttestedHeader.Beacon.BodyRoot),
 		},
 		NextSyncCommittee: eth2.ContractSyncCommittee{
 			Pubkeys:         make([]byte, 0),
@@ -316,18 +322,18 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		FinalizedHeader: eth2.BeaconBlockHeader{
 			Slot:          fhSlot.Uint64(),
 			ProposerIndex: fhProposerIndex.Uint64(),
-			ParentRoot:    common.HexToHash(resp.Data.FinalizedHeader.ParentRoot),
-			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.StateRoot),
-			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.BodyRoot),
+			ParentRoot:    common.HexToHash(resp.Data.FinalizedHeader.Beacon.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.Beacon.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.Beacon.BodyRoot),
 		},
-		ExeFinalityBranch:  exeFinalityBranch,
-		FinalizedExeHeader: *eth2.ConvertHeader(header),
+		ExecutionBranch:    exeFinalityBranch,
+		FinalizedExecution: execution,
 	}, nil
 }
 
-func (m *Maintainer) getSignatureSlot(ah *eth2.AttestedHeader, sa *eth2.SyncAggregate) (uint64, error) {
+func (m *Maintainer) getSignatureSlot(slot string, sa *eth2.SyncAggregate) (uint64, error) {
 	var CheckSlotsForwardLimit uint64 = 10
-	ahSlot, ok := big.NewInt(0).SetString(ah.Slot, 10)
+	ahSlot, ok := big.NewInt(0).SetString(slot, 10)
 	if !ok {
 		return 0, errors.New("ahSlot not number")
 	}
@@ -370,81 +376,69 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 	if err != nil {
 		return nil, err
 	}
-
-	slot, _ := big.NewInt(0).SetString(resp.Data[0].AttestedHeader.Slot, 10)
-	proposerIndex, ok := big.NewInt(0).SetString(resp.Data[0].AttestedHeader.ProposerIndex, 10)
+	slot, _ := big.NewInt(0).SetString(resp.Data.AttestedHeader.Beacon.Slot, 10)
+	proposerIndex, ok := big.NewInt(0).SetString(resp.Data.AttestedHeader.Beacon.ProposerIndex, 10)
 	if !ok {
 		return nil, errors.New("AttestedHeader Slot Not Number")
 	}
 
-	signatureSlot, err := m.getSignatureSlot(&resp.Data[0].AttestedHeader, &resp.Data[0].SyncAggregate)
-	if err != nil {
-		return nil, err
-	}
-	nextSyncCommitteeBranch := make([][32]byte, 0, len(resp.Data[0].NextSyncCommitteeBranch))
-	for _, b := range resp.Data[0].NextSyncCommitteeBranch {
+	nextSyncCommitteeBranch := make([][32]byte, 0, len(resp.Data.NextSyncCommitteeBranch))
+	for _, b := range resp.Data.NextSyncCommitteeBranch {
 		nextSyncCommitteeBranch = append(nextSyncCommitteeBranch, common.HexToHash(b))
 	}
-	pubKeys := make([]byte, 0, len(resp.Data[0].NextSyncCommittee.Pubkeys)*48)
-	for _, pk := range resp.Data[0].NextSyncCommittee.Pubkeys {
+	pubKeys := make([]byte, 0, len(resp.Data.NextSyncCommittee.Pubkeys)*48)
+	for _, pk := range resp.Data.NextSyncCommittee.Pubkeys {
 		pubKeys = append(pubKeys, util.FromHexString(pk)...)
 	}
-	finalityBranch := make([][32]byte, 0, len(resp.Data[0].FinalityBranch))
-	for _, fb := range resp.Data[0].FinalityBranch {
+	finalityBranch := make([][32]byte, 0, len(resp.Data.FinalityBranch))
+	for _, fb := range resp.Data.FinalityBranch {
 		finalityBranch = append(finalityBranch, common.HexToHash(fb))
 	}
-	fhSlot, _ := big.NewInt(0).SetString(resp.Data[0].FinalizedHeader.Slot, 10)
-	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data[0].FinalizedHeader.ProposerIndex, 10)
+	fhSlot, _ := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Beacon.Slot, 10)
+	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Beacon.ProposerIndex, 10)
 	if !ok {
 		return nil, errors.New("FinalizedHeader  Slot Not Number")
 	}
-	exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Eth2Endpoint)
+
+	branches := make([]string, 0, len(resp.Data.FinalizedHeader.ExecutionBranch))
+	branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
+	exeFinalityBranch := eth2.GenerateByApi(branches)
+	signatureSlot, err := strconv.ParseUint(resp.Data.SignatureSlot, 10, 64)
 	if err != nil {
 		return nil, err
 	}
-
-	block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data[0].FinalizedHeader.Slot)
+	execution, err := eth2.ConvertExecution(&resp.Data.FinalizedHeader.Execution)
 	if err != nil {
 		return nil, err
 	}
-
-	blockNumber, ok := new(big.Int).SetString(block.Data.Message.Body.ExecutionPayload.BlockNumber, 10)
-	if !ok {
-		return nil, errors.New("block executionPayload blockNumber Not Number")
-	}
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
-	if err != nil {
-		return nil, err
-	}
-
 	return &eth2.LightClientUpdate{
 		AttestedHeader: eth2.BeaconBlockHeader{
 			Slot:          slot.Uint64(),
 			ProposerIndex: proposerIndex.Uint64(),
-			ParentRoot:    common.HexToHash(resp.Data[0].AttestedHeader.ParentRoot),
-			StateRoot:     common.HexToHash(resp.Data[0].AttestedHeader.StateRoot),
-			BodyRoot:      common.HexToHash(resp.Data[0].AttestedHeader.BodyRoot),
+			ParentRoot:    common.HexToHash(resp.Data.AttestedHeader.Beacon.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data.AttestedHeader.Beacon.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data.AttestedHeader.Beacon.BodyRoot),
 		},
 		SyncAggregate: eth2.ContractSyncAggregate{
-			SyncCommitteeBits:      util.FromHexString(resp.Data[0].SyncAggregate.SyncCommitteeBits),
-			SyncCommitteeSignature: util.FromHexString(resp.Data[0].SyncAggregate.SyncCommitteeSignature),
+			SyncCommitteeBits:      util.FromHexString(resp.Data.SyncAggregate.SyncCommitteeBits),
+			SyncCommitteeSignature: util.FromHexString(resp.Data.SyncAggregate.SyncCommitteeSignature),
 		},
 		SignatureSlot:           signatureSlot,
 		NextSyncCommitteeBranch: nextSyncCommitteeBranch,
 		NextSyncCommittee: eth2.ContractSyncCommittee{
 			Pubkeys:         pubKeys,
-			AggregatePubkey: util.FromHexString(resp.Data[0].NextSyncCommittee.AggregatePubkey),
+			AggregatePubkey: util.FromHexString(resp.Data.NextSyncCommittee.AggregatePubkey),
 		},
 		FinalityBranch: finalityBranch,
 		FinalizedHeader: eth2.BeaconBlockHeader{
 			Slot:          fhSlot.Uint64(),
 			ProposerIndex: fhProposerIndex.Uint64(),
-			ParentRoot:    common.HexToHash(resp.Data[0].FinalizedHeader.ParentRoot),
-			StateRoot:     common.HexToHash(resp.Data[0].FinalizedHeader.StateRoot),
-			BodyRoot:      common.HexToHash(resp.Data[0].FinalizedHeader.BodyRoot),
+			ParentRoot:    common.HexToHash(resp.Data.FinalizedHeader.Beacon.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.Beacon.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.Beacon.BodyRoot),
 		},
-		ExeFinalityBranch:  exeFinalityBranch,
-		FinalizedExeHeader: *eth2.ConvertHeader(header),
+		ExecutionBranch:    exeFinalityBranch,
+		FinalizedExecution: execution,
 	}, nil
 }
 
