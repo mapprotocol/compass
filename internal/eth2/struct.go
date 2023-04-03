@@ -3,6 +3,8 @@ package eth2
 import (
 	"math/big"
 
+	"github.com/pkg/errors"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -15,8 +17,8 @@ type LightClientUpdate struct {
 	NextSyncCommitteeBranch [][32]byte            `json:"nextSyncCommitteeBranch"`
 	FinalizedHeader         BeaconBlockHeader
 	FinalityBranch          [][32]byte
-	ExeFinalityBranch       [][32]byte
-	FinalizedExeHeader      BlockHeader
+	ExecutionBranch         [][32]byte
+	FinalizedExecution      *ContractExecution
 }
 
 type BeaconBlockHeader struct {
@@ -54,6 +56,7 @@ type BlockHeader struct {
 	MixHash          []byte         `json:"mixHash"`
 	Nonce            []byte         `json:"nonce"`
 	BaseFeePerGas    *big.Int       `json:"baseFeePerGas"`
+	WithdrawalsRoot  [32]byte       `json:"withdrawalsRoot"`
 }
 
 func ConvertHeader(header *types.Header) *BlockHeader {
@@ -74,5 +77,64 @@ func ConvertHeader(header *types.Header) *BlockHeader {
 		MixHash:          header.MixDigest.Bytes(),
 		Nonce:            header.Nonce[:],
 		BaseFeePerGas:    header.BaseFee,
+		WithdrawalsRoot:  common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 	}
+}
+
+type ContractExecution struct {
+	ParentHash       [32]byte       `json:"parent_hash"`
+	FeeRecipient     common.Address `json:"fee_recipient"`
+	StateRoot        [32]byte       `json:"state_root"`
+	ReceiptsRoot     [32]byte       `json:"receipts_root"`
+	LogsBloom        []byte         `json:"logs_bloom"`
+	PrevRandao       [32]byte       `json:"prev_randao"`
+	BlockNumber      *big.Int       `json:"block_number"`
+	GasLimit         *big.Int       `json:"gas_limit"`
+	GasUsed          *big.Int       `json:"gas_used"`
+	Timestamp        *big.Int       `json:"timestamp"`
+	ExtraData        []byte         `json:"extra_data"`
+	BaseFeePerGas    *big.Int       `json:"base_fee_per_gas"`
+	BlockHash        [32]byte       `json:"block_hash"`
+	TransactionsRoot [32]byte       `json:"transactions_root"`
+	WithdrawalsRoot  [32]byte       `json:"withdrawals_root"`
+}
+
+func ConvertExecution(execution *Execution) (*ContractExecution, error) {
+	blockNumber, ok := big.NewInt(0).SetString(execution.BlockNumber, 10)
+	if !ok {
+		return nil, errors.New("execution blockNumber error")
+	}
+	gasLimit, ok := big.NewInt(0).SetString(execution.GasLimit, 10)
+	if !ok {
+		return nil, errors.New("execution gasLimit error")
+	}
+	gasUsed, ok := big.NewInt(0).SetString(execution.GasUsed, 10)
+	if !ok {
+		return nil, errors.New("execution gasUsed error")
+	}
+	timestamp, ok := big.NewInt(0).SetString(execution.Timestamp, 10)
+	if !ok {
+		return nil, errors.New("execution timestamp error")
+	}
+	baseFeePerGas, ok := big.NewInt(0).SetString(execution.BaseFeePerGas, 10)
+	if !ok {
+		return nil, errors.New("execution baseFeePerGas error")
+	}
+	return &ContractExecution{
+		ParentHash:       common.HexToHash(execution.ParentHash),
+		FeeRecipient:     common.HexToAddress(execution.FeeRecipient),
+		StateRoot:        common.HexToHash(execution.StateRoot),
+		ReceiptsRoot:     common.HexToHash(execution.ReceiptsRoot),
+		LogsBloom:        common.HexToHash(execution.LogsBloom).Bytes(),
+		PrevRandao:       common.HexToHash(execution.PrevRandao),
+		BlockNumber:      blockNumber,
+		GasLimit:         gasLimit,
+		GasUsed:          gasUsed,
+		Timestamp:        timestamp,
+		ExtraData:        common.HexToHash(execution.BlockHash).Bytes(),
+		BaseFeePerGas:    baseFeePerGas,
+		BlockHash:        common.HexToHash(execution.BlockHash),
+		TransactionsRoot: common.HexToHash(execution.TransactionsRoot),
+		WithdrawalsRoot:  common.HexToHash(execution.WithdrawalsRoot),
+	}, nil
 }
