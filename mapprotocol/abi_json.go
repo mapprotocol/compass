@@ -883,6 +883,19 @@ const (
 	[
 		{
 			"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "_data",
+				"type": "bytes"
+			}
+			],
+			"name": "updateLightClient",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
 				{
 					"internalType": "bytes",
 					"name": "_data",

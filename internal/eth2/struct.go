@@ -1,12 +1,15 @@
 package eth2
 
 import (
+	"fmt"
 	"math/big"
+	"strings"
+
+	"github.com/mapprotocol/compass/pkg/ethclient"
 
 	"github.com/pkg/errors"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type LightClientUpdate struct {
@@ -59,7 +62,12 @@ type BlockHeader struct {
 	WithdrawalsRoot  [32]byte       `json:"withdrawalsRoot"`
 }
 
-func ConvertHeader(header *types.Header) *BlockHeader {
+func ConvertHeader(header *ethclient.Header) *BlockHeader {
+	withdrawalsRoot := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000")
+	if header.WithdrawalsHash != "" {
+		withdrawalsRoot = common.HexToHash(header.WithdrawalsHash)
+	}
+	fmt.Println("withdrawalsRoot ----------- ", withdrawalsRoot)
 	return &BlockHeader{
 		ParentHash:       header.ParentHash.Bytes(),
 		Sha3Uncles:       header.UncleHash.Bytes(),
@@ -77,7 +85,7 @@ func ConvertHeader(header *types.Header) *BlockHeader {
 		MixHash:          header.MixDigest.Bytes(),
 		Nonce:            header.Nonce[:],
 		BaseFeePerGas:    header.BaseFee,
-		WithdrawalsRoot:  common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		WithdrawalsRoot:  withdrawalsRoot,
 	}
 }
 
@@ -125,13 +133,13 @@ func ConvertExecution(execution *Execution) (*ContractExecution, error) {
 		FeeRecipient:     common.HexToAddress(execution.FeeRecipient),
 		StateRoot:        common.HexToHash(execution.StateRoot),
 		ReceiptsRoot:     common.HexToHash(execution.ReceiptsRoot),
-		LogsBloom:        common.HexToHash(execution.LogsBloom).Bytes(),
+		LogsBloom:        common.Hex2Bytes(strings.TrimPrefix(execution.LogsBloom, "0x")),
 		PrevRandao:       common.HexToHash(execution.PrevRandao),
 		BlockNumber:      blockNumber,
 		GasLimit:         gasLimit,
 		GasUsed:          gasUsed,
 		Timestamp:        timestamp,
-		ExtraData:        common.HexToHash(execution.BlockHash).Bytes(),
+		ExtraData:        common.Hex2Bytes(strings.TrimPrefix(execution.ExtraData, "0x")),
 		BaseFeePerGas:    baseFeePerGas,
 		BlockHash:        common.HexToHash(execution.BlockHash),
 		TransactionsRoot: common.HexToHash(execution.TransactionsRoot),
