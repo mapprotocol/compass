@@ -3,6 +3,12 @@ package eth2
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -16,11 +22,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"github.com/pkg/errors"
-	"math/big"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 )
 
 var execPath = "./eth2-proof"
@@ -50,6 +51,15 @@ func Generate(slot, endpoint string) ([][32]byte, error) {
 	}
 
 	return ret, nil
+}
+
+func GenerateByApi(slot []string) [][32]byte {
+	ret := make([][32]byte, 0, len(slot))
+	for _, op := range slot {
+		ret = append(ret, common.HexToHash(op))
+	}
+
+	return ret
 }
 
 type ReceiptProof struct {
