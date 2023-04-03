@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/http"
+	"strings"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -594,4 +596,55 @@ type QuorumCert struct {
 	BlockNumber  int64  `json:"blockNumber"`
 	Signature    string `json:"signature"`
 	ValidatorSet string `json:"validatorSet"`
+}
+
+type Header struct {
+	types.Header
+	WithdrawalsHash string `json:"withdrawalsRoot" rlp:"optional"`
+}
+
+type jsonrpcMessage struct {
+	Version string          `json:"jsonrpc,omitempty"`
+	ID      json.RawMessage `json:"id,omitempty"`
+	Method  string          `json:"method,omitempty"`
+	Params  json.RawMessage `json:"params,omitempty"`
+	Result  json.RawMessage `json:"result,omitempty"`
+}
+
+// EthLatestHeaderByNumber returns a block header from the current canonical chain. If number is
+// nil, the latest known header is returned.
+func (ec *Client) EthLatestHeaderByNumber(endpoint string, number *big.Int) (*Header, error) {
+	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_getBlockByNumber\",\"params\": [\"%s\",true],\"id\": 1\n}", toBlockNumArg(number))
+	body := strings.NewReader(s)
+	resp, err := http.Post(endpoint, "application/json", body)
+	if err != nil {
+		return nil, err
+	}
+
+	var respmsg jsonrpcMessage
+	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
+		return nil, err
+	}
+
+	data := make([]byte, 0, len(respmsg.Result))
+	for _, res := range respmsg.Result {
+		data = append(data, res)
+	}
+	var head Header
+	err = json.Unmarshal(data, &head)
+	if err != nil {
+		return nil, err
+	}
+
+	type Tmp struct {
+		WithdrawalsHash string `json:"withdrawalsRoot" rlp:"optional"`
+	}
+	var tmp Tmp
+	err = json.Unmarshal(data, &tmp)
+	if err != nil {
+		return nil, err
+	}
+
+	head.WithdrawalsHash = tmp.WithdrawalsHash
+	return &head, err
 }
