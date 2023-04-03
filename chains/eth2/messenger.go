@@ -146,7 +146,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		orderId := log.Data[:32]
 		method := m.GetMethod(log.Topics[0])
 		if m.Cfg.SyncToMap {
-			header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
+			header, err := m.Conn.Client().EthLatestHeaderByNumber(m.Cfg.Endpoint, latestBlock)
 			if err != nil {
 				return 0, err
 			}

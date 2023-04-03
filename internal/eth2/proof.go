@@ -1,7 +1,6 @@
 package eth2
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"os"
@@ -69,8 +68,8 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, method string, fId msg.ChainId) ([]byte, error) {
-	header, err := client.HeaderByNumber(context.Background(), latestBlock)
+func GetProof(client *ethclient.Client, endPoint string, latestBlock *big.Int, log *types.Log, method string, fId msg.ChainId) ([]byte, error) {
+	header, err := client.EthLatestHeaderByNumber(endPoint, latestBlock)
 	if err != nil {
 		return nil, err
 	}

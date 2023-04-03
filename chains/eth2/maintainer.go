@@ -247,7 +247,11 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		return nil, constant.ErrUnWantedSync
 	}
 
-	signatureSlot, err := m.getSignatureSlot(resp.Data.AttestedHeader.Beacon.Slot, &resp.Data.SyncAggregate)
+	//signatureSlot, err := m.getSignatureSlot(resp.Data.AttestedHeader.Beacon.Slot, &resp.Data.SyncAggregate)
+	//if err != nil {
+	//	return nil, err
+	//}
+	signatureSlot, err := strconv.ParseUint(resp.Data.SignatureSlot, 10, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -447,7 +451,7 @@ func (m *Maintainer) updateHeaders(startNumber, endNumber *big.Int) error {
 	headers := make([]eth2.BlockHeader, mapprotocol.HeaderLengthOfEth2)
 	idx := mapprotocol.HeaderLengthOfEth2 - 1
 	for i := endNumber.Int64(); i >= startNumber.Int64(); i-- {
-		header, err := m.Conn.Client().HeaderByNumber(context.Background(), new(big.Int).SetInt64(i))
+		header, err := m.Conn.Client().EthLatestHeaderByNumber(m.Cfg.Endpoint, new(big.Int).SetInt64(i))
 		if err != nil {
 			return err
 		}
