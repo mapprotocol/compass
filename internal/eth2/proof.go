@@ -32,24 +32,28 @@ func init() {
 	execPath = filepath.Join(filepath.Dir(os.Args[0]), "eth2-proof")
 }
 
-func Generate(slot, endpoint string) ([][32]byte, error) {
+func Generate(slot, endpoint string) ([][32]byte, string, string, error) {
 	c := exec.Command(execPath, "generate", "--slot", slot, "--endpoint", endpoint)
 	log.Debug("eth exec", "path", execPath, "cmd", c.String())
 	subOutPut, err := c.CombinedOutput()
 	if err != nil {
-		return nil, errors.Wrap(err, "command exec failed")
+		return nil, "", "", errors.Wrap(err, "command exec failed")
 	}
 
 	outPuts := strings.Split(string(subOutPut), "\n")
 	ret := make([][32]byte, 0, len(outPuts))
+	var txRoot, wdRoot string
 	for _, op := range outPuts {
-		if !strings.HasPrefix(op, "0x") {
-			continue
+		if strings.HasPrefix(op, "0x") {
+			ret = append(ret, common.HexToHash(op))
+		} else if strings.HasPrefix(op, "txRoot") {
+			txRoot = strings.TrimSpace(strings.TrimPrefix(op, "txRoot"))
+		} else if strings.HasPrefix(op, "wdRoot") {
+			wdRoot = strings.TrimSpace(strings.TrimPrefix(op, "wdRoot"))
 		}
-		ret = append(ret, common.HexToHash(op))
 	}
 
-	return ret, nil
+	return ret, txRoot, wdRoot, nil
 }
 
 func GenerateByApi(slot []string) [][32]byte {

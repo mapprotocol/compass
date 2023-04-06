@@ -1,7 +1,6 @@
 package eth2
 
 import (
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -43,12 +42,12 @@ type ContractSyncCommittee struct {
 }
 
 type BlockHeader struct {
-	ParentHash       []byte         `json:"parent_hash"`
-	Sha3Uncles       []byte         `json:"sha_3_uncles"`
+	ParentHash       [32]byte       `json:"parent_hash"`
+	Sha3Uncles       [32]byte       `json:"sha_3_uncles"`
 	Miner            common.Address `json:"miner"`
-	StateRoot        []byte         `json:"stateRoot"`
-	TransactionsRoot []byte         `json:"transactionsRoot"`
-	ReceiptsRoot     []byte         `json:"receiptsRoot"`
+	StateRoot        [32]byte       `json:"stateRoot"`
+	TransactionsRoot [32]byte       `json:"transactionsRoot"`
+	ReceiptsRoot     [32]byte       `json:"receiptsRoot"`
 	LogsBloom        []byte         `json:"logsBloom"`
 	Difficulty       *big.Int       `json:"difficulty"`
 	Number           *big.Int       `json:"number"`
@@ -56,7 +55,7 @@ type BlockHeader struct {
 	GasUsed          *big.Int       `json:"gasUsed"`
 	Timestamp        *big.Int       `json:"timestamp"`
 	ExtraData        []byte         `json:"extraData"`
-	MixHash          []byte         `json:"mixHash"`
+	MixHash          [32]byte       `json:"mixHash"`
 	Nonce            []byte         `json:"nonce"`
 	BaseFeePerGas    *big.Int       `json:"baseFeePerGas"`
 	WithdrawalsRoot  [32]byte       `json:"withdrawalsRoot"`
@@ -67,14 +66,13 @@ func ConvertHeader(header *ethclient.Header) *BlockHeader {
 	if header.WithdrawalsHash != "" {
 		withdrawalsRoot = common.HexToHash(header.WithdrawalsHash)
 	}
-	fmt.Println("withdrawalsRoot ----------- ", withdrawalsRoot)
 	return &BlockHeader{
-		ParentHash:       header.ParentHash.Bytes(),
-		Sha3Uncles:       header.UncleHash.Bytes(),
+		ParentHash:       header.ParentHash,
+		Sha3Uncles:       header.UncleHash,
 		Miner:            header.Coinbase,
-		StateRoot:        header.Root.Bytes(),
-		TransactionsRoot: header.TxHash.Bytes(),
-		ReceiptsRoot:     header.ReceiptHash.Bytes(),
+		StateRoot:        header.Root,
+		TransactionsRoot: header.TxHash,
+		ReceiptsRoot:     header.ReceiptHash,
 		LogsBloom:        header.Bloom.Bytes(),
 		Difficulty:       header.Difficulty,
 		Number:           header.Number,
@@ -82,7 +80,7 @@ func ConvertHeader(header *ethclient.Header) *BlockHeader {
 		GasUsed:          new(big.Int).SetUint64(header.GasUsed),
 		Timestamp:        new(big.Int).SetUint64(header.Time),
 		ExtraData:        header.Extra,
-		MixHash:          header.MixDigest.Bytes(),
+		MixHash:          header.MixDigest,
 		Nonce:            header.Nonce[:],
 		BaseFeePerGas:    header.BaseFee,
 		WithdrawalsRoot:  withdrawalsRoot,

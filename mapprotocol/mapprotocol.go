@@ -61,7 +61,7 @@ func Init2MapHeightByLight(lightNode common.Address) {
 }
 
 func Init2GetEth22MapNumber(lightNode common.Address) {
-	GetEth22MapNumber = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { // lightManger 增加 big.Int
+	GetEth22MapNumber = func(chainId msg.ChainId) (*big.Int, *big.Int, error) {
 		input, err := PackInput(LightManger, MethodClientState, big.NewInt(int64(chainId)))
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "get eth22map packInput failed")
