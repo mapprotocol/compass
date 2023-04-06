@@ -6,6 +6,7 @@ type CommonData struct {
 	Message             string      `json:"message"`
 	Data                interface{} `json:"data"`
 	ExecutionOptimistic bool        `json:"execution_optimistic"`
+	Version             string      `json:"version"`
 }
 
 type CommonDataArray struct {
@@ -28,7 +29,8 @@ type BlocksResp struct {
 }
 
 type LightClientUpdatesResp struct {
-	Data LightClientUpdatesData `json:"data"`
+	Data    LightClientUpdatesData `json:"data"`
+	Version string                 `json:"version"`
 }
 
 type Message struct {
@@ -98,33 +100,16 @@ type Attestations struct {
 }
 
 type Body struct {
-	RandaoReveal      string           `json:"randao_reveal"`
-	Eth1Data          Eth1Data         `json:"eth1_data"`
-	Graffiti          string           `json:"graffiti"`
-	ProposerSlashings []interface{}    `json:"proposer_slashings"`
-	AttesterSlashings []interface{}    `json:"attester_slashings"`
-	Attestations      []Attestations   `json:"attestations"`
-	Deposits          []interface{}    `json:"deposits"`
-	VoluntaryExits    []interface{}    `json:"voluntary_exits"`
-	SyncAggregate     SyncAggregate    `json:"sync_aggregate"`
-	ExecutionPayload  ExecutionPayload `json:"execution_payload"`
-}
-
-type ExecutionPayload struct {
-	ParentHash    string   `json:"parent_hash"`
-	FeeRecipient  string   `json:"fee_recipient"`
-	StateRoot     string   `json:"state_root"`
-	ReceiptsRoot  string   `json:"receipts_root"`
-	LogsBloom     string   `json:"logs_bloom"`
-	PrevRandao    string   `json:"prev_randao"`
-	BlockNumber   string   `json:"block_number"`
-	GasLimit      string   `json:"gas_limit"`
-	GasUsed       string   `json:"gas_used"`
-	Timestamp     string   `json:"timestamp"`
-	ExtraData     string   `json:"extra_data"`
-	BaseFeePerGas string   `json:"base_fee_per_gas"`
-	BlockHash     string   `json:"block_hash"`
-	Transactions  []string `json:"transactions"`
+	RandaoReveal      string         `json:"randao_reveal"`
+	Eth1Data          Eth1Data       `json:"eth1_data"`
+	Graffiti          string         `json:"graffiti"`
+	ProposerSlashings []interface{}  `json:"proposer_slashings"`
+	AttesterSlashings []interface{}  `json:"attester_slashings"`
+	Attestations      []Attestations `json:"attestations"`
+	Deposits          []interface{}  `json:"deposits"`
+	VoluntaryExits    []interface{}  `json:"voluntary_exits"`
+	SyncAggregate     SyncAggregate  `json:"sync_aggregate"`
+	ExecutionPayload  Execution      `json:"execution_payload"`
 }
 
 type BlocksMessage struct {
@@ -153,13 +138,6 @@ type LightClientUpdatesData struct {
 	FinalityBranch          []string           `json:"finality_branch"`
 	SyncAggregate           SyncAggregate      `json:"sync_aggregate"`
 	SignatureSlot           string             `json:"signature_slot"`
-	//AttestedHeader          AttestedHeader    `json:"attested_header"`
-	//NextSyncCommittee       NextSyncCommittee `json:"next_sync_committee"`
-	//NextSyncCommitteeBranch []string          `json:"next_sync_committee_branch"`
-	//FinalizedHeader         FinalizedHeader   `json:"finalized_header"`
-	//FinalityBranch          []string          `json:"finality_branch"`
-	//SyncAggregate           SyncAggregate     `json:"sync_aggregate"`
-	//SignatureSlot           string            `json:"signature_slot"`
 }
 
 type NewAttestedHeader struct {

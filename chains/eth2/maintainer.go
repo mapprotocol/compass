@@ -158,8 +158,8 @@ func (m *Maintainer) sync() error {
 }
 
 func (m *Maintainer) updateSyncHeight() error {
-	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	syncedHeight, err := mapprotocol.Get2MapByLight()
+	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {
 		m.Log.Error("Get synced Height failed", "err", err)
 		return err
@@ -278,30 +278,34 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		finalityBranch = append(finalityBranch, common.HexToHash(fb))
 	}
 
-	//exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Eth2Endpoint)
-	//if err != nil {
-	//	return nil, err
-	//}
-	branches := make([]string, 0, len(resp.Data.FinalizedHeader.ExecutionBranch))
-	branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
-	exeFinalityBranch := eth2.GenerateByApi(branches)
-
-	//block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Slot)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//blockNumber, ok := new(big.Int).SetString(block.Data.Message.Body.ExecutionPayload.BlockNumber, 10)
-	//if !ok {
-	//	return nil, errors.New("block executionPayload blockNumber Not Number")
-	//}
-	//header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
-	//if err != nil {
-	//	return nil, err
-	//}
-	execution, err := eth2.ConvertExecution(&resp.Data.FinalizedHeader.Execution)
-	if err != nil {
-		return nil, err
+	exeFinalityBranch := make([][32]byte, 0)
+	execution := &eth2.ContractExecution{}
+	fmt.Println("resp.Version ", resp.Version)
+	if resp.Version == "capella" {
+		branches := make([]string, 0, len(resp.Data.FinalizedHeader.ExecutionBranch))
+		branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
+		exeFinalityBranch = eth2.GenerateByApi(branches)
+		execution, err = eth2.ConvertExecution(&resp.Data.FinalizedHeader.Execution)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Beacon.Slot)
+		if err != nil {
+			return nil, err
+		}
+		branches, txRoot, wdRoot, err := eth2.Generate(resp.Data.FinalizedHeader.Beacon.Slot, m.Cfg.Eth2Endpoint)
+		if err != nil {
+			return nil, err
+		}
+		exeFinalityBranch = branches
+		block.Data.Message.Body.ExecutionPayload.TransactionsRoot = txRoot
+		block.Data.Message.Body.ExecutionPayload.WithdrawalsRoot = wdRoot
+		fmt.Printf("block --------------------- %+v", block.Data.Message.Body.ExecutionPayload)
+		execution, err = eth2.ConvertExecution(&block.Data.Message.Body.ExecutionPayload)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &eth2.LightClientUpdate{
@@ -404,16 +408,38 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 		return nil, errors.New("FinalizedHeader  Slot Not Number")
 	}
 
-	branches := make([]string, 0, len(resp.Data.FinalizedHeader.ExecutionBranch))
-	branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
-	exeFinalityBranch := eth2.GenerateByApi(branches)
+	exeFinalityBranch := make([][32]byte, 0)
+	execution := &eth2.ContractExecution{}
 	signatureSlot, err := strconv.ParseUint(resp.Data.SignatureSlot, 10, 64)
 	if err != nil {
 		return nil, err
 	}
-	execution, err := eth2.ConvertExecution(&resp.Data.FinalizedHeader.Execution)
-	if err != nil {
-		return nil, err
+	fmt.Println("resp.Version ", resp.Version)
+	if resp.Version == "capella" {
+		branches := make([]string, 0, len(resp.Data.FinalizedHeader.ExecutionBranch))
+		branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
+		exeFinalityBranch = eth2.GenerateByApi(branches)
+		execution, err = eth2.ConvertExecution(&resp.Data.FinalizedHeader.Execution)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Beacon.Slot)
+		if err != nil {
+			return nil, err
+		}
+		branches, txRoot, wdRoot, err := eth2.Generate(resp.Data.FinalizedHeader.Beacon.Slot, m.Cfg.Eth2Endpoint)
+		if err != nil {
+			return nil, err
+		}
+		exeFinalityBranch = branches
+		block.Data.Message.Body.ExecutionPayload.TransactionsRoot = txRoot
+		block.Data.Message.Body.ExecutionPayload.WithdrawalsRoot = wdRoot
+		fmt.Printf("block --------------------- %+v", block.Data.Message.Body.ExecutionPayload)
+		execution, err = eth2.ConvertExecution(&block.Data.Message.Body.ExecutionPayload)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &eth2.LightClientUpdate{
 		AttestedHeader: eth2.BeaconBlockHeader{
