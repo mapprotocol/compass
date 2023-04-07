@@ -249,13 +249,13 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		return nil, constant.ErrUnWantedSync
 	}
 
-	signatureSlot, err := m.getSignatureSlot(&resp.Data.AttestedHeader, &resp.Data.SyncAggregate)
+	signatureSlot, err := m.getSignatureSlot(resp.Data.AttestedHeader.Beacon.Slot, &resp.Data.SyncAggregate)
 	if err != nil {
 		return nil, err
 	}
 
-	fhSlot, _ := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Slot, 10)
-	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data.FinalizedHeader.ProposerIndex, 10)
+	fhSlot, _ := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Beacon.Slot, 10)
+	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Beacon.ProposerIndex, 10)
 	if !ok {
 		return nil, errors.New("FinalizedHeader Slot Not Number")
 	}
@@ -265,9 +265,9 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		return nil, constant.ErrUnWantedSync
 	}
 
-	m.Log.Info("Slot compare", "fhSlot", resp.Data.FinalizedHeader.Slot, "fsOnContract ", lastFinalizedSlotOnContract)
-	slot, _ := big.NewInt(0).SetString(resp.Data.AttestedHeader.Slot, 10)
-	proposerIndex, ok := big.NewInt(0).SetString(resp.Data.AttestedHeader.ProposerIndex, 10)
+	m.Log.Info("Slot compare", "fhSlot", resp.Data.FinalizedHeader.Beacon.Slot, "fsOnContract ", lastFinalizedSlotOnContract)
+	slot, _ := big.NewInt(0).SetString(resp.Data.AttestedHeader.Beacon.Slot, 10)
+	proposerIndex, ok := big.NewInt(0).SetString(resp.Data.AttestedHeader.Beacon.ProposerIndex, 10)
 	if !ok {
 		return nil, errors.New("AttestedHeader Slot Not Number")
 	}
@@ -281,7 +281,7 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		return nil, err
 	}
 
-	block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Slot)
+	block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Beacon.Slot)
 	if err != nil {
 		return nil, err
 	}
@@ -303,9 +303,9 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		AttestedHeader: eth2.BeaconBlockHeader{
 			Slot:          slot.Uint64(),
 			ProposerIndex: proposerIndex.Uint64(),
-			ParentRoot:    common.HexToHash(resp.Data.AttestedHeader.ParentRoot),
-			StateRoot:     common.HexToHash(resp.Data.AttestedHeader.StateRoot),
-			BodyRoot:      common.HexToHash(resp.Data.AttestedHeader.BodyRoot),
+			ParentRoot:    common.HexToHash(resp.Data.AttestedHeader.Beacon.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data.AttestedHeader.Beacon.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data.AttestedHeader.Beacon.BodyRoot),
 		},
 		NextSyncCommittee: eth2.ContractSyncCommittee{
 			Pubkeys:         make([]byte, 0),
@@ -316,18 +316,18 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		FinalizedHeader: eth2.BeaconBlockHeader{
 			Slot:          fhSlot.Uint64(),
 			ProposerIndex: fhProposerIndex.Uint64(),
-			ParentRoot:    common.HexToHash(resp.Data.FinalizedHeader.ParentRoot),
-			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.StateRoot),
-			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.BodyRoot),
+			ParentRoot:    common.HexToHash(resp.Data.FinalizedHeader.Beacon.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.Beacon.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.Beacon.BodyRoot),
 		},
 		ExeFinalityBranch:  exeFinalityBranch,
 		FinalizedExeHeader: *eth2.ConvertHeader(header),
 	}, nil
 }
 
-func (m *Maintainer) getSignatureSlot(ah *eth2.AttestedHeader, sa *eth2.SyncAggregate) (uint64, error) {
+func (m *Maintainer) getSignatureSlot(slot string, sa *eth2.SyncAggregate) (uint64, error) {
 	var CheckSlotsForwardLimit uint64 = 10
-	ahSlot, ok := big.NewInt(0).SetString(ah.Slot, 10)
+	ahSlot, ok := big.NewInt(0).SetString(slot, 10)
 	if !ok {
 		return 0, errors.New("ahSlot not number")
 	}
@@ -371,30 +371,30 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 		return nil, err
 	}
 
-	slot, _ := big.NewInt(0).SetString(resp.Data[0].AttestedHeader.Slot, 10)
-	proposerIndex, ok := big.NewInt(0).SetString(resp.Data[0].AttestedHeader.ProposerIndex, 10)
+	slot, _ := big.NewInt(0).SetString(resp.Data.AttestedHeader.Beacon.Slot, 10)
+	proposerIndex, ok := big.NewInt(0).SetString(resp.Data.AttestedHeader.Beacon.ProposerIndex, 10)
 	if !ok {
 		return nil, errors.New("AttestedHeader Slot Not Number")
 	}
 
-	signatureSlot, err := m.getSignatureSlot(&resp.Data[0].AttestedHeader, &resp.Data[0].SyncAggregate)
+	signatureSlot, err := m.getSignatureSlot(resp.Data.AttestedHeader.Beacon.Slot, &resp.Data.SyncAggregate)
 	if err != nil {
 		return nil, err
 	}
-	nextSyncCommitteeBranch := make([][32]byte, 0, len(resp.Data[0].NextSyncCommitteeBranch))
-	for _, b := range resp.Data[0].NextSyncCommitteeBranch {
+	nextSyncCommitteeBranch := make([][32]byte, 0, len(resp.Data.NextSyncCommitteeBranch))
+	for _, b := range resp.Data.NextSyncCommitteeBranch {
 		nextSyncCommitteeBranch = append(nextSyncCommitteeBranch, common.HexToHash(b))
 	}
-	pubKeys := make([]byte, 0, len(resp.Data[0].NextSyncCommittee.Pubkeys)*48)
-	for _, pk := range resp.Data[0].NextSyncCommittee.Pubkeys {
+	pubKeys := make([]byte, 0, len(resp.Data.NextSyncCommittee.Pubkeys)*48)
+	for _, pk := range resp.Data.NextSyncCommittee.Pubkeys {
 		pubKeys = append(pubKeys, util.FromHexString(pk)...)
 	}
-	finalityBranch := make([][32]byte, 0, len(resp.Data[0].FinalityBranch))
-	for _, fb := range resp.Data[0].FinalityBranch {
+	finalityBranch := make([][32]byte, 0, len(resp.Data.FinalityBranch))
+	for _, fb := range resp.Data.FinalityBranch {
 		finalityBranch = append(finalityBranch, common.HexToHash(fb))
 	}
-	fhSlot, _ := big.NewInt(0).SetString(resp.Data[0].FinalizedHeader.Slot, 10)
-	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data[0].FinalizedHeader.ProposerIndex, 10)
+	fhSlot, _ := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Beacon.Slot, 10)
+	fhProposerIndex, ok := big.NewInt(0).SetString(resp.Data.FinalizedHeader.Beacon.ProposerIndex, 10)
 	if !ok {
 		return nil, errors.New("FinalizedHeader  Slot Not Number")
 	}
@@ -403,7 +403,7 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 		return nil, err
 	}
 
-	block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data[0].FinalizedHeader.Slot)
+	block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Beacon.Slot)
 	if err != nil {
 		return nil, err
 	}
@@ -421,27 +421,27 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 		AttestedHeader: eth2.BeaconBlockHeader{
 			Slot:          slot.Uint64(),
 			ProposerIndex: proposerIndex.Uint64(),
-			ParentRoot:    common.HexToHash(resp.Data[0].AttestedHeader.ParentRoot),
-			StateRoot:     common.HexToHash(resp.Data[0].AttestedHeader.StateRoot),
-			BodyRoot:      common.HexToHash(resp.Data[0].AttestedHeader.BodyRoot),
+			ParentRoot:    common.HexToHash(resp.Data.AttestedHeader.Beacon.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data.AttestedHeader.Beacon.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data.AttestedHeader.Beacon.BodyRoot),
 		},
 		SyncAggregate: eth2.ContractSyncAggregate{
-			SyncCommitteeBits:      util.FromHexString(resp.Data[0].SyncAggregate.SyncCommitteeBits),
-			SyncCommitteeSignature: util.FromHexString(resp.Data[0].SyncAggregate.SyncCommitteeSignature),
+			SyncCommitteeBits:      util.FromHexString(resp.Data.SyncAggregate.SyncCommitteeBits),
+			SyncCommitteeSignature: util.FromHexString(resp.Data.SyncAggregate.SyncCommitteeSignature),
 		},
 		SignatureSlot:           signatureSlot,
 		NextSyncCommitteeBranch: nextSyncCommitteeBranch,
 		NextSyncCommittee: eth2.ContractSyncCommittee{
 			Pubkeys:         pubKeys,
-			AggregatePubkey: util.FromHexString(resp.Data[0].NextSyncCommittee.AggregatePubkey),
+			AggregatePubkey: util.FromHexString(resp.Data.NextSyncCommittee.AggregatePubkey),
 		},
 		FinalityBranch: finalityBranch,
 		FinalizedHeader: eth2.BeaconBlockHeader{
 			Slot:          fhSlot.Uint64(),
 			ProposerIndex: fhProposerIndex.Uint64(),
-			ParentRoot:    common.HexToHash(resp.Data[0].FinalizedHeader.ParentRoot),
-			StateRoot:     common.HexToHash(resp.Data[0].FinalizedHeader.StateRoot),
-			BodyRoot:      common.HexToHash(resp.Data[0].FinalizedHeader.BodyRoot),
+			ParentRoot:    common.HexToHash(resp.Data.FinalizedHeader.Beacon.ParentRoot),
+			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.Beacon.StateRoot),
+			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.Beacon.BodyRoot),
 		},
 		ExeFinalityBranch:  exeFinalityBranch,
 		FinalizedExeHeader: *eth2.ConvertHeader(header),

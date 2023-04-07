@@ -23,7 +23,8 @@ type BlocksResp struct {
 }
 
 type LightClientUpdatesResp struct {
-	Data []LightClientUpdatesData `json:"data"`
+	Data    LightClientUpdatesData `json:"data"`
+	Version string                 `json:"version"`
 }
 
 type Message struct {
@@ -67,11 +68,11 @@ type SyncAggregate struct {
 }
 
 type FinalityUpdateData struct {
-	AttestedHeader  AttestedHeader  `json:"attested_header"`
-	FinalizedHeader FinalizedHeader `json:"finalized_header"`
-	FinalityBranch  []string        `json:"finality_branch"`
-	SyncAggregate   SyncAggregate   `json:"sync_aggregate"`
-	SignatureSlot   string          `json:"signature_slot"`
+	AttestedHeader  NewAttestedHeader  `json:"attested_header"`
+	FinalizedHeader NewFinalizedHeader `json:"finalized_header"`
+	FinalityBranch  []string           `json:"finality_branch"`
+	SyncAggregate   SyncAggregate      `json:"sync_aggregate"`
+	SignatureSlot   string             `json:"signature_slot"`
 }
 
 type Eth1Data struct {
@@ -145,13 +146,51 @@ type NextSyncCommittee struct {
 }
 
 type LightClientUpdatesData struct {
-	AttestedHeader          AttestedHeader    `json:"attested_header"`
-	NextSyncCommittee       NextSyncCommittee `json:"next_sync_committee"`
-	NextSyncCommitteeBranch []string          `json:"next_sync_committee_branch"`
-	FinalizedHeader         FinalizedHeader   `json:"finalized_header"`
-	FinalityBranch          []string          `json:"finality_branch"`
-	SyncAggregate           SyncAggregate     `json:"sync_aggregate"`
-	SignatureSlot           string            `json:"signature_slot"`
+	AttestedHeader          NewAttestedHeader  `json:"attested_header"`
+	NextSyncCommittee       NextSyncCommittee  `json:"next_sync_committee"`
+	NextSyncCommitteeBranch []string           `json:"next_sync_committee_branch"`
+	FinalizedHeader         NewFinalizedHeader `json:"finalized_header"`
+	FinalityBranch          []string           `json:"finality_branch"`
+	SyncAggregate           SyncAggregate      `json:"sync_aggregate"`
+	SignatureSlot           string             `json:"signature_slot"`
+}
+
+type NewAttestedHeader struct {
+	Beacon          Beacon    `json:"beacon"`
+	Execution       Execution `json:"execution"`
+	ExecutionBranch []string  `json:"execution_branch"`
+}
+
+type Beacon struct {
+	Slot          string `json:"slot"`
+	ProposerIndex string `json:"proposer_index"`
+	ParentRoot    string `json:"parent_root"`
+	StateRoot     string `json:"state_root"`
+	BodyRoot      string `json:"body_root"`
+}
+
+type Execution struct {
+	ParentHash       string `json:"parent_hash"`
+	FeeRecipient     string `json:"fee_recipient"`
+	StateRoot        string `json:"state_root"`
+	ReceiptsRoot     string `json:"receipts_root"`
+	LogsBloom        string `json:"logs_bloom"`
+	PrevRandao       string `json:"prev_randao"`
+	BlockNumber      string `json:"block_number"`
+	GasLimit         string `json:"gas_limit"`
+	GasUsed          string `json:"gas_used"`
+	Timestamp        string `json:"timestamp"`
+	ExtraData        string `json:"extra_data"`
+	BaseFeePerGas    string `json:"base_fee_per_gas"`
+	BlockHash        string `json:"block_hash"`
+	TransactionsRoot string `json:"transactions_root"`
+	WithdrawalsRoot  string `json:"withdrawals_root"`
+}
+
+type NewFinalizedHeader struct {
+	Beacon          Beacon    `json:"beacon"`
+	Execution       Execution `json:"execution"`
+	ExecutionBranch []string  `json:"execution_branch"`
 }
 
 type AttestationData struct {

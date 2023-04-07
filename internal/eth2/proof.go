@@ -3,6 +3,12 @@ package eth2
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -16,20 +22,15 @@ import (
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"github.com/pkg/errors"
-	"math/big"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 )
 
-var execPath = "./eth2-proof"
+var execPath = "./eth2-proof-old"
 
 func init() {
 	if filepath.Dir(os.Args[0]) == "." {
 		return
 	}
-	execPath = filepath.Join(filepath.Dir(os.Args[0]), "eth2-proof")
+	execPath = filepath.Join(filepath.Dir(os.Args[0]), "eth2-proof-old")
 }
 
 func Generate(slot, endpoint string) ([][32]byte, error) {
