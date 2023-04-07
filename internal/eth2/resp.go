@@ -14,7 +14,8 @@ type BeaconHeadersResp struct {
 }
 
 type FinalityUpdateResp struct {
-	Data FinalityUpdateData `json:"data"`
+	Data    FinalityUpdateData `json:"data"`
+	Version string             `json:"version"`
 }
 
 type BlocksResp struct {
