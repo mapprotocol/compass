@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/constant"
 	"io"
 	"net/http"
 	"net/url"
@@ -14,6 +13,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/mapprotocol/compass/internal/constant"
 )
 
 const (
@@ -69,8 +70,19 @@ func (c *Client) BeaconHeaders(ctx context.Context, blockId constant.BlockIdOfEt
 
 func (c *Client) LightClientUpdate(ctx context.Context, startPeriod uint64) (*LightClientUpdatesResp, error) {
 	urlPath := fmt.Sprintf("%s/%s?start_period=%d&count=1", c.endpoint, "eth/v1/beacon/light_client/updates", startPeriod)
+	respBody, err := c.doRequest(ctx, urlPath)
+	if err != nil {
+		return nil, err
+	}
+	//fmt.Println("urlPath ------------ ", urlPath)
+	defer respBody.Close()
+	var respMsg []CommonData
+	if err = json.NewDecoder(respBody).Decode(&respMsg); err != nil {
+		return nil, err
+	}
 	var ret LightClientUpdatesResp
-	err := c.CallContext(ctx, urlPath, &ret)
+	data, _ := json.Marshal(respMsg[0])
+	err = json.Unmarshal(data, &ret)
 	if err != nil {
 		return nil, err
 	}
