@@ -74,7 +74,7 @@ func (c *Client) LightClientUpdate(ctx context.Context, startPeriod uint64) (*Li
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("urlPath ------------ ", urlPath)
+	//fmt.Println("urlPath ------------ ", urlPath)
 	defer respBody.Close()
 	var respMsg []CommonData
 	if err = json.NewDecoder(respBody).Decode(&respMsg); err != nil {
@@ -83,7 +83,6 @@ func (c *Client) LightClientUpdate(ctx context.Context, startPeriod uint64) (*Li
 	var ret LightClientUpdatesResp
 	data, _ := json.Marshal(respMsg[0])
 	err = json.Unmarshal(data, &ret)
-	fmt.Println("data ------------ ", string(data))
 	if err != nil {
 		return nil, err
 	}

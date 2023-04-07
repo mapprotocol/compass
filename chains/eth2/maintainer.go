@@ -249,7 +249,11 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		return nil, constant.ErrUnWantedSync
 	}
 
-	signatureSlot, err := m.getSignatureSlot(resp.Data.AttestedHeader.Beacon.Slot, &resp.Data.SyncAggregate)
+	//signatureSlot, err := m.getSignatureSlot(resp.Data.AttestedHeader.Beacon.Slot, &resp.Data.SyncAggregate)
+	//if err != nil {
+	//	return nil, err
+	//}
+	signatureSlot, err := strconv.ParseUint(resp.Data.SignatureSlot, 10, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -294,6 +298,7 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("old version finally ", resp.Version)
 	return &eth2.LightClientUpdate{
 		SignatureSlot: signatureSlot,
 		SyncAggregate: eth2.ContractSyncAggregate{
@@ -377,10 +382,10 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 		return nil, errors.New("AttestedHeader Slot Not Number")
 	}
 
-	signatureSlot, err := m.getSignatureSlot(resp.Data.AttestedHeader.Beacon.Slot, &resp.Data.SyncAggregate)
-	if err != nil {
-		return nil, err
-	}
+	//signatureSlot, err := m.getSignatureSlot(resp.Data.AttestedHeader.Beacon.Slot, &resp.Data.SyncAggregate)
+	//if err != nil {
+	//	return nil, err
+	//}
 	nextSyncCommitteeBranch := make([][32]byte, 0, len(resp.Data.NextSyncCommitteeBranch))
 	for _, b := range resp.Data.NextSyncCommitteeBranch {
 		nextSyncCommitteeBranch = append(nextSyncCommitteeBranch, common.HexToHash(b))
@@ -416,7 +421,12 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 	if err != nil {
 		return nil, err
 	}
+	signatureSlot, err := strconv.ParseUint(resp.Data.SignatureSlot, 10, 64)
+	if err != nil {
+		return nil, err
+	}
 
+	fmt.Println("old version lightUpdate ", resp.Version)
 	return &eth2.LightClientUpdate{
 		AttestedHeader: eth2.BeaconBlockHeader{
 			Slot:          slot.Uint64(),
