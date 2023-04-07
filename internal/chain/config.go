@@ -30,6 +30,7 @@ var (
 	MaxGasPriceOpt        = "maxGasPrice"
 	GasLimitOpt           = "gasLimit"
 	GasMultiplier         = "gasMultiplier"
+	LimitMultiplier       = "limitMultiplier"
 	HttpOpt               = "http"
 	StartBlockOpt         = "startBlock"
 	BlockConfirmationsOpt = "blockConfirmations"
@@ -57,6 +58,7 @@ type Config struct {
 	GasLimit           *big.Int
 	MaxGasPrice        *big.Int
 	GasMultiplier      float64
+	LimitMultiplier    float64
 	Http               bool // Config for type of connection
 	StartBlock         *big.Int
 	BlockConfirmations *big.Int
@@ -89,6 +91,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		GasLimit:           big.NewInt(DefaultGasLimit),
 		MaxGasPrice:        big.NewInt(DefaultGasPrice),
 		GasMultiplier:      DefaultGasMultiplier,
+		LimitMultiplier:    DefaultGasMultiplier,
 		Http:               false,
 		StartBlock:         big.NewInt(0),
 		BlockConfirmations: big.NewInt(0),
@@ -137,6 +140,16 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 			delete(chainCfg.Opts, GasMultiplier)
 		} else {
 			return nil, errors.New("unable to parse gasMultiplier to float")
+		}
+	}
+
+	if limitMultiplier, ok := chainCfg.Opts[LimitMultiplier]; ok {
+		float, err := strconv.ParseFloat(limitMultiplier, 64)
+		if err == nil {
+			config.LimitMultiplier = float
+			delete(chainCfg.Opts, LimitMultiplier)
+		} else {
+			return nil, errors.New("unable to parse limitMultiplier to float")
 		}
 	}
 
