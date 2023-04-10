@@ -24,13 +24,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-var execPath = "./eth2-proof-old"
+var execPath = "./eth2-proof"
 
 func init() {
 	if filepath.Dir(os.Args[0]) == "." {
 		return
 	}
-	execPath = filepath.Join(filepath.Dir(os.Args[0]), "eth2-proof-old")
+	execPath = filepath.Join(filepath.Dir(os.Args[0]), "eth2-proof")
 }
 
 func Generate(slot, endpoint string) ([][32]byte, error) {
