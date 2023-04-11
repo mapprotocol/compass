@@ -49,22 +49,23 @@ func (m *Maintainer) Sync() error {
 // Polling begins at the block defined in `m.Cfg.StartBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 func (m *Maintainer) sync() error {
+	if !m.Cfg.SyncToMap {
+		time.Sleep(time.Hour * 2400)
+		return nil
+	}
 	var currentBlock = m.Cfg.StartBlock
 	m.Log.Info("Polling Blocks...", "block", currentBlock)
 
-	if m.Cfg.SyncToMap {
-		// check whether needs quick listen
-		err := m.updateSyncHeight()
-		if err != nil {
-			m.Log.Error("Get synced Height failed", "err", err)
-			return err
-		}
+	err := m.updateSyncHeight()
+	if err != nil {
+		m.Log.Error("Get synced Height failed", "err", err)
+		return err
+	}
 
-		if m.syncedHeight.Cmp(currentBlock) != 0 {
-			currentBlock.Add(m.syncedHeight, new(big.Int).SetInt64(1))
-			m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
-				"syncedHeight", m.syncedHeight, "currentBlock", currentBlock)
-		}
+	if m.syncedHeight.Cmp(currentBlock) != 0 {
+		currentBlock.Add(m.syncedHeight, new(big.Int).SetInt64(1))
+		m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
+			"syncedHeight", m.syncedHeight, "currentBlock", currentBlock)
 	}
 
 	for {
@@ -72,13 +73,11 @@ func (m *Maintainer) sync() error {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
-			if m.Cfg.SyncToMap {
-				err := m.updateSyncHeight()
-				if err != nil {
-					m.Log.Error("UpdateSyncHeight failed", "err", err)
-					time.Sleep(constant.BlockRetryInterval)
-					continue
-				}
+			err := m.updateSyncHeight()
+			if err != nil {
+				m.Log.Error("UpdateSyncHeight failed", "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
 			}
 
 			startNumber, endNumber, err := mapprotocol.GetEth22MapNumber(m.Cfg.Id)
@@ -88,7 +87,7 @@ func (m *Maintainer) sync() error {
 				continue
 			}
 
-			log.Info("updateRange ", "startNumber", startNumber, "endNumber", endNumber)
+			log.Info("UpdateRange ", "startNumber", startNumber, "endNumber", endNumber)
 			if startNumber.Int64() != 0 && endNumber.Int64() != 0 {
 				// updateHeader 流程
 				err = m.updateHeaders(startNumber, endNumber)
@@ -114,8 +113,8 @@ func (m *Maintainer) sync() error {
 				continue
 			}
 
-			if !m.isEnoughBlocksForLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth) {
-				time.Sleep(constant.BalanceRetryInterval)
+			if !m.isEnoughBlocksForLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth) {
+				time.Sleep(time.Second * 60)
 				continue
 			}
 
@@ -126,16 +125,14 @@ func (m *Maintainer) sync() error {
 				continue
 			}
 
-			if m.Cfg.SyncToMap {
-				err = m.sendRegularLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth)
-				if err != nil {
-					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
-					time.Sleep(constant.BlockRetryInterval)
-					if !errors.Is(err, constant.ErrUnWantedSync) {
-						util.Alarm(context.Background(), fmt.Sprintf("eth2 sync lightClient failed, err is %s", err.Error()))
-					}
-					continue
+			err = m.sendRegularLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth)
+			if err != nil {
+				m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
+				if !errors.Is(err, constant.ErrUnWantedSync) {
+					util.Alarm(context.Background(), fmt.Sprintf("eth2 sync lightClient failed, err is %s", err.Error()))
 				}
+				time.Sleep(constant.BlockRetryInterval)
+				continue
 			}
 
 			// Write to block store. Not a critical operation, no need to retry
@@ -173,10 +170,10 @@ func (m *Maintainer) updateSyncHeight() error {
 	return nil
 }
 
-func (m *Maintainer) isEnoughBlocksForLightClientUpdate(currentBlock, lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) bool {
+func (m *Maintainer) isEnoughBlocksForLightClientUpdate(lastFinalizedSlotOnContract, lastFinalizedSlotOnEth *big.Int) bool {
 	if (lastFinalizedSlotOnEth.Int64() - lastFinalizedSlotOnContract.Int64()) < (constant.SlotsPerEpoch * 1) {
 		m.Log.Info("Light client update were send less then 1 epochs ago. Skipping sending light client update",
-			"currentBlock", currentBlock, "lastFinalizedSlotOnContract", lastFinalizedSlotOnContract)
+			"lastFinalizedSlotOnEth", lastFinalizedSlotOnEth, "lastFinalizedSlotOnContract", lastFinalizedSlotOnContract)
 		return false
 	}
 	if lastFinalizedSlotOnEth.Uint64() <= lastFinalizedSlotOnContract.Uint64() {
@@ -201,7 +198,7 @@ func (m *Maintainer) sendRegularLightClientUpdate(lastFinalizedSlotOnContract, l
 		err             error
 		lightUpdateData = &eth2.LightClientUpdate{}
 	)
-	m.Log.Info("period check", "periodOnContract", lastEth2PeriodOnContract, "endPeriod", endPeriod,
+	m.Log.Info("Period check", "periodOnContract", lastEth2PeriodOnContract, "endPeriod", endPeriod,
 		"slotOnEth", lastFinalizedSlotOnEth, "slotOnContract", lastFinalizedSlotOnContract)
 	if lastEth2PeriodOnContract == endPeriod {
 		lightUpdateData, err = m.getFinalityLightClientUpdate(lastFinalizedSlotOnContract)
@@ -280,25 +277,35 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		finalityBranch = append(finalityBranch, common.HexToHash(fb))
 	}
 
-	exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Eth2Endpoint)
-	if err != nil {
-		return nil, err
+	exeFinalityBranch := make([][32]byte, 0)
+	execution := &eth2.ContractExecution{}
+	fmt.Println("resp.Version ", resp.Version)
+	if resp.Version == "capella" {
+		branches := make([]string, 0, len(resp.Data.FinalizedHeader.ExecutionBranch))
+		branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
+		exeFinalityBranch = eth2.GenerateByApi(branches)
+		execution, err = eth2.ConvertExecution(&resp.Data.FinalizedHeader.Execution)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Beacon.Slot)
+		if err != nil {
+			return nil, err
+		}
+		branches, txRoot, wdRoot, err := eth2.Generate(resp.Data.FinalizedHeader.Beacon.Slot, m.Cfg.Eth2Endpoint)
+		if err != nil {
+			return nil, err
+		}
+		exeFinalityBranch = branches
+		block.Data.Message.Body.ExecutionPayload.TransactionsRoot = txRoot
+		block.Data.Message.Body.ExecutionPayload.WithdrawalsRoot = wdRoot
+		execution, err = eth2.ConvertExecution(&block.Data.Message.Body.ExecutionPayload)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Beacon.Slot)
-	if err != nil {
-		return nil, err
-	}
-
-	blockNumber, ok := new(big.Int).SetString(block.Data.Message.Body.ExecutionPayload.BlockNumber, 10)
-	if !ok {
-		return nil, errors.New("block executionPayload blockNumber Not Number")
-	}
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("old version finally ", resp.Version)
 	return &eth2.LightClientUpdate{
 		SignatureSlot: signatureSlot,
 		SyncAggregate: eth2.ContractSyncAggregate{
@@ -325,8 +332,8 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.Beacon.StateRoot),
 			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.Beacon.BodyRoot),
 		},
-		ExeFinalityBranch:  exeFinalityBranch,
-		FinalizedExeHeader: *eth2.ConvertHeader(header),
+		ExecutionBranch:    exeFinalityBranch,
+		FinalizedExecution: execution,
 	}, nil
 }
 
@@ -375,17 +382,12 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 	if err != nil {
 		return nil, err
 	}
-
 	slot, _ := big.NewInt(0).SetString(resp.Data.AttestedHeader.Beacon.Slot, 10)
 	proposerIndex, ok := big.NewInt(0).SetString(resp.Data.AttestedHeader.Beacon.ProposerIndex, 10)
 	if !ok {
 		return nil, errors.New("AttestedHeader Slot Not Number")
 	}
 
-	//signatureSlot, err := m.getSignatureSlot(resp.Data.AttestedHeader.Beacon.Slot, &resp.Data.SyncAggregate)
-	//if err != nil {
-	//	return nil, err
-	//}
 	nextSyncCommitteeBranch := make([][32]byte, 0, len(resp.Data.NextSyncCommitteeBranch))
 	for _, b := range resp.Data.NextSyncCommitteeBranch {
 		nextSyncCommitteeBranch = append(nextSyncCommitteeBranch, common.HexToHash(b))
@@ -403,30 +405,39 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 	if !ok {
 		return nil, errors.New("FinalizedHeader  Slot Not Number")
 	}
-	exeFinalityBranch, err := eth2.Generate(strconv.FormatUint(fhSlot.Uint64(), 10), m.Cfg.Eth2Endpoint)
-	if err != nil {
-		return nil, err
-	}
 
-	block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Beacon.Slot)
-	if err != nil {
-		return nil, err
-	}
-
-	blockNumber, ok := new(big.Int).SetString(block.Data.Message.Body.ExecutionPayload.BlockNumber, 10)
-	if !ok {
-		return nil, errors.New("block executionPayload blockNumber Not Number")
-	}
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
-	if err != nil {
-		return nil, err
-	}
+	exeFinalityBranch := make([][32]byte, 0)
+	execution := &eth2.ContractExecution{}
 	signatureSlot, err := strconv.ParseUint(resp.Data.SignatureSlot, 10, 64)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("old version lightUpdate ", resp.Version)
+	fmt.Println("resp.Version ", resp.Version)
+	if resp.Version == "capella" {
+		branches := make([]string, 0, len(resp.Data.FinalizedHeader.ExecutionBranch))
+		branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
+		exeFinalityBranch = eth2.GenerateByApi(branches)
+		execution, err = eth2.ConvertExecution(&resp.Data.FinalizedHeader.Execution)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Beacon.Slot)
+		if err != nil {
+			return nil, err
+		}
+		branches, txRoot, wdRoot, err := eth2.Generate(resp.Data.FinalizedHeader.Beacon.Slot, m.Cfg.Eth2Endpoint)
+		if err != nil {
+			return nil, err
+		}
+		exeFinalityBranch = branches
+		block.Data.Message.Body.ExecutionPayload.TransactionsRoot = txRoot
+		block.Data.Message.Body.ExecutionPayload.WithdrawalsRoot = wdRoot
+		execution, err = eth2.ConvertExecution(&block.Data.Message.Body.ExecutionPayload)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &eth2.LightClientUpdate{
 		AttestedHeader: eth2.BeaconBlockHeader{
 			Slot:          slot.Uint64(),
@@ -453,8 +464,8 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 			StateRoot:     common.HexToHash(resp.Data.FinalizedHeader.Beacon.StateRoot),
 			BodyRoot:      common.HexToHash(resp.Data.FinalizedHeader.Beacon.BodyRoot),
 		},
-		ExeFinalityBranch:  exeFinalityBranch,
-		FinalizedExeHeader: *eth2.ConvertHeader(header),
+		ExecutionBranch:    exeFinalityBranch,
+		FinalizedExecution: execution,
 	}, nil
 }
 
@@ -463,7 +474,7 @@ func (m *Maintainer) updateHeaders(startNumber, endNumber *big.Int) error {
 	headers := make([]eth2.BlockHeader, mapprotocol.HeaderLengthOfEth2)
 	idx := mapprotocol.HeaderLengthOfEth2 - 1
 	for i := endNumber.Int64(); i >= startNumber.Int64(); i-- {
-		header, err := m.Conn.Client().HeaderByNumber(context.Background(), new(big.Int).SetInt64(i))
+		header, err := m.Conn.Client().EthLatestHeaderByNumber(m.Cfg.Endpoint, new(big.Int).SetInt64(i))
 		if err != nil {
 			return err
 		}

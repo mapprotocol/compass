@@ -6,7 +6,6 @@ import (
 
 	"github.com/mapprotocol/compass/internal/constant"
 
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -15,24 +14,21 @@ import (
 )
 
 type Writer struct {
-	cfg     Config
-	conn    Connection
-	log     log15.Logger
-	stop    <-chan int
-	sysErr  chan<- error // Reports fatal error to core
-	metrics *metrics.ChainMetrics
+	cfg    Config
+	conn   Connection
+	log    log15.Logger
+	stop   <-chan int
+	sysErr chan<- error // Reports fatal error to core
 }
 
 // NewWriter creates and returns Writer
-func NewWriter(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
-	m *metrics.ChainMetrics) *Writer {
+func NewWriter(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error) *Writer {
 	return &Writer{
-		cfg:     *cfg,
-		conn:    conn,
-		log:     log,
-		stop:    stop,
-		sysErr:  sysErr,
-		metrics: m,
+		cfg:    *cfg,
+		conn:   conn,
+		log:    log,
+		stop:   stop,
+		sysErr: sysErr,
 	}
 }
 

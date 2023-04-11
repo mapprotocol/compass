@@ -74,7 +74,6 @@ func (c *Client) LightClientUpdate(ctx context.Context, startPeriod uint64) (*Li
 	if err != nil {
 		return nil, err
 	}
-	//fmt.Println("urlPath ------------ ", urlPath)
 	defer respBody.Close()
 	var respMsg []CommonData
 	if err = json.NewDecoder(respBody).Decode(&respMsg); err != nil {
@@ -163,7 +162,7 @@ func (c *Client) sendHTTP(ctx context.Context, url string, op *requestOp) error 
 	defer respBody.Close()
 
 	var respMsg CommonData
-	if err := json.NewDecoder(respBody).Decode(&respMsg); err != nil {
+	if err = json.NewDecoder(respBody).Decode(&respMsg); err != nil {
 		return err
 	}
 	op.resp <- &respMsg

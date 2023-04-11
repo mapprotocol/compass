@@ -12,7 +12,7 @@ import (
 
 type Connection struct {
 	endpoint, eth2Endpoint string
-	*ethereum.Connection
+	chain.Connection
 	eth2Conn *eth2.Client
 }
 

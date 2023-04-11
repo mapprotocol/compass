@@ -6,7 +6,6 @@ import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/mapprotocol/compass/chains"
-	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -24,7 +23,7 @@ type Chain struct {
 }
 
 func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role, opts ...SyncOpt) (*Chain, error) {
+	role mapprotocol.Role, createConn CreateConn, opts ...SyncOpt) (*Chain, error) {
 	cfg, err := ParseConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -42,7 +41,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 	}
 
 	stop := make(chan int)
-	conn := connection.NewConnection(cfg.Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice,
+	conn := createConn(cfg.Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice,
 		cfg.GasMultiplier, cfg.EgsApiKey, cfg.EgsSpeed)
 	err = conn.Connect()
 	if err != nil {
@@ -84,7 +83,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		listen = NewMessenger(cs)
 	}
-	wri := NewWriter(conn, cfg, logger, stop, sysErr, m)
+	wri := NewWriter(conn, cfg, logger, stop, sysErr)
 
 	return &Chain{
 		cfg:    chainCfg,

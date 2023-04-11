@@ -89,7 +89,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		listen = NewMessenger(cs, conn.KClient())
 	}
-	wri := chain.NewWriter(conn, cfg, logger, stop, sysErr, m)
+	wri := chain.NewWriter(conn, cfg, logger, stop, sysErr)
 
 	return &Chain{
 		cfg:    chainCfg,
