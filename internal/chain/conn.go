@@ -1,9 +1,11 @@
 package chain
 
 import (
+	"math/big"
+
+	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/klaytn"
-	"math/big"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -34,3 +36,5 @@ type Eth2Connection interface {
 	Connection
 	Eth2Client() *eth2.Client
 }
+
+type CreateConn func(string, bool, *secp256k1.Keypair, log15.Logger, *big.Int, *big.Int, float64, string, string) Connection

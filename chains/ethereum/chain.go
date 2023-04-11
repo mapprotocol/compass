@@ -116,7 +116,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	} else if role == mapprotocol.RoleOfMaintainer { // Maintainer is used by default
 		listen = NewMaintainer(cs)
 	}
-	writer := chain.NewWriter(conn, cfg, logger, stop, sysErr, m)
+	writer := chain.NewWriter(conn, cfg, logger, stop, sysErr)
 
 	return &Chain{
 		cfg:    chainCfg,

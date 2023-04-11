@@ -1,12 +1,8 @@
-// Copyright 2021 Compass Systems
-// SPDX-License-Identifier: LGPL-3.0-only
-
-package ethereum
+package platon
 
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -41,11 +37,11 @@ type Connection struct {
 	stop          chan int // All routines should exit when this channel is closed
 }
 
-// NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
-func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
+// NewConn returns an uninitialized connection, must call Connection.Connect() before using.
+func NewConn(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
 	gasMultiplier float64, gsnApiKey, gsnSpeed string) chain.Connection {
 	bigFloat := new(big.Float).SetFloat64(gasMultiplier)
-	return &Connection{
+	conn := Connection{
 		endpoint:      endpoint,
 		http:          http,
 		kp:            kp,
@@ -57,6 +53,7 @@ func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.
 		log:           log,
 		stop:          make(chan int),
 	}
+	return &conn
 }
 
 // Connect starts the ethereum WS connection
@@ -132,9 +129,7 @@ func (c *Connection) CallOpts() *bind.CallOpts {
 }
 
 func (c *Connection) SafeEstimateGas(ctx context.Context) (*big.Int, error) {
-
 	var suggestedGasPrice *big.Int
-
 	// First attempt to use EGS for the gas price if the api key is supplied
 	if c.egsApiKey != "" {
 		price, err := egs.FetchGasPrice(c.egsApiKey, c.egsSpeed)
@@ -148,7 +143,7 @@ func (c *Connection) SafeEstimateGas(ctx context.Context) (*big.Int, error) {
 	// Fallback to the node rpc method for the gas price if GSN did not provide a price
 	if suggestedGasPrice == nil {
 		c.log.Debug("Fetching gasPrice from node")
-		nodePriceEstimate, err := c.conn.SuggestGasPrice(context.TODO())
+		nodePriceEstimate, err := c.conn.SuggestGasPrice(ctx)
 		if err != nil {
 			return nil, err
 		} else {
@@ -176,7 +171,7 @@ func (c *Connection) EstimateGasLondon(ctx context.Context, baseFee *big.Int) (*
 		return maxPriorityFeePerGas, maxFeePerGas, nil
 	}
 
-	maxPriorityFeePerGas, err := c.conn.SuggestGasTipCap(context.TODO())
+	maxPriorityFeePerGas, err := c.conn.SuggestGasTipCap(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -208,37 +203,37 @@ func multiplyGasPrice(gasEstimate *big.Int, gasMultiplier *big.Float) *big.Int {
 // and gas price.
 func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 	c.optsLock.Lock()
-	head, err := c.conn.HeaderByNumber(context.TODO(), nil)
-	// cos map chain dont have this section in return,this err will be raised
-	if err != nil && err.Error() != "missing required field 'sha3Uncles' for Header" {
+	//head, err := c.conn.PlatonGetBlockByNumber(context.TODO(), nil)
+	//// cos map chain dont have this section in return,this err will be raised
+	//if err != nil && err.Error() != "missing required field 'sha3Uncles' for Header" {
+	//	c.UnlockOpts()
+	//	c.log.Error("LockAndUpdateOpts HeaderByNumber", "err", err)
+	//	return err
+	//}
+
+	//if head.BaseFee != nil {
+	//	c.opts.GasTipCap, c.opts.GasFeeCap, err = c.EstimateGasLondon(context.TODO(), head.BaseFee)
+	//
+	//	// Both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) cannot be specified: https://github.com/ethereum/go-ethereum/blob/95bbd46eabc5d95d9fb2108ec232dd62df2f44ab/accounts/abi/bind/base.go#L254
+	//	c.opts.GasPrice = nil
+	//	if err != nil {
+	//		// if EstimateGasLondon failed, fall back to suggestGasPrice
+	//		c.opts.GasPrice, err = c.conn.SuggestGasPrice(context.TODO())
+	//		if err != nil {
+	//			c.UnlockOpts()
+	//			return err
+	//		}
+	//	}
+	//	c.log.Info("LockAndUpdateOpts ", "head.BaseFee", head.BaseFee, "maxGasPrice", c.maxGasPrice)
+	//} else {
+	var gasPrice *big.Int
+	gasPrice, err := c.SafeEstimateGas(context.TODO())
+	if err != nil {
 		c.UnlockOpts()
-		c.log.Error("LockAndUpdateOpts HeaderByNumber", "err", err)
 		return err
 	}
-
-	if head.BaseFee != nil {
-		c.opts.GasTipCap, c.opts.GasFeeCap, err = c.EstimateGasLondon(context.TODO(), head.BaseFee)
-
-		// Both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) cannot be specified: https://github.com/ethereum/go-ethereum/blob/95bbd46eabc5d95d9fb2108ec232dd62df2f44ab/accounts/abi/bind/base.go#L254
-		c.opts.GasPrice = nil
-		if err != nil {
-			// if EstimateGasLondon failed, fall back to suggestGasPrice
-			c.opts.GasPrice, err = c.conn.SuggestGasPrice(context.TODO())
-			if err != nil {
-				c.UnlockOpts()
-				return err
-			}
-		}
-		c.log.Info("LockAndUpdateOpts ", "head.BaseFee", head.BaseFee, "maxGasPrice", c.maxGasPrice)
-	} else {
-		var gasPrice *big.Int
-		gasPrice, err = c.SafeEstimateGas(context.TODO())
-		if err != nil {
-			c.UnlockOpts()
-			return err
-		}
-		c.opts.GasPrice = gasPrice
-	}
+	c.opts.GasPrice = gasPrice
+	//}
 
 	if !needNewNonce {
 		return nil
@@ -267,14 +262,14 @@ func (c *Connection) LatestBlock() (*big.Int, error) {
 
 // EnsureHasBytecode asserts if contract code exists at the specified address
 func (c *Connection) EnsureHasBytecode(addr ethcommon.Address) error {
-	code, err := c.conn.CodeAt(context.Background(), addr, nil)
-	if err != nil {
-		return err
-	}
+	//code, err := c.conn.CodeAt(context.Background(), addr, nil)
+	//if err != nil {
+	//	return err
+	//}
 
-	if len(code) == 0 {
-		return fmt.Errorf("no bytecode found at %s", addr.Hex())
-	}
+	//if len(code) == 0 {
+	//	return fmt.Errorf("no bytecode found at %s", addr.Hex())
+	//}
 	return nil
 }
 
