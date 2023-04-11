@@ -6,6 +6,11 @@ type CommonData struct {
 	Message             string      `json:"message"`
 	Data                interface{} `json:"data"`
 	ExecutionOptimistic bool        `json:"execution_optimistic"`
+	Version             string      `json:"version"`
+}
+
+type CommonDataArray struct {
+	data []CommonData
 }
 
 type BeaconHeadersResp struct {
@@ -48,19 +53,15 @@ type BeaconHeadersData struct {
 }
 
 type AttestedHeader struct {
-	Slot          string `json:"slot"`
-	ProposerIndex string `json:"proposer_index"`
-	ParentRoot    string `json:"parent_root"`
-	StateRoot     string `json:"state_root"`
-	BodyRoot      string `json:"body_root"`
+	Beacon          Beacon    `json:"beacon"`
+	Execution       Execution `json:"execution"`
+	ExecutionBranch []string  `json:"execution_branch"`
 }
 
 type FinalizedHeader struct {
-	Slot          string `json:"slot"`
-	ProposerIndex string `json:"proposer_index"`
-	ParentRoot    string `json:"parent_root"`
-	StateRoot     string `json:"state_root"`
-	BodyRoot      string `json:"body_root"`
+	Beacon          Beacon    `json:"beacon"`
+	Execution       Execution `json:"execution"`
+	ExecutionBranch []string  `json:"execution_branch"`
 }
 
 type SyncAggregate struct {
@@ -99,33 +100,16 @@ type Attestations struct {
 }
 
 type Body struct {
-	RandaoReveal      string           `json:"randao_reveal"`
-	Eth1Data          Eth1Data         `json:"eth1_data"`
-	Graffiti          string           `json:"graffiti"`
-	ProposerSlashings []interface{}    `json:"proposer_slashings"`
-	AttesterSlashings []interface{}    `json:"attester_slashings"`
-	Attestations      []Attestations   `json:"attestations"`
-	Deposits          []interface{}    `json:"deposits"`
-	VoluntaryExits    []interface{}    `json:"voluntary_exits"`
-	SyncAggregate     SyncAggregate    `json:"sync_aggregate"`
-	ExecutionPayload  ExecutionPayload `json:"execution_payload"`
-}
-
-type ExecutionPayload struct {
-	ParentHash    string   `json:"parent_hash"`
-	FeeRecipient  string   `json:"fee_recipient"`
-	StateRoot     string   `json:"state_root"`
-	ReceiptsRoot  string   `json:"receipts_root"`
-	LogsBloom     string   `json:"logs_bloom"`
-	PrevRandao    string   `json:"prev_randao"`
-	BlockNumber   string   `json:"block_number"`
-	GasLimit      string   `json:"gas_limit"`
-	GasUsed       string   `json:"gas_used"`
-	Timestamp     string   `json:"timestamp"`
-	ExtraData     string   `json:"extra_data"`
-	BaseFeePerGas string   `json:"base_fee_per_gas"`
-	BlockHash     string   `json:"block_hash"`
-	Transactions  []string `json:"transactions"`
+	RandaoReveal      string         `json:"randao_reveal"`
+	Eth1Data          Eth1Data       `json:"eth1_data"`
+	Graffiti          string         `json:"graffiti"`
+	ProposerSlashings []interface{}  `json:"proposer_slashings"`
+	AttesterSlashings []interface{}  `json:"attester_slashings"`
+	Attestations      []Attestations `json:"attestations"`
+	Deposits          []interface{}  `json:"deposits"`
+	VoluntaryExits    []interface{}  `json:"voluntary_exits"`
+	SyncAggregate     SyncAggregate  `json:"sync_aggregate"`
+	ExecutionPayload  Execution      `json:"execution_payload"`
 }
 
 type BlocksMessage struct {

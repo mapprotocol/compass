@@ -883,6 +883,19 @@ const (
 	[
 		{
 			"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "_data",
+				"type": "bytes"
+			}
+			],
+			"name": "updateLightClient",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
 				{
 					"internalType": "bytes",
 					"name": "_data",
@@ -2028,111 +2041,347 @@ const (
 			"type": "function"
 		},
 		{
+			"inputs": [
+			{
+			"components": [
+			{
+			"components": [
+			{
+			"internalType": "uint64",
+			"name": "slot",
+			"type": "uint64"
+			},
+			{
+			"internalType": "uint64",
+			"name": "proposerIndex",
+			"type": "uint64"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "parentRoot",
+			"type": "bytes32"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "stateRoot",
+			"type": "bytes32"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "bodyRoot",
+			"type": "bytes32"
+			}
+			],
+			"internalType": "struct Types.BeaconBlockHeader",
+			"name": "attestedHeader",
+			"type": "tuple"
+			},
+			{
+			"components": [
+			{
+			"internalType": "bytes",
+			"name": "pubkeys",
+			"type": "bytes"
+			},
+			{
+			"internalType": "bytes",
+			"name": "aggregatePubkey",
+			"type": "bytes"
+			}
+			],
+			"internalType": "struct Types.SyncCommittee",
+			"name": "nextSyncCommittee",
+			"type": "tuple"
+			},
+			{
+			"internalType": "bytes32[]",
+			"name": "nextSyncCommitteeBranch",
+			"type": "bytes32[]"
+			},
+			{
+			"components": [
+			{
+			"internalType": "uint64",
+			"name": "slot",
+			"type": "uint64"
+			},
+			{
+			"internalType": "uint64",
+			"name": "proposerIndex",
+			"type": "uint64"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "parentRoot",
+			"type": "bytes32"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "stateRoot",
+			"type": "bytes32"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "bodyRoot",
+			"type": "bytes32"
+			}
+			],
+			"internalType": "struct Types.BeaconBlockHeader",
+			"name": "finalizedHeader",
+			"type": "tuple"
+			},
+			{
+			"internalType": "bytes32[]",
+			"name": "finalityBranch",
+			"type": "bytes32[]"
+			},
+			{
+			"components": [
+			{
+			"internalType": "bytes32",
+			"name": "parentHash",
+			"type": "bytes32"
+			},
+			{
+			"internalType": "address",
+			"name": "feeRecipient",
+			"type": "address"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "stateRoot",
+			"type": "bytes32"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "receiptsRoot",
+			"type": "bytes32"
+			},
+			{
+			"internalType": "bytes",
+			"name": "logsBloom",
+			"type": "bytes"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "prevRandao",
+			"type": "bytes32"
+			},
+			{
+			"internalType": "uint256",
+			"name": "blockNumber",
+			"type": "uint256"
+			},
+			{
+			"internalType": "uint256",
+			"name": "gasLimit",
+			"type": "uint256"
+			},
+			{
+			"internalType": "uint256",
+			"name": "gasUsed",
+			"type": "uint256"
+			},
+			{
+			"internalType": "uint256",
+			"name": "timestamp",
+			"type": "uint256"
+			},
+			{
+			"internalType": "bytes",
+			"name": "extraData",
+			"type": "bytes"
+			},
+			{
+			"internalType": "uint256",
+			"name": "baseFeePerGas",
+			"type": "uint256"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "blockHash",
+			"type": "bytes32"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "transactionsRoot",
+			"type": "bytes32"
+			},
+			{
+			"internalType": "bytes32",
+			"name": "withdrawalsRoot",
+			"type": "bytes32"
+			}
+			],
+			"internalType": "struct Types.Execution",
+			"name": "finalizedExecution",
+			"type": "tuple"
+			},
+			{
+			"internalType": "bytes32[]",
+			"name": "executionBranch",
+			"type": "bytes32[]"
+			},
+			{
+			"components": [
+			{
+			"internalType": "bytes",
+			"name": "syncCommitteeBits",
+			"type": "bytes"
+			},
+			{
+			"internalType": "bytes",
+			"name": "syncCommitteeSignature",
+			"type": "bytes"
+			}
+			],
+			"internalType": "struct Types.SyncAggregate",
+			"name": "syncAggregate",
+			"type": "tuple"
+			},
+			{
+			"internalType": "uint64",
+			"name": "signatureSlot",
+			"type": "uint64"
+			}
+			],
+			"internalType": "struct Types.LightClientUpdate",
+			"name": "_update",
+			"type": "tuple"
+			}
+			],
+			"name": "getUpdateBytes",
+			"outputs": [
+			{
+			"internalType": "bytes",
+			"name": "",
+			"type": "bytes"
+			}
+			],
+			"stateMutability": "pure",
+			"type": "function"
+		},
+		{
+			"inputs": [
+			{
+				"components": [
+				{
+					"internalType": "bytes32",
+					"name": "parentHash",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "sha3Uncles",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "address",
+					"name": "miner",
+					"type": "address"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "stateRoot",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "transactionsRoot",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "receiptsRoot",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes",
+					"name": "logsBloom",
+					"type": "bytes"
+				},
+				{
+					"internalType": "uint256",
+					"name": "difficulty",
+					"type": "uint256"
+				},
+				{
+					"internalType": "uint256",
+					"name": "number",
+					"type": "uint256"
+				},
+				{
+					"internalType": "uint256",
+					"name": "gasLimit",
+					"type": "uint256"
+				},
+				{
+					"internalType": "uint256",
+					"name": "gasUsed",
+					"type": "uint256"
+				},
+				{
+					"internalType": "uint256",
+					"name": "timestamp",
+					"type": "uint256"
+				},
+				{
+					"internalType": "bytes",
+					"name": "extraData",
+					"type": "bytes"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "mixHash",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes",
+					"name": "nonce",
+					"type": "bytes"
+				},
+				{
+					"internalType": "uint256",
+					"name": "baseFeePerGas",
+					"type": "uint256"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "withdrawalsRoot",
+					"type": "bytes32"
+				}
+				],
+				"internalType": "struct Types.BlockHeader[]",
+				"name": "_headers",
+				"type": "tuple[]"
+				}
+				],
+				"name": "getHeadersBytes",
+				"outputs": [
+				{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
+				}
+			],
+			"stateMutability": "pure",
+			"type": "function"
+		},
+		{
 			"inputs":[
 				{
 					"components":[
 						{
 							"components":[
 								{
-									"internalType":"uint64",
-									"name":"slot",
-									"type":"uint64"
-								},
-								{
-									"internalType":"uint64",
-									"name":"proposerIndex",
-									"type":"uint64"
-								},
-								{
 									"internalType":"bytes32",
-									"name":"parentRoot",
-									"type":"bytes32"
-								},
-								{
-									"internalType":"bytes32",
-									"name":"stateRoot",
-									"type":"bytes32"
-								},
-								{
-									"internalType":"bytes32",
-									"name":"bodyRoot",
-									"type":"bytes32"
-								}
-							],
-							"internalType":"struct Types.BeaconBlockHeader",
-							"name":"attestedHeader",
-							"type":"tuple"
-						},
-						{
-							"components":[
-								{
-									"internalType":"bytes",
-									"name":"pubkeys",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"aggregatePubkey",
-									"type":"bytes"
-								}
-							],
-							"internalType":"struct Types.SyncCommittee",
-							"name":"nextSyncCommittee",
-							"type":"tuple"
-						},
-						{
-							"internalType":"bytes32[]",
-							"name":"nextSyncCommitteeBranch",
-							"type":"bytes32[]"
-						},
-						{
-							"components":[
-								{
-									"internalType":"uint64",
-									"name":"slot",
-									"type":"uint64"
-								},
-								{
-									"internalType":"uint64",
-									"name":"proposerIndex",
-									"type":"uint64"
-								},
-								{
-									"internalType":"bytes32",
-									"name":"parentRoot",
-									"type":"bytes32"
-								},
-								{
-									"internalType":"bytes32",
-									"name":"stateRoot",
-									"type":"bytes32"
-								},
-								{
-									"internalType":"bytes32",
-									"name":"bodyRoot",
-									"type":"bytes32"
-								}
-							],
-							"internalType":"struct Types.BeaconBlockHeader",
-							"name":"finalizedHeader",
-							"type":"tuple"
-						},
-						{
-							"internalType":"bytes32[]",
-							"name":"finalityBranch",
-							"type":"bytes32[]"
-						},
-						{
-							"components":[
-								{
-									"internalType":"bytes",
 									"name":"parentHash",
-									"type":"bytes"
+									"type":"bytes32"
 								},
 								{
-									"internalType":"bytes",
+									"internalType":"bytes32",
 									"name":"sha3Uncles",
-									"type":"bytes"
+									"type":"bytes32"
 								},
 								{
 									"internalType":"address",
@@ -2140,19 +2389,19 @@ const (
 									"type":"address"
 								},
 								{
-									"internalType":"bytes",
+									"internalType":"bytes32",
 									"name":"stateRoot",
-									"type":"bytes"
+									"type":"bytes32"
 								},
 								{
-									"internalType":"bytes",
+									"internalType":"bytes32",
 									"name":"transactionsRoot",
-									"type":"bytes"
+									"type":"bytes32"
 								},
 								{
-									"internalType":"bytes",
+									"internalType":"bytes32",
 									"name":"receiptsRoot",
-									"type":"bytes"
+									"type":"bytes32"
 								},
 								{
 									"internalType":"bytes",
@@ -2190,9 +2439,9 @@ const (
 									"type":"bytes"
 								},
 								{
-									"internalType":"bytes",
+									"internalType":"bytes32",
 									"name":"mixHash",
-									"type":"bytes"
+									"type":"bytes32"
 								},
 								{
 									"internalType":"bytes",
@@ -2203,242 +2452,11 @@ const (
 									"internalType":"uint256",
 									"name":"baseFeePerGas",
 									"type":"uint256"
-								}
-							],
-							"internalType":"struct Types.BlockHeader",
-							"name":"finalizedExeHeader",
-							"type":"tuple"
-						},
-						{
-							"internalType":"bytes32[]",
-							"name":"exeFinalityBranch",
-							"type":"bytes32[]"
-						},
-						{
-							"components":[
-								{
-									"internalType":"bytes",
-									"name":"syncCommitteeBits",
-									"type":"bytes"
 								},
 								{
-									"internalType":"bytes",
-									"name":"syncCommitteeSignature",
-									"type":"bytes"
-								}
-							],
-							"internalType":"struct Types.SyncAggregate",
-							"name":"syncAggregate",
-							"type":"tuple"
-						},
-						{
-							"internalType":"uint64",
-							"name":"signatureSlot",
-							"type":"uint64"
-						}
-					],
-					"internalType":"struct Types.LightClientUpdate",
-					"name":"_update",
-					"type":"tuple"
-				}
-			],
-			"name":"getUpdateBytes",
-			"outputs":[
-				{
-					"internalType":"bytes",
-					"name":"",
-					"type":"bytes"
-				}
-			],
-			"stateMutability":"pure",
-			"type":"function"
-		},
-		{
-			"inputs":[
-				{
-					"components":[
-						{
-							"internalType":"bytes",
-							"name":"parentHash",
-							"type":"bytes"
-						},
-						{
-							"internalType":"bytes",
-							"name":"sha3Uncles",
-							"type":"bytes"
-						},
-						{
-							"internalType":"address",
-							"name":"miner",
-							"type":"address"
-						},
-						{
-							"internalType":"bytes",
-							"name":"stateRoot",
-							"type":"bytes"
-						},
-						{
-							"internalType":"bytes",
-							"name":"transactionsRoot",
-							"type":"bytes"
-						},
-						{
-							"internalType":"bytes",
-							"name":"receiptsRoot",
-							"type":"bytes"
-						},
-						{
-							"internalType":"bytes",
-							"name":"logsBloom",
-							"type":"bytes"
-						},
-						{
-							"internalType":"uint256",
-							"name":"difficulty",
-							"type":"uint256"
-						},
-						{
-							"internalType":"uint256",
-							"name":"number",
-							"type":"uint256"
-						},
-						{
-							"internalType":"uint256",
-							"name":"gasLimit",
-							"type":"uint256"
-						},
-						{
-							"internalType":"uint256",
-							"name":"gasUsed",
-							"type":"uint256"
-						},
-						{
-							"internalType":"uint256",
-							"name":"timestamp",
-							"type":"uint256"
-						},
-						{
-							"internalType":"bytes",
-							"name":"extraData",
-							"type":"bytes"
-						},
-						{
-							"internalType":"bytes",
-							"name":"mixHash",
-							"type":"bytes"
-						},
-						{
-							"internalType":"bytes",
-							"name":"nonce",
-							"type":"bytes"
-						},
-						{
-							"internalType":"uint256",
-							"name":"baseFeePerGas",
-							"type":"uint256"
-						}
-					],
-					"internalType":"struct Types.BlockHeader[]",
-					"name":"_headers",
-					"type":"tuple[]"
-				}
-			],
-			"name":"getHeadersBytes",
-			"outputs":[
-				{
-					"internalType":"bytes",
-					"name":"",
-					"type":"bytes"
-				}
-			],
-			"stateMutability":"pure",
-			"type":"function"
-		},
-		{
-			"inputs":[
-				{
-					"components":[
-						{
-							"components":[
-								{
-									"internalType":"bytes",
-									"name":"parentHash",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"sha3Uncles",
-									"type":"bytes"
-								},
-								{
-									"internalType":"address",
-									"name":"miner",
-									"type":"address"
-								},
-								{
-									"internalType":"bytes",
-									"name":"stateRoot",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"transactionsRoot",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"receiptsRoot",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"logsBloom",
-									"type":"bytes"
-								},
-								{
-									"internalType":"uint256",
-									"name":"difficulty",
-									"type":"uint256"
-								},
-								{
-									"internalType":"uint256",
-									"name":"number",
-									"type":"uint256"
-								},
-								{
-									"internalType":"uint256",
-									"name":"gasLimit",
-									"type":"uint256"
-								},
-								{
-									"internalType":"uint256",
-									"name":"gasUsed",
-									"type":"uint256"
-								},
-								{
-									"internalType":"uint256",
-									"name":"timestamp",
-									"type":"uint256"
-								},
-								{
-									"internalType":"bytes",
-									"name":"extraData",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"mixHash",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"nonce",
-									"type":"bytes"
-								},
-								{
-									"internalType":"uint256",
-									"name":"baseFeePerGas",
-									"type":"uint256"
+									"internalType":"bytes32",
+									"name":"withdrawalsRoot",
+									"type":"bytes32"
 								}
 							],
 							"internalType":"struct Types.BlockHeader",

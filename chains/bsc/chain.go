@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	connection "github.com/mapprotocol/compass/connections/ethereum"
+
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/tx"
 
@@ -20,7 +22,7 @@ import (
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
 	role mapprotocol.Role) (core.Chain, error) {
-	return chain.New(chainCfg, logger, sysErr, m, role, chain.OptOfSync2Map(syncHeaderToMap),
+	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection, chain.OptOfSync2Map(syncHeaderToMap),
 		chain.OptOfInitHeight(mapprotocol.HeaderCountOfBsc), chain.OptOfMos(mosHandler))
 }
 

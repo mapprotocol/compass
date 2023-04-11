@@ -18,10 +18,10 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/mapprotocol/compass/connections/ethereum/egs"
+	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 )
-
-var BlockRetryInterval = time.Second * 5
 
 type Connection struct {
 	endpoint      string
@@ -33,18 +33,17 @@ type Connection struct {
 	egsApiKey     string
 	egsSpeed      string
 	conn          *ethclient.Client
-	// signer    ethtypes.Signer
-	opts     *bind.TransactOpts
-	callOpts *bind.CallOpts
-	nonce    uint64
-	optsLock sync.Mutex
-	log      log15.Logger
-	stop     chan int // All routines should exit when this channel is closed
+	opts          *bind.TransactOpts
+	callOpts      *bind.CallOpts
+	nonce         uint64
+	optsLock      sync.Mutex
+	log           log15.Logger
+	stop          chan int // All routines should exit when this channel is closed
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
 func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
-	gasMultiplier float64, gsnApiKey, gsnSpeed string) *Connection {
+	gasMultiplier float64, gsnApiKey, gsnSpeed string) chain.Connection {
 	bigFloat := new(big.Float).SetFloat64(gasMultiplier)
 	return &Connection{
 		endpoint:      endpoint,
@@ -301,7 +300,7 @@ func (c *Connection) WaitForBlock(targetBlock *big.Int, delay *big.Int) error {
 				return nil
 			}
 			c.log.Trace("Block not ready, waiting", "target", targetBlock, "current", currBlock, "delay", delay)
-			time.Sleep(BlockRetryInterval)
+			time.Sleep(constant.BlockRetryInterval)
 			continue
 		}
 	}
