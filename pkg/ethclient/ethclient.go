@@ -595,3 +595,12 @@ type QuorumCert struct {
 	Signature    string `json:"signature"`
 	ValidatorSet string `json:"validatorSet"`
 }
+
+//func (ec *Client) PlatonGetBlockByNumber(ctx context.Context, number *big.Int) (*platonTypes.Header, error) {
+//	var head *platonTypes.Header
+//	err := ec.c.CallContext(ctx, &head, "eth_getBlockByNumber", toBlockNumArg(number), false)
+//	if err == nil && head == nil {
+//		err = ethereum.NotFound
+//	}
+//	return head, err
+//}
