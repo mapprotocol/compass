@@ -20,7 +20,7 @@ import (
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
 	role mapprotocol.Role) (core.Chain, error) {
-	return chain.New(chainCfg, logger, sysErr, m, role, chain.OptOfSync2Map(syncHeaderToMap), chain.OptOfMos(mos))
+	return chain.New(chainCfg, logger, sysErr, m, role, platon.NewConn, chain.OptOfSync2Map(syncHeaderToMap), chain.OptOfMos(mos))
 }
 
 func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
@@ -28,7 +28,6 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
-	// synced height check
 	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
 	syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {

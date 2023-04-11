@@ -39,14 +39,16 @@ func (m *Messenger) Sync() error {
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
+	if !m.Cfg.SyncToMap {
+		time.Sleep(time.Hour * 720)
+		return nil
+	}
 	var currentBlock = m.Cfg.StartBlock
 
-	if m.Cfg.SyncToMap {
-		// when listen to map there must be a 20 block confirmation at least
-		big20 := big.NewInt(20)
-		if m.BlockConfirmations.Cmp(big20) == -1 {
-			m.BlockConfirmations = big20
-		}
+	// when listen to map there must be a 20 block confirmation at least
+	big20 := big.NewInt(20)
+	if m.BlockConfirmations.Cmp(big20) == -1 {
+		m.BlockConfirmations = big20
 	}
 
 	for {
