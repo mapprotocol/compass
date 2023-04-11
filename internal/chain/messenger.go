@@ -40,7 +40,7 @@ func (m *Messenger) Sync() error {
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
 	if !m.Cfg.SyncToMap {
-		time.Sleep(time.Hour * 720)
+		time.Sleep(time.Hour * 2400)
 		return nil
 	}
 	var currentBlock = m.Cfg.StartBlock

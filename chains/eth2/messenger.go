@@ -46,14 +46,13 @@ func (m *Messenger) Sync() error {
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
+	if !m.Cfg.SyncToMap {
+		time.Sleep(time.Hour * 2400)
+	}
 	var currentBlock = m.Cfg.StartBlock
-
-	if m.Cfg.SyncToMap {
-		// when listen to map there must be a 20 block confirmation at least
-		big20 := big.NewInt(20)
-		if m.BlockConfirmations.Cmp(big20) == -1 {
-			m.BlockConfirmations = big20
-		}
+	big20 := big.NewInt(20)
+	if m.BlockConfirmations.Cmp(big20) == -1 {
+		m.BlockConfirmations = big20
 	}
 
 	for {
@@ -145,28 +144,26 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		// getOrderId
 		orderId := log.Data[:32]
 		method := m.GetMethod(log.Topics[0])
-		if m.Cfg.SyncToMap {
-			header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
-			if err != nil {
-				return 0, err
-			}
-			// when syncToMap we need to assemble a tx proof
-			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-			}
-			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-			}
-			payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id)
-			if err != nil {
-				return 0, fmt.Errorf("unable to Parse Log: %w", err)
-			}
-
-			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+		header, err := m.Conn.Client().EthLatestHeaderByNumber(m.Cfg.Endpoint, latestBlock)
+		if err != nil {
+			return 0, err
 		}
+		// when syncToMap we need to assemble a tx proof
+		txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
+		if err != nil {
+			return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+		}
+		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+		if err != nil {
+			return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+		}
+		payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id)
+		if err != nil {
+			return 0, fmt.Errorf("unable to Parse Log: %w", err)
+		}
+
+		msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 
 		m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
 		err = m.Router.Send(message)

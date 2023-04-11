@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/mapprotocol/compass/chains"
@@ -16,10 +21,6 @@ import (
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type Monitor struct {
@@ -132,7 +133,7 @@ func Handler(resp http.ResponseWriter, req *http.Request) {
 		}
 		data, err = klaytn.GetProof(client, kc, receipt.BlockNumber, logParam, method, msg.ChainId(r.ChainId))
 	case chains.Eth2:
-		data, err = eth2.GetProof(client, receipt.BlockNumber, logParam, method, msg.ChainId(r.ChainId))
+		data, err = eth2.GetProof(client, cfg.Endpoint, receipt.BlockNumber, logParam, method, msg.ChainId(r.ChainId))
 	default:
 	}
 	client.Close()
