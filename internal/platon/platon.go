@@ -4,9 +4,7 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/mapprotocol/compass/pkg/ethclient"
-
-	"github.com/mapprotocol/compass/pkg/util"
+	"github.com/mapprotocol/compass/pkg/platon"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -14,6 +12,7 @@ import (
 	iproof "github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
@@ -38,7 +37,7 @@ type UpdateBlock struct {
 	Cert       *QuorumCert
 }
 
-func ConvertHeader(header *types.Header) *BlockHeader {
+func ConvertHeader(header *platon.Header) *BlockHeader {
 	bloom := make([]byte, 0, len(header.Bloom))
 	for _, b := range header.Bloom {
 		bloom = append(bloom, b)
@@ -49,11 +48,11 @@ func ConvertHeader(header *types.Header) *BlockHeader {
 	}
 
 	return &BlockHeader{
-		ParentHash:       util.HashToByte(header.ParentHash),
-		Miner:            header.Coinbase,
-		StateRoot:        util.HashToByte(header.Root),
-		TransactionsRoot: util.HashToByte(header.TxHash),
-		ReceiptsRoot:     util.HashToByte(header.ReceiptHash),
+		ParentHash:       header.ParentHash.Bytes(),
+		Miner:            common.HexToAddress(header.Coinbase.String()),
+		StateRoot:        header.Root.Bytes(),
+		TransactionsRoot: header.TxHash.Bytes(),
+		ReceiptsRoot:     header.ReceiptHash.Bytes(),
 		LogsBloom:        bloom,
 		Number:           header.Number,
 		GasLimit:         new(big.Int).SetUint64(header.GasLimit),
@@ -133,16 +132,16 @@ func AssembleProof(block *UpdateBlock, log types.Log, receipts []*types.Receipt,
 }
 
 func GetHeaderParam(client *ethclient.Client, latestBlock *big.Int) (*UpdateBlock, error) {
-	header, err := client.HeaderByNumber(context.Background(), latestBlock)
+	header, err := client.PlatonGetBlockByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return nil, err
 	}
 	pHeader := ConvertHeader(header)
-	validator, err := client.PlatonGetValidatorByNumber(context.Background(), pHeader.Number)
+	validator, err := client.PlatonGetValidatorByNumber(context.Background(), new(big.Int).Add(pHeader.Number, big.NewInt(1)))
 	if err != nil {
 		return nil, err
 	}
-	quorumCert, err := client.PlatonGetBlockQuorumCertByHash(context.Background(), []common.Hash{header.Hash()})
+	quorumCert, err := client.PlatonGetBlockQuorumCertByHash(context.Background(), []common.Hash{common.HexToHash(header.Hash().String())})
 	if err != nil {
 		return nil, err
 	}

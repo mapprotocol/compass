@@ -21,7 +21,7 @@ require (
 	github.com/status-im/keycard-go v0.0.0-20211109104530-b0e0482ba91d // indirect
 	github.com/stretchr/testify v1.8.0
 	github.com/urfave/cli/v2 v2.10.2
-	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
-	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
+	golang.org/x/crypto v0.1.0
+	golang.org/x/term v0.1.0
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
 )

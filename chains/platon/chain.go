@@ -41,7 +41,7 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	}
 	m.Log.Info("find sync block", "current height", latestBlock)
 	headers := make([]*platon.BlockHeader, 1)
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
+	header, err := m.Conn.Client().PlatonGetBlockByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return err
 	}
