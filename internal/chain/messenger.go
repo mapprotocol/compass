@@ -45,12 +45,6 @@ func (m *Messenger) sync() error {
 	}
 	var currentBlock = m.Cfg.StartBlock
 
-	// when listen to map there must be a 20 block confirmation at least
-	big20 := big.NewInt(20)
-	if m.BlockConfirmations.Cmp(big20) == -1 {
-		m.BlockConfirmations = big20
-	}
-
 	for {
 		select {
 		case <-m.Stop:
