@@ -5,17 +5,15 @@ import (
 	"fmt"
 	"math/big"
 
-	connection "github.com/mapprotocol/compass/connections/ethereum"
-
-	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/internal/tx"
-
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/bsc"
 	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 )
