@@ -44,7 +44,6 @@ func connectKClient(endpoint string) error {
 func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	remainder := big.NewInt(0).Mod(new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(mapprotocol.HeaderCountOfKlaytn-1)),
 		big.NewInt(mapprotocol.EpochOfKlaytn))
-	fmt.Println("latestBlock ------------- ", latestBlock, "remainder", remainder)
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
