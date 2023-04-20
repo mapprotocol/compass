@@ -20,7 +20,7 @@ tokio = { version = "1.19.2", features = ["rt-multi-thread", "macros"] }
 redis = {version = "0.21.5", features = ["connection-manager", "tokio-comp"]}
 tracing-appender = "0.2.2"
 
-near-lake-framework = "0.5.0"
+near-lake-framework = "0.7.1"
 
 [profile.release]
 codegen-units = 1
