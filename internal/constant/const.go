@@ -34,6 +34,7 @@ var IgnoreError = map[string]struct{}{
 	"order exist":                       {},
 	"already known":                     {},
 	"Header is have":                    {},
+	"height error":                      {},
 	"invalid start block":               {},
 	"invalid syncing block":             {},
 	"initialized or unknown epoch":      {},
