@@ -3,6 +3,7 @@ package tx
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -44,6 +45,9 @@ func GetReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*typ
 				continue
 			}
 			return nil, err
+		}
+		if len(txsHash) > 1000 {
+			time.Sleep(time.Millisecond * 10)
 		}
 		rs = append(rs, r)
 	}
