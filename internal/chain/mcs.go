@@ -65,8 +65,9 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			if len(m.Payload) > 3 {
 				inputHash = m.Payload[3]
 			}
-			w.log.Info("send transaction", "addr", addr, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
+			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
 			mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
+			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.Near, mapprotocol.MethodVerifyProofData)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash, "mcsTx", mcsTx.Hash())
 				err = w.txStatus(mcsTx.Hash())
@@ -117,13 +118,13 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 		nil,
 	)
 	if err != nil {
-		w.log.Error("mcs callContract verify failed", "err", err.Error())
+		w.log.Error("Mcs callContract verify failed", "err", err.Error())
 		return err
 	}
 
 	resp, err := useAbi.Methods[method].Outputs.Unpack(outPut)
 	if err != nil {
-		w.log.Error("proof call failed ", "err", err.Error())
+		w.log.Error("Proof call failed ", "err", err.Error())
 		return err
 	}
 
@@ -142,9 +143,9 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 		return fmt.Errorf("verify proof failed, message is (%s)", ret.Message)
 	}
 	if ret.Success == true {
-		w.log.Info("mcs verify log success", "success", ret.Success)
+		w.log.Info("Mcs verify log success", "success", ret.Success)
 		//tmp, _ := rlp.EncodeToBytes(ret.Logs)
-		w.log.Info("mcs verify log success", "logs", "0x"+common.Bytes2Hex(ret.Logs))
+		w.log.Info("Mcs verify log success", "logs", "0x"+common.Bytes2Hex(ret.Logs))
 	}
 
 	return nil
