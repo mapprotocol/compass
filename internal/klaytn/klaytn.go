@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/big"
+	"strings"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -16,9 +20,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"github.com/pkg/errors"
-	"math/big"
-	"strings"
-	"sync"
 )
 
 type Header struct {
@@ -234,10 +235,11 @@ func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*ty
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
 	ek := utils.Key2Hex(key, len(proof))
-	receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
+	receipt, err := GetTxReceipt(receipts[log.TxIndex])
 	if err != nil {
 		return nil, err
 	}
+
 	pd := ReceiptProofOriginal{
 		Header:    header,
 		Proof:     proof,
@@ -260,12 +262,35 @@ func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*ty
 
 	//fmt.Println("proof hex ------------ ", "0x"+common.Bytes2Hex(input))
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	//pack, err := mapprotocol.Near.Pack(mapprotocol.MethodVerifyProofData, input)
+	//pack, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
 	if err != nil {
 		return nil, err
 	}
 
 	return pack, nil
+}
+
+func GetTxReceipt(receipt *types.Receipt) (*mapprotocol.TxReceipt, error) {
+	logs := make([]mapprotocol.TxLog, 0, len(receipt.Logs))
+	for _, lg := range receipt.Logs {
+		topics := make([][]byte, len(lg.Topics))
+		for i := range lg.Topics {
+			topics[i] = lg.Topics[i][:]
+		}
+		logs = append(logs, mapprotocol.TxLog{
+			Addr:   lg.Address,
+			Topics: topics,
+			Data:   lg.Data,
+		})
+	}
+
+	return &mapprotocol.TxReceipt{
+		ReceiptType:       new(big.Int).SetUint64(uint64(receipt.Type)),
+		PostStateOrStatus: mapprotocol.StatusEncoding(receipt),
+		CumulativeGasUsed: new(big.Int).SetUint64(receipt.GasUsed),
+		Bloom:             receipt.Bloom[:],
+		Logs:              logs,
+	}, nil
 }
 
 func getProof(receipts utils.DerivableList, txIndex uint) ([][]byte, error) {
