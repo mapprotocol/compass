@@ -207,7 +207,7 @@ func multiplyGasPrice(gasEstimate *big.Int, gasMultiplier *big.Float) *big.Int {
 // LockAndUpdateOpts acquires a lock on the opts before updating the nonce
 // and gas price.
 func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
-	c.optsLock.Lock()
+	//c.optsLock.Lock()
 	head, err := c.conn.HeaderByNumber(context.TODO(), nil)
 	// cos map chain dont have this section in return,this err will be raised
 	if err != nil && err.Error() != "missing required field 'sha3Uncles' for Header" {
@@ -225,7 +225,7 @@ func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 			// if EstimateGasLondon failed, fall back to suggestGasPrice
 			c.opts.GasPrice, err = c.conn.SuggestGasPrice(context.TODO())
 			if err != nil {
-				c.UnlockOpts()
+				//c.UnlockOpts()
 				return err
 			}
 		}
@@ -234,7 +234,7 @@ func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 		var gasPrice *big.Int
 		gasPrice, err = c.SafeEstimateGas(context.TODO())
 		if err != nil {
-			c.UnlockOpts()
+			//c.UnlockOpts()
 			return err
 		}
 		c.opts.GasPrice = gasPrice
@@ -245,7 +245,7 @@ func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 	}
 	nonce, err := c.conn.PendingNonceAt(context.Background(), c.opts.From)
 	if err != nil {
-		c.optsLock.Unlock()
+		//c.optsLock.Unlock()
 		return err
 	}
 	c.opts.Nonce.SetUint64(nonce)
@@ -253,7 +253,7 @@ func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 }
 
 func (c *Connection) UnlockOpts() {
-	c.optsLock.Unlock()
+	//c.optsLock.Unlock()
 }
 
 // LatestBlock returns the latest block from the current chain

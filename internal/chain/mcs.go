@@ -35,31 +35,29 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 		case <-w.stop:
 			return false
 		default:
-			// 先请求下orderId是否已经存在
-			if len(m.Payload) > 1 {
-				orderId := m.Payload[1].([]byte)
-				exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
-				if err != nil {
-					w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
-					errorCount++
-					if checkIdCount == 10 {
-						util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
-						checkIdCount = 0
-					}
+			orderId := m.Payload[1].([]byte)
+			exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
+			if err != nil {
+				w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
+				errorCount++
+				if checkIdCount == 10 {
+					util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
+					checkIdCount = 0
 				}
-				if exits {
-					w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
-					m.DoneCh <- struct{}{}
-					return true
-				}
+			}
+			if exits {
+				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
+				m.DoneCh <- struct{}{}
+				return true
 			}
 
-			err := w.conn.LockAndUpdateOpts(needNonce)
+			err = w.conn.LockAndUpdateOpts(needNonce)
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
-				return false
+				time.Sleep(constant.TxRetryInterval)
+				continue
 			}
-			w.conn.UnlockOpts()
+			//w.conn.UnlockOpts()
 
 			var inputHash interface{}
 			if len(m.Payload) > 3 {
