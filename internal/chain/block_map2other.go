@@ -27,7 +27,8 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 			err := w.conn.LockAndUpdateOpts(needNonce)
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
-				return false
+				time.Sleep(constant.TxRetryInterval)
+				continue
 			}
 			// These store the gas limit and price before a transaction is sent for logging in case of a failure
 			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
