@@ -93,17 +93,15 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 
 	for {
 		// First request whether the orderId already exists
-		if len(m.Payload) > 1 {
-			orderId := m.Payload[1].([]byte)
-			exits, err := w.checkOrderId(w.cfg.mcsContract, orderId)
-			if err != nil {
-				w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
-			}
-			if exits {
-				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
-				m.DoneCh <- struct{}{}
-				return true
-			}
+		orderId := m.Payload[1].([]byte)
+		exits, err := w.checkOrderId(w.cfg.mcsContract, orderId)
+		if err != nil {
+			w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
+		}
+		if exits {
+			w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
+			m.DoneCh <- struct{}{}
+			return true
 		}
 
 		md := make(map[string]interface{}, 0)
@@ -130,11 +128,11 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			}
 			w.log.Warn("Verify Execution failed, Will retry", "srcHash", inputHash, "err", err)
 			errorCount++
-			if errorCount >= 10 {
+			if errorCount >= 3 {
 				util.Alarm(context.Background(), fmt.Sprintf("map2Near mos(verify_receipt_proof) failed, srcHash=%v err is %s", inputHash, err.Error()))
 				errorCount = 0
 			}
-			time.Sleep(constant.TxRetryInterval)
+			time.Sleep(constant.NearTxRetryInterval)
 		}
 	}
 
