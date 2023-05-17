@@ -177,12 +177,12 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				}
 				w.log.Warn("Execution failed, tx may already be complete", "srcHash", inputHash, "err", err)
 				errorCount++
-				if errorCount >= 10 {
+				if errorCount >= 3 {
 					util.Alarm(context.Background(), fmt.Sprintf("map2Near mos(%s) failed, srcHash=%v err is %s", method, inputHash, err.Error()))
 					errorCount = 0
 				}
 			}
-			time.Sleep(constant.TxRetryInterval)
+			time.Sleep(constant.NearTxRetryInterval)
 		}
 	}
 }
