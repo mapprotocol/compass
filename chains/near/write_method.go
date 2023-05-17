@@ -42,6 +42,7 @@ var ignoreError = map[string]struct{}{
 	"invalid to address":                                        {},
 	"invalid to chain token address":                            {},
 	"transfer in token failed, maybe TO account does not exist": {},
+	"amount should be greater than 0":                           {},
 }
 
 // exeSyncMapMsg executes sync msg, and send tx to the destination blockchain
