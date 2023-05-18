@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
@@ -15,22 +16,12 @@ import (
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
 var (
 	kClient = &klaytn.Client{}
 )
-
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role) (core.Chain, error) {
-	err := connectKClient(chainCfg.Endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection, chain.OptOfSync2Map(syncHeaderToMap),
-		chain.OptOfInitHeight(mapprotocol.HeaderCountOfBsc), chain.OptOfMos(mosHandler))
-}
 
 func connectKClient(endpoint string) error {
 	kc, err := klaytn.DialHttp(endpoint, true)
@@ -41,9 +32,45 @@ func connectKClient(endpoint string) error {
 	return nil
 }
 
+func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
+	role mapprotocol.Role) (core.Chain, error) {
+	err := connectKClient(chainCfg.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection, chain.OptOfSync2Map(syncHeaderToMap),
+		chain.OptOfMos(mosHandler))
+}
+
 func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
-	remainder := big.NewInt(0).Mod(new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(mapprotocol.HeaderCountOfKlaytn-1)),
-		big.NewInt(mapprotocol.EpochOfKlaytn))
+	if err := syncValidatorHeader(m, latestBlock); err != nil {
+		return err
+	}
+
+	if err := syncHeader(m, latestBlock); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
+	kHeader, err := kClient.BlockByNumber(context.Background(), latestBlock)
+	if err != nil {
+		return err
+	}
+
+	if kHeader.VoteData == "0x" {
+		return nil
+	}
+	time.Sleep(time.Second)
+	m.Log.Info("Send Validator Header", "blockHeight", latestBlock, "voteData", kHeader.VoteData)
+	return sendSyncHeader(m, latestBlock, 2)
+}
+
+func syncHeader(m *chain.Maintainer, latestBlock *big.Int) error {
+	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfKlaytn))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
@@ -61,27 +88,25 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 		return nil
 	}
 
-	headers := make([]klaytn.Header, mapprotocol.HeaderCountOfKlaytn)
-	for i := 0; i < mapprotocol.HeaderCountOfKlaytn; i++ {
-		headerHeight := new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(int64(i)))
-		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
-		if err != nil {
-			return err
-		}
-		hKheader, err := kClient.BlockByNumber(context.Background(), headerHeight)
-		if err != nil {
-			return err
-		}
+	return sendSyncHeader(m, latestBlock, mapprotocol.HeaderCountOfKlaytn)
+}
 
-		headers[mapprotocol.HeaderCountOfKlaytn-i-1] = klaytn.ConvertContractHeader(header, hKheader)
+func sendSyncHeader(m *chain.Maintainer, latestBlock *big.Int, count int) error {
+	headers, err := assembleHeader(m.Conn.Client(), latestBlock, count)
+	if err != nil {
+		return err
 	}
-
+	fmt.Println("---------- ", headers[0].Number, headers[0].VoteData)
+	if len(headers) > 1 {
+		fmt.Println("---------- ", headers[1].Number, headers[1].VoteData)
+	}
 	input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(headers)
 	if err != nil {
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
 	}
 
+	//fmt.Println("input -------------- ", "0x"+ethcommon.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
@@ -99,6 +124,25 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	return nil
 }
 
+func assembleHeader(client *ethclient.Client, latestBlock *big.Int, count int) ([]klaytn.Header, error) {
+	headers := make([]klaytn.Header, count)
+	for i := 0; i < count; i++ {
+		headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
+		header, err := client.HeaderByNumber(context.Background(), headerHeight)
+		if err != nil {
+			return nil, err
+		}
+		hKheader, err := kClient.BlockByNumber(context.Background(), headerHeight)
+		if err != nil {
+			return nil, err
+		}
+
+		headers[count-count+i] = klaytn.ConvertContractHeader(header, hKheader)
+	}
+
+	return headers, nil
+}
+
 func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 	if !m.Cfg.SyncToMap {
 		return 0, nil
@@ -111,16 +155,12 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 	}
 
-	m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
+	m.Log.Debug("Event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
-	// read through the log events and handle their deposit event if handler is recognized
 	for _, log := range logs {
-		// evm event to msg
 		var message msg.Message
-		// getOrderId
 		orderId := log.Data[:32]
 		method := m.GetMethod(log.Topics[0])
-		// when syncToMap we need to assemble a tx proof
 		txsHash, err := klaytn.GetTxsHashByBlockNumber(kClient, latestBlock)
 		if err != nil {
 			return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
