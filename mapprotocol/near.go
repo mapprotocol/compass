@@ -35,10 +35,10 @@ type IndexerShard struct {
 }
 
 type IndexerChunkView struct {
-	Author       types.AccountID                 `json:"author"`
-	Header       client.ChunkHeaderView          `json:"header"`
-	Receipts     []ReceiptView                   `json:"receipts"`
-	Transactions []IndexerTransactionWithOutcome `json:"transactions"`
+	Author   types.AccountID        `json:"author"`
+	Header   client.ChunkHeaderView `json:"header"`
+	Receipts []ReceiptView          `json:"receipts"`
+	//Transactions []IndexerTransactionWithOutcome `json:"transactions"`
 }
 
 type ReceiptView struct {
