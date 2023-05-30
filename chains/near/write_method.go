@@ -42,6 +42,7 @@ var ignoreError = map[string]struct{}{
 	"invalid to address":                                        {},
 	"invalid to chain token address":                            {},
 	"transfer in token failed, maybe TO account does not exist": {},
+	"amount should be greater than 0":                           {},
 }
 
 // exeSyncMapMsg executes sync msg, and send tx to the destination blockchain
@@ -177,12 +178,12 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				}
 				w.log.Warn("Execution failed, tx may already be complete", "srcHash", inputHash, "err", err)
 				errorCount++
-				if errorCount >= 10 {
+				if errorCount >= 3 {
 					util.Alarm(context.Background(), fmt.Sprintf("map2Near mos(%s) failed, srcHash=%v err is %s", method, inputHash, err.Error()))
 					errorCount = 0
 				}
 			}
-			time.Sleep(constant.TxRetryInterval)
+			time.Sleep(constant.NearTxRetryInterval)
 		}
 	}
 }
