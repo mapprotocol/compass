@@ -39,6 +39,7 @@ var IgnoreError = map[string]struct{}{
 	"invalid syncing block":             {},
 	"initialized or unknown epoch":      {},
 	"no need to update exe headers":     {},
+	"could not replace existing tx":     {},
 	"New block must have higher height": {},
 	"the update finalized slot should be higher than the finalized slot":      {},
 	"previous exe block headers should be updated before update light client": {},
