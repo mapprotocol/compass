@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"math/big"
+	"strings"
 
 	"github.com/mapprotocol/compass/internal/constant"
 
@@ -129,7 +130,7 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 }
 
 func (w *Writer) needNonce(err error) bool {
-	if err == nil || err.Error() == constant.ErrNonceTooLow.Error() {
+	if err == nil || err.Error() == constant.ErrNonceTooLow.Error() || strings.Index(err.Error(), "nonce too low") != -1 {
 		return true
 	}
 
