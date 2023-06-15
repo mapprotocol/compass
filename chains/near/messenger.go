@@ -101,7 +101,7 @@ func (m *Messenger) sync() error {
 
 			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			time.Sleep(RetryInterval)
+			//time.Sleep(RetryInterval)
 		}
 	}
 }
@@ -232,6 +232,10 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			})
 			if err != nil {
 				m.log.Warn("get lightClientProof failed, will retry", "err", err)
+				time.Sleep(RetryInterval)
+				continue
+			}
+			if len(proof.BlockProof) <= 0 {
 				time.Sleep(RetryInterval)
 				continue
 			}
