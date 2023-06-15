@@ -32,7 +32,6 @@ var (
 
 var IgnoreError = map[string]struct{}{
 	"order exist":                       {},
-	"already known":                     {},
 	"Header is have":                    {},
 	"height error":                      {},
 	"invalid start block":               {},
