@@ -75,7 +75,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 					m.DoneCh <- struct{}{}
 					return true
 				}
-			} else if w.cfg.SkipError {
+			} else if w.cfg.SkipError && errorCount >= 9 {
 				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "srcHash", inputHash, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
