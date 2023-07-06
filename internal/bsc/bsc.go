@@ -32,6 +32,7 @@ type Header struct {
 	ExtraData        []byte         `json:"extraData"`
 	MixHash          []byte         `json:"mixHash"`
 	Nonce            []byte         `json:"nonce"`
+	BaseFeePerGas    *big.Int       `json:"baseFeePerGas"`
 }
 
 func ConvertHeader(header types.Header) Header {
@@ -43,6 +44,7 @@ func ConvertHeader(header types.Header) Header {
 	for _, b := range header.Nonce {
 		nonce = append(nonce, b)
 	}
+	fmt.Println("header.BaseFee ", header.BaseFee, "-header.Number", header.Number)
 	return Header{
 		ParentHash:       hashToByte(header.ParentHash),
 		Sha3Uncles:       hashToByte(header.UncleHash),
@@ -59,6 +61,7 @@ func ConvertHeader(header types.Header) Header {
 		ExtraData:        header.Extra,
 		MixHash:          hashToByte(header.MixDigest),
 		Nonce:            nonce,
+		BaseFeePerGas:    header.BaseFee,
 	}
 }
 
