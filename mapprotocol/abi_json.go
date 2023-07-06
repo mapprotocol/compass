@@ -998,6 +998,11 @@ const (
 				  "internalType": "bytes",
 				  "name": "nonce",
 				  "type": "bytes"
+				},
+				{
+				  "internalType": "uint256",
+				  "name": "baseFeePerGas",
+				  "type": "uint256"
 				}
 			  ],
 			  "internalType": "struct Verify.BlockHeader[]",
@@ -1017,174 +1022,179 @@ const (
 			"type": "function"
 		},
 		{
-			"inputs":[
+			  "inputs": [
 				{
-					"components":[
+				  "components": [
+					{
+					  "components": [
 						{
-							"components":[
-								{
-									"internalType":"bytes",
-									"name":"parentHash",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"sha3Uncles",
-									"type":"bytes"
-								},
-								{
-									"internalType":"address",
-									"name":"miner",
-									"type":"address"
-								},
-								{
-									"internalType":"bytes",
-									"name":"stateRoot",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"transactionsRoot",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"receiptsRoot",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"logsBloom",
-									"type":"bytes"
-								},
-								{
-									"internalType":"uint256",
-									"name":"difficulty",
-									"type":"uint256"
-								},
-								{
-									"internalType":"uint256",
-									"name":"number",
-									"type":"uint256"
-								},
-								{
-									"internalType":"uint256",
-									"name":"gasLimit",
-									"type":"uint256"
-								},
-								{
-									"internalType":"uint256",
-									"name":"gasUsed",
-									"type":"uint256"
-								},
-								{
-									"internalType":"uint256",
-									"name":"timestamp",
-									"type":"uint256"
-								},
-								{
-									"internalType":"bytes",
-									"name":"extraData",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"mixHash",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes",
-									"name":"nonce",
-									"type":"bytes"
-								}
-							],
-							"internalType":"struct Verify.BlockHeader[]",
-							"name":"headers",
-							"type":"tuple[]"
+						  "internalType": "bytes",
+						  "name": "parentHash",
+						  "type": "bytes"
 						},
 						{
-							"components":[
-								{
-									"components":[
-										{
-											"internalType":"uint256",
-											"name":"receiptType",
-											"type":"uint256"
-										},
-										{
-											"internalType":"bytes",
-											"name":"postStateOrStatus",
-											"type":"bytes"
-										},
-										{
-											"internalType":"uint256",
-											"name":"cumulativeGasUsed",
-											"type":"uint256"
-										},
-										{
-											"internalType":"bytes",
-											"name":"bloom",
-											"type":"bytes"
-										},
-										{
-											"components":[
-												{
-													"internalType":"address",
-													"name":"addr",
-													"type":"address"
-												},
-												{
-													"internalType":"bytes[]",
-													"name":"topics",
-													"type":"bytes[]"
-												},
-												{
-													"internalType":"bytes",
-													"name":"data",
-													"type":"bytes"
-												}
-											],
-											"internalType":"struct Verify.TxLog[]",
-											"name":"logs",
-											"type":"tuple[]"
-										}
-									],
-									"internalType":"struct Verify.TxReceipt",
-									"name":"txReceipt",
-									"type":"tuple"
-								},
-								{
-									"internalType":"bytes",
-									"name":"keyIndex",
-									"type":"bytes"
-								},
-								{
-									"internalType":"bytes[]",
-									"name":"proof",
-									"type":"bytes[]"
-								}
-							],
-							"internalType":"struct Verify.ReceiptProof",
-							"name":"receiptProof",
-							"type":"tuple"
+						  "internalType": "bytes",
+						  "name": "sha3Uncles",
+						  "type": "bytes"
+						},
+						{
+						  "internalType": "address",
+						  "name": "miner",
+						  "type": "address"
+						},
+						{
+						  "internalType": "bytes",
+						  "name": "stateRoot",
+						  "type": "bytes"
+						},
+						{
+						  "internalType": "bytes",
+						  "name": "transactionsRoot",
+						  "type": "bytes"
+						},
+						{
+						  "internalType": "bytes",
+						  "name": "receiptsRoot",
+						  "type": "bytes"
+						},
+						{
+						  "internalType": "bytes",
+						  "name": "logsBloom",
+						  "type": "bytes"
+						},
+						{
+						  "internalType": "uint256",
+						  "name": "difficulty",
+						  "type": "uint256"
+						},
+						{
+						  "internalType": "uint256",
+						  "name": "number",
+						  "type": "uint256"
+						},
+						{
+						  "internalType": "uint256",
+						  "name": "gasLimit",
+						  "type": "uint256"
+						},
+						{
+						  "internalType": "uint256",
+						  "name": "gasUsed",
+						  "type": "uint256"
+						},
+						{
+						  "internalType": "uint256",
+						  "name": "timestamp",
+						  "type": "uint256"
+						},
+						{
+						  "internalType": "bytes",
+						  "name": "extraData",
+						  "type": "bytes"
+						},
+						{
+						  "internalType": "bytes",
+						  "name": "mixHash",
+						  "type": "bytes"
+						},
+						{
+						  "internalType": "bytes",
+						  "name": "nonce",
+						  "type": "bytes"
+						},
+						{
+						  "internalType": "uint256",
+						  "name": "baseFeePerGas",
+						  "type": "uint256"
 						}
-					],
-					"internalType":"struct LightNode.ProofData",
-					"name":"proof",
-					"type":"tuple"
+					  ],
+					  "internalType": "struct Verify.BlockHeader[]",
+					  "name": "headers",
+					  "type": "tuple[]"
+					},
+					{
+					  "components": [
+						{
+						  "components": [
+							{
+							  "internalType": "uint256",
+							  "name": "receiptType",
+							  "type": "uint256"
+							},
+							{
+							  "internalType": "bytes",
+							  "name": "postStateOrStatus",
+							  "type": "bytes"
+							},
+							{
+							  "internalType": "uint256",
+							  "name": "cumulativeGasUsed",
+							  "type": "uint256"
+							},
+							{
+							  "internalType": "bytes",
+							  "name": "bloom",
+							  "type": "bytes"
+							},
+							{
+							  "components": [
+								{
+								  "internalType": "address",
+								  "name": "addr",
+								  "type": "address"
+								},
+								{
+								  "internalType": "bytes[]",
+								  "name": "topics",
+								  "type": "bytes[]"
+								},
+								{
+								  "internalType": "bytes",
+								  "name": "data",
+								  "type": "bytes"
+								}
+							  ],
+							  "internalType": "struct Verify.TxLog[]",
+							  "name": "logs",
+							  "type": "tuple[]"
+							}
+						  ],
+						  "internalType": "struct Verify.TxReceipt",
+						  "name": "txReceipt",
+						  "type": "tuple"
+						},
+						{
+						  "internalType": "bytes",
+						  "name": "keyIndex",
+						  "type": "bytes"
+						},
+						{
+						  "internalType": "bytes[]",
+						  "name": "proof",
+						  "type": "bytes[]"
+						}
+					  ],
+					  "internalType": "struct Verify.ReceiptProof",
+					  "name": "receiptProof",
+					  "type": "tuple"
+					}
+				  ],
+				  "internalType": "struct LightNode.ProofData",
+				  "name": "_proof",
+				  "type": "tuple"
 				}
-			],
-			"name":"getBytes",
-			"outputs":[
+			  ],
+			  "name": "getBytes",
+			  "outputs": [
 				{
-					"internalType":"bytes",
-					"name":"",
-					"type":"bytes"
+				  "internalType": "bytes",
+				  "name": "",
+				  "type": "bytes"
 				}
-			],
-			"stateMutability":"pure",
-			"type":"function"
-		}
+			  ],
+			  "stateMutability": "pure",
+			  "type": "function"
+			}
 	]
 	`
 	KlaytnAbiJson = `[
