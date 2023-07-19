@@ -179,7 +179,9 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				w.log.Warn("Execution failed, tx may already be complete", "srcHash", inputHash, "err", err)
 				errorCount++
 				if errorCount >= 3 {
-					util.Alarm(context.Background(), fmt.Sprintf("map2Near mos(%s) failed, srcHash=%v err is %s", method, inputHash, err.Error()))
+					if strings.Index(err.Error(), "unexpected end of JSON input") != -1 {
+						util.Alarm(context.Background(), fmt.Sprintf("map2Near mos(%s) failed, srcHash=%v err is %s", method, inputHash, err.Error()))
+					}
 					errorCount = 0
 				}
 			}
