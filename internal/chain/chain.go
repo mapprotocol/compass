@@ -58,7 +58,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 
 	var listen chains.Listener
 	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs, opts...)
-	if role == mapprotocol.RoleOfMaintainer { // 请求获取同步的map高度
+	if role == mapprotocol.RoleOfMaintainer {
 		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
 		height, err := fn()
 		if err != nil {

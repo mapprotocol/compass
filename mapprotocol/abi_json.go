@@ -883,32 +883,6 @@ const (
 	[
 		{
 			"inputs": [
-			{
-				"internalType": "bytes",
-				"name": "_data",
-				"type": "bytes"
-			}
-			],
-			"name": "updateLightClient",
-			"outputs": [],
-			"stateMutability": "nonpayable",
-			"type": "function"
-		},
-		{
-			"inputs": [
-				{
-					"internalType": "bytes",
-					"name": "_data",
-					"type": "bytes"
-				}
-			],
-			"name": "updateLightClient",
-			"outputs": [],
-			"stateMutability": "nonpayable",
-			"type": "function"
-		},
-		{
-			"inputs": [
 				{
 				  "internalType": "bytes",
 				  "name": "_blockHeadersBytes",
@@ -2903,4 +2877,221 @@ const (
 		  "type": "function"
 		}
 	]`
+	ConfluxAbiJson = `
+	[
+		{
+			"inputs":[
+				{
+					"internalType":"bytes[]",
+					"name":"headers",
+					"type":"bytes[]"
+				}
+			],
+			"name":"getBlockHeaderBytes",
+			"outputs":[
+				{
+					"internalType":"bytes",
+					"name":"",
+					"type":"bytes"
+				}
+			],
+			"stateMutability":"pure",
+			"type":"function"
+		},
+		{
+			"inputs":[
+				{
+					"components":[
+						{
+							"internalType":"uint64",
+							"name":"epoch",
+							"type":"uint64"
+						},
+						{
+							"internalType":"uint64",
+							"name":"round",
+							"type":"uint64"
+						},
+						{
+							"internalType":"bytes32",
+							"name":"id",
+							"type":"bytes32"
+						},
+						{
+							"internalType":"bytes32",
+							"name":"executedStateId",
+							"type":"bytes32"
+						},
+						{
+							"internalType":"uint64",
+							"name":"version",
+							"type":"uint64"
+						},
+						{
+							"internalType":"uint64",
+							"name":"timestampUsecs",
+							"type":"uint64"
+						},
+						{
+							"components":[
+								{
+									"internalType":"uint64",
+									"name":"epoch",
+									"type":"uint64"
+								},
+								{
+									"components":[
+										{
+											"internalType":"bytes32",
+											"name":"account",
+											"type":"bytes32"
+										},
+										{
+											"internalType":"bytes",
+											"name":"compressedPublicKey",
+											"type":"bytes"
+										},
+										{
+											"internalType":"bytes",
+											"name":"uncompressedPublicKey",
+											"type":"bytes"
+										},
+										{
+											"internalType":"bytes",
+											"name":"vrfPublicKey",
+											"type":"bytes"
+										},
+										{
+											"internalType":"uint64",
+											"name":"votingPower",
+											"type":"uint64"
+										}
+									],
+									"internalType":"struct LedgerInfoLib.ValidatorInfo[]",
+									"name":"validators",
+									"type":"tuple[]"
+								},
+								{
+									"internalType":"uint64",
+									"name":"quorumVotingPower",
+									"type":"uint64"
+								},
+								{
+									"internalType":"uint64",
+									"name":"totalVotingPower",
+									"type":"uint64"
+								},
+								{
+									"internalType":"bytes",
+									"name":"vrfSeed",
+									"type":"bytes"
+								}
+							],
+							"internalType":"struct LedgerInfoLib.EpochState",
+							"name":"nextEpochState",
+							"type":"tuple"
+						},
+						{
+							"components":[
+								{
+									"internalType":"bytes32",
+									"name":"blockHash",
+									"type":"bytes32"
+								},
+								{
+									"internalType":"uint64",
+									"name":"height",
+									"type":"uint64"
+								}
+							],
+							"internalType":"struct LedgerInfoLib.Decision",
+							"name":"pivot",
+							"type":"tuple"
+						},
+						{
+							"internalType":"bytes32",
+							"name":"consensusDataHash",
+							"type":"bytes32"
+						},
+						{
+							"components":[
+								{
+									"internalType":"bytes32",
+									"name":"account",
+									"type":"bytes32"
+								},
+								{
+									"internalType":"bytes",
+									"name":"consensusSignature",
+									"type":"bytes"
+								}
+							],
+							"internalType":"struct LedgerInfoLib.AccountSignature[]",
+							"name":"signatures",
+							"type":"tuple[]"
+						}
+					],
+					"internalType":"struct LedgerInfoLib.LedgerInfoWithSignatures",
+					"name":"ledgerInfo",
+					"type":"tuple"
+				}
+			],
+			"name":"getBytes",
+			"outputs":[
+				{
+					"internalType":"bytes",
+					"name":"",
+					"type":"bytes"
+				}
+			],
+			"stateMutability":"pure",
+			"type":"function"
+		},
+		{
+			"inputs": [],
+			"name": "state",
+			"outputs": [
+				{
+					"components": [
+						{
+							"internalType": "uint256",
+							"name": "epoch",
+							"type": "uint256"
+						},
+						{
+							"internalType": "uint256",
+							"name": "round",
+							"type": "uint256"
+						},
+						{
+							"internalType": "uint256",
+							"name": "earliestBlockNumber",
+							"type": "uint256"
+						},
+						{
+							"internalType": "uint256",
+							"name": "finalizedBlockNumber",
+							"type": "uint256"
+						},
+						{
+							"internalType": "uint256",
+							"name": "blocks",
+							"type": "uint256"
+						},
+						{
+							"internalType": "uint256",
+							"name": "maxBlocks",
+							"type": "uint256"
+						}
+					],
+					"internalType": "struct ILightNode.GetStatus",
+					"name": "",
+					"type": "tuple"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		}
+	]
+	`
 )
