@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/mapprotocol/compass/internal/conflux/types"
 	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
@@ -100,19 +101,43 @@ func (c *Client) GetLedgerInfoByEpochAndRound(ctx context.Context, epochNumber h
 	return &ret, nil
 }
 
-func (c *Client) GetBlockByBlockNumber(ctx context.Context, blockNumber hexutil.Uint64) (*CfxBlock, error) {
-	data, err := c.call(ctx, "cfx_getBlockByBlockNumber", blockNumber, true)
+func (c *Client) GetBlockByEpochNumber(ctx context.Context, blockNumber hexutil.Uint64) (*BlockSummary, error) {
+	data, err := c.call(ctx, "cfx_getBlockByEpochNumber", blockNumber, false)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("data ------------------------------ ", string(data))
-	var ret CfxBlock
+	var ret BlockSummary
 	err = json.Unmarshal(data, &ret)
 	if err != nil {
 		return nil, err
 	}
 	return &ret, nil
+}
+
+func (c *Client) GetEpochReceipts(ctx context.Context, epoch types.EpochOrBlockHash,
+	includeEthReceipts ...bool) ([][]types.TransactionReceipt, error) {
+	includeEth := get1stBoolIfy(includeEthReceipts)
+	data, err := c.call(ctx, "cfx_getEpochReceipts", epoch, includeEth)
+	if err != nil {
+		return nil, err
+	}
+
+	//fmt.Println("data ------------------------------ ", string(data))
+	var ret [][]types.TransactionReceipt
+	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+func get1stBoolIfy(values []bool) bool {
+	value := false
+	if len(values) > 0 {
+		value = values[0]
+	}
+	return value
 }
 
 func (c *Client) call(ctx context.Context, method string, args ...interface{}) ([]byte, error) {
@@ -130,7 +155,6 @@ func (c *Client) call(ctx context.Context, method string, args ...interface{}) (
 	}
 
 	return data, nil
-	//return &ret, nil
 }
 
 type jsonrpcMessage struct {

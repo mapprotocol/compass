@@ -2,7 +2,6 @@ package conflux
 
 import (
 	"encoding/json"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/compass/internal/conflux/types"
@@ -10,15 +9,15 @@ import (
 )
 
 type BlockHeader struct {
-	Hash                  Hash           `json:"hash"`
-	ParentHash            Hash           `json:"parentHash"`
+	Hash                  types.Hash     `json:"hash"`
+	ParentHash            types.Hash     `json:"parentHash"`
 	Height                *hexutil.Big   `json:"height"`
 	Miner                 types.Address  `json:"miner"`
-	DeferredStateRoot     Hash           `json:"deferredStateRoot"`
-	DeferredReceiptsRoot  Hash           `json:"deferredReceiptsRoot"`
-	DeferredLogsBloomHash Hash           `json:"deferredLogsBloomHash"`
+	DeferredStateRoot     types.Hash     `json:"deferredStateRoot"`
+	DeferredReceiptsRoot  types.Hash     `json:"deferredReceiptsRoot"`
+	DeferredLogsBloomHash types.Hash     `json:"deferredLogsBloomHash"`
 	Blame                 hexutil.Uint64 `json:"blame"`
-	TransactionsRoot      Hash           `json:"transactionsRoot"`
+	TransactionsRoot      types.Hash     `json:"transactionsRoot"`
 	EpochNumber           *hexutil.Big   `json:"epochNumber"`
 	BlockNumber           *hexutil.Big   `json:"blockNumber"`
 	GasLimit              *hexutil.Big   `json:"gasLimit"`
@@ -26,34 +25,12 @@ type BlockHeader struct {
 	Timestamp             *hexutil.Big   `json:"timestamp"`
 	Difficulty            *hexutil.Big   `json:"difficulty"`
 	PowQuality            *hexutil.Big   `json:"powQuality"`
-	RefereeHashes         []Hash         `json:"refereeHashes"`
+	RefereeHashes         []types.Hash   `json:"refereeHashes"`
 	Adaptive              bool           `json:"adaptive"`
 	Nonce                 *hexutil.Big   `json:"nonce"`
 	Size                  *hexutil.Big   `json:"size"`
 	Custom                []Bytes        `json:"custom"`
-	PosReference          *Hash          `json:"posReference"`
-}
-
-type Hash string
-
-// ToCommonHash converts hash to common.Hash
-func (hash Hash) ToCommonHash() *common.Hash {
-	newHash := common.HexToHash(string(hash))
-	return &newHash
-}
-
-// String implements the interface stringer
-func (hash Hash) String() string {
-	return string(hash)
-}
-
-func (hash *Hash) UnmarshalJSON(input []byte) error {
-	var h common.Hash
-	if err := json.Unmarshal(input, &h); err != nil {
-		return err
-	}
-	*hash = Hash(h.String())
-	return nil
+	PosReference          *types.Hash    `json:"posReference"`
 }
 
 type Bytes []byte

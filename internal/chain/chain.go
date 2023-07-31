@@ -11,7 +11,6 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
-	"github.com/pkg/errors"
 )
 
 type Chain struct {
@@ -59,28 +58,28 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 	var listen chains.Listener
 	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs, opts...)
 	if role == mapprotocol.RoleOfMaintainer {
-		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
-		height, err := fn()
-		if err != nil {
-			return nil, errors.Wrap(err, "get init headerHeight failed")
-		}
-		logger.Info("Map2other Current situation", "id", cfg.Id, "height", height, "lightNode", cfg.LightNode)
-		mapprotocol.SyncOtherMap[cfg.Id] = height
-		mapprotocol.Map2OtherHeight[cfg.Id] = fn
+		//fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
+		//height, err := fn()
+		//if err != nil {
+		//	return nil, errors.Wrap(err, "get init headerHeight failed")
+		//}
+		//logger.Info("Map2other Current situation", "id", cfg.Id, "height", height, "lightNode", cfg.LightNode)
+		//mapprotocol.SyncOtherMap[cfg.Id] = height
+		//mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		listen = NewMaintainer(cs)
 	} else if role == mapprotocol.RoleOfMessenger {
-		err = conn.EnsureHasBytecode(cfg.McsContract)
-		if err != nil {
-			return nil, err
-		}
-		// verify range
-		fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
-		left, right, err := fn()
-		if err != nil {
-			return nil, errors.Wrap(err, "get init verifyHeight failed")
-		}
-		logger.Info("Map2other Current verify range", "id", cfg.Id, "left", left, "right", right, "lightNode", cfg.LightNode)
-		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
+		//err = conn.EnsureHasBytecode(cfg.McsContract)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//// verify range
+		//fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
+		//left, right, err := fn()
+		//if err != nil {
+		//	return nil, errors.Wrap(err, "get init verifyHeight failed")
+		//}
+		//logger.Info("Map2other Current verify range", "id", cfg.Id, "left", left, "right", right, "lightNode", cfg.LightNode)
+		//mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		listen = NewMessenger(cs)
 	}
 	wri := NewWriter(conn, cfg, logger, stop, sysErr)
