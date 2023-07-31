@@ -195,8 +195,26 @@ type LedgerInfoLibLedgerInfoWithSignatures struct {
 	NextEpochState    LedgerInfoLibEpochState
 	Pivot             LedgerInfoLibDecision
 	ConsensusDataHash [32]byte
-	Signatures        []LedgerInfoLibAccountSignature
+	//Accounts            [][32]byte
+	//AggregatedSignature []byte
+	Signatures []LedgerInfoLibAccountSignature
 }
+
+/*
+type LedgerInfoLibLedgerInfoWithSignatures struct {
+	Epoch               uint64
+	Round               uint64
+	Id                  [32]byte
+	ExecutedStateId     [32]byte
+	Version             uint64
+	TimestampUsecs      uint64
+	NextEpochState      LedgerInfoLibEpochState
+	Pivot               LedgerInfoLibDecision
+	ConsensusDataHash   [32]byte
+	Accounts            [][32]byte
+	AggregatedSignature []byte
+}
+*/
 
 type LedgerInfoLibEpochState struct {
 	Epoch             uint64
@@ -351,19 +369,20 @@ func NewBigIntByRaw(x *big.Int) *hexutil.Big {
 // BlockSummary includes block header and a list of transaction hashes
 type BlockSummary struct {
 	BlockHeader
-	Transactions []Hash `json:"transactions"`
+	//Transactions []Hash `json:"transactions"`
 }
 
 // rlpEncodableBlockSummary block summary struct used for rlp encoding
 type rlpEncodableBlockSummary struct {
-	BlockHeader  BlockHeader
-	Transactions []Hash
+	BlockHeader BlockHeader
+	//Transactions []Hash
 }
 
 // EncodeRLP implements the rlp.Encoder interface.
 func (bs BlockSummary) EncodeRLP(w io.Writer) error {
 	rbs := rlpEncodableBlockSummary{
-		bs.BlockHeader, bs.Transactions,
+		bs.BlockHeader,
+		//bs.Transactions,
 	}
 
 	return rlp.Encode(w, rbs)
@@ -377,7 +396,7 @@ func (bs *BlockSummary) DecodeRLP(r *rlp.Stream) error {
 	}
 
 	bs.BlockHeader = rbs.BlockHeader
-	bs.Transactions = rbs.Transactions
+	//bs.Transactions = rbs.Transactions
 
 	return nil
 }
@@ -387,15 +406,15 @@ type rlpNilableBigInt struct {
 }
 
 type rlpEncodableBlockHeader struct {
-	Hash                  Hash
-	ParentHash            Hash
+	Hash                  types.Hash
+	ParentHash            types.Hash
 	Height                *big.Int
 	Miner                 types.Address
-	DeferredStateRoot     Hash
-	DeferredReceiptsRoot  Hash
-	DeferredLogsBloomHash Hash
+	DeferredStateRoot     types.Hash
+	DeferredReceiptsRoot  types.Hash
+	DeferredLogsBloomHash types.Hash
 	Blame                 hexutil.Uint64
-	TransactionsRoot      Hash
+	TransactionsRoot      types.Hash
 	EpochNumber           *big.Int
 	BlockNumber           *rlpNilableBigInt `rlp:"nil"`
 	GasLimit              *big.Int
@@ -403,12 +422,12 @@ type rlpEncodableBlockHeader struct {
 	Timestamp             *big.Int
 	Difficulty            *big.Int
 	PowQuality            *big.Int
-	RefereeHashes         []Hash
+	RefereeHashes         []types.Hash
 	Adaptive              bool
 	Nonce                 *big.Int
 	Size                  *big.Int
 	Custom                []Bytes
-	PosReference          *Hash `rlp:"nil"`
+	PosReference          *types.Hash `rlp:"nil"`
 }
 
 // EncodeRLP implements the rlp.Encoder interface.

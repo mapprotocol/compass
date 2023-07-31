@@ -34,7 +34,10 @@ const (
 	MethodUpdateLightClient      = "updateLightClient"
 	MethodClientState            = "clientState"
 	MethodClientStateAnalysis    = "clientStateAnalysis"
-	MethodOfHeaderState          = "state"
+	MethodOfState                = "state"
+	MethodOfNearestPivot         = "nearestPivot"
+	MethodOFinalizedState        = "finalizedState"
+	MethodOfVerifyReceiptProof   = "verifyReceiptProof"
 )
 
 const (
@@ -84,6 +87,7 @@ var (
 	Matic, _       = abi.JSON(strings.NewReader(MaticAbiJson))
 	Eth2, _        = abi.JSON(strings.NewReader(Eth2AbiJson))
 	Platon, _      = abi.JSON(strings.NewReader(PlatonAbiJson))
+	Other, _       = abi.JSON(strings.NewReader(otherAbi))
 )
 
 type Role string

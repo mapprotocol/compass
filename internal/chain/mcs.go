@@ -22,6 +22,7 @@ import (
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *Writer) exeSwapMsg(m msg.Message) bool {
 	return w.callContractWithMsg(w.cfg.McsContract, m)
+	//return w.callContractWithMsg(w.cfg.LightNode, m)
 }
 
 // callContractWithMsg contract using address and function signature with message info
@@ -65,7 +66,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			}
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
 			mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
-			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.Near, mapprotocol.MethodVerifyProofData)
+			//err = w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash, "mcsTx", mcsTx.Hash())
 				err = w.txStatus(mcsTx.Hash())

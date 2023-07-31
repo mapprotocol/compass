@@ -3,14 +3,15 @@ package conflux
 import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/mapprotocol/compass/internal/conflux/types"
 	"io"
 	"math/big"
 )
 
 type Transaction struct {
-	Hash             Hash            `json:"hash"`
+	Hash             types.Hash      `json:"hash"`
 	Nonce            *hexutil.Big    `json:"nonce"`
-	BlockHash        *Hash           `json:"blockHash"`
+	BlockHash        *types.Hash     `json:"blockHash"`
 	TransactionIndex *hexutil.Uint64 `json:"transactionIndex"`
 	From             Address         `json:"from"`
 	To               *Address        `json:"to"`
@@ -30,9 +31,9 @@ type Transaction struct {
 
 // rlpEncodableTransaction transaction struct used for rlp encoding
 type rlpEncodableTransaction struct {
-	Hash             Hash
+	Hash             types.Hash
 	Nonce            *big.Int
-	BlockHash        *Hash
+	BlockHash        *types.Hash
 	TransactionIndex *hexutil.Uint64
 	From             Address
 	To               *Address `rlp:"nil"`

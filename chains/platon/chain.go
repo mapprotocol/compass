@@ -28,8 +28,8 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
 	}
-	//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	syncedHeight, err := mapprotocol.Get2MapByLight()
+	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {
 		m.Log.Error("Get current synced Height failed", "err", err)
 		return err

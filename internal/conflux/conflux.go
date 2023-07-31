@@ -1,11 +1,25 @@
 package conflux
 
 import (
+	"context"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/mapprotocol/compass/internal/conflux/mpt"
+	primitives "github.com/mapprotocol/compass/internal/conflux/primipives"
+	"github.com/mapprotocol/compass/internal/conflux/types"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
+	"github.com/pkg/errors"
 	"io"
+	"math/big"
 	"sort"
 )
+
+const DeferredExecutionEpochs uint64 = 5
+
+var ErrTransactionExecutionFailed = errors.New("transaction execution failed")
 
 func ConvertLedger(ledger *LedgerInfoWithSignatures) LedgerInfoLibLedgerInfoWithSignatures {
 	committee, _ := ConvertCommittee(ledger)
@@ -79,7 +93,7 @@ func ConvertCommittee(ledger *LedgerInfoWithSignatures) (LedgerInfoLibEpochState
 	}, true
 }
 
-func MustRLPEncodeBlock(block *CfxBlock) []byte {
+func MustRLPEncodeBlock(block *BlockSummary) []byte {
 	val := ConvertBlock(block)
 	encoded, err := rlp.EncodeToBytes(val)
 	if err != nil {
@@ -88,12 +102,12 @@ func MustRLPEncodeBlock(block *CfxBlock) []byte {
 	return encoded
 }
 
-func ConvertBlock(block *CfxBlock) BlockRlp {
+func ConvertBlock(block *BlockSummary) BlockRlp {
 	return BlockRlp{block}
 }
 
 type BlockRlp struct {
-	raw *CfxBlock
+	raw *BlockSummary
 }
 
 func (header BlockRlp) EncodeRLP(w io.Writer) error {
@@ -135,4 +149,123 @@ func (header BlockRlp) EncodeRLP(w io.Writer) error {
 	}
 
 	return rlp.Encode(w, list)
+}
+
+func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot uint64, method string, fId msg.ChainId) ([]byte, error) {
+	if epochNumber+DeferredExecutionEpochs > pivot {
+		return nil, errors.New("Pivot less than current block")
+	}
+
+	epoch := types.NewEpochNumberUint64(epochNumber)
+	epochOrHash := types.NewEpochOrBlockHashWithEpoch(epoch)
+	epochReceipts, err := client.GetEpochReceipts(context.Background(), *epochOrHash, true)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "Failed to get receipts by epoch number %v", epochNumber)
+	}
+
+	blockIndex, receipt := matchReceipt(epochReceipts, txHash.Hex())
+	if receipt == nil {
+		return nil, nil
+	}
+
+	if receipt.MustGetOutcomeType() != types.TRANSACTION_OUTCOME_SUCCESS {
+		return nil, ErrTransactionExecutionFailed
+	}
+
+	subtrees, root := CreateReceiptsMPT(epochReceipts)
+
+	blockIndexKey := mpt.IndexToKey(blockIndex, len(subtrees))
+	blockProof, ok := root.Proof(blockIndexKey)
+	if !ok {
+		return nil, errors.New("Failed to generate block proof")
+	}
+
+	receiptsRoot := subtrees[blockIndex].Hash()
+	receiptKey := mpt.IndexToKey(int(receipt.Index), len(epochReceipts[blockIndex]))
+	receiptProof, ok := subtrees[blockIndex].Proof(receiptKey)
+	if !ok {
+		return nil, errors.New("Failed to generate receipt proof")
+	}
+
+	var headers [][]byte
+	// 195 - 200
+	for i := epochNumber + DeferredExecutionEpochs; i <= pivot; i++ {
+		block, err := client.GetBlockByEpochNumber(context.Background(), hexutil.Uint64(i))
+		if err != nil {
+			return nil, errors.WithMessagef(err, "Failed to get block summary by epoch %v", i)
+		}
+
+		headers = append(headers, MustRLPEncodeBlock(block))
+	}
+
+	proof := &mpt.TypesReceiptProof{
+		Headers:      headers,
+		BlockIndex:   blockIndexKey,
+		BlockProof:   mpt.ConvertProofNode(blockProof),
+		ReceiptsRoot: receiptsRoot,
+		Index:        receiptKey,
+		Receipt:      primitives.MustRLPEncodeReceipt(receipt),
+		ReceiptProof: mpt.ConvertProofNode(receiptProof),
+	}
+	input, err := mapprotocol.Conflux.Methods[mapprotocol.MethodOfVerifyReceiptProof].Inputs.Pack(proof)
+	if err != nil {
+		return nil, err
+	}
+	//fmt.Println("proof --------------------- ", common.Bytes2Hex(input))
+	d, _ := rlp.EncodeToBytes(primitives.MustRLPEncodeReceipt(receipt))
+	fmt.Println("-------------", "0x"+common.Bytes2Hex(d))
+
+	//pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	pack, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
+	if err != nil {
+		return nil, err
+	}
+
+	return pack, nil
+}
+
+func matchReceipt(epochReceipts [][]types.TransactionReceipt, txHash string) (blockIndex int, receipt *types.TransactionReceipt) {
+	for i, blockReceipts := range epochReceipts {
+		for _, v := range blockReceipts {
+			if v.MustGetOutcomeType() == types.TRANSACTION_OUTCOME_SKIPPED {
+				continue
+			}
+
+			if v.TransactionHash.String() != txHash {
+				continue
+			}
+
+			return i, &v
+		}
+	}
+
+	return 0, nil
+}
+
+func CreateReceiptsMPT(epochReceipts [][]types.TransactionReceipt) ([]*mpt.Node, *mpt.Node) {
+	var subtrees []*mpt.Node
+
+	for _, blockReceipts := range epochReceipts {
+		var root mpt.Node
+
+		keyLen := mpt.MinReprBytes(len(blockReceipts))
+
+		for i, v := range blockReceipts {
+			key := mpt.IndexToKey(i, keyLen)
+			value := primitives.MustRLPEncodeReceipt(&v)
+			root.Insert(key, value)
+		}
+
+		subtrees = append(subtrees, &root)
+	}
+
+	var root mpt.Node
+	keyLen := mpt.MinReprBytes(len(subtrees))
+	for i, v := range subtrees {
+		key := mpt.IndexToKey(i, keyLen)
+		value := v.Hash().Bytes()
+		root.Insert(key, value)
+	}
+
+	return subtrees, &root
 }
