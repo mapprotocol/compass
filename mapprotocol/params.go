@@ -15,24 +15,29 @@ import (
 )
 
 const (
-	MethodVerifyProofData       = "verifyProofData"
-	MethodUpdateBlockHeader     = "updateBlockHeader"
-	MethodVerifiableHeaderRange = "verifiableHeaderRange"
-	MethodOfHeaderHeight        = "headerHeight"
-	MethodOfTransferIn          = "transferIn"
-	MethodOfDepositIn           = "depositIn"
-	MethodOfSwapIn              = "swapIn"
-	MethodOfRegister            = "register"
-	MethodOfBindWorker          = "bind"
-	MethodOfOrderList           = "orderList"
-	MethodOfIsUsedEvent         = "is_used_event"
-	MethodOfGetBytes            = "getBytes"
-	MethodOfGetFinalBytes       = "getFinalBytes"
-	MethodOfGetHeadersBytes     = "getHeadersBytes"
-	MethodOfGetUpdatesBytes     = "getUpdateBytes"
-	MethodUpdateLightClient     = "updateLightClient"
-	MethodClientState           = "clientState"
-	MethodClientStateAnalysis   = "clientStateAnalysis"
+	MethodVerifyProofData        = "verifyProofData"
+	MethodUpdateBlockHeader      = "updateBlockHeader"
+	MethodVerifiableHeaderRange  = "verifiableHeaderRange"
+	MethodOfHeaderHeight         = "headerHeight"
+	MethodOfTransferIn           = "transferIn"
+	MethodOfDepositIn            = "depositIn"
+	MethodOfSwapIn               = "swapIn"
+	MethodOfRegister             = "register"
+	MethodOfBindWorker           = "bind"
+	MethodOfOrderList            = "orderList"
+	MethodOfIsUsedEvent          = "is_used_event"
+	MethodOfGetBytes             = "getBytes"
+	MethodOfGetFinalBytes        = "getFinalBytes"
+	MethodOfGetHeadersBytes      = "getHeadersBytes"
+	MethodOfGetBlockHeadersBytes = "getBlockHeaderBytes"
+	MethodOfGetUpdatesBytes      = "getUpdateBytes"
+	MethodUpdateLightClient      = "updateLightClient"
+	MethodClientState            = "clientState"
+	MethodClientStateAnalysis    = "clientStateAnalysis"
+	MethodOfState                = "state"
+	MethodOfNearestPivot         = "nearestPivot"
+	MethodOFinalizedState        = "finalizedState"
+	MethodOfVerifyReceiptProof   = "verifyReceiptProof"
 )
 
 const (
@@ -41,13 +46,14 @@ const (
 )
 
 const (
-	EpochOfMap          = 50000
-	EpochOfBsc          = 200
-	HeaderCountOfBsc    = 12
-	HeaderCountOfMatic  = 16
-	HeaderCountOfPlaton = 430
-	EpochOfKlaytn       = 3600
-	HeaderCountOfKlaytn = 1
+	EpochOfMap           = 50000
+	EpochOfBsc           = 200
+	HeaderCountOfBsc     = 12
+	HeaderCountOfMatic   = 16
+	HeaderCountOfPlaton  = 430
+	EpochOfKlaytn        = 3600
+	HeaderCountOfKlaytn  = 1
+	HeaderCountOfConflux = 1
 )
 
 // common varible
@@ -70,6 +76,7 @@ var (
 var (
 	Mcs, _         = abi.JSON(strings.NewReader(McsAbi))
 	Bsc, _         = abi.JSON(strings.NewReader(BscAbiJson))
+	Conflux, _     = abi.JSON(strings.NewReader(ConfluxAbiJson))
 	Klaytn, _      = abi.JSON(strings.NewReader(KlaytnAbiJson))
 	Near, _        = abi.JSON(strings.NewReader(NearAbiJson))
 	LightManger, _ = abi.JSON(strings.NewReader(LightMangerAbi))
@@ -80,6 +87,7 @@ var (
 	Matic, _       = abi.JSON(strings.NewReader(MaticAbiJson))
 	Eth2, _        = abi.JSON(strings.NewReader(Eth2AbiJson))
 	Platon, _      = abi.JSON(strings.NewReader(PlatonAbiJson))
+	Other, _       = abi.JSON(strings.NewReader(otherAbi))
 )
 
 type Role string
@@ -103,6 +111,7 @@ var (
 )
 
 var (
-	ConfirmsOfMatic    = big.NewInt(10)
-	HeaderLengthOfEth2 = 20
+	ConfirmsOfMatic       = big.NewInt(10)
+	HeaderLengthOfEth2    = 20
+	HeaderLengthOfConflux = 20
 )

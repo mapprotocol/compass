@@ -27,6 +27,7 @@ const (
 	Platon   = "platon"
 	Near     = "near"
 	Ethereum = "ethereum"
+	Conflux  = "conflux"
 )
 
 var (
