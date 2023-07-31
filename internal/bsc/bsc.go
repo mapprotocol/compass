@@ -3,6 +3,7 @@ package bsc
 import (
 	"context"
 	"fmt"
+	log "github.com/ChainSafe/log15"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -44,7 +45,10 @@ func ConvertHeader(header types.Header) Header {
 	for _, b := range header.Nonce {
 		nonce = append(nonce, b)
 	}
-	fmt.Println("header.BaseFee ", header.BaseFee, "-header.Number", header.Number)
+	log.Info("ConvertHeader ", "header.BaseFee ", header.BaseFee, "-header.Number", header.Number)
+	if header.BaseFee == nil {
+		header.BaseFee = new(big.Int)
+	}
 	return Header{
 		ParentHash:       hashToByte(header.ParentHash),
 		Sha3Uncles:       hashToByte(header.UncleHash),

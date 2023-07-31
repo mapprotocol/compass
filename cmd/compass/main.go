@@ -10,6 +10,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/chains/conflux"
 	"net/http"
 	"os"
 	"strconv"
@@ -312,10 +313,11 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			}
 			if idx == 0 {
 				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
-				mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
+				//mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.Init2GetEth22MapNumber(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
+				mapprotocol.InitLightManager(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 			}
 		case chains.Near:
 			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role)
@@ -329,6 +331,8 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			newChain, err = eth2.InitializeChain(chainConfig, logger, sysErr, m, role)
 		case chains.Platon:
 			newChain, err = platon.InitializeChain(chainConfig, logger, sysErr, m, role)
+		case chains.Conflux:
+			newChain, err = conflux.InitializeChain(chainConfig, logger, sysErr, m, role)
 		default:
 			return errors.New("unrecognized Chain Type")
 		}

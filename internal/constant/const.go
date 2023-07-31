@@ -42,6 +42,8 @@ var IgnoreError = map[string]struct{}{
 	"New block must have higher height": {},
 	"the update finalized slot should be higher than the finalized slot":      {},
 	"previous exe block headers should be updated before update light client": {},
+	"round mismatch": {},
+	"epoch mismatch": {},
 }
 
 type BlockIdOfEth2 string
