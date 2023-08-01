@@ -100,7 +100,7 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 		}
 	}
 
-	input, err := mapprotocol.Conflux.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(conflux.ConvertLedger(ledger))
+	input, err := mapprotocol.Conflux.Methods["relayPOS"].Inputs.Pack(conflux.ConvertLedger(ledger))
 	if err != nil {
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
