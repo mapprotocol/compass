@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 	"io"
 	"math/big"
-	"sort"
 )
 
 const DeferredExecutionEpochs uint64 = 5
@@ -40,17 +39,40 @@ func ConvertLedger(ledger *LedgerInfoWithSignatures) LedgerInfoLibLedgerInfoWith
 		result.Pivot.BlockHash = pivot.BlockHash.ToHash()
 	}
 
-	var signatures sortableAccountSignatures
-	for k, v := range ledger.Signatures {
-		signatures = append(signatures, LedgerInfoLibAccountSignature{
-			Account:            k,
-			ConsensusSignature: v,
-		})
+	result.AggregatedSignature = ABIEncodeSignature(ledger.AggregatedSignature)
+	for _, v := range ledger.ValidatorsSorted() {
+		result.Accounts = append(result.Accounts, v)
 	}
-	sort.Sort(signatures)
-	result.Signatures = signatures
 
 	return result
+}
+
+func ABIEncodeSignature(signature []byte) []byte {
+	if len(signature) != 192 {
+		return signature
+	}
+
+	encoded := make([]byte, 256)
+
+	copy(encoded[16:64], signature[:48])
+	copy(encoded[80:128], signature[48:96])
+	copy(encoded[144:192], signature[96:144])
+	copy(encoded[208:256], signature[144:192])
+
+	return encoded
+}
+
+func ABIEncodePublicKey(publicKey []byte) []byte {
+	if len(publicKey) != 96 {
+		return publicKey
+	}
+
+	encoded := make([]byte, 128)
+
+	copy(encoded[16:64], publicKey[:48])
+	copy(encoded[80:128], publicKey[48:])
+
+	return encoded
 }
 
 func ConvertCommittee(ledger *LedgerInfoWithSignatures) (LedgerInfoLibEpochState, bool) {
@@ -63,26 +85,27 @@ func ConvertCommittee(ledger *LedgerInfoWithSignatures) (LedgerInfoLibEpochState
 		return LedgerInfoLibEpochState{}, false
 	}
 
-	var validators sortableValidators
-	for k, v := range state.Verifier.AddressToValidatorInfo {
-		validator := LedgerInfoLibValidatorInfo{
-			Account:               k,
-			CompressedPublicKey:   v.PublicKey,
-			UncompressedPublicKey: ledger.NextEpochValidators[k],
-			VotingPower:           uint64(v.VotingPower),
-		}
+	var validators []LedgerInfoLibValidatorInfo
+	for _, v := range ledger.NextEpochValidatorsSorted() {
+		info := state.Verifier.AddressToValidatorInfo[v]
 
-		if len(validator.UncompressedPublicKey) == 0 {
+		uncompressedPubKey, ok := ledger.NextEpochValidators[v]
+		if !ok {
 			return LedgerInfoLibEpochState{}, false
 		}
 
-		if v.VrfPublicKey != nil {
-			validator.VrfPublicKey = *v.VrfPublicKey
+		validator := LedgerInfoLibValidatorInfo{
+			Account:               v,
+			UncompressedPublicKey: ABIEncodePublicKey(uncompressedPubKey),
+			VotingPower:           uint64(info.VotingPower),
+		}
+
+		if info.VrfPublicKey != nil {
+			validator.VrfPublicKey = *info.VrfPublicKey
 		}
 
 		validators = append(validators, validator)
 	}
-	sort.Sort(validators)
 
 	return LedgerInfoLibEpochState{
 		Epoch:             uint64(state.Epoch),
