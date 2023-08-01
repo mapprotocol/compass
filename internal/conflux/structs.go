@@ -12,6 +12,7 @@ import (
 	"io"
 	"math/big"
 	"regexp"
+	"sort"
 )
 
 type Status struct {
@@ -172,7 +173,45 @@ type LedgerInfoWithSignatures struct {
 	// Validators with uncompressed BLS public key (in 96 bytes) if next epoch
 	// state available. Generally, this is used to verify BLS signatures at client side.
 	NextEpochValidators map[common.Hash]hexutil.Bytes `json:"nextEpochValidators"`
+	// Aggregated BLS signature in 192 bytes.
+	AggregatedSignature hexutil.Bytes `json:"aggregatedSignature"`
 }
+
+func (info *LedgerInfoWithSignatures) ValidatorsSorted() []common.Hash {
+	var accounts PoSAccounts
+
+	for k := range info.Signatures {
+		accounts = append(accounts, k)
+	}
+
+	sort.Sort(accounts)
+
+	return accounts
+}
+
+func (info *LedgerInfoWithSignatures) NextEpochValidatorsSorted() []common.Hash {
+	if info.LedgerInfo.CommitInfo.NextEpochState == nil {
+		return nil
+	}
+
+	var accounts PoSAccounts
+
+	for k := range info.LedgerInfo.CommitInfo.NextEpochState.Verifier.AddressToValidatorInfo {
+		accounts = append(accounts, k)
+	}
+
+	sort.Sort(accounts)
+
+	return accounts
+}
+
+type PoSAccounts []common.Hash
+
+func (s PoSAccounts) Len() int { return len(s) }
+func (s PoSAccounts) Less(i, j int) bool {
+	return bytes.Compare(s[i].Bytes(), s[j].Bytes()) < 0
+}
+func (s PoSAccounts) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 // ILightNodeState is an auto generated low-level Go binding around an user-defined struct.
 type ILightNodeState struct {
@@ -186,22 +225,6 @@ type ILightNodeState struct {
 
 // LedgerInfoLibLedgerInfoWithSignatures is an auto generated low-level Go binding around an user-defined struct.
 type LedgerInfoLibLedgerInfoWithSignatures struct {
-	Epoch             uint64
-	Round             uint64
-	Id                [32]byte
-	ExecutedStateId   [32]byte
-	Version           uint64
-	TimestampUsecs    uint64
-	NextEpochState    LedgerInfoLibEpochState
-	Pivot             LedgerInfoLibDecision
-	ConsensusDataHash [32]byte
-	//Accounts            [][32]byte
-	//AggregatedSignature []byte
-	Signatures []LedgerInfoLibAccountSignature
-}
-
-/*
-type LedgerInfoLibLedgerInfoWithSignatures struct {
 	Epoch               uint64
 	Round               uint64
 	Id                  [32]byte
@@ -213,8 +236,8 @@ type LedgerInfoLibLedgerInfoWithSignatures struct {
 	ConsensusDataHash   [32]byte
 	Accounts            [][32]byte
 	AggregatedSignature []byte
+	//Signatures []LedgerInfoLibAccountSignature
 }
-*/
 
 type LedgerInfoLibEpochState struct {
 	Epoch             uint64
@@ -241,22 +264,6 @@ type LedgerInfoLibValidatorInfo struct {
 	VrfPublicKey          []byte
 	VotingPower           uint64
 }
-
-type sortableAccountSignatures []LedgerInfoLibAccountSignature
-
-func (s sortableAccountSignatures) Len() int { return len(s) }
-func (s sortableAccountSignatures) Less(i, j int) bool {
-	return bytes.Compare(s[i].Account[:], s[j].Account[:]) < 0
-}
-func (s sortableAccountSignatures) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-
-type sortableValidators []LedgerInfoLibValidatorInfo
-
-func (s sortableValidators) Len() int { return len(s) }
-func (s sortableValidators) Less(i, j int) bool {
-	return bytes.Compare(s[i].Account[:], s[j].Account[:]) < 0
-}
-func (s sortableValidators) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 // Epoch represents an epoch in Conflux.
 type Epoch struct {
