@@ -3,6 +3,9 @@ package conflux
 import (
 	"context"
 	"fmt"
+	"io"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -12,8 +15,6 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
-	"io"
-	"math/big"
 )
 
 const DeferredExecutionEpochs uint64 = 5
