@@ -88,6 +88,12 @@ type Transactions struct {
 	Value                string        `json:"value"`
 }
 
+type GovernanceVote struct {
+	Validator common.Address `json:"validator"`
+	Key       string         `json:"key"`
+	Value     interface{}    `json:"value"`
+}
+
 func ConvertContractHeader(ethHeader *types.Header, rh *RpcHeader) Header {
 	bloom := make([]byte, 0, len(ethHeader.Bloom))
 	for _, b := range ethHeader.Bloom {
