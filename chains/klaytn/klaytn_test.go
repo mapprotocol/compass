@@ -33,12 +33,12 @@ func toReceiptRLP(r *types.Receipt) *receiptRLP {
 	}
 }
 func Test01(t *testing.T) {
-	url := "https://public-node-api.klaytnapi.com/v1/cypress"
+	url := "https://api.baobab.klaytn.net:8651"
 	c, e := klaytn.DialHttp(url, true)
 	if e != nil {
 		t.Error(e)
 	}
-	num := big.NewInt(0x67503f8)
+	num := big.NewInt(0x7b640ec)
 	block, e := c.BlockByNumber(context.Background(), num)
 	if e != nil {
 		t.Error(e)
@@ -60,9 +60,11 @@ func Test01(t *testing.T) {
 	}
 	receipts, e := tx.GetReceiptsByTxsHash(c2, txs_hash)
 	root2 := DeriveSha2(t, receipts)
+	root3 := DeriveSha0(t, receipts)
 
 	fmt.Println("root1:", root1.String())
 	fmt.Println("root2:", root2.String())
+	fmt.Println("root3:", root3.String())
 
 	if bytes.Equal(root1[:], root2[:]) {
 		fmt.Println("equal")
@@ -70,6 +72,7 @@ func Test01(t *testing.T) {
 		fmt.Println("fault")
 	}
 }
+
 func DeriveSha2(t *testing.T, list []*types.Receipt) (hash common.Hash) {
 	//hasher0 := sha3.NewKeccak256()
 	hasher := sha3.NewLegacyKeccak256()
@@ -85,6 +88,7 @@ func DeriveSha2(t *testing.T, list []*types.Receipt) (hash common.Hash) {
 
 	return hash
 }
+
 func DeriveSha0(t *testing.T, list []*types.Receipt) common.Hash {
 	trie := trie.NewStackTrie(rawdb.NewMemoryDatabase())
 	//trie := statedb.NewStackTrie(nil)
@@ -122,3 +126,21 @@ func DeriveSha0(t *testing.T, list []*types.Receipt) common.Hash {
 	}
 	return trie.Hash()
 }
+
+//func DeriveSha3(list ReceiptRlps) (hash common.Hash) {
+//	//hasher0 := sha3.NewKeccak256()
+//	hasher := sha3.NewLegacyKeccak256()
+//	fmt.Println("============")
+//	for i := 0; i < len(list); i++ {
+//		d, e := rlp.EncodeToBytes(list[i])
+//		if e != nil {
+//			panic(e)
+//		}
+//		hasher.Write(d)
+//		fmt.Println("------------------- ", "0x"+common.Bytes2Hex(d))
+//
+//	}
+//	hasher.Sum(hash[:0])
+//
+//	return hash
+//}
