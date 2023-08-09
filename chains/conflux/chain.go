@@ -3,6 +3,9 @@ package conflux
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"time"
+
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -15,8 +18,6 @@ import (
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"math/big"
-	"time"
 )
 
 var (
@@ -106,7 +107,7 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 
-	//fmt.Println("input --------- ", "0x"+ethcommon.Bytes2Hex(input))
+	fmt.Println("input --------- ", "0x"+ethcommon.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input, true}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)

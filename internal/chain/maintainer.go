@@ -105,7 +105,7 @@ func (m *Maintainer) sync() error {
 			}
 
 			if m.Cfg.Id == m.Cfg.MapChainID && len(m.Cfg.SyncChainIDList) > 0 {
-				err = m.syncMap2Other(m, currentBlock)
+				err = m.syncHeaderToMap(m, currentBlock)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					time.Sleep(constant.QueryRetryInterval)

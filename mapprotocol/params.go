@@ -46,7 +46,7 @@ const (
 )
 
 const (
-	EpochOfMap           = 50000
+	EpochOfMap           = 4000
 	EpochOfBsc           = 200
 	HeaderCountOfBsc     = 12
 	HeaderCountOfMatic   = 16
