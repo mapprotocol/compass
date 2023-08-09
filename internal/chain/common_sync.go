@@ -52,12 +52,6 @@ func OptOfMos(fn Mos) SyncOpt {
 	}
 }
 
-func OptOfSyncMap2Other(fn SyncMap2Other) SyncOpt {
-	return func(sync *CommonSync) {
-		sync.syncMap2Other = fn
-	}
-}
-
 type CommonSync struct {
 	Cfg                Config
 	Conn               Connection
@@ -71,7 +65,6 @@ type CommonSync struct {
 	BlockConfirmations *big.Int
 	BlockStore         blockstore.Blockstorer
 	height             int64
-	syncMap2Other      SyncMap2Other
 	syncHeaderToMap    SyncHeader2Map
 	mosHandler         Mos
 }

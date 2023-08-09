@@ -12,4 +12,3 @@ WORKDIR /compass/build
 
 ENTRYPOINT ["/compass/build/compass"]
 
-CMD ["ls", "-alh", "/home/"]

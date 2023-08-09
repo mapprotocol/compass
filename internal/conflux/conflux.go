@@ -239,8 +239,8 @@ func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot uint64
 	d, _ := rlp.EncodeToBytes(primitives.MustRLPEncodeReceipt(receipt))
 	fmt.Println("-------------", "0x"+common.Bytes2Hex(d))
 
-	//pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	pack, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
+	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	//pack, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
 	if err != nil {
 		return nil, err
 	}
