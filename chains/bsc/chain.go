@@ -41,7 +41,7 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 			"current height", latestBlock)
 		return nil
 	}
-	m.Log.Info("find sync block", "current height", latestBlock)
+	m.Log.Info("Find sync block", "current height", latestBlock)
 	headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
 	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
 		headerHeight := new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(int64(i)))

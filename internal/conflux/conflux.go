@@ -3,6 +3,9 @@ package conflux
 import (
 	"context"
 	"fmt"
+	"io"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -12,8 +15,6 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
-	"io"
-	"math/big"
 )
 
 const DeferredExecutionEpochs uint64 = 5
@@ -238,8 +239,8 @@ func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot uint64
 	d, _ := rlp.EncodeToBytes(primitives.MustRLPEncodeReceipt(receipt))
 	fmt.Println("-------------", "0x"+common.Bytes2Hex(d))
 
-	//pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	pack, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
+	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	//pack, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
 	if err != nil {
 		return nil, err
 	}

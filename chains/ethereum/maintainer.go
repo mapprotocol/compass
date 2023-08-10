@@ -64,11 +64,6 @@ func (m Maintainer) sync() error {
 		m.Log.Info("Check Sync Status...", "synced", syncedHeight)
 		m.syncedHeight = syncedHeight
 
-		// when listen to map there must be a 20 block confirmation at least
-		big20 := big.NewInt(20)
-		if m.BlockConfirmations.Cmp(big20) == -1 {
-			m.BlockConfirmations = big20
-		}
 		// fix the currentBlock Number
 		currentBlock = big.NewInt(0).Sub(currentBlock, m.BlockConfirmations)
 
