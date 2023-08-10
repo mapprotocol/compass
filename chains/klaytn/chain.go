@@ -4,7 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/rlp"
+
+	"github.com/klaytn/klaytn/common"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
@@ -64,6 +69,18 @@ func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 	if kHeader.VoteData == "0x" {
 		return nil
 	}
+	data := common.Hex2Bytes(strings.TrimPrefix(kHeader.VoteData, klaytn.PrefixOfHex))
+	gVote := new(klaytn.GovernanceVote)
+	err = rlp.DecodeBytes(data, gVote)
+	if err != nil {
+		m.Log.Error("Failed to decode a vote", "number", kHeader.Number, "key", gVote.Key, "value", gVote.Value, "validator", gVote.Validator)
+		return err
+	}
+
+	if gVote.Key != "addvalidator" && gVote.Key != "removevalidator" {
+		return nil
+	}
+
 	time.Sleep(time.Second)
 	m.Log.Info("Send Validator Header", "blockHeight", latestBlock, "voteData", kHeader.VoteData)
 	return sendSyncHeader(m, latestBlock, 2)

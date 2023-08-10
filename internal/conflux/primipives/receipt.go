@@ -1,10 +1,10 @@
 package primitives
 
 import (
-	"fmt"
-	"github.com/mapprotocol/compass/internal/conflux/types"
 	"io"
 	"math/big"
+
+	"github.com/mapprotocol/compass/internal/conflux/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -35,19 +35,6 @@ func MustRLPEncodeReceipt(receipt *types.TransactionReceipt) []byte {
 
 func ConvertReceipt(receipt *types.TransactionReceipt) Receipt {
 	storageCollateralized, storageReleased := constructStorageChanges(receipt)
-
-	for _, log := range receipt.Logs {
-		fmt.Println("log.BlockHash", log.BlockHash)
-		fmt.Println("log.Data", "0x"+common.Bytes2Hex(log.Data))
-		fmt.Println("log.BlockNumber", log.BlockHash)
-		fmt.Println("log.EpochNumber", log.EpochNumber)
-		fmt.Println("log.Address", log.Address)
-		fmt.Println("log.TransactionHash", log.TransactionHash)
-		fmt.Println("log.TransactionIndex", log.TransactionIndex)
-		fmt.Println("log.LogIndex", log.LogIndex)
-		fmt.Println("log.Space", log.Space)
-		fmt.Println("log.Topics", log.Topics)
-	}
 
 	return Receipt{
 		AccumulatedGasUsed:    receipt.AccumulatedGasUsed.ToInt(),
