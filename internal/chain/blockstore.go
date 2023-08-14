@@ -1,10 +1,11 @@
 package chain
 
 import (
-	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
-	"github.com/mapprotocol/compass/blockstore"
-	"github.com/mapprotocol/compass/mapprotocol"
 	"math/big"
+
+	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/blockstore"
 )
 
 // SetupBlockStore queries the blockstore for the latest known block. If the latest block is

@@ -8,13 +8,14 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mapprotocol/compass/internal/tx"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
@@ -209,10 +210,11 @@ func GetProof(client *ethclient.Client, kClient *Client, latestBlock *big.Int, l
 	if err != nil {
 		return nil, err
 	}
-	return AssembleProof(ConvertContractHeader(header, kHeader), *log, fId, receipts, method)
+	return AssembleProof(kClient, ConvertContractHeader(header, kHeader), *log, fId, receipts, method)
 }
 
-func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
+func AssembleProof(cli *Client, header Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
+	GetReceiptsByTxsHash(cli, receipts)
 	receiptRlps := make(ReceiptRlps, 0, len(receipts))
 	for _, receipt := range receipts {
 		logs := make([]TxLog, 0, len(receipt.Logs))
@@ -274,6 +276,20 @@ func AssembleProof(header Header, log types.Log, fId msg.ChainId, receipts []*ty
 	}
 
 	return pack, nil
+}
+
+func GetReceiptsByTxsHash(cli *Client, receipts []*types.Receipt) {
+	for idx, receipt := range receipts {
+		if receipt.Status != 0 {
+			continue
+		}
+		kr, err := cli.TransactionReceiptRpcOutput(context.Background(), receipt.TxHash)
+		if err != nil {
+			return
+		}
+		txError, _ := big.NewInt(0).SetString(strings.TrimPrefix(kr["txError"].(string), "0x"), 16)
+		receipts[idx].Status = txError.Uint64()
+	}
 }
 
 func GetTxReceipt(receipt *types.Receipt) (*mapprotocol.TxReceipt, error) {

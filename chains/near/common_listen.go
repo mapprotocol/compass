@@ -1,20 +1,18 @@
 package near
 
 import (
-	"errors"
 	"math/big"
 	"time"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
-	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/pkg/blockstore"
 )
 
 var (
-	RetryInterval   = time.Second * 5
-	RetryLimit      = 5
-	ErrFatalPolling = errors.New("listener block polling failed")
+	RetryInterval = time.Second * 5
+	RetryLimit    = 5
 )
 
 type CommonListen struct {
