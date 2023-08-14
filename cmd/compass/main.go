@@ -10,10 +10,14 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/chains/conflux"
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/mapprotocol/compass/internal/discovery"
+
+	"github.com/mapprotocol/compass/chains/conflux"
+	"github.com/mapprotocol/compass/pkg/etcd"
 
 	"github.com/mapprotocol/compass/chains/platon"
 
@@ -239,6 +243,10 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	if err != nil {
 		return err
 	}
+	err = etcd.Init()
+	if err != nil {
+		return err
+	}
 
 	log.Info("Starting Compass...")
 
@@ -384,6 +392,11 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		}
 	}
 
+	err = discovery.Register(string(role), mapprotocol.OnlineChaId)
+	if err != nil {
+		log.Error("register failed", "err", err)
+	}
+	log.Info("discovery register success")
 	c.Start()
 
 	return nil

@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/mapprotocol/compass/internal/discovery"
+
 	utilcore "github.com/ChainSafe/chainbridge-utils/core"
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/msg"
@@ -41,11 +43,7 @@ func (c *Core) Start() {
 	for _, chain := range c.Registry {
 		err := chain.Start()
 		if err != nil {
-			c.log.Error(
-				"failed to start chain",
-				"chain", chain.Id(),
-				"err", err,
-			)
+			c.log.Error("failed to start chain", "chain", chain.Id(), "err", err)
 			return
 		}
 		c.log.Info(fmt.Sprintf("Started %s chain", chain.Name()))
@@ -60,6 +58,7 @@ func (c *Core) Start() {
 	case err := <-c.sysErr:
 		c.log.Error("FATAL ERROR. Shutting down.", "err", err)
 	case <-sigc:
+		_ = discovery.UnRegister()
 		c.log.Warn("Interrupt received, shutting down now.")
 	}
 

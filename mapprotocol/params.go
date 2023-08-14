@@ -46,7 +46,7 @@ const (
 )
 
 const (
-	EpochOfMap           = 4000
+	EpochOfMap           = 50000
 	EpochOfBsc           = 200
 	HeaderCountOfBsc     = 12
 	HeaderCountOfMatic   = 16
@@ -68,7 +68,6 @@ var (
 	RelayerAddress  = common.HexToAddress("0x000068656164657273746F726541646472657373")
 	HashOfDepositIn = common.HexToHash("0xb7100086a8e13ebae772a0f09b07046e389a6b036406d22b86f2d2e5b860a8d9")
 	HashOfSwapIn    = common.HexToHash("0xca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5")
-	HashOfDataIn    = common.HexToHash("0x30f032e802558749ee4be1c2a9269937ff74045819e844f0f18970c84d891d79")
 	NearOfDepositIn = "150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377"
 	NearOfSwapIn    = "ca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5"
 )
