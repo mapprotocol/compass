@@ -52,7 +52,7 @@ func (m *Maintainer) sync() error {
 			return err
 		}
 
-		m.Log.Info("Check Sync Status...", "synced", syncedHeight)
+		m.Log.Info("Check Block Sync Status...", "synced", syncedHeight)
 		m.syncedHeight = syncedHeight
 
 		if syncedHeight.Cmp(currentBlock) != 0 {

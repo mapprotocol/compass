@@ -40,7 +40,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
 			if err != nil {
 				w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
-				errorCount++
+				checkIdCount++
 				if checkIdCount == 10 {
 					util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
 					checkIdCount = 0
