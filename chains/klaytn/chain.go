@@ -47,8 +47,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 
 	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection,
 		chain.OptOfSync2Map(syncHeaderToMap),
-		chain.OptOfMos(mosHandler),
-		chain.OptOfInitHeight(mapprotocol.EpochOfKlaytn))
+		chain.OptOfMos(mosHandler))
 }
 
 func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
