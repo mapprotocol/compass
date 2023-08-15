@@ -55,7 +55,7 @@ func (m *Maintainer) sync() error {
 		m.Log.Info("Check Block Sync Status...", "synced", syncedHeight)
 		m.syncedHeight = syncedHeight
 
-		if syncedHeight.Cmp(currentBlock) != 0 {
+		if syncedHeight.Cmp(currentBlock) > 0 {
 			currentBlock.Add(syncedHeight, new(big.Int).SetInt64(m.height))
 			m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
 				"syncedHeight", syncedHeight, "currentBlock", currentBlock)
