@@ -45,8 +45,10 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		return nil, err
 	}
 
-	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection, chain.OptOfSync2Map(syncHeaderToMap),
-		chain.OptOfMos(mosHandler))
+	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection,
+		chain.OptOfSync2Map(syncHeaderToMap),
+		chain.OptOfMos(mosHandler),
+		chain.OptOfInitHeight(mapprotocol.EpochOfKlaytn))
 }
 
 func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
@@ -67,6 +69,7 @@ func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 
+	m.Log.Info("Get voteData", "blockHeight", latestBlock, "voteData", kHeader.VoteData)
 	if kHeader.VoteData == "0x" {
 		return nil
 	}
@@ -114,17 +117,14 @@ func sendSyncHeader(m *chain.Maintainer, latestBlock *big.Int, count int) error 
 	if err != nil {
 		return err
 	}
-	//fmt.Println("---------- ", headers[0].Number, headers[0].VoteData)
-	//if len(headers) > 1 {
-	//	fmt.Println("---------- ", headers[1].Number, headers[1].VoteData)
-	//}
+
 	input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(headers)
 	if err != nil {
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
 	}
 
-	//fmt.Println("input -------------- ", "0x"+ethcommon.Bytes2Hex(input))
+	fmt.Println("input -------------- ", "0x"+ethcommon.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
