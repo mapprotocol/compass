@@ -41,6 +41,10 @@ func (m *Maintainer) Sync() error {
 // Polling begins at the block defined in `m.Cfg.StartBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 func (m *Maintainer) sync() error {
+	if m.Cfg.Id != m.Cfg.MapChainID && !m.Cfg.SyncToMap {
+		time.Sleep(time.Hour * 2400)
+		return nil
+	}
 	var currentBlock = m.Cfg.StartBlock
 	m.Log.Info("Polling Blocks...", "block", currentBlock)
 
@@ -52,10 +56,10 @@ func (m *Maintainer) sync() error {
 			return err
 		}
 
-		m.Log.Info("Check Sync Status...", "synced", syncedHeight)
+		m.Log.Info("Check Block Sync Status...", "synced", syncedHeight)
 		m.syncedHeight = syncedHeight
 
-		if syncedHeight.Cmp(currentBlock) != 0 {
+		if syncedHeight.Cmp(currentBlock) > 0 {
 			currentBlock.Add(syncedHeight, new(big.Int).SetInt64(m.height))
 			m.Log.Info("SyncedHeight is higher or lower than currentHeight, so let currentHeight = syncedHeight",
 				"syncedHeight", syncedHeight, "currentBlock", currentBlock)

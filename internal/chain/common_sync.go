@@ -11,8 +11,8 @@ import (
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
-	"github.com/mapprotocol/compass/blockstore"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/pkg/blockstore"
 )
 
 type (
@@ -21,18 +21,6 @@ type (
 	SyncHeader2Map func(*Maintainer, *big.Int) error
 	Mos            func(*Messenger, *big.Int) (int, error)
 )
-
-func OptOfMetrics(m *metrics.ChainMetrics) SyncOpt {
-	return func(sync *CommonSync) {
-		sync.Metrics = m
-	}
-}
-
-func OptOfStore(bs blockstore.Blockstorer) SyncOpt {
-	return func(sync *CommonSync) {
-		sync.BlockStore = bs
-	}
-}
 
 func OptOfInitHeight(height int64) SyncOpt {
 	return func(sync *CommonSync) {

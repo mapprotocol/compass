@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mapprotocol/compass/internal/tx"
+
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/klaytn/klaytn/common"
@@ -18,7 +20,6 @@ import (
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/klaytn"
-	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
@@ -44,7 +45,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		return nil, err
 	}
 
-	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection, chain.OptOfSync2Map(syncHeaderToMap),
+	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection,
+		chain.OptOfSync2Map(syncHeaderToMap),
 		chain.OptOfMos(mosHandler))
 }
 
@@ -66,6 +68,7 @@ func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 
+	m.Log.Info("Get voteData", "blockHeight", latestBlock, "voteData", kHeader.VoteData)
 	if kHeader.VoteData == "0x" {
 		return nil
 	}
@@ -113,17 +116,14 @@ func sendSyncHeader(m *chain.Maintainer, latestBlock *big.Int, count int) error 
 	if err != nil {
 		return err
 	}
-	fmt.Println("---------- ", headers[0].Number, headers[0].VoteData)
-	if len(headers) > 1 {
-		fmt.Println("---------- ", headers[1].Number, headers[1].VoteData)
-	}
+
 	input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(headers)
 	if err != nil {
 		m.Log.Error("Failed to abi pack", "err", err)
 		return err
 	}
 
-	//fmt.Println("input -------------- ", "0x"+ethcommon.Bytes2Hex(input))
+	fmt.Println("input -------------- ", "0x"+ethcommon.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
@@ -196,7 +196,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			return 0, err
 		}
 
-		payload, err := klaytn.AssembleProof(klaytn.ConvertContractHeader(header, kHeader), log, m.Cfg.Id, receipts, method)
+		payload, err := klaytn.AssembleProof(kClient, klaytn.ConvertContractHeader(header, kHeader), log, m.Cfg.Id, receipts, method)
 		if err != nil {
 			return 0, fmt.Errorf("unable to Parse Log: %w", err)
 		}

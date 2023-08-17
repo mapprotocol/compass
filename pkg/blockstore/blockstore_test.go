@@ -9,7 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mapprotocol/compass/keystore"
+	"github.com/mapprotocol/compass/mapprotocol"
+
 	"github.com/mapprotocol/compass/msg"
 )
 
@@ -21,9 +22,8 @@ func TestSaveAndLoad(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	chain := msg.ChainId(10)
-	relayer := keystore.AliceSr25519.Address()
 
-	bs, err := NewBlockstore(dir, chain, relayer)
+	bs, err := NewBlockstore(dir, chain, mapprotocol.ZeroAddress.String(), mapprotocol.RoleOfMaintainer)
 	if err != nil {
 		t.Fatal(err)
 	}

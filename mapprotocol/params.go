@@ -7,11 +7,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/mapprotocol/compass/core"
-	"github.com/mapprotocol/compass/msg"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/msg"
 )
 
 const (
@@ -46,7 +44,7 @@ const (
 )
 
 const (
-	EpochOfMap           = 4000
+	EpochOfMap           = 50000
 	EpochOfBsc           = 200
 	HeaderCountOfBsc     = 12
 	HeaderCountOfMatic   = 16
@@ -68,7 +66,6 @@ var (
 	RelayerAddress  = common.HexToAddress("0x000068656164657273746F726541646472657373")
 	HashOfDepositIn = common.HexToHash("0xb7100086a8e13ebae772a0f09b07046e389a6b036406d22b86f2d2e5b860a8d9")
 	HashOfSwapIn    = common.HexToHash("0xca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5")
-	HashOfDataIn    = common.HexToHash("0x30f032e802558749ee4be1c2a9269937ff74045819e844f0f18970c84d891d79")
 	NearOfDepositIn = "150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377"
 	NearOfSwapIn    = "ca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5"
 )
@@ -100,7 +97,7 @@ var (
 
 var (
 	OnlineChaId    = map[msg.ChainId]string{}
-	OnlineChainCfg = map[msg.ChainId]*core.ChainConfig{}
+	OnlineChainCfg = map[msg.ChainId]string{}
 	Event          = map[common.Hash]string{
 		common.HexToHash("0x56877b1dbedc6754c111b951146b820fe6b723af0213fc415d44b05e1758dd85"): MethodOfTransferIn,
 		common.HexToHash("0xf4397fd41454e34a9a4015d05a670124ecd71fe7f1d05578a62f8009b1a57f8a"): MethodOfTransferIn,
