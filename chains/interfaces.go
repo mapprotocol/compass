@@ -29,16 +29,3 @@ const (
 	Ethereum = "ethereum"
 	Conflux  = "conflux"
 )
-
-var (
-	NearChainId = map[msg.ChainId]struct{}{
-		1313161556:          {},
-		1313161555:          {},
-		1313161554:          {},
-		5566818579631833089: {},
-	}
-)
-
-//type Writer interface {
-//	ResolveMessage(message msg.Message) bool
-//}

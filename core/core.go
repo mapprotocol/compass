@@ -9,6 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/mapprotocol/compass/mapprotocol"
+
 	"github.com/mapprotocol/compass/internal/discovery"
 
 	utilcore "github.com/ChainSafe/chainbridge-utils/core"
@@ -21,14 +25,16 @@ type Core struct {
 	route    *Router
 	log      log15.Logger
 	sysErr   <-chan error
+	role     mapprotocol.Role
 }
 
-func NewCore(sysErr <-chan error, mapcid msg.ChainId) *Core {
+func NewCore(sysErr <-chan error, mapcid msg.ChainId, role mapprotocol.Role) *Core {
 	return &Core{
 		Registry: make([]Chain, 0),
 		route:    NewRouter(log15.New("system", "router"), mapcid),
 		log:      log15.New("system", "core"),
 		sysErr:   sysErr,
+		role:     role,
 	}
 }
 
@@ -53,6 +59,10 @@ func (c *Core) Start() {
 	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigc)
 
+	err := discovery.Register(string(c.role), mapprotocol.OnlineChaId)
+	if err != nil {
+		log.Error("register failed", "err", err)
+	}
 	// Block here and wait for a signal
 	select {
 	case err := <-c.sysErr:
