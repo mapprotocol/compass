@@ -14,8 +14,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/mapprotocol/compass/internal/discovery"
-
 	"github.com/mapprotocol/compass/chains/conflux"
 	"github.com/mapprotocol/compass/pkg/etcd"
 
@@ -274,7 +272,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	if err != nil {
 		return err
 	}
-	c := core.NewCore(sysErr, msg.ChainId(mapcid))
+	c := core.NewCore(sysErr, msg.ChainId(mapcid), role)
 	// merge map chain
 	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
 	allChains = append(allChains, cfg.MapChain)
@@ -392,11 +390,6 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		}
 	}
 
-	err = discovery.Register(string(role), mapprotocol.OnlineChaId)
-	if err != nil {
-		log.Error("register failed", "err", err)
-	}
-	log.Info("discovery register success")
 	c.Start()
 
 	return nil
