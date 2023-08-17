@@ -7,11 +7,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/mapprotocol/compass/core"
-	"github.com/mapprotocol/compass/msg"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/msg"
 )
 
 const (
@@ -99,7 +97,7 @@ var (
 
 var (
 	OnlineChaId    = map[msg.ChainId]string{}
-	OnlineChainCfg = map[msg.ChainId]*core.ChainConfig{}
+	OnlineChainCfg = map[msg.ChainId]string{}
 	Event          = map[common.Hash]string{
 		common.HexToHash("0x56877b1dbedc6754c111b951146b820fe6b723af0213fc415d44b05e1758dd85"): MethodOfTransferIn,
 		common.HexToHash("0xf4397fd41454e34a9a4015d05a670124ecd71fe7f1d05578a62f8009b1a57f8a"): MethodOfTransferIn,

@@ -347,7 +347,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		}
 
 		mapprotocol.OnlineChaId[chainConfig.Id] = chainConfig.Name
-		mapprotocol.OnlineChainCfg[chainConfig.Id] = chainConfig
+		mapprotocol.OnlineChainCfg[chainConfig.Id] = chainConfig.Endpoint
 		c.AddChain(newChain)
 	}
 

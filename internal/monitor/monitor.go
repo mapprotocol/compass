@@ -88,7 +88,7 @@ func Handler(resp http.ResponseWriter, req *http.Request) {
 		resp.Write([]byte(fmt.Sprintf("This ChainId(%d) Not Support", r.ChainId)))
 		return
 	}
-	client, err := ethclient.Dial(cfg.Endpoint)
+	client, err := ethclient.Dial(cfg)
 	if err != nil {
 		resp.WriteHeader(500)
 		resp.Write([]byte("Server Internal Error"))
@@ -125,7 +125,7 @@ func Handler(resp http.ResponseWriter, req *http.Request) {
 	case chains.Matic:
 		data, err = matic.GetProof(client, receipt.BlockNumber, logParam, method, msg.ChainId(r.ChainId))
 	case chains.Klaytn:
-		kc, err := klaytn.DialHttp(cfg.Endpoint, true)
+		kc, err := klaytn.DialHttp(cfg, true)
 		if err != nil {
 			resp.WriteHeader(500)
 			resp.Write([]byte("Klaytn InitConn Failed, Server Internal Error"))
@@ -133,7 +133,7 @@ func Handler(resp http.ResponseWriter, req *http.Request) {
 		}
 		data, err = klaytn.GetProof(client, kc, receipt.BlockNumber, logParam, method, msg.ChainId(r.ChainId))
 	case chains.Eth2:
-		data, err = eth2.GetProof(client, cfg.Endpoint, receipt.BlockNumber, logParam, method, msg.ChainId(r.ChainId))
+		data, err = eth2.GetProof(client, cfg, receipt.BlockNumber, logParam, method, msg.ChainId(r.ChainId))
 	default:
 	}
 	client.Close()
