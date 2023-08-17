@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -17,6 +15,11 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 const (
@@ -61,6 +64,10 @@ func (c *Client) BlockByNumber(ctx context.Context, number *big.Int) (*RpcHeader
 	return c.getBlock(ctx, "klay_getBlockByNumber", toBlockNumArg(number), true)
 }
 
+func (c *Client) TransactionReceiptRpcOutput(ctx context.Context, txHash common.Hash) (map[string]interface{}, error) {
+	return c.getReceipt(ctx, "klay_getTransactionReceipt", txHash)
+}
+
 func toBlockNumArg(number *big.Int) string {
 	if number == nil {
 		return "latest"
@@ -92,6 +99,28 @@ func (c *Client) getBlock(ctx context.Context, method string, args ...interface{
 		return nil, err
 	}
 	return &ret, nil
+}
+
+func (c *Client) getReceipt(ctx context.Context, method string, args ...interface{}) (map[string]interface{}, error) {
+	var raw json.RawMessage
+	err := c.CallContext(ctx, &raw, method, args...)
+	if err != nil {
+		return nil, err
+	} else if len(raw) == 0 {
+		return nil, ethereum.NotFound
+	}
+
+	data, err := raw.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+
+	var ret map[string]interface{}
+	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 type jsonrpcMessage struct {

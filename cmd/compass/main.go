@@ -10,10 +10,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/chains/conflux"
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/mapprotocol/compass/chains/conflux"
+	"github.com/mapprotocol/compass/pkg/etcd"
 
 	"github.com/mapprotocol/compass/chains/platon"
 
@@ -239,6 +241,10 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	if err != nil {
 		return err
 	}
+	err = etcd.Init()
+	if err != nil {
+		return err
+	}
 
 	log.Info("Starting Compass...")
 
@@ -266,7 +272,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	if err != nil {
 		return err
 	}
-	c := core.NewCore(sysErr, msg.ChainId(mapcid))
+	c := core.NewCore(sysErr, msg.ChainId(mapcid), role)
 	// merge map chain
 	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
 	allChains = append(allChains, cfg.MapChain)
@@ -341,7 +347,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		}
 
 		mapprotocol.OnlineChaId[chainConfig.Id] = chainConfig.Name
-		mapprotocol.OnlineChainCfg[chainConfig.Id] = chainConfig
+		mapprotocol.OnlineChainCfg[chainConfig.Id] = chainConfig.Endpoint
 		c.AddChain(newChain)
 	}
 

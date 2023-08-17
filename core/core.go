@@ -9,6 +9,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/mapprotocol/compass/mapprotocol"
+
+	"github.com/mapprotocol/compass/internal/discovery"
+
 	utilcore "github.com/ChainSafe/chainbridge-utils/core"
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/msg"
@@ -19,14 +25,16 @@ type Core struct {
 	route    *Router
 	log      log15.Logger
 	sysErr   <-chan error
+	role     mapprotocol.Role
 }
 
-func NewCore(sysErr <-chan error, mapcid msg.ChainId) *Core {
+func NewCore(sysErr <-chan error, mapcid msg.ChainId, role mapprotocol.Role) *Core {
 	return &Core{
 		Registry: make([]Chain, 0),
 		route:    NewRouter(log15.New("system", "router"), mapcid),
 		log:      log15.New("system", "core"),
 		sysErr:   sysErr,
+		role:     role,
 	}
 }
 
@@ -41,11 +49,7 @@ func (c *Core) Start() {
 	for _, chain := range c.Registry {
 		err := chain.Start()
 		if err != nil {
-			c.log.Error(
-				"failed to start chain",
-				"chain", chain.Id(),
-				"err", err,
-			)
+			c.log.Error("failed to start chain", "chain", chain.Id(), "err", err)
 			return
 		}
 		c.log.Info(fmt.Sprintf("Started %s chain", chain.Name()))
@@ -55,11 +59,16 @@ func (c *Core) Start() {
 	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigc)
 
+	err := discovery.Register(string(c.role), mapprotocol.OnlineChaId)
+	if err != nil {
+		log.Error("register failed", "err", err)
+	}
 	// Block here and wait for a signal
 	select {
 	case err := <-c.sysErr:
 		c.log.Error("FATAL ERROR. Shutting down.", "err", err)
 	case <-sigc:
+		_ = discovery.UnRegister()
 		c.log.Warn("Interrupt received, shutting down now.")
 	}
 
