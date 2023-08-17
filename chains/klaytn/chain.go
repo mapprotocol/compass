@@ -68,7 +68,6 @@ func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 
-	m.Log.Info("Get voteData", "blockHeight", latestBlock, "voteData", kHeader.VoteData)
 	if kHeader.VoteData == "0x" {
 		return nil
 	}
