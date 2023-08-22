@@ -83,63 +83,66 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 	if !m.Cfg.SyncToMap {
 		return 0, nil
 	}
-	m.Log.Debug("Querying block for events", "block", latestBlock)
-	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
-	// querying for logs
-	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
-	if err != nil {
-		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
-	}
-
-	m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
-	// read through the log events and handle their deposit event if handler is recognized
-	for _, log := range logs {
-		// evm event to msg
-		var message msg.Message
-		// getOrderId
-		orderId := log.Data[:32]
-		method := m.GetMethod(log.Topics[0])
-		// when syncToMap we need to assemble a tx proof
-		txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
+	m.Log.Debug("Querying block for events", "block", latestBlock)
+	for idx, addr := range m.Cfg.McsContract {
+		query := m.BuildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
+		// querying for logs
+		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 		if err != nil {
-			return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-		}
-		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-		if err != nil {
-			return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 		}
 
-		headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
-		for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
-			headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
-			header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+		m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
+		// read through the log events and handle their deposit event if handler is recognized
+		for _, log := range logs {
+			// evm event to msg
+			var message msg.Message
+			// getOrderId
+			orderId := log.Data[:32]
+			method := m.GetMethod(log.Topics[0])
+			// when syncToMap we need to assemble a tx proof
+			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
 			if err != nil {
-				return 0, err
+				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 			}
-			headers[i] = *header
-		}
+			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+			if err != nil {
+				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			}
 
-		params := make([]bsc.Header, 0, len(headers))
-		for _, h := range headers {
-			params = append(params, bsc.ConvertHeader(h))
-		}
+			headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
+			for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
+				headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
+				header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+				if err != nil {
+					return 0, err
+				}
+				headers[i] = *header
+			}
 
-		payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id)
-		if err != nil {
-			return 0, fmt.Errorf("unable to Parse Log: %w", err)
-		}
+			params := make([]bsc.Header, 0, len(headers))
+			for _, h := range headers {
+				params = append(params, bsc.ConvertHeader(h))
+			}
 
-		msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+			payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id)
+			if err != nil {
+				return 0, fmt.Errorf("unable to Parse Log: %w", err)
+			}
 
-		m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-			"orderId", ethcommon.Bytes2Hex(orderId))
-		err = m.Router.Send(message)
-		if err != nil {
-			m.Log.Error("Subscription error: failed to route message", "err", err)
+			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+			message.Idx = idx
+
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", ethcommon.Bytes2Hex(orderId))
+			err = m.Router.Send(message)
+			if err != nil {
+				m.Log.Error("Subscription error: failed to route message", "err", err)
+			}
+			count++
 		}
-		count++
 	}
 
 	return count, nil

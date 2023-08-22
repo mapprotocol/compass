@@ -91,11 +91,12 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 		inputHash = m.Payload[3]
 	}
 	data := m.Payload[0].([]byte)
+	addr := w.cfg.mcsContract[m.Idx]
 
 	for {
 		// First request whether the orderId already exists
 		orderId := m.Payload[1].([]byte)
-		exits, err := w.checkOrderId(w.cfg.mcsContract, orderId)
+		exits, err := w.checkOrderId(addr, orderId)
 		if err != nil {
 			w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
 		}
@@ -114,9 +115,9 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			w.log.Error("Verify Execution failed, Will retry", "srcHash", inputHash, "err", err)
 			return false
 		}
-		txHash, err := w.sendTx(w.cfg.mcsContract, MethodOfVerifyReceiptProof, verify)
+		txHash, err := w.sendTx(addr, MethodOfVerifyReceiptProof, verify)
 		if err == nil {
-			w.log.Info("Verify Success", "mcsTx", txHash.String(), "srcHash", inputHash)
+			w.log.Info("Verify Success", "mcsTx", txHash.String(), "srcHash", inputHash, "addr", addr)
 			time.Sleep(time.Second)
 			break
 		} else {
@@ -149,8 +150,8 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			if m.Payload[4].(string) == mapprotocol.MethodOfSwapIn {
 				method = MethodOfSwapIn
 			}
-			w.log.Info("Send transaction", "addr", w.cfg.mcsContract, "srcHash", inputHash, "method", method)
-			txHash, err := w.sendTx(w.cfg.mcsContract, method, data)
+			w.log.Info("Send transaction", "addr", w.cfg.mcsContract, "srcHash", inputHash, "method", method, "addr", addr)
+			txHash, err := w.sendTx(addr, method, data)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "mcsTx", txHash.String(), "srcHash", inputHash)
 				m.DoneCh <- struct{}{}

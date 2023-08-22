@@ -71,6 +71,7 @@ func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 	if kHeader.VoteData == "0x" {
 		return nil
 	}
+	m.Log.Info("Get voteData", "blockHeight", latestBlock, "voteData", kHeader.VoteData)
 	data := common.Hex2Bytes(strings.TrimPrefix(kHeader.VoteData, klaytn.PrefixOfHex))
 	gVote := new(klaytn.GovernanceVote)
 	err = rlp.DecodeBytes(data, gVote)
@@ -79,12 +80,12 @@ func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 
-	if gVote.Key != "addvalidator" && gVote.Key != "removevalidator" {
+	if gVote.Key != "governance.addvalidator" && gVote.Key != "governance.removevalidator" {
 		return nil
 	}
 
 	time.Sleep(time.Second)
-	m.Log.Info("Send Validator Header", "blockHeight", latestBlock, "voteData", kHeader.VoteData)
+	m.Log.Info("Send Validator Header", "blockHeight", latestBlock)
 	return sendSyncHeader(m, latestBlock, 2)
 }
 
@@ -163,53 +164,55 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 	if !m.Cfg.SyncToMap {
 		return 0, nil
 	}
-	m.Log.Debug("Querying block for events", "block", latestBlock)
-	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
-	// querying for logs
-	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
-	if err != nil {
-		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
-	}
-
-	m.Log.Debug("Event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
-	for _, log := range logs {
-		var message msg.Message
-		orderId := log.Data[:32]
-		method := m.GetMethod(log.Topics[0])
-		txsHash, err := klaytn.GetTxsHashByBlockNumber(kClient, latestBlock)
+	for idx, addr := range m.Cfg.McsContract {
+		m.Log.Debug("Querying block for events", "block", latestBlock)
+		query := m.BuildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
+		// querying for logs
+		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 		if err != nil {
-			return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-		}
-		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-		if err != nil {
-			return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-		}
-		// get block
-		header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
-		if err != nil {
-			return 0, err
-		}
-		kHeader, err := kClient.BlockByNumber(context.Background(), latestBlock)
-		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 		}
 
-		payload, err := klaytn.AssembleProof(kClient, klaytn.ConvertContractHeader(header, kHeader), log, m.Cfg.Id, receipts, method)
-		if err != nil {
-			return 0, fmt.Errorf("unable to Parse Log: %w", err)
-		}
+		m.Log.Debug("Event", "latestBlock ", latestBlock, " logs ", len(logs))
+		for _, log := range logs {
+			var message msg.Message
+			orderId := log.Data[:32]
+			method := m.GetMethod(log.Topics[0])
+			txsHash, err := klaytn.GetTxsHashByBlockNumber(kClient, latestBlock)
+			if err != nil {
+				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+			}
+			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+			if err != nil {
+				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			}
+			// get block
+			header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
+			if err != nil {
+				return 0, err
+			}
+			kHeader, err := kClient.BlockByNumber(context.Background(), latestBlock)
+			if err != nil {
+				return 0, err
+			}
 
-		msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+			payload, err := klaytn.AssembleProof(kClient, klaytn.ConvertContractHeader(header, kHeader), log, m.Cfg.Id, receipts, method)
+			if err != nil {
+				return 0, fmt.Errorf("unable to Parse Log: %w", err)
+			}
 
-		m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-			"orderId", ethcommon.Bytes2Hex(orderId))
-		err = m.Router.Send(message)
-		if err != nil {
-			m.Log.Error("Subscription error: failed to route message", "err", err)
+			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+			message.Idx = idx
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", ethcommon.Bytes2Hex(orderId))
+			err = m.Router.Send(message)
+			if err != nil {
+				m.Log.Error("Subscription error: failed to route message", "err", err)
+			}
+			count++
 		}
-		count++
 	}
 
 	return count, nil
