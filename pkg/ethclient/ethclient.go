@@ -646,7 +646,6 @@ func (ec *Client) EthLatestHeaderByNumber(endpoint string, number *big.Int) (*He
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("EthLatestHeaderByNumber getNewHeader WithdrawalsHash is", tmp.WithdrawalsHash)
 
 	head.WithdrawalsHash = tmp.WithdrawalsHash
 	return &head, err

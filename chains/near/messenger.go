@@ -131,7 +131,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	target := make([]mapprotocol.IndexerExecutionOutcomeWithReceipt, 0)
 	for _, shard := range data.Shards {
 		for _, outcome := range shard.ReceiptExecutionOutcomes {
-			if outcome.ExecutionOutcome.Outcome.ExecutorID != m.cfg.mcsContract {
+			if m.Idx(outcome.ExecutionOutcome.Outcome.ExecutorID) == -1 {
 				continue
 			}
 			if len(outcome.ExecutionOutcome.Outcome.Logs) == 0 {
@@ -144,7 +144,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				}
 			}
 			if match {
-				m.log.Info("Event found", "log", outcome.ExecutionOutcome.Outcome.Logs)
+				m.log.Info("Event found", "log", outcome.ExecutionOutcome.Outcome.Logs, "contract", outcome.ExecutionOutcome.Outcome.ExecutorID)
 				target = append(target, outcome)
 			} else {
 				m.log.Info("Event Not Match", "log", outcome.ExecutionOutcome.Outcome.Logs)
@@ -193,6 +193,18 @@ func (m *Messenger) match(log string) bool {
 	}
 
 	return false
+}
+
+func (m *Messenger) Idx(contract string) int {
+	ret := -1
+	for idx, addr := range m.cfg.mcsContract {
+		if addr == contract {
+			ret = idx
+			break
+		}
+	}
+
+	return ret
 }
 
 func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWithReceipt) (int, error) {
@@ -281,6 +293,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 		}
 		msgPayload := []interface{}{input, orderId, 0, tg.ExecutionOutcome.Outcome.ReceiptIDs}
 		message := msg.NewSwapWithProof(m.cfg.id, m.cfg.mapChainID, msgPayload, m.msgCh)
+		message.Idx = m.Idx(tg.ExecutionOutcome.Outcome.ExecutorID)
 		err = m.router.Send(message)
 		ret++
 	}
