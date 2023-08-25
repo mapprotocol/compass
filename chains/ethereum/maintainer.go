@@ -49,6 +49,10 @@ func (m *Maintainer) Sync() error {
 // Polling begins at the block defined in `m.Cfg.StartBlock`. Failed attempts to fetch the latest block or parse
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 func (m Maintainer) sync() error {
+	if m.Cfg.Id != m.Cfg.MapChainID && !m.Cfg.SyncToMap {
+		time.Sleep(time.Hour * 2400)
+		return nil
+	}
 	var currentBlock = m.Cfg.StartBlock
 	m.Log.Info("Polling Blocks...", "block", currentBlock)
 

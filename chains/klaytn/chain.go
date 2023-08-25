@@ -68,7 +68,6 @@ func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 
-	m.Log.Info("Get voteData", "blockHeight", latestBlock, "voteData", kHeader.VoteData)
 	if kHeader.VoteData == "0x" {
 		return nil
 	}
@@ -80,7 +79,7 @@ func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 
-	if gVote.Key != "addvalidator" && gVote.Key != "removevalidator" {
+	if gVote.Key != "governance.addvalidator" && gVote.Key != "governance.removevalidator" {
 		return nil
 	}
 
