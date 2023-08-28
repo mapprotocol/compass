@@ -97,10 +97,6 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	var listen chains.Listener
 	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
 	if role == mapprotocol.RoleOfMessenger {
-		err = conn.EnsureHasBytecode(cfg.McsContract)
-		if err != nil {
-			return nil, err
-		}
 		// verify range
 		if cfg.Id != cfg.MapChainID {
 			fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())

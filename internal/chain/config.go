@@ -54,7 +54,7 @@ type Config struct {
 	KeystorePath       string      // Location of keyfiles
 	BlockstorePath     string
 	FreshStart         bool // Disables loading from blockstore at start
-	McsContract        common.Address
+	McsContract        []common.Address
 	GasLimit           *big.Int
 	MaxGasPrice        *big.Int
 	GasMultiplier      float64
@@ -87,7 +87,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		KeystorePath:       chainCfg.KeystorePath,
 		BlockstorePath:     chainCfg.BlockstorePath,
 		FreshStart:         chainCfg.FreshStart,
-		McsContract:        utils.ZeroAddress,
+		McsContract:        []common.Address{},
 		GasLimit:           big.NewInt(DefaultGasLimit),
 		MaxGasPrice:        big.NewInt(DefaultGasPrice),
 		GasMultiplier:      DefaultGasMultiplier,
@@ -105,7 +105,9 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
-		config.McsContract = common.HexToAddress(contract)
+		for _, addr := range strings.Split(contract, ",") {
+			config.McsContract = append(config.McsContract, common.HexToAddress(addr))
+		}
 		delete(chainCfg.Opts, McsOpt)
 	} else {
 		return nil, fmt.Errorf("must provide opts.mcs field for ethereum config")

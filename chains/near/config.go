@@ -7,11 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/chain"
 	"math/big"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/mapprotocol/compass/internal/chain"
 
 	gconfig "github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/connections/ethereum/egs"
@@ -51,7 +52,7 @@ type Config struct {
 	keystorePath       string      // Location of keyfiles
 	blockstorePath     string
 	freshStart         bool // Disables loading from blockstore at start
-	mcsContract        string
+	mcsContract        []string
 	gasLimit           *big.Int
 	maxGasPrice        *big.Int
 	gasMultiplier      *big.Float
@@ -82,7 +83,7 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		blockstorePath:     chainCfg.BlockstorePath,
 		freshStart:         chainCfg.FreshStart,
 		endpoint:           chainCfg.Endpoint,
-		mcsContract:        "",
+		mcsContract:        []string{},
 		gasLimit:           big.NewInt(DefaultGasLimit),
 		maxGasPrice:        big.NewInt(DefaultGasPrice),
 		gasMultiplier:      big.NewFloat(DefaultGasMultiplier),
@@ -98,7 +99,10 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
-		config.mcsContract = contract
+		for _, addr := range strings.Split(contract, ",") {
+			config.mcsContract = append(config.mcsContract, addr)
+		}
+
 		delete(chainCfg.Opts, McsOpt)
 	} else {
 		return nil, fmt.Errorf("must provide opts.mcs field for ethereum config")

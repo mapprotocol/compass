@@ -3,6 +3,8 @@ package matic
 import (
 	"context"
 	"fmt"
+	"math/big"
+
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -14,7 +16,6 @@ import (
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"math/big"
 )
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
@@ -86,62 +87,65 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 }
 
 func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
-	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
-	// querying for logs
-	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
-	if err != nil {
-		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
-	}
-
-	m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
-	// read through the log events and handle their deposit event if handler is recognized
-	for _, log := range logs {
-		// evm event to msg
-		var message msg.Message
-		// getOrderId
-		orderId := log.Data[:32]
-		if m.Cfg.SyncToMap {
-			method := m.GetMethod(log.Topics[0])
-			// when syncToMap we need to assemble a tx proof
-			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-			}
-			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-			}
+	for idx, addr := range m.Cfg.McsContract {
+		query := m.BuildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
+		// querying for logs
+		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
+		if err != nil {
+			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
+		}
 
-			headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
-			for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
-				headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
-				tmp, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+		m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
+		// read through the log events and handle their deposit event if handler is recognized
+		for _, log := range logs {
+			// evm event to msg
+			var message msg.Message
+			// getOrderId
+			orderId := log.Data[:32]
+			if m.Cfg.SyncToMap {
+				method := m.GetMethod(log.Topics[0])
+				// when syncToMap we need to assemble a tx proof
+				txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
 				if err != nil {
-					return 0, fmt.Errorf("getHeader failed, err is %v", err)
+					return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 				}
-				headers[i] = tmp
-			}
+				receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				if err != nil {
+					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+				}
 
-			mHeaders := make([]matic.BlockHeader, 0, len(headers))
-			for _, h := range headers {
-				mHeaders = append(mHeaders, matic.ConvertHeader(h))
-			}
+				headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
+				for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
+					headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
+					tmp, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+					if err != nil {
+						return 0, fmt.Errorf("getHeader failed, err is %v", err)
+					}
+					headers[i] = tmp
+				}
 
-			payload, err := matic.AssembleProof(mHeaders, log, m.Cfg.Id, receipts, method)
-			if err != nil {
-				return 0, fmt.Errorf("unable to Parse Log: %w", err)
-			}
+				mHeaders := make([]matic.BlockHeader, 0, len(headers))
+				for _, h := range headers {
+					mHeaders = append(mHeaders, matic.ConvertHeader(h))
+				}
 
-			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+				payload, err := matic.AssembleProof(mHeaders, log, m.Cfg.Id, receipts, method)
+				if err != nil {
+					return 0, fmt.Errorf("unable to Parse Log: %w", err)
+				}
 
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
-			err = m.Router.Send(message)
-			if err != nil {
-				m.Log.Error("subscription error: failed to route message", "err", err)
+				msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+				message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+				message.Idx = idx
+
+				m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
+				err = m.Router.Send(message)
+				if err != nil {
+					m.Log.Error("subscription error: failed to route message", "err", err)
+				}
+				count++
 			}
-			count++
 		}
 	}
 
