@@ -88,52 +88,55 @@ func mos(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 		return 0, nil
 	}
 	m.Log.Debug("Querying block for events", "block", latestBlock)
-	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
-	// querying for logs
-	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
-	if err != nil {
-		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
-	}
-	m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
-	if len(logs) == 0 {
-		return 0, nil
-	}
-	headerParam, err := platon.GetHeaderParam(m.Conn.Client(), latestBlock)
-	if err != nil {
-		return 0, err
-	}
 	count := 0
-	// read through the log events and handle their deposit event if handler is recognized
-	for _, log := range logs {
-		// evm event to msg
-		var message msg.Message
-		// getOrderId
-		orderId := log.Data[:32]
-		method := m.GetMethod(log.Topics[0])
-		txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
+	for idx, addr := range m.Cfg.McsContract {
+		query := m.BuildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
+		// querying for logs
+		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 		if err != nil {
-			return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 		}
-		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+		m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
+		if len(logs) == 0 {
+			return 0, nil
+		}
+		headerParam, err := platon.GetHeaderParam(m.Conn.Client(), latestBlock)
 		if err != nil {
-			return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			return 0, err
 		}
+		// read through the log events and handle their deposit event if handler is recognized
+		for _, log := range logs {
+			// evm event to msg
+			var message msg.Message
+			// getOrderId
+			orderId := log.Data[:32]
+			method := m.GetMethod(log.Topics[0])
+			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
+			if err != nil {
+				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+			}
+			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+			if err != nil {
+				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			}
 
-		payload, err := platon.AssembleProof(headerParam, log, receipts, method, m.Cfg.Id)
-		if err != nil {
-			return 0, fmt.Errorf("unable to Parse Log: %w", err)
-		}
+			payload, err := platon.AssembleProof(headerParam, log, receipts, method, m.Cfg.Id)
+			if err != nil {
+				return 0, fmt.Errorf("unable to Parse Log: %w", err)
+			}
 
-		msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+			message.Idx = idx
 
-		m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-			"orderId", ethcommon.Bytes2Hex(orderId))
-		err = m.Router.Send(message)
-		if err != nil {
-			m.Log.Error("Subscription error: failed to route message", "err", err)
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", ethcommon.Bytes2Hex(orderId))
+			err = m.Router.Send(message)
+			if err != nil {
+				m.Log.Error("Subscription error: failed to route message", "err", err)
+			}
+			count++
 		}
-		count++
 	}
 
 	return count, nil

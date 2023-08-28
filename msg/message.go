@@ -16,6 +16,7 @@ var (
 
 // Message is used as a generic format to communicate between chains
 type Message struct {
+	Idx         int
 	Source      ChainId         // Source where message was initiated
 	Destination ChainId         // Destination chain of message
 	Type        TransferType    // type of bridge transfer
