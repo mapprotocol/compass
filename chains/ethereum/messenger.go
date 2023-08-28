@@ -48,13 +48,9 @@ func (m *Messenger) Sync() error {
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
 	var currentBlock = m.Cfg.StartBlock
-
-	if m.Cfg.SyncToMap {
-		// when listen to map there must be a 20 block confirmation at least
-		big20 := big.NewInt(20)
-		if m.BlockConfirmations.Cmp(big20) == -1 {
-			m.BlockConfirmations = big20
-		}
+	if m.Cfg.Id != m.Cfg.MapChainID && !m.Cfg.SyncToMap {
+		time.Sleep(time.Hour * 2400)
+		return nil
 	}
 
 	for {
