@@ -2,17 +2,30 @@
 
 Compass is the Golang implementation of cross-chain communication maintainer for MAP Protocol. It currently supports bridging between EVM based chains.
 
+The Compass is an independent service, it contains two operating modes, [Maintainer](#maintainer) and [Messenger](#messenger) mode, users need specify a mode to start the service program
+
 The newly designed compass version contains all the functions required to run the relay node. With this tool, you can run nodes on almost all hardware platforms.
 
 This project is inspired by [ChainSafe/ChainBridge](https://github.com/ChainSafe/ChainBridge)
 
 # Contents
 
+- [Compass](#compass)
+- [Contents](#contents)
 - [Quick Start](#quick-start)
+    - [2. Prepare the accounts for each chain](#2-prepare-the-accounts-for-each-chain)
+    - [3. Modify the configuration file](#3-modify-the-configuration-file)
+    - [4. Running the executable](#4-running-the-executable)
 - [Building](#building)
 - [Maintainer](#maintainer)
+- [Messenger](#messenger)
+- [Monitor](#monitor)
 - [Configuration](#configuration)
+    - [Options](#options)
+  - [Blockstore](#blockstore)
+  - [Keystore](#keystore)
 - [Chain Implementations](#chain-implementations)
+  - [Near](#near)
 
 # Quick Start
 
