@@ -20,7 +20,7 @@ COPY --from=builder /compass/build/eth2-proof /home/eth2-proof
 
 RUN chmod +x /home/eth2-proof
 
-WORKDIR /compass/build
+WORKDIR /home/build
 
-ENTRYPOINT ["/compass/build/compass"]
+ENTRYPOINT ["/home/compass"]
 
