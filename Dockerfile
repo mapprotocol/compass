@@ -1,26 +1,23 @@
-FROM golang:1.20.4 as builder
-
-ENV TZ Asia/Shanghai
+FROM golang:1.20.4-alpine as builder
 
 RUN mkdir /compass
 
 COPY . /compass
 
-RUN cd /compass && make
+RUN apk add --no-cache musl-dev gcc
 
-FROM golang:alpine as prod
+RUN cd /compass && cd cmd/compass && GOOS=linux go build -o ../../build/compass && cp ../../eth2/eth2-proof ../../build/
+
+FROM alpine as prod
 
 RUN apk update --no-cache && apk add --no-cache ca-certificates tzdata
 ENV TZ Asia/Shanghai
 
-WORKDIR  /home
+WORKDIR  /root
 
-COPY --from=builder /compass/build/compass /home/compass
-COPY --from=builder /compass/build/eth2-proof /home/eth2-proof
+COPY --from=builder /compass/build/compass /root/compass
+COPY --from=builder /compass/build/eth2-proof /root/eth2-proof
 
-RUN chmod +x /home/eth2-proof
+RUN chmod +x /root/eth2-proof && chmod +x /root/compass
 
-WORKDIR /home/build
-
-ENTRYPOINT ["/home/compass"]
-
+ENTRYPOINT ["/root/compass"]

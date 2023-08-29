@@ -76,6 +76,7 @@ var importFlags = []cli.Flag{
 	config.Ed25519Flag,
 	config.PasswordFlag,
 	config.SubkeyNetworkFlag,
+	config.KeystorePathFlag,
 }
 
 var registerFlags = []cli.Flag{
