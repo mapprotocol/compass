@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/mapprotocol"
 	"math/big"
 	"time"
+
+	"github.com/mapprotocol/compass/mapprotocol"
 
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/util"
@@ -39,7 +40,7 @@ func (m *Messenger) Sync() error {
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
-	if !m.Cfg.SyncToMap {
+	if !m.Cfg.SyncToMap && m.Cfg.Id != m.Cfg.MapChainID {
 		time.Sleep(time.Hour * 2400)
 		return nil
 	}
@@ -61,18 +62,20 @@ func (m *Messenger) sync() error {
 				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
 			}
 
-			left, right, err := mapprotocol.Get2MapVerifyRange(m.Cfg.Id)
-			if err != nil {
-				m.Log.Warn("Get2MapVerifyRange failed", "err", err)
-			}
-			if right != nil && right.Uint64() != 0 && right.Cmp(currentBlock) == -1 {
-				m.Log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "maxVerify", right)
-				time.Sleep(time.Minute)
-				continue
-			}
-			if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
-				currentBlock = left
-				m.Log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
+			if m.Cfg.SyncToMap {
+				left, right, err := mapprotocol.Get2MapVerifyRange(m.Cfg.Id)
+				if err != nil {
+					m.Log.Warn("Get2MapVerifyRange failed", "err", err)
+				}
+				if right != nil && right.Uint64() != 0 && right.Cmp(currentBlock) == -1 {
+					m.Log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "maxVerify", right)
+					time.Sleep(time.Minute)
+					continue
+				}
+				if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
+					currentBlock = left
+					m.Log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
+				}
 			}
 
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
