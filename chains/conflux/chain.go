@@ -131,40 +131,44 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 		return 0, nil
 	}
 	m.Log.Debug("Querying block for events", "block", latestBlock)
-	query := m.BuildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
-	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
-	if err != nil {
-		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
-	}
 
-	m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
-	for _, log := range logs {
-		var message msg.Message
-		// getOrderId
-		orderId := log.Data[:32]
-		method := m.GetMethod(log.Topics[0])
-		pivot, err := nearestPivot(m, new(big.Int).SetUint64(log.BlockNumber+conflux.DeferredExecutionEpochs))
+	for idx, addr := range m.Cfg.McsContract {
+		query := m.BuildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
+		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 		}
 
-		m.Log.Info("getPivot", "pivot", pivot)
-		payload, err := conflux.AssembleProof(cli, log.TxHash, log.BlockNumber, pivot.Uint64(), method, m.Cfg.Id)
-		if err != nil {
-			return 0, fmt.Errorf("unable to Parse Log: %w", err)
-		}
+		m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
+		for _, log := range logs {
+			var message msg.Message
+			// getOrderId
+			orderId := log.Data[:32]
+			method := m.GetMethod(log.Topics[0])
+			pivot, err := nearestPivot(m, new(big.Int).SetUint64(log.BlockNumber+conflux.DeferredExecutionEpochs))
+			if err != nil {
+				return 0, err
+			}
 
-		msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+			m.Log.Info("getPivot", "pivot", pivot)
+			payload, err := conflux.AssembleProof(cli, log.TxHash, log.BlockNumber, pivot.Uint64(), method, m.Cfg.Id)
+			if err != nil {
+				return 0, fmt.Errorf("unable to Parse Log: %w", err)
+			}
 
-		m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-			"orderId", ethcommon.Bytes2Hex(orderId))
-		err = m.Router.Send(message)
-		if err != nil {
-			m.Log.Error("Subscription error: failed to route message", "err", err)
+			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+			message.Idx = idx
+
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", ethcommon.Bytes2Hex(orderId))
+			err = m.Router.Send(message)
+			if err != nil {
+				m.Log.Error("Subscription error: failed to route message", "err", err)
+			}
+			count++
 		}
-		count++
 	}
 
 	return count, nil

@@ -43,6 +43,30 @@ var ignoreError = map[string]struct{}{
 	"invalid to chain token address":                            {},
 	"transfer in token failed, maybe TO account does not exist": {},
 	"amount should be greater than 0":                           {},
+	"near is not mcs token or fungible token or native token":   {},
+	"index exceeds event size":                                  {},
+	"not map swap out event":                                    {},
+	"unexpected map mcs address":                                {},
+	"unexpected to chain":                                       {},
+	"invalid target token address:":                             {},
+	"amount in should be == 0":                                  {},
+	"min amount out should be greater than 0":                   {},
+	"invalid swap param path":                                   {},
+	"invalid path format:":                                      {},
+	"invalid account id in path:":                               {},
+	"bridge in token should be equal to the first token in":     {},
+	"last token out should be equal to wrapped token if target token is zero address":  {},
+	"target token should be equal to the last token out":                               {},
+	"bridge in token should be equal to wrapped token if target token is zero address": {},
+	"bridge in token should be equal to target token":                                  {},
+	"is not bridgeable token":                                                            {},
+	"the transfer in event is already processed":                                         {},
+	"is not mcs token or fungible token or native token":                                 {},
+	"the swap in event is already processe":                                              {},
+	"promise has too many results":                                                       {},
+	"used amount != amount in && used amount != 0, please check core state!":             {},
+	"[SWAP FAILURE] call core to do swap in failed, maybe mos doesn't have enough token": {},
+	"[FAILURE] mint or transfer token to core failed":                                    {},
 }
 
 // exeSyncMapMsg executes sync msg, and send tx to the destination blockchain
@@ -91,11 +115,12 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 		inputHash = m.Payload[3]
 	}
 	data := m.Payload[0].([]byte)
+	addr := w.cfg.mcsContract[m.Idx]
 
 	for {
 		// First request whether the orderId already exists
 		orderId := m.Payload[1].([]byte)
-		exits, err := w.checkOrderId(w.cfg.mcsContract, orderId)
+		exits, err := w.checkOrderId(addr, orderId)
 		if err != nil {
 			w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
 		}
@@ -114,9 +139,9 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			w.log.Error("Verify Execution failed, Will retry", "srcHash", inputHash, "err", err)
 			return false
 		}
-		txHash, err := w.sendTx(w.cfg.mcsContract, MethodOfVerifyReceiptProof, verify)
+		txHash, err := w.sendTx(addr, MethodOfVerifyReceiptProof, verify)
 		if err == nil {
-			w.log.Info("Verify Success", "mcsTx", txHash.String(), "srcHash", inputHash)
+			w.log.Info("Verify Success", "mcsTx", txHash.String(), "srcHash", inputHash, "addr", addr)
 			time.Sleep(time.Second)
 			break
 		} else {
@@ -149,8 +174,8 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			if m.Payload[4].(string) == mapprotocol.MethodOfSwapIn {
 				method = MethodOfSwapIn
 			}
-			w.log.Info("Send transaction", "addr", w.cfg.mcsContract, "srcHash", inputHash, "method", method)
-			txHash, err := w.sendTx(w.cfg.mcsContract, method, data)
+			w.log.Info("Send transaction", "addr", w.cfg.mcsContract, "srcHash", inputHash, "method", method, "addr", addr)
+			txHash, err := w.sendTx(addr, method, data)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "mcsTx", txHash.String(), "srcHash", inputHash)
 				m.DoneCh <- struct{}{}

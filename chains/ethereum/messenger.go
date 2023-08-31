@@ -48,13 +48,9 @@ func (m *Messenger) Sync() error {
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
 	var currentBlock = m.Cfg.StartBlock
-
-	if m.Cfg.SyncToMap {
-		// when listen to map there must be a 20 block confirmation at least
-		big20 := big.NewInt(20)
-		if m.BlockConfirmations.Cmp(big20) == -1 {
-			m.BlockConfirmations = big20
-		}
+	if m.Cfg.Id != m.Cfg.MapChainID && !m.Cfg.SyncToMap {
+		time.Sleep(time.Hour * 2400)
+		return nil
 	}
 
 	for {
@@ -131,98 +127,101 @@ func (m *Messenger) sync() error {
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	m.Log.Debug("Querying block for events", "block", latestBlock)
-	query := m.buildQuery(m.Cfg.McsContract, m.Cfg.Events, latestBlock, latestBlock)
-	// querying for logs
-	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
-	if err != nil {
-		return 0, fmt.Errorf("unable to Filter Logs: %w", err)
-	}
-
-	m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
 	count := 0
-	// read through the log events and handle their deposit event if handler is recognized
-	for _, log := range logs {
-		// evm event to msg
-		var message msg.Message
-		// getOrderId
-		orderId := log.Data[:32]
-		method := m.GetMethod(log.Topics[0])
-		if m.Cfg.SyncToMap {
-			// when syncToMap we need to assemble a tx proof
-			txsHash, err := mapprotocol.GetTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-			}
-			receipts, err := mapprotocol.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-			}
-			payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, m.Cfg.McsContract, receipts, method, m.Cfg.Id, m.Cfg.MapChainID)
-			if err != nil {
-				return 0, fmt.Errorf("unable to Parse Log: %w", err)
-			}
+	for idx, addr := range m.Cfg.McsContract {
+		query := m.buildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
+		// querying for logs
+		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
+		if err != nil {
+			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
+		}
 
-			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
-		} else if m.Cfg.Id == m.Cfg.MapChainID {
-			// when listen from map we also need to assemble a tx prove in a different way
-			header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), latestBlock)
-			if err != nil {
-				return 0, fmt.Errorf("unable to query header Logs: %w", err)
-			}
-			txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
-			if err != nil {
-				return 0, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
-			}
-			receipts, err := mapprotocol.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-			}
-			//
-			remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfMap))
-			if remainder.Cmp(mapprotocol.Big0) == 0 {
-				lr, err := mapprotocol.GetLastReceipt(m.Conn.Client(), latestBlock)
+		m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
+		// read through the log events and handle their deposit event if handler is recognized
+		for _, log := range logs {
+			// evm event to msg
+			var message msg.Message
+			// getOrderId
+			orderId := log.Data[:32]
+			method := m.GetMethod(log.Topics[0])
+			if m.Cfg.SyncToMap {
+				// when syncToMap we need to assemble a tx proof
+				txsHash, err := mapprotocol.GetTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
 				if err != nil {
-					return 0, fmt.Errorf("unable to get last receipts in epoch last %w", err)
+					return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 				}
-				receipts = append(receipts, lr)
-			}
-
-			toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method)
-			if err != nil {
-				return 0, fmt.Errorf("unable to Parse Log: %w", err)
-			}
-
-			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
-				m.Log.Info("Found a log that is not the current task ", "toChainID", toChainID)
-				continue
-			}
-
-			if fn, ok := mapprotocol.Map2OtherVerifyRange[msg.ChainId(toChainID)]; ok {
-				left, right, err := fn()
+				receipts, err := mapprotocol.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
 				if err != nil {
-					m.Log.Warn("map chain Get2OtherVerifyRange failed", "err", err)
+					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 				}
-				if left != nil && left.Uint64() != 0 && left.Cmp(latestBlock) == 1 {
-					m.Log.Info("min verify range greater than currentBlock, skip ", "currentBlock", latestBlock, "minVerify", left)
+				payload, err := utils.ParseEthLogIntoSwapWithProofArgs(log, addr, receipts, method, m.Cfg.Id, m.Cfg.MapChainID)
+				if err != nil {
+					return 0, fmt.Errorf("unable to Parse Log: %w", err)
+				}
+
+				msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+				message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+			} else if m.Cfg.Id == m.Cfg.MapChainID {
+				// when listen from map we also need to assemble a tx prove in a different way
+				header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), latestBlock)
+				if err != nil {
+					return 0, fmt.Errorf("unable to query header Logs: %w", err)
+				}
+				txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
+				if err != nil {
+					return 0, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
+				}
+				receipts, err := mapprotocol.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				if err != nil {
+					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+				}
+				//
+				remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfMap))
+				if remainder.Cmp(mapprotocol.Big0) == 0 {
+					lr, err := mapprotocol.GetLastReceipt(m.Conn.Client(), latestBlock)
+					if err != nil {
+						return 0, fmt.Errorf("unable to get last receipts in epoch last %w", err)
+					}
+					receipts = append(receipts, lr)
+				}
+
+				toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method)
+				if err != nil {
+					return 0, fmt.Errorf("unable to Parse Log: %w", err)
+				}
+
+				if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
+					m.Log.Info("Found a log that is not the current task ", "toChainID", toChainID)
 					continue
 				}
-				if right != nil && right.Uint64() != 0 && right.Cmp(latestBlock) == -1 {
-					m.Log.Info("currentBlock less than max verify range", "currentBlock", latestBlock, "maxVerify", right)
-					time.Sleep(time.Minute * 3)
+
+				if fn, ok := mapprotocol.Map2OtherVerifyRange[msg.ChainId(toChainID)]; ok {
+					left, right, err := fn()
+					if err != nil {
+						m.Log.Warn("map chain Get2OtherVerifyRange failed", "err", err)
+					}
+					if left != nil && left.Uint64() != 0 && left.Cmp(latestBlock) == 1 {
+						m.Log.Info("min verify range greater than currentBlock, skip ", "currentBlock", latestBlock, "minVerify", left)
+						continue
+					}
+					if right != nil && right.Uint64() != 0 && right.Cmp(latestBlock) == -1 {
+						m.Log.Info("currentBlock less than max verify range", "currentBlock", latestBlock, "maxVerify", right)
+						time.Sleep(time.Minute * 3)
+					}
 				}
+
+				msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash, method}
+				message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 			}
 
-			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash, method}
-			message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
+			message.Idx = idx
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
+			err = m.Router.Send(message)
+			if err != nil {
+				m.Log.Error("subscription error: failed to route message", "err", err)
+			}
+			count++
 		}
-
-		m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
-		err = m.Router.Send(message)
-		if err != nil {
-			m.Log.Error("subscription error: failed to route message", "err", err)
-		}
-		count++
 	}
 
 	return count, nil
