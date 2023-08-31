@@ -69,10 +69,6 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 		mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		listen = NewMaintainer(cs)
 	} else if role == mapprotocol.RoleOfMessenger {
-		err = conn.EnsureHasBytecode(cfg.McsContract)
-		if err != nil {
-			return nil, err
-		}
 		// verify range
 		fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
 		left, right, err := fn()

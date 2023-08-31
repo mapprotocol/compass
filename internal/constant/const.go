@@ -7,7 +7,7 @@ import (
 
 const (
 	TxRetryInterval     = time.Second * 5 // TxRetryInterval Time between retrying a failed tx
-	NearTxRetryInterval = time.Second * 20
+	NearTxRetryInterval = time.Second * 30
 )
 
 var (
@@ -18,7 +18,7 @@ var (
 var (
 	BlockRetryInterval = time.Second * 5
 	RetryLongInterval  = time.Second * 10
-	QueryRetryInterval = time.Second * 30
+	QueryRetryInterval = time.Second * 10
 )
 
 var (
