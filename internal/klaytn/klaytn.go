@@ -151,7 +151,7 @@ func GetTxsHashByBlockNumber(conn *Client, number *big.Int) ([]common.Hash, erro
 type ReceiptProofOriginal struct {
 	Header    Header
 	Proof     [][]byte
-	TxReceipt mapprotocol.TxReceipt
+	TxReceipt []byte
 	KeyIndex  []byte
 }
 
@@ -242,8 +242,13 @@ func AssembleProof(cli *Client, header Header, log types.Log, fId msg.ChainId, r
 	}
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
-	ek := utils.Key2Hex(key, len(proof))
+	ek := Key2Hex(key, len(proof))
 	receipt, err := GetTxReceipt(receipts[log.TxIndex])
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := rlp.EncodeToBytes(receipt)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +256,7 @@ func AssembleProof(cli *Client, header Header, log types.Log, fId msg.ChainId, r
 	pd := ReceiptProofOriginal{
 		Header:    header,
 		Proof:     proof,
-		TxReceipt: *receipt,
+		TxReceipt: data,
 		KeyIndex:  ek,
 	}
 
@@ -278,6 +283,15 @@ func AssembleProof(cli *Client, header Header, log types.Log, fId msg.ChainId, r
 	return pack, nil
 }
 
+func Key2Hex(str []byte, proofLength int) []byte {
+	ret := make([]byte, 0)
+	for _, b := range str {
+		ret = append(ret, b/16)
+		ret = append(ret, b%16)
+	}
+	return ret
+}
+
 func GetReceiptsByTxsHash(cli *Client, receipts []*types.Receipt) {
 	for idx, receipt := range receipts {
 		if receipt.Status != 0 {
@@ -292,7 +306,14 @@ func GetReceiptsByTxsHash(cli *Client, receipts []*types.Receipt) {
 	}
 }
 
-func GetTxReceipt(receipt *types.Receipt) (*mapprotocol.TxReceipt, error) {
+type TxReceipt struct {
+	PostStateOrStatus []byte
+	CumulativeGasUsed *big.Int
+	Bloom             []byte
+	Logs              []mapprotocol.TxLog
+}
+
+func GetTxReceipt(receipt *types.Receipt) (*TxReceipt, error) {
 	logs := make([]mapprotocol.TxLog, 0, len(receipt.Logs))
 	for _, lg := range receipt.Logs {
 		topics := make([][]byte, len(lg.Topics))
@@ -306,8 +327,7 @@ func GetTxReceipt(receipt *types.Receipt) (*mapprotocol.TxReceipt, error) {
 		})
 	}
 
-	return &mapprotocol.TxReceipt{
-		ReceiptType:       new(big.Int).SetUint64(uint64(receipt.Type)),
+	return &TxReceipt{
 		PostStateOrStatus: mapprotocol.StatusEncoding(receipt),
 		CumulativeGasUsed: new(big.Int).SetUint64(receipt.GasUsed),
 		Bloom:             receipt.Bloom[:],
