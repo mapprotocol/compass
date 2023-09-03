@@ -87,7 +87,6 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 		}
 	} else if w.cfg.SkipError {
 		w.log.Warn("Execution failed, ignore this error, Continue to the next ", "err", err)
-		m.DoneCh <- struct{}{}
 		return nil
 	} else {
 		for e := range constant.IgnoreError {
