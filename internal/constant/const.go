@@ -45,6 +45,7 @@ var IgnoreError = map[string]struct{}{
 	"round mismatch":       {},
 	"epoch mismatch":       {},
 	"headers size too big": {},
+	"Height error":         {},
 }
 
 type BlockIdOfEth2 string

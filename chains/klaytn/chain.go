@@ -123,7 +123,7 @@ func sendSyncHeader(m *chain.Maintainer, latestBlock *big.Int, count int) error 
 		return err
 	}
 
-	fmt.Println("input -------------- ", "0x"+ethcommon.Bytes2Hex(input))
+	//fmt.Println("input -------------- ", "0x"+ethcommon.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
