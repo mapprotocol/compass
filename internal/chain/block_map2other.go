@@ -44,6 +44,10 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 					m.DoneCh <- struct{}{}
 					return true
 				}
+			} else if w.cfg.SkipError {
+				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "err", err)
+				m.DoneCh <- struct{}{}
+				return true
 			} else {
 				for e := range constant.IgnoreError {
 					if strings.Index(err.Error(), e) != -1 {
