@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/mapprotocol/compass/core"
+
 	"github.com/mapprotocol/compass/internal/constant"
 
 	"github.com/ChainSafe/log15"
@@ -16,14 +18,14 @@ import (
 
 type Writer struct {
 	cfg    Config
-	conn   Connection
+	conn   core.Connection
 	log    log15.Logger
 	stop   <-chan int
 	sysErr chan<- error // Reports fatal error to core
 }
 
 // NewWriter creates and returns Writer
-func NewWriter(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error) *Writer {
+func NewWriter(conn core.Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error) *Writer {
 	return &Writer{
 		cfg:    *cfg,
 		conn:   conn,

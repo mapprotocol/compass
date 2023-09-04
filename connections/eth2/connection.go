@@ -3,22 +3,23 @@ package eth2
 import (
 	"math/big"
 
+	"github.com/mapprotocol/compass/core"
+
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/connections/ethereum"
-	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/eth2"
 )
 
 type Connection struct {
 	endpoint, eth2Endpoint string
-	chain.Connection
+	core.Connection
 	eth2Conn *eth2.Client
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
 func NewConnection(endpoint, eth2Endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
-	gasMultiplier float64, gsnApiKey, gsnSpeed string) chain.Eth2Connection {
+	gasMultiplier float64, gsnApiKey, gsnSpeed string) core.Eth2Connection {
 	conn := ethereum.NewConnection(endpoint, http, kp, log, gasLimit, gasPrice, gasMultiplier, gsnApiKey, gsnSpeed)
 	return &Connection{
 		Connection:   conn,

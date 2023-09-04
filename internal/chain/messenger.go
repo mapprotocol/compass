@@ -73,8 +73,8 @@ func (m *Messenger) sync() error {
 					continue
 				}
 				if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
-					currentBlock = left
 					m.Log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
+					currentBlock = left
 				}
 			}
 
