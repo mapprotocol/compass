@@ -31,6 +31,7 @@ type GetHeight func() (*big.Int, error)
 type GetVerifyRange func() (*big.Int, *big.Int, error)
 
 var (
+	MapId                string
 	GlobalMapConn        *ethclient.Client
 	SyncOtherMap         = make(map[msg.ChainId]*big.Int)                                                 // map to other chain init height
 	Map2OtherHeight      = make(map[msg.ChainId]GetHeight)                                                // get map to other height function collect

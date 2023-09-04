@@ -108,7 +108,7 @@ func syncHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 		return nil
 	}
 
-	return sendSyncHeader(m, latestBlock, mapprotocol.HeaderCountOfKlaytn)
+	return sendSyncHeader(m, latestBlock, mapprotocol.HeaderOneCount)
 }
 
 func sendSyncHeader(m *chain.Maintainer, latestBlock *big.Int, count int) error {

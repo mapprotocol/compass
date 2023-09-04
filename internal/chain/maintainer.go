@@ -116,8 +116,7 @@ func (m *Maintainer) sync() error {
 					util.Alarm(context.Background(), fmt.Sprintf("map sync header to other failed, err is %s", err.Error()))
 					continue
 				}
-
-			} else if m.Cfg.SyncToMap && currentBlock.Cmp(m.syncedHeight) == 1 {
+			} else if currentBlock.Cmp(m.syncedHeight) == 1 {
 				err = m.syncHeaderToMap(m, currentBlock)
 				if err != nil {
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
