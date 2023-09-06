@@ -2,22 +2,16 @@ package etcd
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
 )
 
 var (
-	endpoint string
-	cli      *clientv3.Client
+	cli *clientv3.Client
 )
 
-func init() {
-	endpoint = os.Getenv("etcd")
-}
-
-func Init() error {
+func Init(endpoint string) error {
 	if endpoint == "" {
 		return nil
 	}

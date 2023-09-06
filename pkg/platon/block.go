@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -105,7 +104,6 @@ func rlpHash(x interface{}) (h common.Hash) {
 
 // MarshalJSON marshals as JSON.
 func (h Header) MarshalJSON() ([]byte, error) {
-	fmt.Println("----------------- ")
 	type Header struct {
 		ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
 		Coinbase    common.Address `json:"miner"            gencodec:"required"`
