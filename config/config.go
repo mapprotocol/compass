@@ -22,6 +22,7 @@ type Config struct {
 	MapChain     RawChainConfig   `json:"mapchain"`
 	Chains       []RawChainConfig `json:"chains"`
 	KeystorePath string           `json:"keystorePath,omitempty"`
+	Other        Construction     `json:"other,omitempty"`
 }
 
 // RawChainConfig is parsed directly from the config file and should be using to construct the core.ChainConfig
@@ -34,6 +35,12 @@ type RawChainConfig struct {
 	Network      string            `json:"network"`
 	KeystorePath string            `json:"keystorePath"`
 	Opts         map[string]string `json:"opts"`
+}
+
+type Construction struct {
+	MonitorUrl string `json:"monitor_url,omitempty"`
+	Etcd       string `json:"etcd,omitempty"`
+	Env        string `json:"env,omitempty"`
 }
 
 func NewConfig() *Config {

@@ -107,7 +107,7 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 
-	fmt.Println("input --------- ", "0x"+ethcommon.Bytes2Hex(input))
+	//fmt.Println("input --------- ", "0x"+ethcommon.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input, true}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
@@ -197,7 +197,6 @@ func nearestPivot(m *chain.Messenger, height *big.Int) (*big.Int, error) {
 	}
 	data, err := mapprotocol.GetDataByManager(mapprotocol.MethodOFinalizedState, big.NewInt(int64(m.Cfg.Id)), pack)
 	if err != nil {
-		fmt.Println("--------------------- +++++ ")
 		return nil, err
 	}
 	analysis, err := mapprotocol.Conflux.Methods[mapprotocol.MethodOfNearestPivot].Outputs.Unpack(data)
