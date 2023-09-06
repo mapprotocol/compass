@@ -285,6 +285,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			return err
 		}
 		// write Map chain id to opts
+		mapprotocol.MapId = cfg.MapChain.Id
 		chain.Opts[config.MapChainID] = cfg.MapChain.Id
 		chainConfig := &core.ChainConfig{
 			Name:             chain.Name,
@@ -319,7 +320,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 				return err
 			}
 			if idx == 0 {
-				mapprotocol.GlobalMapConn = newChain.(*ethereum.Chain).EthClient()
+				mapprotocol.GlobalMapConn = newChain.(*chain2.Chain).EthClient()
 				//mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.Init2GetEth22MapNumber(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))

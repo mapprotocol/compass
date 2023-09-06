@@ -19,10 +19,10 @@ import (
 var _ core.Chain = new(Chain)
 
 type Chain struct {
-	cfg    *core.ChainConfig    // The config of the chain
-	conn   chain.Eth2Connection // The chains connection
-	writer *chain.Writer        // The writer of the chain
-	listen chains.Listener      // The listener of this chain
+	cfg    *core.ChainConfig   // The config of the chain
+	conn   core.Eth2Connection // The chains connection
+	writer *chain.Writer       // The writer of the chain
+	listen chains.Listener     // The listener of this chain
 	stop   chan<- int
 }
 
@@ -135,6 +135,6 @@ func (c *Chain) EthClient() *ethclient.Client {
 }
 
 // Conn return Connection interface for relayer register
-func (c *Chain) Conn() chain.Connection {
+func (c *Chain) Conn() core.Connection {
 	return c.conn
 }

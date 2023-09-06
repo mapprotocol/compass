@@ -16,14 +16,14 @@ import (
 
 type Chain struct {
 	cfg    *core.ChainConfig // The config of the Chain
-	conn   Connection        // The chains connection
+	conn   core.Connection   // The chains connection
 	writer *Writer           // The writer of the Chain
 	stop   chan<- int
 	listen chains.Listener // The listener of this Chain
 }
 
 func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role, createConn CreateConn, opts ...SyncOpt) (*Chain, error) {
+	role mapprotocol.Role, createConn core.CreateConn, opts ...SyncOpt) (*Chain, error) {
 	cfg, err := ParseConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -59,24 +59,29 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 	var listen chains.Listener
 	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs, opts...)
 	if role == mapprotocol.RoleOfMaintainer {
-		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
-		height, err := fn()
-		if err != nil {
-			return nil, errors.Wrap(err, "Map2Other get init headerHeight failed")
+		if cfg.Id != cfg.MapChainID {
+			fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
+			height, err := fn()
+			if err != nil {
+				return nil, errors.Wrap(err, "Map2Other get init headerHeight failed")
+			}
+			logger.Info("Map2other Current situation", "id", cfg.Id, "height", height, "lightNode", cfg.LightNode)
+			mapprotocol.SyncOtherMap[cfg.Id] = height
+			mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		}
-		logger.Info("Map2other Current situation", "id", cfg.Id, "height", height, "lightNode", cfg.LightNode)
-		mapprotocol.SyncOtherMap[cfg.Id] = height
-		mapprotocol.Map2OtherHeight[cfg.Id] = fn
+
 		listen = NewMaintainer(cs)
 	} else if role == mapprotocol.RoleOfMessenger {
-		// verify range
-		fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
-		left, right, err := fn()
-		if err != nil {
-			return nil, errors.Wrap(err, "Map2Other get init verifyHeight failed")
+		if cfg.Id != cfg.MapChainID {
+			// verify range
+			fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
+			left, right, err := fn()
+			if err != nil {
+				return nil, errors.Wrap(err, "Map2Other get init verifyHeight failed")
+			}
+			logger.Info("Map2other Current verify range", "id", cfg.Id, "left", left, "right", right, "lightNode", cfg.LightNode)
+			mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		}
-		logger.Info("Map2other Current verify range", "id", cfg.Id, "left", left, "right", right, "lightNode", cfg.LightNode)
-		mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
 		listen = NewMessenger(cs)
 	}
 	wri := NewWriter(conn, cfg, logger, stop, sysErr)
@@ -131,6 +136,6 @@ func (c *Chain) EthClient() *ethclient.Client {
 }
 
 // Conn return Connection interface for relayer register
-func (c *Chain) Conn() Connection {
+func (c *Chain) Conn() core.Connection {
 	return c.conn
 }

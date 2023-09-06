@@ -22,7 +22,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	role mapprotocol.Role) (core.Chain, error) {
 	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection,
 		chain.OptOfSync2Map(syncHeaderToMap),
-		chain.OptOfInitHeight(mapprotocol.HeaderCountOfConflux),
+		chain.OptOfInitHeight(mapprotocol.HeaderOneCount),
 		chain.OptOfMos(mosHandler),
 	)
 }
