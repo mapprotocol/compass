@@ -179,6 +179,6 @@ func (c *Chain) EthClient() *nearclient.Client {
 }
 
 // Conn return Connection interface for relayer register
-func (c *Chain) Conn() Connection {
-	return c.conn
+func (c *Chain) Conn() core.Connection {
+	return nil
 }

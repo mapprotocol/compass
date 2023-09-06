@@ -44,14 +44,13 @@ const (
 )
 
 const (
-	EpochOfMap           = 50000
-	EpochOfBsc           = 200
-	HeaderCountOfBsc     = 12
-	HeaderCountOfMatic   = 16
-	HeaderCountOfPlaton  = 430
-	EpochOfKlaytn        = 3600
-	HeaderCountOfKlaytn  = 1
-	HeaderCountOfConflux = 1
+	EpochOfMap          = 50000
+	EpochOfBsc          = 200
+	HeaderCountOfBsc    = 12
+	HeaderCountOfMatic  = 16
+	HeaderCountOfPlaton = 430
+	EpochOfKlaytn       = 3600
+	HeaderOneCount      = 1
 )
 
 // common varible

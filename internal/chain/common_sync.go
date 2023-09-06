@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/mapprotocol/compass/core"
+
 	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -42,7 +44,7 @@ func OptOfMos(fn Mos) SyncOpt {
 
 type CommonSync struct {
 	Cfg                Config
-	Conn               Connection
+	Conn               core.Connection
 	Log                log15.Logger
 	Router             chains.Router
 	Stop               <-chan int
@@ -58,7 +60,7 @@ type CommonSync struct {
 }
 
 // NewCommonSync creates and returns a listener
-func NewCommonSync(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
+func NewCommonSync(conn core.Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
 	m *metrics.ChainMetrics, bs blockstore.Blockstorer, opts ...SyncOpt) *CommonSync {
 	cs := &CommonSync{
 		Cfg:                *cfg,
