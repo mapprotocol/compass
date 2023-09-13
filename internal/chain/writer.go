@@ -86,7 +86,7 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 		gasLimit = uint64(float64(gasLimit) * w.cfg.LimitMultiplier)
 	}
 	w.log.Info("SendTx gasPrice", "gasPrice", gasPrice,
-		"gasTipCap", w.conn.Opts().GasTipCap, "gasFeeCap", w.conn.Opts().GasFeeCap, "limitMultiplier", w.cfg.LimitMultiplier)
+		"gasTipCap", w.conn.Opts().GasTipCap, "gasFeeCap", w.conn.Opts().GasFeeCap, "gasLimit", gasLimit, "limitMultiplier", w.cfg.LimitMultiplier)
 	// td interface
 	var td types.TxData
 	// EIP-1559

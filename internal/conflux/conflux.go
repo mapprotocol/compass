@@ -2,7 +2,6 @@ package conflux
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"math/big"
 
@@ -236,8 +235,8 @@ func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot uint64
 		return nil, err
 	}
 	//fmt.Println("proof --------------------- ", common.Bytes2Hex(input))
-	d, _ := rlp.EncodeToBytes(primitives.MustRLPEncodeReceipt(receipt))
-	fmt.Println("-------------", "0x"+common.Bytes2Hex(d))
+	//d, _ := rlp.EncodeToBytes(primitives.MustRLPEncodeReceipt(receipt))
+	//fmt.Println("-------------", "0x"+common.Bytes2Hex(d))
 
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
 	//pack, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
