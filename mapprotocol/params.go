@@ -56,7 +56,6 @@ const (
 // common varible
 var (
 	Big0           = big.NewInt(0)
-	Big1           = big.NewInt(1)
 	RegisterAmount = int64(100) // for test purpose
 )
 

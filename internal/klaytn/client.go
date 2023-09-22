@@ -247,8 +247,9 @@ func (c *Client) doRequest(ctx context.Context, msg interface{}) (io.ReadCloser,
 		//	body = buf.Bytes()
 		//}
 
-		return nil, nil
-		//return nil, HTTPError{
+		//return nil, nil
+		return nil, fmt.Errorf("klaytn request code is(%d)", resp.StatusCode)
+		//HTTPError{
 		//	Status:     resp.Status,
 		//	StatusCode: resp.StatusCode,
 		//	Body:       body,
