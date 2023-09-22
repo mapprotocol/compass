@@ -33,6 +33,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	opts = append(opts, chain.OptOfInitHeight(mapprotocol.HeaderOneCount))
 	if strconv.FormatUint(uint64(chainCfg.Id), 10) == mapprotocol.MapId {
 		opts = append(opts, chain.OptOfSync2Map(mapToOther))
+		opts = append(opts, chain.OptOfInitHeight(mapprotocol.EpochOfMap))
 	} else {
 		opts = append(opts, chain.OptOfSync2Map(headerToMap))
 	}
