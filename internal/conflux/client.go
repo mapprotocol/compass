@@ -9,10 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/mapprotocol/compass/internal/conflux/types"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -21,6 +17,11 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/mapprotocol/compass/internal/conflux/types"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -206,7 +207,6 @@ func (c *Client) CallContext(ctx context.Context, result interface{}, method str
 
 	err = c.sendHTTP(ctx, op, msg)
 	if err != nil {
-		fmt.Println("==========================")
 		return err
 	}
 

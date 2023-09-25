@@ -5,24 +5,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/log"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
+
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var (
-	Env     = ""
-	monitor = make(map[string]int64)
+	prefix, hooksUrl = "", ""
+	monitor          = make(map[string]int64)
 )
 
-func init() {
-	Env = os.Getenv("compass")
+func Init(env, hooks string) {
+	prefix = env
+	hooksUrl = hooks
 }
 
 func Alarm(ctx context.Context, msg string) {
-	hooksUrl := os.Getenv("hooks")
 	if hooksUrl == "" {
 		log.Info("hooks is empty")
 		return
@@ -34,7 +34,7 @@ func Alarm(ctx context.Context, msg string) {
 	}
 	monitor[msg] = time.Now().Unix()
 	body, err := json.Marshal(map[string]interface{}{
-		"text": fmt.Sprintf("%s %s", Env, msg),
+		"text": fmt.Sprintf("%s %s", prefix, msg),
 	})
 	if err != nil {
 		return

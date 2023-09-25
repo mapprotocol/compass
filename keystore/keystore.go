@@ -90,7 +90,7 @@ func NearKeyPairFrom(networkName, path string, id types.AccountID) (kp key.KeyPa
 		if err != nil {
 			return
 		}
-		fmt.Println("near keyPairFrom home is ", home)
+		//fmt.Println("near keyPairFrom home is ", home)
 	}
 
 	credsFile := filepath.Join(home, ".near-credentials", networkName, fmt.Sprintf("%s.json", id))

@@ -281,7 +281,7 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 
 	exeFinalityBranch := make([][32]byte, 0)
 	execution := &eth2.ContractExecution{}
-	fmt.Println("resp.Version ", resp.Version)
+	//fmt.Println("resp.Version ", resp.Version)
 	if resp.Version == "capella" {
 		branches := make([]string, 0, len(resp.Data.FinalizedHeader.ExecutionBranch))
 		branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
@@ -414,7 +414,7 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("resp.Version ", resp.Version)
+	//fmt.Println("resp.Version ", resp.Version)
 	if resp.Version == "capella" {
 		branches := make([]string, 0, len(resp.Data.FinalizedHeader.ExecutionBranch))
 		branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
