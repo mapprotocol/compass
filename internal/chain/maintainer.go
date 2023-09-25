@@ -74,7 +74,7 @@ func (m *Maintainer) sync() error {
 			}
 		}
 		if m.Cfg.StartBlock.Cmp(minHeight) != 0 { // When the synchronized height is less than or more than the local starting height, use height
-			currentBlock = big.NewInt(minHeight.Int64() + 1)
+			currentBlock = big.NewInt(minHeight.Int64() + m.height)
 			m.Log.Info("Map2other chain", "initial height", currentBlock)
 		}
 	}

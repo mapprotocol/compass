@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"math/big"
+	"regexp"
+	"sort"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/compass/internal/conflux/types"
 	"github.com/pkg/errors"
-	"io"
-	"math/big"
-	"regexp"
-	"sort"
 )
 
 type Status struct {

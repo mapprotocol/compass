@@ -14,9 +14,11 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/mapprotocol/compass/chains/conflux"
 	"github.com/mapprotocol/compass/pkg/etcd"
 
+	"github.com/mapprotocol/compass/pkg/util"
+
+	"github.com/mapprotocol/compass/chains/conflux"
 	"github.com/mapprotocol/compass/chains/platon"
 
 	"github.com/mapprotocol/compass/chains/bsc"
@@ -242,10 +244,6 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	if err != nil {
 		return err
 	}
-	err = etcd.Init()
-	if err != nil {
-		return err
-	}
 
 	log.Info("Starting Compass...")
 
@@ -266,9 +264,13 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		ks = cfg.KeystorePath
 	}
 
+	err = etcd.Init(cfg.Other.Etcd)
+	if err != nil {
+		return err
+	}
+	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
 	// Used to signal core shutdown due to fatal error
 	sysErr := make(chan error)
-
 	mapcid, err := strconv.Atoi(cfg.MapChain.Id)
 	if err != nil {
 		return err
