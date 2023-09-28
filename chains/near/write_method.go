@@ -174,7 +174,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 			if m.Payload[4].(string) == mapprotocol.MethodOfSwapIn {
 				method = MethodOfSwapIn
 			}
-			w.log.Info("Send transaction", "addr", w.cfg.mcsContract, "srcHash", inputHash, "method", method, "addr", addr)
+			w.log.Info("Send transaction", "srcHash", inputHash, "method", method, "addr", addr)
 			txHash, err := w.sendTx(addr, method, data)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "mcsTx", txHash.String(), "srcHash", inputHash)
