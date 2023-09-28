@@ -14,6 +14,8 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/mapprotocol/compass/chains/bttc"
+
 	"github.com/mapprotocol/compass/pkg/etcd"
 
 	"github.com/mapprotocol/compass/pkg/util"
@@ -323,7 +325,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			}
 			if idx == 0 {
 				mapprotocol.GlobalMapConn = newChain.(*chain2.Chain).EthClient()
-				//mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
+				mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.Init2GetEth22MapNumber(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
@@ -343,6 +345,8 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			newChain, err = platon.InitializeChain(chainConfig, logger, sysErr, m, role)
 		case chains.Conflux:
 			newChain, err = conflux.InitializeChain(chainConfig, logger, sysErr, m, role)
+		case chains.Bttc:
+			newChain, err = bttc.NewChain(chainConfig, logger, sysErr, m, role)
 		default:
 			return errors.New("unrecognized Chain Type")
 		}

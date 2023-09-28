@@ -28,4 +28,5 @@ const (
 	Near     = "near"
 	Ethereum = "ethereum"
 	Conflux  = "conflux"
+	Bttc     = "bttc"
 )
