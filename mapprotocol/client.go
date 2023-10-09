@@ -2,8 +2,9 @@ package mapprotocol
 
 import (
 	"context"
-	eth "github.com/ethereum/go-ethereum"
 	"math/big"
+
+	eth "github.com/ethereum/go-ethereum"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -39,18 +40,6 @@ func GetMapTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int
 		txs = append(txs, tx.Hash())
 	}
 	return txs, nil
-}
-
-func GetReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*types.Receipt, error) {
-	rs := make([]*types.Receipt, 0, len(txsHash))
-	for _, h := range txsHash {
-		r, err := conn.TransactionReceipt(context.Background(), h)
-		if err != nil {
-			return nil, err
-		}
-		rs = append(rs, r)
-	}
-	return rs, nil
 }
 
 func GetLastReceipt(conn *ethclient.Client, latestBlock *big.Int) (*types.Receipt, error) {

@@ -63,3 +63,12 @@ func HashToByte(h common.Hash) []byte {
 	}
 	return ret
 }
+
+func OtherKey2Hex(str []byte) []byte {
+	ret := make([]byte, 0)
+	for _, b := range str {
+		ret = append(ret, b/16)
+		ret = append(ret, b%16)
+	}
+	return ret
+}

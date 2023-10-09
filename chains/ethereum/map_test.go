@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mapprotocol/compass/internal/tx"
+
 	"github.com/mapprotocol/compass/pkg/ethclient"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -52,7 +54,7 @@ func Test_Other(t *testing.T) {
 		if err != nil {
 			t.Fatalf("idSame unable to get tx hashes Logs: %s", err)
 		}
-		receipts, err := mapprotocol.GetReceiptsByTxsHash(client, txsHash)
+		receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
 		if err != nil {
 			t.Fatalf("unable to get receipts hashes Logs: %s", err)
 		}
