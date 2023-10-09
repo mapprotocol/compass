@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mapprotocol/compass/internal/tx"
+
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -191,7 +193,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 				if err != nil {
 					return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 				}
-				receipts, err := mapprotocol.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
 				if err != nil {
 					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 				}
@@ -212,7 +214,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 				if err != nil {
 					return 0, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
 				}
-				receipts, err := mapprotocol.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
 				if err != nil {
 					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 				}

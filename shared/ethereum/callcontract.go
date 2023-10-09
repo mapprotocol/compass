@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mapprotocol/compass/internal/tx"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -129,7 +131,7 @@ func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, me
 	if err != nil {
 		return nil, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
 	}
-	receipts, err := mapprotocol.GetReceiptsByTxsHash(client, txsHash)
+	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}

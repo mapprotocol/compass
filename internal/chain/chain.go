@@ -60,14 +60,14 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs, opts...)
 	if role == mapprotocol.RoleOfMaintainer {
 		if cfg.Id != cfg.MapChainID {
-			//fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
-			//height, err := fn()
-			//if err != nil {
-			//	return nil, errors.Wrap(err, "Map2Other get init headerHeight failed")
-			//}
-			//logger.Info("Map2other Current situation", "id", cfg.Id, "height", height, "lightNode", cfg.LightNode)
-			//mapprotocol.SyncOtherMap[cfg.Id] = height
-			//mapprotocol.Map2OtherHeight[cfg.Id] = fn
+			fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
+			height, err := fn()
+			if err != nil {
+				return nil, errors.Wrap(err, "Map2Other get init headerHeight failed")
+			}
+			logger.Info("Map2other Current situation", "id", cfg.Id, "height", height, "lightNode", cfg.LightNode)
+			mapprotocol.SyncOtherMap[cfg.Id] = height
+			mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		}
 
 		listen = NewMaintainer(cs)
