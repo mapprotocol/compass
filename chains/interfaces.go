@@ -29,4 +29,5 @@ const (
 	Ethereum = "ethereum"
 	Conflux  = "conflux"
 	Bttc     = "bttc"
+	Tron     = "tron"
 )

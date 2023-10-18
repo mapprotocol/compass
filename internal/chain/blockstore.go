@@ -3,15 +3,12 @@ package chain
 import (
 	"math/big"
 
-	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/blockstore"
 )
 
-// SetupBlockStore queries the blockstore for the latest known block. If the latest block is
-// greater than Cfg.startBlock, then Cfg.startBlock is replaced with the latest known block.
-func SetupBlockStore(cfg *Config, kp *secp256k1.Keypair, role mapprotocol.Role) (*blockstore.Blockstore, error) {
-	bs, err := blockstore.NewBlockstore(cfg.BlockstorePath, cfg.Id, kp.Address(), role)
+func SetupBlockStore(cfg *Config, role mapprotocol.Role) (*blockstore.Blockstore, error) {
+	bs, err := blockstore.NewBlockstore(cfg.BlockstorePath, cfg.Id, cfg.From, role)
 	if err != nil {
 		return nil, err
 	}

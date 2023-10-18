@@ -132,9 +132,7 @@ func (c *Connection) CallOpts() *bind.CallOpts {
 }
 
 func (c *Connection) SafeEstimateGas(ctx context.Context) (*big.Int, error) {
-
 	var suggestedGasPrice *big.Int
-
 	// First attempt to use EGS for the gas price if the api key is supplied
 	if c.egsApiKey != "" {
 		price, err := egs.FetchGasPrice(c.egsApiKey, c.egsSpeed)
@@ -167,9 +165,7 @@ func (c *Connection) SafeEstimateGas(ctx context.Context) (*big.Int, error) {
 }
 
 func (c *Connection) EstimateGasLondon(ctx context.Context, baseFee *big.Int) (*big.Int, *big.Int, error) {
-	var maxPriorityFeePerGas *big.Int
-	var maxFeePerGas *big.Int
-
+	var maxPriorityFeePerGas, maxFeePerGas *big.Int
 	if c.maxGasPrice.Cmp(baseFee) < 0 {
 		maxPriorityFeePerGas = big.NewInt(1000000000)
 		maxFeePerGas = new(big.Int).Add(c.maxGasPrice, maxPriorityFeePerGas)
@@ -218,7 +214,6 @@ func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 
 	if head.BaseFee != nil {
 		c.opts.GasTipCap, c.opts.GasFeeCap, err = c.EstimateGasLondon(context.TODO(), head.BaseFee)
-
 		// Both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) cannot be specified: https://github.com/ethereum/go-ethereum/blob/95bbd46eabc5d95d9fb2108ec232dd62df2f44ab/accounts/abi/bind/base.go#L254
 		c.opts.GasPrice = nil
 		if err != nil {

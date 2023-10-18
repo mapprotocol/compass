@@ -49,7 +49,6 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 	}
 	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfMap))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
-		// only listen last block of the epoch
 		return nil
 	}
 	m.Log.Info("sync block ", "current", latestBlock)
@@ -64,7 +63,19 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 	istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
+	//proof, err := mapprotocol.GetZkProof("http://47.242.33.167:8181", m.Cfg.Id, latestBlock.Uint64())
+	//if err != nil {
+	//	return err
+	//}
+	//for _, p := range proof {
+	//	fmt.Println("proof ", p)
+	//}
+	//validators, err := mapprotocol.GetCurValidators(m.Conn.Client(), latestBlock)
+	//if err != nil {
+	//	return err
+	//}
 	input, err := mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
+	//input, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodUpdateBlockHeader, validators, h, istanbulExtra, proof)
 	if err != nil {
 		return err
 	}
