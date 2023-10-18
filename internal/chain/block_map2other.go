@@ -6,9 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mapprotocol/compass/mapprotocol"
-
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 )
@@ -30,8 +29,7 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 				time.Sleep(constant.TxRetryInterval)
 				continue
 			}
-			// These store the gas limit and price before a transaction is sent for logging in case of a failure
-			// This is necessary as tx will be nil in the case of an error when sending VoteProposal()
+
 			tx, err := w.sendTx(&w.cfg.LightNode, nil, m.Payload[0].([]byte))
 			w.conn.UnlockOpts()
 			if err == nil {
