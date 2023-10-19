@@ -49,8 +49,8 @@ func (m *Maintainer) sync() error {
 	m.Log.Info("Polling Blocks...", "block", currentBlock)
 
 	if m.Cfg.SyncToMap {
-		//syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-		syncedHeight, err := mapprotocol.Get2MapByLight()
+		syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
+		//syncedHeight, err := mapprotocol.Get2MapByLight()
 		if err != nil {
 			m.Log.Error("Get synced Height failed", "err", err)
 			return err
