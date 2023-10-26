@@ -49,7 +49,7 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 	w.log.Info("Attempting to resolve message", "type", m.Type, "src", m.Source, "dst", m.Destination)
 	switch m.Type {
 	case msg.SyncFromMap:
-		return w.syncMapToOther(m)
+		return w.syncMapToTron(m)
 	case msg.SwapWithMapProof:
 		return w.exeMcs(m)
 	default:
@@ -58,7 +58,7 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 	}
 }
 
-func (w *Writer) syncMapToOther(m msg.Message) bool {
+func (w *Writer) syncMapToTron(m msg.Message) bool {
 	var (
 		errorCount int64
 	)
@@ -209,7 +209,7 @@ func (w Writer) txStatus(txHash string) error {
 			w.log.Info("Tx receipt status is success", "hash", txHash)
 			return nil
 		}
-		return fmt.Errorf("txHash(%s), status not success, current status is (%d)", txHash, id.Ret[0].ContractRet)
+		return fmt.Errorf("txHash(%s), status not success, current status is (%s)", txHash, id.Ret[0].ContractRet.String())
 	}
 }
 
