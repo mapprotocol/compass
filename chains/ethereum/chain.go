@@ -196,7 +196,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			// evm event to msg
 			var message msg.Message
 			// getOrderId
-			orderId := log.Data[:32]
+			//orderId := log.Data[:32]
 			method := m.GetMethod(log.Topics[0])
 			if m.Cfg.SyncToMap {
 				// when syncToMap we need to assemble a tx proof
@@ -213,7 +213,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 					return 0, fmt.Errorf("unable to Parse Log: %w", err)
 				}
 
-				msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+				msgPayload := []interface{}{payload, "orderId", latestBlock.Uint64(), log.TxHash}
 				message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 			} else if m.Cfg.Id == m.Cfg.MapChainID {
 				// when listen from map we also need to assemble a tx prove in a different way
@@ -264,12 +264,13 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 					}
 				}
 
-				msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash, method}
+				msgPayload := []interface{}{payload, "orderId", latestBlock.Uint64(), log.TxHash, method}
 				message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 			}
 
 			message.Idx = idx
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", ethcommon.Bytes2Hex([]byte("")))
 			err = m.Router.Send(message)
 			if err != nil {
 				m.Log.Error("subscription error: failed to route message", "err", err)

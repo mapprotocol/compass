@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mapprotocol/compass/pkg/util"
+
 	"github.com/mapprotocol/compass/internal/tx"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -150,8 +152,8 @@ func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, me
 
 func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
 	header *maptypes.Header, fId msg.ChainId, method string) (uint64, []byte, error) {
-	toChainID := log.Topics[2]
-	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
+	//toChainID := log.Topics[2]
+	//uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
 	aggPK, ist, aggPKBytes, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
@@ -166,8 +168,8 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := Key2Hex(key, len(proof))
-	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
+	ek := util.Key2Hex(key, len(proof))
+	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(97)]; ok && strings.ToLower(name) != "near" {
 		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 		nr := mapprotocol.MapTxReceipt{
 			PostStateOrStatus: receipt.PostStateOrStatus,
@@ -192,19 +194,24 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			},
 		}
 
+		zkProof, err := mapprotocol.GetZkProof("http://47.242.33.167:8181", fId, header.Number.Uint64())
+		if err != nil {
+			return 0, nil, errors.Wrap(err, "GetZkProof failed")
+		}
+
 		pack, err := mapprotocol.Mcs.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp)
 		if err != nil {
 			return 0, nil, errors.Wrap(err, "getBytes failed")
 		}
 
-		//fmt.Println("map getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
-		//fmt.Println("map id ------------ ", fId)
-		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
+		//payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
+		payloads, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, pack, zkProof)
 		if err != nil {
 			return 0, nil, errors.Wrap(err, "eth pack failed")
 		}
+		fmt.Println("------------- ", "0x"+common.Bytes2Hex(payloads))
 
-		return uToChainID, payloads, nil
+		return 97, payloads, nil
 	}
 
 	bytesBuffer := bytes.NewBuffer([]byte{})
@@ -248,7 +255,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 		"receipt_proof": m,
 		"index":         idx,
 	})
-	return uToChainID, data, nil
+	return 97, data, nil
 }
 
 func Key2Hex(str []byte, proofLength int) []byte {
