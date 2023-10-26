@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mapprotocol/compass/pkg/util"
+
 	"github.com/mapprotocol/compass/internal/tx"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -242,7 +244,7 @@ func AssembleProof(cli *Client, header Header, log types.Log, fId msg.ChainId, r
 	}
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
-	ek := Key2Hex(key, len(proof))
+	ek := util.Key2Hex(key, len(proof))
 	receipt, err := GetTxReceipt(receipts[log.TxIndex])
 	if err != nil {
 		return nil, err
@@ -281,15 +283,6 @@ func AssembleProof(cli *Client, header Header, log types.Log, fId msg.ChainId, r
 	}
 
 	return pack, nil
-}
-
-func Key2Hex(str []byte, proofLength int) []byte {
-	ret := make([]byte, 0)
-	for _, b := range str {
-		ret = append(ret, b/16)
-		ret = append(ret, b%16)
-	}
-	return ret
 }
 
 func GetReceiptsByTxsHash(cli *Client, receipts []*types.Receipt) {

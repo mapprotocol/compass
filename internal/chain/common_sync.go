@@ -109,8 +109,8 @@ func (c *CommonSync) BuildQuery(contract ethcommon.Address, sig []utils.EventSig
 	query := eth.FilterQuery{
 		FromBlock: startBlock,
 		ToBlock:   endBlock,
-		Addresses: []ethcommon.Address{contract},
-		Topics:    [][]ethcommon.Hash{topics},
+		//Addresses: []ethcommon.Address{contract},
+		//Topics:    [][]ethcommon.Hash{topics},
 	}
 	return query
 }

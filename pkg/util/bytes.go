@@ -8,6 +8,15 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+func Key2Hex(str []byte, proofLength int) []byte {
+	ret := make([]byte, 0)
+	for _, b := range str {
+		ret = append(ret, b/16)
+		ret = append(ret, b%16)
+	}
+	return ret
+}
+
 // FromHexString returns a byte array given a hex string
 func FromHexString(data string) []byte {
 	data = strings.TrimPrefix(data, "0x")
