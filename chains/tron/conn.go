@@ -31,7 +31,7 @@ func NewConnection(endpoint string, log log15.Logger) *Connection {
 // Connect starts the ethereum WS connection
 func (c *Connection) Connect() error {
 	c.log.Info("Connecting to ethereum chain...", "url", c.endpoint)
-	c.cli = client.NewGrpcClient("grpc.nile.trongrid.io:50051")
+	c.cli = client.NewGrpcClient(c.endpoint)
 	err := c.cli.Start(grpc.WithInsecure())
 	if err != nil {
 		return err
