@@ -146,14 +146,14 @@ func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, me
 		}
 		receipts = append(receipts, lr)
 	}
-	_, data, err := AssembleMapProof(client, *log, receipts, header, fId, method)
+	_, data, err := AssembleMapProof(client, *log, receipts, header, fId, method, "")
 	return data, err
 }
 
 func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
-	header *maptypes.Header, fId msg.ChainId, method string) (uint64, []byte, error) {
-	//toChainID := log.Topics[2]
-	//uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
+	header *maptypes.Header, fId msg.ChainId, method, zkUrl string) (uint64, []byte, error) {
+	toChainID := log.Topics[2]
+	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
 	aggPK, ist, aggPKBytes, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
@@ -194,24 +194,23 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			},
 		}
 
-		zkProof, err := mapprotocol.GetZkProof("http://47.242.33.167:8181", fId, header.Number.Uint64())
+		zkProof, err := mapprotocol.GetZkProof(zkUrl, fId, header.Number.Uint64())
 		if err != nil {
 			return 0, nil, errors.Wrap(err, "GetZkProof failed")
 		}
 
-		pack, err := mapprotocol.Mcs.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp)
+		pack, err := mapprotocol.Mcs.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp, zkProof)
 		if err != nil {
 			return 0, nil, errors.Wrap(err, "getBytes failed")
 		}
 
-		//payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
-		payloads, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, pack, zkProof)
+		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
+		//payloads, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
 			return 0, nil, errors.Wrap(err, "eth pack failed")
 		}
-		fmt.Println("------------- ", "0x"+common.Bytes2Hex(payloads))
 
-		return 97, payloads, nil
+		return uToChainID, payloads, nil
 	}
 
 	bytesBuffer := bytes.NewBuffer([]byte{})
@@ -255,7 +254,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 		"receipt_proof": m,
 		"index":         idx,
 	})
-	return 97, data, nil
+	return uToChainID, data, nil
 }
 
 func Key2Hex(str []byte, proofLength int) []byte {

@@ -58,34 +58,31 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 	}
 
 	h := mapprotocol.ConvertHeader(header)
-	aggPK, ist, aggPKBytes, err := mapprotocol.GetAggPK(m.Conn.Client(), new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
+	_, ist, aggPKBytes, err := mapprotocol.GetAggPK(m.Conn.Client(), new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return err
 	}
 	istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
-	//proof, err := mapprotocol.GetZkProof("http://47.242.33.167:8181", m.Cfg.Id, latestBlock.Uint64())
-	//if err != nil {
-	//	return err
-	//}
-	//for _, p := range proof {
-	//	fmt.Println("proof ", p)
-	//}
-	//validators, err := mapprotocol.GetCurValidators(m.Conn.Client(), latestBlock)
-	//if err != nil {
-	//	return err
-	//}
-	input, err := mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
-	//input, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodUpdateBlockHeader, validators, h, istanbulExtra, proof)
+	proof, err := mapprotocol.GetZkProof(m.Cfg.ZkUrl, m.Cfg.Id, latestBlock.Uint64())
 	if err != nil {
 		return err
 	}
-	tmp := map[string]interface{}{
-		"header":        h,
-		"aggpk":         aggPK,
-		"istanbulExtra": istanbulExtra,
+	validators, err := mapprotocol.GetCurValidators(m.Conn.Client(), big.NewInt(latestBlock.Int64()-mapprotocol.EpochOfMap))
+	if err != nil {
+		return err
 	}
-	tmpData, _ := json.Marshal(tmp)
-	m.Log.Info("sync block ", "current", latestBlock, "data", string(tmpData))
+	//input, err := mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
+	input, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodUpdateBlockHeader, validators, h, istanbulExtra, proof)
+	if err != nil {
+		return err
+	}
+	//tmp := map[string]interface{}{
+	//	"header":        h,
+	//	"aggpk":         aggPK,
+	//	"istanbulExtra": istanbulExtra,
+	//}
+	//tmpData, _ := json.Marshal(tmp)
+	//m.Log.Info("sync block ", "current", latestBlock, "data", string(tmpData))
 	msgpayload := []interface{}{input}
 	waitCount := len(m.Cfg.SyncChainIDList)
 	for _, cid := range m.Cfg.SyncChainIDList {
@@ -196,7 +193,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			// evm event to msg
 			var message msg.Message
 			// getOrderId
-			//orderId := log.Data[:32]
+			orderId := log.Data[:32]
 			method := m.GetMethod(log.Topics[0])
 			if m.Cfg.SyncToMap {
 				// when syncToMap we need to assemble a tx proof
@@ -213,7 +210,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 					return 0, fmt.Errorf("unable to Parse Log: %w", err)
 				}
 
-				msgPayload := []interface{}{payload, "orderId", latestBlock.Uint64(), log.TxHash}
+				msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
 				message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 			} else if m.Cfg.Id == m.Cfg.MapChainID {
 				// when listen from map we also need to assemble a tx prove in a different way
@@ -239,7 +236,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 					receipts = append(receipts, lr)
 				}
 
-				toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method)
+				toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method, m.Cfg.ZkUrl)
 				if err != nil {
 					return 0, fmt.Errorf("unable to Parse Log: %w", err)
 				}
@@ -270,7 +267,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 
 			message.Idx = idx
 			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-				"orderId", ethcommon.Bytes2Hex([]byte("")))
+				"orderId", ethcommon.Bytes2Hex(orderId))
 			err = m.Router.Send(message)
 			if err != nil {
 				m.Log.Error("subscription error: failed to route message", "err", err)
