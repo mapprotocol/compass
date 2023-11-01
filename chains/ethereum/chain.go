@@ -58,31 +58,29 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 	}
 
 	h := mapprotocol.ConvertHeader(header)
-	_, ist, aggPKBytes, err := mapprotocol.GetAggPK(m.Conn.Client(), new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
+	aggPK, ist, aggPKBytes, err := mapprotocol.GetAggPK(m.Conn.Client(), new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return err
 	}
 	istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
-	proof, err := mapprotocol.GetZkProof(m.Cfg.ZkUrl, m.Cfg.Id, latestBlock.Uint64())
+	var input []byte
+	if m.Cfg.ZkUrl == "" {
+		input, err = mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
+	} else {
+		proof, err := mapprotocol.GetZkProof(m.Cfg.ZkUrl, m.Cfg.Id, latestBlock.Uint64())
+		if err != nil {
+			return err
+		}
+		validators, err := mapprotocol.GetCurValidators(m.Conn.Client(), big.NewInt(latestBlock.Int64()-mapprotocol.EpochOfMap))
+		if err != nil {
+			return err
+		}
+		input, err = mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodUpdateBlockHeader, validators, h, istanbulExtra, proof)
+	}
 	if err != nil {
 		return err
 	}
-	validators, err := mapprotocol.GetCurValidators(m.Conn.Client(), big.NewInt(latestBlock.Int64()-mapprotocol.EpochOfMap))
-	if err != nil {
-		return err
-	}
-	//input, err := mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
-	input, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodUpdateBlockHeader, validators, h, istanbulExtra, proof)
-	if err != nil {
-		return err
-	}
-	//tmp := map[string]interface{}{
-	//	"header":        h,
-	//	"aggpk":         aggPK,
-	//	"istanbulExtra": istanbulExtra,
-	//}
-	//tmpData, _ := json.Marshal(tmp)
-	//m.Log.Info("sync block ", "current", latestBlock, "data", string(tmpData))
+	m.Log.Info("sync block ", "current", latestBlock, "data", common.Bytes2Hex(input))
 	msgpayload := []interface{}{input}
 	waitCount := len(m.Cfg.SyncChainIDList)
 	for _, cid := range m.Cfg.SyncChainIDList {
