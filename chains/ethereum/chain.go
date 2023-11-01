@@ -259,7 +259,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 					}
 				}
 
-				msgPayload := []interface{}{payload, "orderId", latestBlock.Uint64(), log.TxHash, method}
+				msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash, method}
 				message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 			}
 
