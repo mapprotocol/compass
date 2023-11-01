@@ -131,28 +131,30 @@ func GetZkProof(endpoint string, cid msg.ChainId, height uint64) ([]*big.Int, er
 	for {
 		resp, err := http.Get(fmt.Sprintf("%s/proof?chain_id=%d&height=%d", endpoint, cid, height))
 		if err != nil {
-			time.Sleep(constant.BlockRetryInterval)
 			util.Alarm(context.Background(), fmt.Sprintf("GetZkProof cid(%d) request failed, err is %v", height, err))
+			log.Error("GetZkProof request failed", "err", err, "height", height, "cid", cid)
+			time.Sleep(constant.BlockRetryInterval)
 			continue
 		}
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			time.Sleep(constant.BlockRetryInterval)
 			log.Error("GetZkProof read body failed", "err", err)
+			time.Sleep(constant.BlockRetryInterval)
 			continue
 		}
 		_ = resp.Body.Close()
 		zk := &Zk{}
 		err = json.Unmarshal(body, zk)
 		if err != nil {
-			time.Sleep(constant.BlockRetryInterval)
 			util.Alarm(context.Background(), fmt.Sprintf("GetZkProof cid(%d) Unmarshal failed, err is %v", height, err))
 			log.Error("GetZkProof Unmarshal failed", "err", err, "data", string(body))
+			time.Sleep(constant.BlockRetryInterval)
 			continue
 		}
 		// check status
 		if zk.Data.Status != 3 {
-			util.Alarm(context.Background(), fmt.Sprintf("GetZkProof cid(%d) height(%d) Proof Not Ready", cid, height))
+			//util.Alarm(context.Background(), fmt.Sprintf("GetZkProof cid(%d) height(%d) Proof Not Ready", cid, height))
+			log.Info("GetZkProof Proof Not Read", "cid", cid, "height", height)
 			time.Sleep(constant.BalanceRetryInterval)
 			continue
 		}

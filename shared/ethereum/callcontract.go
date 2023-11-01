@@ -194,14 +194,22 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			},
 		}
 
-		zkProof, err := mapprotocol.GetZkProof(zkUrl, fId, header.Number.Uint64())
-		if err != nil {
-			return 0, nil, errors.Wrap(err, "GetZkProof failed")
-		}
+		var pack []byte
+		if zkUrl == "" {
+			pack, err = mapprotocol.Map2Other.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp)
+			if err != nil {
+				return 0, nil, errors.Wrap(err, "getBytes failed")
+			}
+		} else {
+			zkProof, err := mapprotocol.GetZkProof(zkUrl, fId, header.Number.Uint64())
+			if err != nil {
+				return 0, nil, errors.Wrap(err, "GetZkProof failed")
+			}
 
-		pack, err := mapprotocol.Mcs.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp, zkProof)
-		if err != nil {
-			return 0, nil, errors.Wrap(err, "getBytes failed")
+			pack, err = mapprotocol.Mcs.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp, zkProof)
+			if err != nil {
+				return 0, nil, errors.Wrap(err, "getBytes failed")
+			}
 		}
 
 		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
