@@ -2,7 +2,9 @@ package tron
 
 import (
 	"fmt"
+	"github.com/mapprotocol/compass/keystore"
 	"math/big"
+	"os"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
@@ -34,10 +36,11 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		return nil, err
 	}
 
-	ks, acc, err := getKsAndAcc(chainCfg.From)
-	if err != nil {
-		logger.Error("Failed to UnlockedKeystore", "err", err)
-		return nil, err
+	var pswd []byte
+	if pswdStr := os.Getenv(keystore.EnvPassword); pswdStr != "" {
+		pswd = []byte(pswdStr)
+	} else {
+		pswd = keystore.GetPassword(fmt.Sprintf("Enter password for key %s:", chainCfg.From))
 	}
 
 	var (
@@ -64,7 +67,7 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		stop:   stop,
 		listen: listen,
 		cfg:    chainCfg,
-		writer: newWriter(conn, config, logger, stop, sysErr, ks, acc),
+		writer: newWriter(conn, config, logger, stop, sysErr, pswd),
 	}, nil
 }
 

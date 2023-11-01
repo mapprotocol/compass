@@ -3,6 +3,7 @@ package tron
 import (
 	"context"
 	"fmt"
+	"github.com/lbtsm/gotron-sdk/pkg/store"
 	"math/big"
 	"strings"
 	"time"
@@ -29,19 +30,19 @@ type Writer struct {
 	conn   *Connection
 	stop   <-chan int
 	sysErr chan<- error
+	pass   []byte
 	ks     *keystore.KeyStore
 	acc    *keystore.Account
 }
 
-func newWriter(conn *Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error, ks *keystore.KeyStore, acc *keystore.Account) *Writer {
+func newWriter(conn *Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error, pass []byte) *Writer {
 	return &Writer{
 		cfg:    cfg,
 		conn:   conn,
 		log:    log,
 		stop:   stop,
 		sysErr: sysErr,
-		ks:     ks,
-		acc:    acc,
+		pass:   pass,
 	}
 }
 
@@ -96,7 +97,7 @@ func (w *Writer) syncMapToTron(m msg.Message) bool {
 				util.Alarm(context.Background(), fmt.Sprintf("map2tron updateHeader failed, err is %s", err.Error()))
 				errorCount = 0
 			}
-			time.Sleep(constant.TxRetryInterval)
+			time.Sleep(constant.BalanceRetryInterval)
 		}
 	}
 }
@@ -180,7 +181,12 @@ func (w *Writer) sendTx(addr string, input []byte) (string, error) {
 		return "", err
 	}
 
-	controller := transaction.NewController(w.conn.cli, w.ks, w.acc, tx.Transaction)
+	ks, acc, err := store.UnlockedKeystore(w.cfg.From, string(w.pass))
+	if err != nil {
+		w.log.Error("Failed to UnlockedKeystore", "err", err)
+		return "", err
+	}
+	controller := transaction.NewController(w.conn.cli, ks, acc, tx.Transaction)
 	if err = controller.ExecuteTransaction(); err != nil {
 		w.log.Error("Failed to ExecuteTransaction", "err", err)
 		return "", err
