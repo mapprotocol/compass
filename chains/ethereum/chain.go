@@ -64,10 +64,10 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 	}
 	istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 	var input []byte
-	if m.Cfg.ZkUrl == "" {
+	if m.Cfg.ApiUrl == "" {
 		input, err = mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
 	} else {
-		proof, err := mapprotocol.GetZkProof(m.Cfg.ZkUrl, m.Cfg.Id, latestBlock.Uint64())
+		proof, err := mapprotocol.GetZkProof(m.Cfg.ApiUrl, m.Cfg.Id, latestBlock.Uint64())
 		if err != nil {
 			return err
 		}
@@ -234,7 +234,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 					receipts = append(receipts, lr)
 				}
 
-				toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method, m.Cfg.ZkUrl)
+				toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method, m.Cfg.ApiUrl)
 				if err != nil {
 					return 0, fmt.Errorf("unable to Parse Log: %w", err)
 				}
