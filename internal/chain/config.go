@@ -41,7 +41,7 @@ var (
 	Event                 = "event"
 	Eth2Url               = "eth2Url"
 	RedisOpt              = "redis"
-	ZkUrl                 = "zkUrl"
+	ApiUrl                = "apiUrl"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
@@ -71,7 +71,7 @@ type Config struct {
 	Events             []utils.EventSig
 	SkipError          bool
 	Eth2Endpoint       string
-	ZkUrl              string
+	ApiUrl             string
 }
 
 // ParseConfig uses a core.ChainConfig to construct a corresponding Config
@@ -97,7 +97,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		Events:             make([]utils.EventSig, 0),
 		SkipError:          chainCfg.SkipError,
 		Eth2Endpoint:       "",
-		ZkUrl:              "",
+		ApiUrl:             "",
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
@@ -220,8 +220,8 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		config.Eth2Endpoint = eth2Url
 	}
 
-	if v, ok := chainCfg.Opts[ZkUrl]; ok && v != "" {
-		config.ZkUrl = v
+	if v, ok := chainCfg.Opts[ApiUrl]; ok && v != "" {
+		config.ApiUrl = v
 	}
 
 	return config, nil
