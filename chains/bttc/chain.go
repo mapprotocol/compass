@@ -2,8 +2,11 @@ package bttc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
 	"time"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
@@ -17,6 +20,10 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	utils "github.com/mapprotocol/compass/shared/ethereum"
+)
+
+var (
+	systemAddr = common.HexToAddress("0x0000000000000000000000000000000000001010")
 )
 
 func NewChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
@@ -90,9 +97,8 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 		return 0, nil
 	}
 	count := 0
-	for idx, addr := range m.Cfg.McsContract {
-		query := m.BuildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
-		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
+	for idx, topic := range m.Cfg.Events {
+		logs, err := filterLogs(m.Cfg.Endpoint, topic.GetTopic().String(), latestBlock)
 		if err != nil {
 			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 		}
@@ -101,7 +107,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 		for _, log := range logs {
 			var message msg.Message
 			orderId := log.Data[:32]
-			method := m.GetMethod(log.Topics[0])
+			method := m.GetMethod(common.HexToHash(log.Topics[0]))
 			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
 			if err != nil {
 				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
@@ -126,17 +132,16 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 				mHeaders = append(mHeaders, convertHeader(h))
 			}
 
-			payload, err := AssembleProof(mHeaders, log, m.Cfg.Id, allR, cullSys, method)
+			payload, err := AssembleProof(mHeaders, 0, m.Cfg.Id, allR, cullSys, method)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
-			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
+			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TransactionHash}
 			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 			message.Idx = idx
 
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-				"orderId", common.Bytes2Hex(orderId))
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TransactionHash, "logIdx", log.TransactionIndex)
 			err = m.Router.Send(message)
 			if err != nil {
 				m.Log.Error("subscription error: failed to route message", "err", err)
@@ -144,6 +149,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			count++
 		}
 	}
+	//}
 
 	return count, nil
 }
@@ -184,4 +190,53 @@ func getReceiptsAndTxs(m *chain.Messenger, txsHash []common.Hash) ([]*types.Rece
 		cullSys = append(cullSys, r)
 	}
 	return rs, cullSys, nil
+}
+
+func filterLogs(endpoint, topic string, latestBlock *big.Int) ([]Log, error) {
+	url := fmt.Sprintf("%s&topic0=%s&fromBlock=%v&toBlock=%v", endpoint, topic, latestBlock.String(), latestBlock.String())
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != 299 {
+		return nil, fmt.Errorf("getLogs back code is (%v)", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &Logs{}
+	err = json.Unmarshal(body, ret)
+	if err != nil {
+		return nil, err
+	}
+
+	return ret.Result, nil
+}
+
+type Logs struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Result  []Log  `json:"result"`
+}
+
+type Log struct {
+	Address          string   `json:"address"`
+	Topics           []string `json:"topics"`
+	Data             string   `json:"data"`
+	BlockNumber      string   `json:"blockNumber"`
+	BlockHash        string   `json:"blockHash"`
+	TimeStamp        string   `json:"timeStamp"`
+	GasPrice         string   `json:"gasPrice"`
+	GasUsed          string   `json:"gasUsed"`
+	LogIndex         string   `json:"logIndex"`
+	TransactionHash  string   `json:"transactionHash"`
+	TransactionIndex string   `json:"transactionIndex"`
 }

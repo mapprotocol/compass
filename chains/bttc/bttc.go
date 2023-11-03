@@ -72,8 +72,7 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func AssembleProof(headers []BlockHeader, log types.Log, fId msg.ChainId, allR []*types.Receipt, cullSys []*types.Receipt, method string) ([]byte, error) {
-	txIndex := log.TxIndex
+func AssembleProof(headers []BlockHeader, txIndex uint, fId msg.ChainId, allR []*types.Receipt, cullSys []*types.Receipt, method string) ([]byte, error) {
 	receipt, err := mapprotocol.GetTxReceipt(allR[txIndex])
 	if err != nil {
 		return nil, err
@@ -86,7 +85,7 @@ func AssembleProof(headers []BlockHeader, log types.Log, fId msg.ChainId, allR [
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := util.OtherKey2Hex(key)
+	ek := util.Key2Hex(key, len(proof))
 
 	pd := ProofData{
 		Headers: headers,
@@ -97,20 +96,11 @@ func AssembleProof(headers []BlockHeader, log types.Log, fId msg.ChainId, allR [
 		},
 	}
 
-	//fmt.Println("keyIndex ----------- ", "0x"+common.Bytes2Hex(pd.ReceiptProof.KeyIndex))
-	//printProof(pd.ReceiptProof.Proof)
-	//printReceipt(&pd.ReceiptProof.TxReceipt)
-	//for _, bk := range pd.Headers {
-	//	printHeader(bk)
-	//}
-
 	input, err := mapprotocol.Bttc.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println("bttc -------- input", "0x"+common.Bytes2Hex(input))
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	//pack, err := mapprotocol.Bttc.Pack(mapprotocol.MethodVerifyProofData, input)
 	if err != nil {
 		return nil, err
 	}
