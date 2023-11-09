@@ -71,7 +71,7 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 		if err != nil {
 			return err
 		}
-		validators, err := mapprotocol.GetCurValidators(m.Conn.Client(), big.NewInt(latestBlock.Int64()-mapprotocol.EpochOfMap))
+		validators, err := mapprotocol.GetCurValidators(m.Conn.Client(), latestBlock)
 		if err != nil {
 			return err
 		}
