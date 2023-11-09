@@ -172,7 +172,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 	if zkUrl != "" {
 		ek = util.Key2Hex(key, len(proof))
 	}
-	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(97)]; ok && strings.ToLower(name) != "near" {
+	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
 		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 		nr := mapprotocol.MapTxReceipt{
 			PostStateOrStatus: receipt.PostStateOrStatus,
@@ -199,7 +199,6 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 
 		var pack []byte
 		if zkUrl == "" {
-			fmt.Println("------------------------- ")
 			pack, err = mapprotocol.Map2Other.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp)
 			if err != nil {
 				return 0, nil, errors.Wrap(err, "getBytes failed")
