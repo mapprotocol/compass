@@ -10,8 +10,6 @@ import (
 	"time"
 
 	log "github.com/ChainSafe/log15"
-	"github.com/mapprotocol/atlas/consensus/istanbul/validator"
-
 	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/mapprotocol/compass/internal/constant"
@@ -169,20 +167,19 @@ func GetZkProof(endpoint string, cid msg.ChainId, height uint64) ([]*big.Int, er
 }
 
 func GetCurValidators(cli *ethclient.Client, number *big.Int) ([]byte, error) {
-	snapshot, err := cli.GetSnapshot(context.Background(), number)
+	snapshot, err := cli.GetValidatorsBLSPublicKeys(context.Background(), number)
 	if err != nil {
 		return nil, err
 	}
 
-	validators := validator.MapValidatorsToDataWithBLSKeyCache(snapshot.ValSet.List())
 	ret := make([][]byte, 0)
-	for _, v := range validators {
+	for _, v := range snapshot {
 		ele := make([]byte, 0)
-		for _, k := range v.BLSPublicKey {
+		for _, k := range v {
 			ele = append(ele, k)
 		}
 		ret = append(ret, ele)
-		//fmt.Println(v.Address, "----------- ", "0x"+common.Bytes2Hex(ele))
+		//fmt.Println("----------- ", "0x"+common.Bytes2Hex(ele))
 	}
 
 	//fmt.Println("validator info", "0x"+common.Bytes2Hex(makeValidatorInfo(ret)))
