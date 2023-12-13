@@ -48,8 +48,8 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			}
 			if exits {
 				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
-				m.DoneCh <- struct{}{}
-				return true
+				//m.DoneCh <- struct{}{}
+				//return true
 			}
 
 			err = w.conn.LockAndUpdateOpts(needNonce)
