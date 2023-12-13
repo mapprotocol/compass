@@ -69,6 +69,7 @@ type DerivableList interface {
 }
 
 func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
+	//fmt.Println("i ------------------------------- ", i)
 	buf.Reset()
 	list.EncodeIndex(i, buf)
 	return common.CopyBytes(buf.Bytes())

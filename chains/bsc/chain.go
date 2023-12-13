@@ -3,8 +3,6 @@ package bsc
 import (
 	"context"
 	"fmt"
-	"math/big"
-
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -16,6 +14,7 @@ import (
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"math/big"
 )
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
@@ -106,10 +105,16 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 			}
+			//now := time.Now()
 			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
+			//fmt.Println("--------------------------- ", time.Now().Unix()-now.Unix(), "+++", log.TxIndex)
+
+			//for i, receipt := range receipts {
+			//	fmt.Println("i ", i, "receipt", receipt.TxHash)
+			//}
 
 			headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
 			for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
