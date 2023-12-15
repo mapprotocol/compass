@@ -15,6 +15,11 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"math/big"
+	"strconv"
+)
+
+var (
+	cacheReceipt = make(map[string][]*types.Receipt) // key -> chainId_blockHeight
 )
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
@@ -105,16 +110,20 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 			}
-			//now := time.Now()
-			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			var receipts []*types.Receipt
+			key := strconv.FormatUint(uint64(m.Cfg.Id), 10) + "_" + latestBlock.String()
+			if v, ok := cacheReceipt[key]; ok {
+				receipts = v
+				m.Log.Info("use cache receipt", "latestBlock ", latestBlock, "txHash", log.TxHash)
+			} else {
+				receipts, err = tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				if err != nil {
+					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+				}
+				if len(logs) > 1 {
+					cacheReceipt[key] = receipts
+				}
 			}
-			//fmt.Println("--------------------------- ", time.Now().Unix()-now.Unix(), "+++", log.TxIndex)
-
-			//for i, receipt := range receipts {
-			//	fmt.Println("i ", i, "receipt", receipt.TxHash)
-			//}
 
 			headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
 			for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
