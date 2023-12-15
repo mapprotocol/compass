@@ -57,6 +57,7 @@ func GetReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*typ
 					r, err := conn.TransactionReceipt(context.Background(), tx)
 					if err != nil {
 						if err.Error() == "not found" {
+							time.Sleep(time.Millisecond * 100)
 							continue
 						}
 						errReceive <- err
