@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strings"
+
+	"github.com/mapprotocol/atlas/helper/bls"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/atlas/consensus/istanbul/backend"
 	"github.com/mapprotocol/atlas/core/types"
-	"math/big"
-	"strings"
 )
 
 type rpcMAPBlock struct {
@@ -108,6 +111,15 @@ func (ec *Client) MAPHeaderByNumber(ctx context.Context, number *big.Int) (*type
 func (ec *Client) GetSnapshot(ctx context.Context, number *big.Int) (*backend.Snapshot, error) {
 	var snap *backend.Snapshot
 	err := ec.c.CallContext(ctx, &snap, "istanbul_getSnapshot", toBlockNumArg(number))
+	if err != nil {
+		return nil, err
+	}
+	return snap, err
+}
+
+func (ec *Client) GetValidatorsBLSPublicKeys(ctx context.Context, number *big.Int) ([]bls.SerializedPublicKey, error) {
+	var snap []bls.SerializedPublicKey
+	err := ec.c.CallContext(ctx, &snap, "istanbul_getValidatorsBLSPublicKeys", toBlockNumArg(number))
 	if err != nil {
 		return nil, err
 	}

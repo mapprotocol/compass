@@ -35,7 +35,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 	}
 	kp, _ := kpI.(*secp256k1.Keypair)
 
-	bs, err := SetupBlockStore(cfg, kp, role)
+	bs, err := SetupBlockStore(cfg, role)
 	if err != nil {
 		return nil, err
 	}

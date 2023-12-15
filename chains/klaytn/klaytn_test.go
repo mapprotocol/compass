@@ -36,6 +36,16 @@ func toReceiptRLP(r *types.Receipt) *receiptRLP {
 	}
 }
 
+func Test_VoteData(t *testing.T) {
+	data := common.Hex2Bytes("f84294c0cbe1c770fbce1eb7786bfba1ac2115d5c0a45697676f7665726e616e63652e61646476616c696461746f72948d53a7dd56464ec4ba900cef1e7eab041ba61fc1")
+	gVote := new(klaytn.GovernanceVote)
+	err := rlp.DecodeBytes(data, gVote)
+	if err != nil {
+		t.Fatal("Failed to decode a vote", "key", gVote.Key, "value", gVote.Value, "validator", gVote.Validator, "err", err)
+	}
+	t.Log(gVote)
+}
+
 func Test01(t *testing.T) {
 	//url := "https://public-node-api.klaytnapi.com/v1/cypress"
 	url := "https://klaytn-baobab.blockpi.network/v1/rpc/053093fb6e5f618afa4e50921f5c605088b27175"

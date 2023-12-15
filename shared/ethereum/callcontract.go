@@ -13,6 +13,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mapprotocol/compass/pkg/util"
+
+	"github.com/mapprotocol/compass/internal/tx"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -129,7 +133,7 @@ func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, me
 	if err != nil {
 		return nil, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
 	}
-	receipts, err := mapprotocol.GetReceiptsByTxsHash(client, txsHash)
+	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
@@ -142,13 +146,12 @@ func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, me
 		}
 		receipts = append(receipts, lr)
 	}
-	_, data, err := AssembleMapProof(client, *log, receipts, header, fId, method)
+	_, data, err := AssembleMapProof(client, *log, receipts, header, fId, method, "")
 	return data, err
 }
 
 func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
-	header *maptypes.Header, fId msg.ChainId, method string) (uint64, []byte, error) {
-	//toChainID := log.Data[128:160]
+	header *maptypes.Header, fId msg.ChainId, method, zkUrl string) (uint64, []byte, error) {
 	toChainID := log.Topics[2]
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
@@ -166,6 +169,9 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := Key2Hex(key, len(proof))
+	if zkUrl != "" {
+		ek = util.Key2Hex(key, len(proof))
+	}
 	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
 		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 		nr := mapprotocol.MapTxReceipt{
@@ -191,15 +197,26 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			},
 		}
 
-		pack, err := mapprotocol.Mcs.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp)
-		if err != nil {
-			return 0, nil, errors.Wrap(err, "getBytes failed")
+		var pack []byte
+		if zkUrl == "" {
+			pack, err = mapprotocol.Map2Other.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp)
+			if err != nil {
+				return 0, nil, errors.Wrap(err, "getBytes failed")
+			}
+		} else {
+			zkProof, err := mapprotocol.GetZkProof(zkUrl, fId, header.Number.Uint64())
+			if err != nil {
+				return 0, nil, errors.Wrap(err, "GetZkProof failed")
+			}
+
+			pack, err = mapprotocol.Mcs.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp, zkProof)
+			if err != nil {
+				return 0, nil, errors.Wrap(err, "getBytes failed")
+			}
 		}
 
-		//fmt.Println("map getBytes after hex ------------ ", "0x"+common.Bytes2Hex(pack))
-		//fmt.Println("map id ------------ ", fId)
 		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
-		//payloads, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, pack)
+		//payloads, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
 			return 0, nil, errors.Wrap(err, "eth pack failed")
 		}

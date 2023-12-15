@@ -33,6 +33,7 @@ var (
 var IgnoreError = map[string]struct{}{
 	"order exist":                       {},
 	"Header is have":                    {},
+	"header is have":                    {},
 	"height error":                      {},
 	"invalid start block":               {},
 	"invalid syncing block":             {},
@@ -48,6 +49,7 @@ var IgnoreError = map[string]struct{}{
 	"invalid end exe header number":     {},
 	"the update finalized slot should be higher than the finalized slot":      {},
 	"previous exe block headers should be updated before update light client": {},
+	"REVERT opcode executed": {},
 }
 
 type BlockIdOfEth2 string
