@@ -3,8 +3,6 @@ package matic
 import (
 	"context"
 	"fmt"
-	"math/big"
-
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -16,6 +14,11 @@ import (
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"math/big"
+)
+
+var (
+	cacheReceipt = make(map[uint64][]*types.Receipt) // key -> chainId_blockHeight
 )
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
@@ -99,7 +102,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 		}
 
-		m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
+		m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
 		// read through the log events and handle their deposit event if handler is recognized
 		for _, log := range logs {
 			// evm event to msg
@@ -112,11 +115,27 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 			}
-			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			var receipts []*types.Receipt
+			if v, ok := cacheReceipt[latestBlock.Uint64()]; ok {
+				receipts = v
+				m.Log.Info("use cache receipt", "latestBlock ", latestBlock, "txHash", log.TxHash)
+			} else {
+				tmp, err := tx.GetMaticReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				if err != nil {
+					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+				}
+				for _, t := range tmp {
+					if t == nil {
+						continue
+					}
+					receipts = append(receipts, t)
+				}
+				if len(logs) > 1 {
+					cacheReceipt[latestBlock.Uint64()] = receipts
+				}
 			}
 
+			fmt.Println("---------------------")
 			headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
 			for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
 				headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
