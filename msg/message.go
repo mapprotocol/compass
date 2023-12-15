@@ -7,7 +7,6 @@ type ChainId uint64
 type TransferType string
 
 var (
-	SwapTransfer     TransferType = "SwapTransfer"
 	SyncToMap        TransferType = "SyncToMap"
 	SwapWithProof    TransferType = "SwapWithProof"
 	SyncFromMap      TransferType = "SyncFromMap"

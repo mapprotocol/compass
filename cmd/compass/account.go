@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/lbtsm/gotron-sdk/pkg/account"
+
 	"github.com/ChainSafe/chainbridge-utils/crypto"
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/chainbridge-utils/crypto/sr25519"
@@ -20,7 +22,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-//dataHandler is a struct which wraps any extra data our CMD functions need that cannot be passed through parameters
+// dataHandler is a struct which wraps any extra data our CMD functions need that cannot be passed through parameters
 type dataHandler struct {
 	datadir string
 }
@@ -83,33 +85,29 @@ func handleImportCmd(ctx *cli.Context, dHandler *dataHandler) error {
 		keytype = crypto.Secp256k1Type
 	}
 
-	if ctx.Bool(config.EthereumImportFlag.Name) {
-		if keyimport := ctx.Args().First(); keyimport != "" {
-			// check if --password is set
-			var password []byte = nil
-			if pwdflag := ctx.String(config.PasswordFlag.Name); pwdflag != "" {
-				password = []byte(pwdflag)
-			}
-			_, err = importEthKey(keyimport, dHandler.datadir, password, nil)
-		} else {
-			return fmt.Errorf("Must provide a key to import.")
-		}
-	} else if privkeyflag := ctx.String(config.PrivateKeyFlag.Name); privkeyflag != "" {
-		// check if --password is set
-		var password []byte = nil
-		if pwdflag := ctx.String(config.PasswordFlag.Name); pwdflag != "" {
-			password = []byte(pwdflag)
-		}
-
-		_, err = importPrivKey(ctx, keytype, dHandler.datadir, privkeyflag, password)
-	} else {
-		if keyimport := ctx.Args().First(); keyimport != "" {
-			_, err = importKey(keyimport, dHandler.datadir)
-		} else {
-			return fmt.Errorf("Must provide a key to import.")
-		}
+	var password []byte = nil
+	if pwdflag := ctx.String(config.PasswordFlag.Name); pwdflag != "" {
+		password = []byte(pwdflag)
+	}
+	privkeyflag := ctx.String(config.PrivateKeyFlag.Name)
+	if privkeyflag == "" {
+		return fmt.Errorf("privateKey is nil")
+	}
+	if password == nil {
+		password = keystore.GetPassword("Enter password to encrypt keystore file:")
 	}
 
+	if ctx.Bool(config.TronFlag.Name) {
+		name := ctx.String(config.TronKeyNameFlag.Name)
+		keyName, err := account.ImportFromPrivateKey(privkeyflag, name, string(password))
+		if err != nil {
+			return fmt.Errorf("tron import private key failed, err is %v", err)
+		}
+		fmt.Println("tron keystore save, key is", keyName, " please save you config file")
+		return nil
+	}
+
+	_, err = importPrivKey(ctx, keytype, dHandler.datadir, privkeyflag, password)
 	if err != nil {
 		return fmt.Errorf("failed to import key: %w", err)
 	}
@@ -142,20 +140,15 @@ func getDataDir(ctx *cli.Context) (string, error) {
 	return "", fmt.Errorf("datadir flag not supplied")
 }
 
-//importPrivKey imports a private key into a keypair
+// importPrivKey imports a private key into a keypair
 func importPrivKey(ctx *cli.Context, keytype, datadir, key string, password []byte) (string, error) {
-	if password == nil {
-		password = keystore.GetPassword("Enter password to encrypt keystore file:")
-	}
 	keystorepath, err := keystoreDir(datadir)
-
 	if keytype == "" {
 		log.Info("Using default key type", "type", keytype)
 		keytype = crypto.Secp256k1Type
 	}
 
 	var kp crypto.Keypair
-
 	if keytype == crypto.Sr25519Type {
 		// generate sr25519 keys
 		network := ctx.String(config.SubkeyNetworkFlag.Name)
@@ -205,7 +198,7 @@ func importPrivKey(ctx *cli.Context, keytype, datadir, key string, password []by
 
 }
 
-//importEthKey takes an ethereum keystore and converts it to our keystore format
+// importEthKey takes an ethereum keystore and converts it to our keystore format
 func importEthKey(filename, datadir string, password, newPassword []byte) (string, error) {
 	keystorepath, err := keystoreDir(datadir)
 	if err != nil {
@@ -223,7 +216,7 @@ func importEthKey(filename, datadir string, password, newPassword []byte) (strin
 
 	key, err := gokeystore.DecryptKey(importdata, string(password))
 	if err != nil {
-		return "", fmt.Errorf("Unable to decrypt file: %w", err)
+		return "", fmt.Errorf("unable to decrypt file: %w", err)
 	}
 
 	kp := secp256k1.NewKeypair(*key.PrivateKey)

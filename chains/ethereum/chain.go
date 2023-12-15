@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mapprotocol/compass/internal/tx"
+
 	utils "github.com/mapprotocol/compass/shared/ethereum"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -47,7 +49,6 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 	}
 	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfMap))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
-		// only listen last block of the epoch
 		return nil
 	}
 	m.Log.Info("sync block ", "current", latestBlock)
@@ -62,17 +63,24 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 	istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
-	input, err := mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
+	var input []byte
+	if m.Cfg.ApiUrl == "" {
+		input, err = mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
+	} else {
+		proof, err := mapprotocol.GetZkProof(m.Cfg.ApiUrl, m.Cfg.Id, latestBlock.Uint64())
+		if err != nil {
+			return err
+		}
+		validators, err := mapprotocol.GetCurValidators(m.Conn.Client(), latestBlock)
+		if err != nil {
+			return err
+		}
+		input, err = mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodUpdateBlockHeader, validators, h, istanbulExtra, proof)
+	}
 	if err != nil {
 		return err
 	}
-	tmp := map[string]interface{}{
-		"header":        h,
-		"aggpk":         aggPK,
-		"istanbulExtra": istanbulExtra,
-	}
-	tmpData, _ := json.Marshal(tmp)
-	m.Log.Info("sync block ", "current", latestBlock, "data", string(tmpData))
+	m.Log.Info("sync block ", "current", latestBlock, "data", common.Bytes2Hex(input))
 	msgpayload := []interface{}{input}
 	waitCount := len(m.Cfg.SyncChainIDList)
 	for _, cid := range m.Cfg.SyncChainIDList {
@@ -191,7 +199,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 				if err != nil {
 					return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 				}
-				receipts, err := mapprotocol.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
 				if err != nil {
 					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 				}
@@ -212,7 +220,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 				if err != nil {
 					return 0, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
 				}
-				receipts, err := mapprotocol.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
 				if err != nil {
 					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 				}
@@ -226,7 +234,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 					receipts = append(receipts, lr)
 				}
 
-				toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method)
+				toChainID, payload, err := utils.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method, m.Cfg.ApiUrl)
 				if err != nil {
 					return 0, fmt.Errorf("unable to Parse Log: %w", err)
 				}
@@ -256,7 +264,8 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			}
 
 			message.Idx = idx
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", ethcommon.Bytes2Hex(orderId))
 			err = m.Router.Send(message)
 			if err != nil {
 				m.Log.Error("subscription error: failed to route message", "err", err)

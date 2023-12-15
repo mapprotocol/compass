@@ -51,6 +51,7 @@ const (
 	HeaderCountOfPlaton = 430
 	EpochOfKlaytn       = 3600
 	HeaderOneCount      = 1
+	HeaderCountOfBttc   = 64
 )
 
 // common varible
@@ -83,6 +84,7 @@ var (
 	Eth2, _        = abi.JSON(strings.NewReader(Eth2AbiJson))
 	Platon, _      = abi.JSON(strings.NewReader(PlatonAbiJson))
 	Other, _       = abi.JSON(strings.NewReader(otherAbi))
+	Bttc, _        = abi.JSON(strings.NewReader(bttcAbi))
 )
 
 type Role string
@@ -106,7 +108,8 @@ var (
 )
 
 var (
-	ConfirmsOfMatic       = big.NewInt(10)
-	HeaderLengthOfEth2    = 20
-	HeaderLengthOfConflux = 20
+	ConfirmsOfMatic             = big.NewInt(10)
+	HeaderLenOfBttc       int64 = 10
+	HeaderLengthOfEth2          = 20
+	HeaderLengthOfConflux       = 20
 )

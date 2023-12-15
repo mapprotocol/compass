@@ -31,6 +31,17 @@ var (
 		Value: DefaultKeystorePath,
 	}
 
+	TronFlag = &cli.BoolFlag{
+		Name:  "tron",
+		Usage: "Flag of tron",
+		Value: false,
+	}
+	TronKeyNameFlag = &cli.StringFlag{
+		Name:  "tronKeyName",
+		Usage: "Flag of tron",
+		Value: "",
+	}
+
 	BlockstorePathFlag = &cli.StringFlag{
 		Name:  "blockstore",
 		Usage: "Specify path for blockstore",

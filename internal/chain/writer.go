@@ -50,8 +50,6 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 		return w.execToMapMsg(m)
 	case msg.SyncFromMap:
 		return w.execMap2OtherMsg(m)
-	case msg.SwapTransfer:
-		fallthrough
 	case msg.SwapWithProof:
 		fallthrough
 	case msg.SwapWithMapProof:

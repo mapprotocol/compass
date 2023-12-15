@@ -3,8 +3,6 @@ package bsc
 import (
 	"context"
 	"fmt"
-	"math/big"
-
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -16,6 +14,12 @@ import (
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"math/big"
+	"strconv"
+)
+
+var (
+	cacheReceipt = make(map[string][]*types.Receipt) // key -> chainId_blockHeight
 )
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
@@ -106,9 +110,19 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 			}
-			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			var receipts []*types.Receipt
+			key := strconv.FormatUint(uint64(m.Cfg.Id), 10) + "_" + latestBlock.String()
+			if v, ok := cacheReceipt[key]; ok {
+				receipts = v
+				m.Log.Info("use cache receipt", "latestBlock ", latestBlock, "txHash", log.TxHash)
+			} else {
+				receipts, err = tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				if err != nil {
+					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+				}
+				if len(logs) > 1 {
+					cacheReceipt[key] = receipts
+				}
 			}
 
 			headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
