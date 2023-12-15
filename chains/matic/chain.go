@@ -135,7 +135,6 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 				}
 			}
 
-			fmt.Println("---------------------")
 			headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
 			for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
 				headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))

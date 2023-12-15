@@ -3,7 +3,6 @@ package tx
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/pkg/ethclient"
@@ -114,7 +113,7 @@ func GetMaticReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([
 			go func(i int, tx common.Hash) {
 				for {
 					r, err := conn.TransactionReceipt(context.Background(), tx)
-					fmt.Println("-----------------------", i, "-", tx, "-", err)
+					//fmt.Println("-----------------------", i, "-", tx, "-", err)
 					if err != nil {
 						if err.Error() == "not found" {
 							receive <- &ele{
