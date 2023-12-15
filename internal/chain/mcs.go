@@ -50,6 +50,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
 				//m.DoneCh <- struct{}{}
 				//return true
+				// todo
 			}
 
 			err = w.conn.LockAndUpdateOpts(needNonce)
@@ -188,12 +189,12 @@ func (w *Writer) checkOrderId(toAddress *common.Address, input []byte, useAbi ab
 
 func (w *Writer) txStatus(txHash common.Hash) error {
 	var count int64
-	time.Sleep(time.Second * 2)
+	//time.Sleep(time.Second * 2)
 	for {
 		_, pending, err := w.conn.Client().TransactionByHash(context.Background(), txHash) // Query whether it is on the chain
 		if pending {
 			w.log.Info("Tx is Pending, please wait...", "tx", txHash)
-			time.Sleep(constant.QueryRetryInterval)
+			time.Sleep(w.queryInterval()) // todo suo xiao
 			count++
 			if count == 60 {
 				return errors.New("The Tx pending state is too long")
@@ -201,7 +202,7 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 			continue
 		}
 		if err != nil {
-			time.Sleep(constant.QueryRetryInterval)
+			time.Sleep(w.queryInterval())
 			count++
 			if count == 60 {
 				return err
@@ -217,7 +218,7 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 		if err != nil {
 			if strings.Index(err.Error(), "not found") != -1 {
 				w.log.Info("Tx is temporary not found, please wait...", "tx", txHash)
-				time.Sleep(constant.QueryRetryInterval)
+				time.Sleep(w.queryInterval())
 				count++
 				if count == 40 {
 					return err
@@ -232,5 +233,14 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 			return nil
 		}
 		return fmt.Errorf("txHash(%s), status not success, current status is (%d)", txHash, receipt.Status)
+	}
+}
+
+func (w *Writer) queryInterval() time.Duration {
+	switch w.cfg.Id {
+	case 22776:
+		return time.Second * 3
+	default:
+		return constant.QueryRetryInterval
 	}
 }

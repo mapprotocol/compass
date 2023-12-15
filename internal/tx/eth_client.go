@@ -58,11 +58,9 @@ func GetReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*typ
 						if err.Error() == "not found" {
 							continue
 						}
-						//fmt.Println("err ------------------- ", err)
 						errReceive <- err
 						return
 					}
-					//fmt.Println("i ", i, "tx ", tx)
 					receive <- &ele{
 						r:   r,
 						idx: i,
