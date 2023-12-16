@@ -224,7 +224,8 @@ func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 				return err
 			}
 		}
-		c.log.Info("LockAndUpdateOpts ", "head.BaseFee", head.BaseFee, "maxGasPrice", c.maxGasPrice)
+		c.log.Info("LockAndUpdateOpts ", "head.BaseFee", head.BaseFee, "maxGasPrice", c.maxGasPrice,
+			"gasTipCap", c.opts.GasTipCap, "gasFeeCap", c.opts.GasFeeCap)
 	} else {
 		var gasPrice *big.Int
 		gasPrice, err = c.SafeEstimateGas(context.TODO())

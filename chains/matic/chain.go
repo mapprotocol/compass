@@ -102,7 +102,7 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 		}
 
-		m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
+		m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
 		// read through the log events and handle their deposit event if handler is recognized
 		for _, log := range logs {
 			// evm event to msg

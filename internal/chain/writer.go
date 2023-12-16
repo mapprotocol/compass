@@ -80,11 +80,17 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 		return nil, err
 	}
 
+	gasTipCap := w.conn.Opts().GasTipCap
+	gasFeeCap := w.conn.Opts().GasFeeCap
 	if w.cfg.LimitMultiplier > 1 {
 		gasLimit = uint64(float64(gasLimit) * w.cfg.LimitMultiplier)
 	}
+	if w.cfg.GasMultiplier > 1 {
+		gasTipCap = gasTipCap.Mul(gasTipCap, big.NewInt(int64(w.cfg.GasMultiplier)))
+		gasFeeCap = gasFeeCap.Mul(gasFeeCap, big.NewInt(int64(w.cfg.GasMultiplier)))
+	}
 	w.log.Info("SendTx gasPrice", "gasPrice", gasPrice,
-		"gasTipCap", w.conn.Opts().GasTipCap, "gasFeeCap", w.conn.Opts().GasFeeCap, "gasLimit", gasLimit, "limitMultiplier", w.cfg.LimitMultiplier)
+		"gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap, "gasLimit", gasLimit, "limitMultiplier", w.cfg.LimitMultiplier, "gasMultiplier", w.cfg.GasMultiplier)
 	// td interface
 	var td types.TxData
 	// EIP-1559
@@ -105,8 +111,8 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 			Value:     value,
 			To:        toAddress,
 			Gas:       gasLimit,
-			GasTipCap: w.conn.Opts().GasTipCap,
-			GasFeeCap: w.conn.Opts().GasFeeCap,
+			GasTipCap: gasTipCap,
+			GasFeeCap: gasFeeCap,
 			Data:      input,
 		}
 	}
