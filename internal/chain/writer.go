@@ -85,9 +85,9 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	if w.cfg.LimitMultiplier > 1 {
 		gasLimit = uint64(float64(gasLimit) * w.cfg.LimitMultiplier)
 	}
-	if w.cfg.GasMultiplier > 1 {
-		gasTipCap = gasTipCap.Mul(gasTipCap, big.NewInt(int64(w.cfg.GasMultiplier)))
-		gasFeeCap = gasFeeCap.Mul(gasFeeCap, big.NewInt(int64(w.cfg.GasMultiplier)))
+	if w.cfg.GasMultiplier > 1 && gasTipCap != nil && gasFeeCap != nil {
+		gasTipCap = big.NewInt(int64(float64(gasTipCap.Uint64()) * w.cfg.GasMultiplier))
+		gasFeeCap = big.NewInt(int64(float64(gasFeeCap.Uint64()) * w.cfg.GasMultiplier))
 	}
 	w.log.Info("SendTx gasPrice", "gasPrice", gasPrice,
 		"gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap, "gasLimit", gasLimit, "limitMultiplier", w.cfg.LimitMultiplier, "gasMultiplier", w.cfg.GasMultiplier)
