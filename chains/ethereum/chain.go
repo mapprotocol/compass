@@ -216,9 +216,13 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 				if err != nil {
 					return 0, fmt.Errorf("unable to query header Logs: %w", err)
 				}
-				txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
+				txsHash, isBlack, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock, log.TxHash)
 				if err != nil {
 					return 0, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
+				}
+				if isBlack {
+					m.Log.Info("isBlack txHash, ignore", "hash", log.TxHash)
+					continue
 				}
 				receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
 				if err != nil {
