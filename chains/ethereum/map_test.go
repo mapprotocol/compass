@@ -50,7 +50,7 @@ func Test_Other(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unable to query header Logs: %s", err)
 		}
-		txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(client, latestBlock)
+		txsHash, _, err := mapprotocol.GetMapTransactionsHashByBlockNumber(client, latestBlock, log.TxHash)
 		if err != nil {
 			t.Fatalf("idSame unable to get tx hashes Logs: %s", err)
 		}
@@ -59,7 +59,7 @@ func Test_Other(t *testing.T) {
 			t.Fatalf("unable to get receipts hashes Logs: %s", err)
 		}
 
-		toChainID, payload, err := utils.AssembleMapProof(client, log, receipts, header, 212, method)
+		toChainID, payload, err := utils.AssembleMapProof(client, log, receipts, header, 212, method, "")
 		if err != nil {
 			t.Fatalf("unable to Parse Log: %s", err)
 		}

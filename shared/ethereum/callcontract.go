@@ -129,7 +129,7 @@ func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, me
 	if err != nil {
 		return nil, fmt.Errorf("unable to query header Logs: %w", err)
 	}
-	txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(client, latestBlock)
+	txsHash, _, err := mapprotocol.GetMapTransactionsHashByBlockNumber(client, latestBlock, log.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
 	}
