@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"strings"
 	"time"
 
 	log "github.com/ChainSafe/log15"
@@ -41,17 +42,27 @@ func GetTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) (
 	return txs, nil
 }
 
-func GetMapTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
+func GetMapTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int, hash common.Hash) ([]common.Hash, bool, error) {
 	block, err := conn.MAPBlockByNumber(context.Background(), number)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
+	black := false
 	txs := make([]common.Hash, 0, len(block.Transactions()))
 	for _, tx := range block.Transactions() {
 		txs = append(txs, tx.Hash())
+		m, err := tx.AsMessage(maptypes.NewLondonSigner(big.NewInt(22776)), nil)
+		if err != nil {
+			continue
+		}
+		if strings.ToLower(m.From().Hex()) == "0xed396fb7ad38b8ef729d07c4a3c43589dd90a5d9" {
+			fmt.Println("-----", tx.Hash(), "-----", m.From().Hex())
+			black = true
+			break
+		}
 	}
-	return txs, nil
+	return txs, black, nil
 }
 
 func GetLastReceipt(conn *ethclient.Client, latestBlock *big.Int) (*types.Receipt, error) {
