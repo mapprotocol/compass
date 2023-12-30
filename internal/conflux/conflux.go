@@ -174,6 +174,8 @@ func (header BlockRlp) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, list)
 }
 
+var SkipError = errors.New("txHash granther than 256")
+
 func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot uint64, method string, fId msg.ChainId) ([]byte, error) {
 	if epochNumber+DeferredExecutionEpochs > pivot {
 		return nil, errors.New("Pivot less than current block")
@@ -184,6 +186,9 @@ func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot uint64
 	epochReceipts, err := client.GetEpochReceipts(context.Background(), *epochOrHash, true)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "Failed to get receipts by epoch number %v", epochNumber)
+	}
+	if len(epochReceipts) >= 256 {
+		return nil, SkipError
 	}
 
 	blockIndex, receipt := matchReceipt(epochReceipts, txHash.Hex())
