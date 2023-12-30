@@ -154,6 +154,9 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			m.Log.Info("getPivot", "pivot", pivot)
 			payload, err := conflux.AssembleProof(cli, log.TxHash, log.BlockNumber, pivot.Uint64(), method, m.Cfg.Id)
 			if err != nil {
+				if err == conflux.SkipError {
+					continue
+				}
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
 
