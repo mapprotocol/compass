@@ -187,9 +187,6 @@ func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot uint64
 	if err != nil {
 		return nil, errors.WithMessagef(err, "Failed to get receipts by epoch number %v", epochNumber)
 	}
-	if len(epochReceipts) >= 256 {
-		return nil, SkipError
-	}
 
 	blockIndex, receipt := matchReceipt(epochReceipts, txHash.Hex())
 	if receipt == nil {
