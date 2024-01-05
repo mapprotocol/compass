@@ -282,7 +282,7 @@ func (c *Client) doRequest(ctx context.Context, msg interface{}) (io.ReadCloser,
 		//	body = buf.Bytes()
 		//}
 
-		return nil, fmt.Errorf("klaytn request code is(%d)", resp.StatusCode)
+		return nil, fmt.Errorf("conflux request code is(%d)", resp.StatusCode)
 		//return nil, HTTPError{
 		//	Status:     resp.Status,
 		//	StatusCode: resp.StatusCode,
