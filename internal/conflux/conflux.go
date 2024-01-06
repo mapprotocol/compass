@@ -174,8 +174,6 @@ func (header BlockRlp) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, list)
 }
 
-var SkipError = errors.New("txHash granther than 256")
-
 func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot uint64, method string, fId msg.ChainId) ([]byte, error) {
 	if epochNumber+DeferredExecutionEpochs > pivot {
 		return nil, errors.New("Pivot less than current block")
