@@ -51,15 +51,18 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	if skippedRound > 0 {
 		round = skippedRound + 1
 	}
-	//if startNumber == 0 {
-	//	startNumber = state.FinalizedBlockNumber.Uint64()
-	//} else if state.FinalizedBlockNumber.Uint64() > startNumber {
-	//	err = updateHeaders(m, startNumber, state.FinalizedBlockNumber.Uint64())
-	//	if err != nil {
-	//		return err
-	//	}
-	//	startNumber = state.FinalizedBlockNumber.Uint64()
-	//}
+	if startNumber == 0 {
+		startNumber = state.FinalizedBlockNumber.Uint64()
+	} else if state.FinalizedBlockNumber.Uint64() > startNumber {
+		m.Log.Info("conflux update endBlock", "startNumber", startNumber, "endNumber", state.FinalizedBlockNumber.Uint64())
+		if state.FinalizedBlockNumber.Uint64()-startNumber > 200 {
+			err = updateHeaders(m, startNumber, state.FinalizedBlockNumber.Uint64())
+			if err != nil {
+				return err
+			}
+		}
+		startNumber = state.FinalizedBlockNumber.Uint64()
+	}
 
 	committed, err := isCommitted(epoch, round)
 	if err != nil {
