@@ -2,9 +2,10 @@ package tron
 
 import (
 	"fmt"
-	"github.com/mapprotocol/compass/keystore"
 	"math/big"
 	"os"
+
+	"github.com/mapprotocol/compass/keystore"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
