@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-var MAPEndpoint = "http://18.142.54.137:7445"
+var MAPEndpoint = "http://127.0.0.1:7445"
 
 func TestClient_MAPBlockByNumber(t *testing.T) {
 	cli, err := Dial(MAPEndpoint)

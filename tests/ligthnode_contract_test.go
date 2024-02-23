@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/eth2"
-	"github.com/mapprotocol/compass/pkg/util"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -16,6 +14,9 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/mapprotocol/compass/internal/eth2"
+	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/mapprotocol/compass/pkg/redis"
 
@@ -52,7 +53,7 @@ func TestClient_Alarm(t *testing.T) {
 func TestClient_BeaconHeaders(t *testing.T) {
 	t.Log("------------- ")
 	//eth2Client, err = eth2.DialHttp("https://lodestar-mainnet.chainsafe.io")
-	eth2Client, err = eth2.DialHttp("http://18.138.248.113:9596")
+	eth2Client, err = eth2.DialHttp("http://127.0.0.1:9596")
 	if err != nil {
 		panic("dail eth2 failed, err is " + err.Error())
 	}
@@ -96,7 +97,7 @@ func Test_Key(t *testing.T) {
 func Test_Redis(t *testing.T) {
 	//fmt.Println("0x" + common.Bytes2Hex([]byte("mcs_token_0")))
 	//fmt.Println("0x" + common.Bytes2Hex([]byte("zmmap.testnet")))
-	redis.Init("redis://:F6U3gV0L6Xwyw1Ko@46.137.199.126:6379/0")
+	redis.Init("redis://:123456@127.0.0.1:6379/0")
 	bytes, err := ioutil.ReadFile("./json.txt")
 	if err != nil {
 		t.Fatalf("readFile failed err is %v", err)
@@ -280,7 +281,7 @@ func ExistInSlice(target string, dst []string) bool {
 var ContractAddr = common.HexToAddress("0xA7D3A66013DE32f0a44C92E337Af22C4344a2d62")
 
 func dialConn() *ethclient.Client {
-	conn, err := ethclient.Dial("http://18.142.54.137:7445")
+	conn, err := ethclient.Dial("http://127.0.0.1:7445")
 	if err != nil {
 		log.Fatalf("Failed to connect to the atlas: %v", err)
 	}
@@ -288,7 +289,7 @@ func dialConn() *ethclient.Client {
 }
 
 func dialMapConn() *ethclient.Client {
-	conn, err := ethclient.Dial("http://18.142.54.137:7445")
+	conn, err := ethclient.Dial("http://127.0.0.1:7445")
 	if err != nil {
 		log.Fatalf("Failed to connect to the atlas: %v", err)
 	}
@@ -502,7 +503,7 @@ func TestUpdateHeader(t *testing.T) {
 	//	}
 	//
 	//	path := "/Users/xm/Desktop/WL/code/atlas/node-1/keystore/UTC--2022-06-15T07-51-25.301943000Z--e0dc8d7f134d0a79019bef9c2fd4b2013a64fcd6"
-	//	password := "1234"
+	//	password := ""
 	//	from, private := LoadPrivate(path, password)
 	//	if err := SendContractTransaction(cli, from, ContractAddr, nil, private, input); err != nil {
 	//		t.Fatalf(err.Error())
@@ -567,7 +568,7 @@ func TestVerifyProofData(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	path := "/Users/xm/Desktop/WL/code/atlas/node-1/keystore/UTC--2022-06-15T07-51-25.301943000Z--e0dc8d7f134d0a79019bef9c2fd4b2013a64fcd6"
-	password := "1234"
+	password := "123456"
 	from, _ := LoadPrivate(path, password)
 	output, err := dialConn().CallContract(context.Background(), eth.CallMsg{From: from, To: &ContractAddr, Data: input}, nil)
 	if err != nil {

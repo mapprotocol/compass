@@ -25,7 +25,7 @@ func TestGetZkProof(t *testing.T) {
 		{
 			name: "normal",
 			args: args{
-				endpoint: "http://47.242.33.167:8181",
+				endpoint: "http://127.0.0.1:8181",
 				cid:      212,
 				height:   5000000,
 			},

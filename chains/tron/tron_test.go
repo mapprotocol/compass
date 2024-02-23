@@ -13,7 +13,7 @@ import (
 
 func Test_RPC(t *testing.T) {
 	//// import keystore
-	//key, err := account.ImportFromPrivateKey("e1f5311748e009452baaaed1e3a9d421aa61a8b1dc6588026e1813828fae27f1", "", "1234")
+	//key, err := account.ImportFromPrivateKey("123456", "", "123456")
 	//if err != nil {
 	//	t.Fatalf("importFromPrivateKey err is %v", err)
 	//}
