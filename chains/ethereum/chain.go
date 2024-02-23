@@ -80,7 +80,7 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
-	m.Log.Info("sync block ", "current", latestBlock, "data", common.Bytes2Hex(input))
+	m.Log.Debug("sync block ", "current", latestBlock, "data", common.Bytes2Hex(input))
 	msgpayload := []interface{}{input}
 	waitCount := len(m.Cfg.SyncChainIDList)
 	for _, cid := range m.Cfg.SyncChainIDList {
