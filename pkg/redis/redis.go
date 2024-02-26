@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	ListKey     = "near_messsage_log"
-	redisClient *redis.Client
-	once        = &sync.Once{}
+	ListKey    = "near_messsage_log"
+	nearClient *redis.Client
+	once       = &sync.Once{}
 )
 
 func Init(url string) {
@@ -22,10 +22,19 @@ func Init(url string) {
 			panic(err)
 		}
 		rdb := redis.NewClient(opt)
-		redisClient = rdb
+		nearClient = rdb
 	})
 }
 
 func GetClient() *redis.Client {
-	return redisClient
+	return nearClient
+}
+
+func New(url string) (*redis.Client, error) {
+	opt, err := redis.ParseURL(url)
+	if err != nil {
+		return nil, err
+	}
+	rdb := redis.NewClient(opt)
+	return rdb, nil
 }

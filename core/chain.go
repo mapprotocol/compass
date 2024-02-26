@@ -41,6 +41,7 @@ type ChainConfig struct {
 	LatestBlock      bool              // If true, overrides blockstore or latest block in config and starts from current block
 	Opts             map[string]string // Per chain options
 	SkipError        bool              // Flag of Skip Error
+	Redis            string
 }
 
 type Connection interface {
@@ -67,4 +68,4 @@ type Eth2Connection interface {
 	Eth2Client() *eth2.Client
 }
 
-type CreateConn func(string, bool, *secp256k1.Keypair, log15.Logger, *big.Int, *big.Int, float64, string, string) Connection
+type CreateConn func(string, bool, *secp256k1.Keypair, log15.Logger, *big.Int, *big.Int, float64) Connection

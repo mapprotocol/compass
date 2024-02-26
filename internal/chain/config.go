@@ -72,6 +72,7 @@ type Config struct {
 	SkipError          bool
 	Eth2Endpoint       string
 	ApiUrl             string
+	RedisUrl           string
 }
 
 // ParseConfig uses a core.ChainConfig to construct a corresponding Config
@@ -98,6 +99,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		SkipError:          chainCfg.SkipError,
 		Eth2Endpoint:       "",
 		ApiUrl:             "",
+		RedisUrl:           chainCfg.Redis,
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {

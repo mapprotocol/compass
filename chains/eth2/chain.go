@@ -13,6 +13,7 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/mapprotocol/compass/pkg/redis"
 	"github.com/pkg/errors"
 )
 
@@ -45,7 +46,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 
 	stop := make(chan int)
 	conn := eth2.NewConnection(cfg.Endpoint, cfg.Eth2Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice,
-		cfg.GasMultiplier, cfg.EgsApiKey, cfg.EgsSpeed)
+		cfg.GasMultiplier)
 	err = conn.Connect()
 	if err != nil {
 		return nil, err
@@ -58,10 +59,14 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		}
 		cfg.StartBlock = curr
 	}
+	rds, err := redis.New(cfg.RedisUrl)
+	if err != nil {
+		return nil, err
+	}
 
 	// simplified a little bit
 	var listen chains.Listener
-	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs)
+	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, chain.OptOfMetrics(m), chain.OptOfBs(bs), chain.OptOfRedis(rds))
 	if role == mapprotocol.RoleOfMaintainer {
 		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
 		height, err := fn()
