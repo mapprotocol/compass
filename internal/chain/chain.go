@@ -11,6 +11,7 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/mapprotocol/compass/pkg/redis"
 	"github.com/pkg/errors"
 )
 
@@ -41,8 +42,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 	}
 
 	stop := make(chan int)
-	conn := createConn(cfg.Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice,
-		cfg.GasMultiplier, cfg.EgsApiKey, cfg.EgsSpeed)
+	conn := createConn(cfg.Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice, cfg.GasMultiplier)
 	err = conn.Connect()
 	if err != nil {
 		return nil, err
@@ -56,8 +56,13 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 		cfg.StartBlock = curr
 	}
 
+	rds, err := redis.New(cfg.RedisUrl)
+	if err != nil {
+		return nil, err
+	}
+
 	var listen chains.Listener
-	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs, opts...)
+	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, append(opts, OptOfMetrics(m), OptOfBs(bs), OptOfRedis(rds))...)
 	if role == mapprotocol.RoleOfMaintainer {
 		if cfg.Id != cfg.MapChainID {
 			fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())

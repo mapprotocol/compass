@@ -51,11 +51,15 @@ func (m *Messenger) sync() error {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
-			latestBlock, err := m.Conn.LatestBlock()
+			latestBlock, err := m.GetLatest()
 			if err != nil {
-				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				time.Sleep(constant.RetryLongInterval)
-				continue
+				m.Log.Error("Unable to get latest block for redis", "err", err)
+				latestBlock, err = m.Conn.LatestBlock()
+				if err != nil {
+					m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
+					time.Sleep(constant.RetryLongInterval)
+					continue
+				}
 			}
 
 			if m.Metrics != nil {

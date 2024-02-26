@@ -309,6 +309,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			LatestBlock:      ctx.Bool(config.LatestBlockFlag.Name),
 			Opts:             chain.Opts,
 			SkipError:        ctx.Bool(config.SkipErrorFlag.Name),
+			Redis:            cfg.Other.Redis,
 		}
 		var (
 			newChain core.Chain

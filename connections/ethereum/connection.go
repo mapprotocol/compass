@@ -18,7 +18,6 @@ import (
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/mapprotocol/compass/connections/ethereum/egs"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 )
@@ -30,8 +29,6 @@ type Connection struct {
 	gasLimit      *big.Int
 	maxGasPrice   *big.Int
 	gasMultiplier *big.Float
-	egsApiKey     string
-	egsSpeed      string
 	conn          *ethclient.Client
 	opts          *bind.TransactOpts
 	callOpts      *bind.CallOpts
@@ -43,7 +40,7 @@ type Connection struct {
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
 func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
-	gasMultiplier float64, gsnApiKey, gsnSpeed string) core.Connection {
+	gasMultiplier float64) core.Connection {
 	bigFloat := new(big.Float).SetFloat64(gasMultiplier)
 	return &Connection{
 		endpoint:      endpoint,
@@ -52,8 +49,6 @@ func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.
 		gasLimit:      gasLimit,
 		maxGasPrice:   gasPrice,
 		gasMultiplier: bigFloat,
-		egsApiKey:     gsnApiKey,
-		egsSpeed:      gsnSpeed,
 		log:           log,
 		stop:          make(chan int),
 	}
@@ -133,16 +128,6 @@ func (c *Connection) CallOpts() *bind.CallOpts {
 
 func (c *Connection) SafeEstimateGas(ctx context.Context) (*big.Int, error) {
 	var suggestedGasPrice *big.Int
-	// First attempt to use EGS for the gas price if the api key is supplied
-	if c.egsApiKey != "" {
-		price, err := egs.FetchGasPrice(c.egsApiKey, c.egsSpeed)
-		if err != nil {
-			c.log.Error("Couldn't fetch gasPrice from GSN", "err", err)
-		} else {
-			suggestedGasPrice = price
-		}
-	}
-
 	// Fallback to the node rpc method for the gas price if GSN did not provide a price
 	if suggestedGasPrice == nil {
 		c.log.Debug("Fetching gasPrice from node")

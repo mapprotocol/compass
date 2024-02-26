@@ -1,6 +1,10 @@
 package chain
 
 import (
+	"context"
+	"fmt"
+	"github.com/go-redis/redis/v8"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"time"
 
@@ -42,6 +46,24 @@ func OptOfMos(fn Mos) SyncOpt {
 	}
 }
 
+func OptOfBs(bs blockstore.Blockstorer) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.BlockStore = bs
+	}
+}
+
+func OptOfMetrics(m *metrics.ChainMetrics) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.Metrics = m
+	}
+}
+
+func OptOfRedis(cli *redis.Client) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.cli = cli
+	}
+}
+
 type CommonSync struct {
 	Cfg                Config
 	Conn               core.Connection
@@ -57,11 +79,11 @@ type CommonSync struct {
 	height             int64
 	syncHeaderToMap    SyncHeader2Map
 	mosHandler         Mos
+	cli                *redis.Client
 }
 
 // NewCommonSync creates and returns a listener
-func NewCommonSync(conn core.Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
-	m *metrics.ChainMetrics, bs blockstore.Blockstorer, opts ...SyncOpt) *CommonSync {
+func NewCommonSync(conn core.Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error, opts ...SyncOpt) *CommonSync {
 	cs := &CommonSync{
 		Cfg:                *cfg,
 		Conn:               conn,
@@ -69,10 +91,8 @@ func NewCommonSync(conn core.Connection, cfg *Config, log log15.Logger, stop <-c
 		Stop:               stop,
 		SysErr:             sysErr,
 		LatestBlock:        metrics.LatestBlock{LastUpdated: time.Now()},
-		Metrics:            m,
 		BlockConfirmations: cfg.BlockConfirmations,
 		MsgCh:              make(chan struct{}),
-		BlockStore:         bs,
 		height:             1,
 	}
 	for _, op := range opts {
@@ -124,4 +144,16 @@ func (c *CommonSync) GetMethod(topic ethcommon.Hash) string {
 	}
 
 	return method
+}
+
+func (c *CommonSync) GetLatest() (*big.Int, error) {
+	res, err := c.cli.Get(context.Background(), fmt.Sprintf(constant.KeyOfLatestBlock, c.Cfg.Id)).Result()
+	if err != nil {
+		return nil, err
+	}
+	ret, ok := big.NewInt(0).SetString(res, 10)
+	if !ok {
+		return nil, fmt.Errorf("redis get latest failed, result is %v", res)
+	}
+	return ret, nil
 }

@@ -65,3 +65,7 @@ const (
 	SlotsPerEpoch   int64 = 32
 	EpochsPerPeriod int64 = 256
 )
+
+const (
+	KeyOfLatestBlock = "chain_%d_latest_block"
+)

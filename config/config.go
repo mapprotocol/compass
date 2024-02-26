@@ -41,6 +41,7 @@ type Construction struct {
 	MonitorUrl string `json:"monitor_url,omitempty"`
 	Etcd       string `json:"etcd,omitempty"`
 	Env        string `json:"env,omitempty"`
+	Redis      string `json:"redis,omitempty"`
 }
 
 func NewConfig() *Config {
