@@ -1,9 +1,9 @@
 package near
 
 import (
+	"github.com/mapprotocol/compass/pkg/redis"
 	"math/big"
 
-	"github.com/mapprotocol/compass/pkg/redis"
 	"github.com/pkg/errors"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
@@ -64,7 +64,7 @@ func setupBlockstore(cfg *Config, kp *key.KeyPair, role mapprotocol.Role) (*bloc
 	return bs, nil
 }
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
+func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
 	role mapprotocol.Role) (*Chain, error) {
 	cfg, err := parseChainConfig(chainCfg)
 	if err != nil {
@@ -99,17 +99,17 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 
 	// simplified a little bit
 	var listen chains.Listener
-	cs := NewCommonListen(conn, cfg, logger, stop, sysErr, m, bs)
+	cs := NewCommonListen(conn, cfg, logger, stop, sysErr, bs)
 	if role == mapprotocol.RoleOfMessenger {
 		redis.Init(cfg.redisUrl)
-		// verify range
-		fn := mapprotocol.Map2NearVerifyRange(cfg.lightNode, conn.Client())
-		left, right, err := fn()
-		if err != nil {
-			return nil, errors.Wrap(err, "near get init verifyHeight failed")
-		}
-		logger.Info("Map2Near Current verify range", "left", left, "right", right, "lightNode", cfg.lightNode)
-		mapprotocol.Map2OtherVerifyRange[cfg.id] = fn
+		//// verify range
+		//fn := mapprotocol.Map2NearVerifyRange(cfg.lightNode, conn.Client())
+		//left, right, err := fn()
+		//if err != nil {
+		//	return nil, errors.Wrap(err, "near get init verifyHeight failed")
+		//}
+		//logger.Info("Map2Near Current verify range", "left", left, "right", right, "lightNode", cfg.lightNode)
+		//mapprotocol.Map2OtherVerifyRange[cfg.id] = fn
 		listen = NewMessenger(cs)
 	} else if role == mapprotocol.RoleOfMaintainer {
 		fn := mapprotocol.Map2NearHeight(cfg.lightNode, conn.Client())
@@ -122,7 +122,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		mapprotocol.Map2OtherHeight[cfg.id] = fn
 		listen = NewMaintainer(cs)
 	}
-	writer := NewWriter(conn, cfg, logger, stop, sysErr, m)
+	writer := NewWriter(conn, cfg, logger, stop, sysErr)
 
 	return &Chain{
 		cfg:    chainCfg,

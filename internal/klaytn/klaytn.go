@@ -3,25 +3,16 @@ package klaytn
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
-	"sync"
-
-	"github.com/mapprotocol/compass/pkg/util"
-
-	"github.com/mapprotocol/compass/internal/tx"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"github.com/mapprotocol/compass/pkg/ethclient"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"github.com/pkg/errors"
 )
 
@@ -194,28 +185,7 @@ type TxLog struct {
 	Data   []byte
 }
 
-func GetProof(client *ethclient.Client, kClient *Client, latestBlock *big.Int, log *types.Log, method string, fId msg.ChainId) ([]byte, error) {
-	txsHash, err := GetTxsHashByBlockNumber(kClient, latestBlock)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-	}
-	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-	}
-	// get block
-	header, err := client.HeaderByNumber(context.Background(), latestBlock)
-	if err != nil {
-		return nil, err
-	}
-	kHeader, err := kClient.BlockByNumber(context.Background(), latestBlock)
-	if err != nil {
-		return nil, err
-	}
-	return AssembleProof(kClient, ConvertContractHeader(header, kHeader), *log, fId, receipts, method)
-}
-
-func AssembleProof(cli *Client, header Header, log types.Log, fId msg.ChainId, receipts []*types.Receipt, method string) ([]byte, error) {
+func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, receipts []*types.Receipt, method string, proofType int64) ([]byte, error) {
 	GetReceiptsByTxsHash(cli, receipts)
 	receiptRlps := make(ReceiptRlps, 0, len(receipts))
 	for _, receipt := range receipts {
@@ -238,13 +208,13 @@ func AssembleProof(cli *Client, header Header, log types.Log, fId msg.ChainId, r
 			Logs:    receipt.Logs,
 		})
 	}
-	proof, err := getProof(receiptRlps, log.TxIndex)
+	prf, err := proof.Get(receiptRlps, log.TxIndex)
 	if err != nil {
 		return nil, err
 	}
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
-	ek := util.Key2Hex(key, len(proof))
+	ek := util.Key2Hex(key, len(prf))
 	receipt, err := GetTxReceipt(receipts[log.TxIndex])
 	if err != nil {
 		return nil, err
@@ -257,7 +227,7 @@ func AssembleProof(cli *Client, header Header, log types.Log, fId msg.ChainId, r
 
 	pd := ReceiptProofOriginal{
 		Header:    header,
-		Proof:     proof,
+		Proof:     prf,
 		TxReceipt: data,
 		KeyIndex:  ek,
 	}
@@ -326,61 +296,4 @@ func GetTxReceipt(receipt *types.Receipt) (*TxReceipt, error) {
 		Bloom:             receipt.Bloom[:],
 		Logs:              logs,
 	}, nil
-}
-
-func getProof(receipts utils.DerivableList, txIndex uint) ([][]byte, error) {
-	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-	if err != nil {
-		return nil, err
-	}
-
-	tr = DeriveTire(receipts, tr)
-	ns := light.NewNodeSet()
-	key, err := rlp.EncodeToBytes(txIndex)
-	if err != nil {
-		return nil, err
-	}
-	if err = tr.Prove(key, 0, ns); err != nil {
-		return nil, err
-	}
-
-	proof := make([][]byte, 0, len(ns.NodeList()))
-	for _, v := range ns.NodeList() {
-		proof = append(proof, v)
-	}
-
-	return proof, nil
-}
-
-var encodeBufferPool = sync.Pool{
-	New: func() interface{} { return new(bytes.Buffer) },
-}
-
-func encodeForDerive(list utils.DerivableList, i int, buf *bytes.Buffer) []byte {
-	buf.Reset()
-	list.EncodeIndex(i, buf)
-	return common.CopyBytes(buf.Bytes())
-}
-
-func DeriveTire(rs utils.DerivableList, tr *trie.Trie) *trie.Trie {
-	valueBuf := encodeBufferPool.Get().(*bytes.Buffer)
-	defer encodeBufferPool.Put(valueBuf)
-
-	var indexBuf []byte
-	for i := 1; i < rs.Len() && i <= 0x7f; i++ {
-		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))
-		value := encodeForDerive(rs, i, valueBuf)
-		tr.Update(indexBuf, value)
-	}
-	if rs.Len() > 0 {
-		indexBuf = rlp.AppendUint64(indexBuf[:0], 0)
-		value := encodeForDerive(rs, 0, valueBuf)
-		tr.Update(indexBuf, value)
-	}
-	for i := 0x80; i < rs.Len(); i++ {
-		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))
-		value := encodeForDerive(rs, i, valueBuf)
-		tr.Update(indexBuf, value)
-	}
-	return tr
 }

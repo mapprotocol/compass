@@ -9,8 +9,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"net/http"
 	"os"
 	"strconv"
 
@@ -27,8 +25,6 @@ import (
 
 	"github.com/mapprotocol/compass/chains/bsc"
 
-	"github.com/ChainSafe/chainbridge-utils/metrics/health"
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/chains"
@@ -40,11 +36,8 @@ import (
 	"github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/core"
 	chain2 "github.com/mapprotocol/compass/internal/chain"
-	"github.com/mapprotocol/compass/internal/monitor"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/cors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -57,8 +50,6 @@ var cliFlags = []cli.Flag{
 	config.BlockstorePathFlag,
 	config.FreshStartFlag,
 	config.LatestBlockFlag,
-	config.MetricsFlag,
-	config.MetricsPort,
 	config.SkipErrorFlag,
 }
 
@@ -85,21 +76,6 @@ var importFlags = []cli.Flag{
 	config.KeystorePathFlag,
 	config.TronFlag,
 	config.TronKeyNameFlag,
-}
-
-var registerFlags = []cli.Flag{
-	config.Account,
-	config.Value,
-}
-
-var bindFlags = []cli.Flag{
-	config.Relayer,
-	config.Worker,
-}
-
-var monitorFlags = []cli.Flag{
-	config.ConfigFileFlag,
-	config.ExposePortFlag,
 }
 
 var accountCommand = cli.Command{
@@ -144,31 +120,9 @@ var maintainerCommand = cli.Command{
 	Usage: "manage maintainer operations",
 	Description: "The maintainer command is used to manage maintainer on Map chain.\n" +
 		"\tTo register an account : compass relayers register --account '0x0...'",
-	Action: maintainer,
-	Subcommands: []*cli.Command{
-		{
-			Action: handleRegisterCmd,
-			Name:   "register",
-			Usage:  "register account as relayer",
-			Flags:  registerFlags,
-			Description: "The register subcommand is used to register an account as relayer.\n" +
-				"\tA path to the keystore must be provided\n" +
-				"\tA path to the config must be provided\n" +
-				"\tUse --account to provide an address of an account.",
-		},
-		{
-			Action: handleBindCmd,
-			Name:   "bind",
-			Usage:  "bind a worker account for relayer",
-			Flags:  bindFlags,
-			Description: "The bind subcommand is used to bind a worker account for relayer.\n" +
-				"\tA path to the keystore must be provided\n" +
-				"\tA path to the config must be provided\n" +
-				"\tUse --relayer to provide the address of relayer.\n" +
-				"\tUse --worker to provide the address of worker.",
-		},
-	},
-	Flags: append(app.Flags, cliFlags...),
+	Action:      maintainer,
+	Subcommands: []*cli.Command{},
+	Flags:       append(app.Flags, cliFlags...),
 }
 
 var messengerCommand = cli.Command{
@@ -179,12 +133,12 @@ var messengerCommand = cli.Command{
 	Flags:       append(app.Flags, cliFlags...),
 }
 
-var monitorCommand = cli.Command{
-	Name:        "expose",
-	Usage:       "monitor account balance",
-	Description: "The messenger command is used to sync the log information of transactions in the block",
-	Action:      expose,
-	Flags:       append(app.Flags, monitorFlags...),
+var oracleCommand = cli.Command{
+	Name:        "oracle",
+	Usage:       "manage oracle operations",
+	Description: "The oracle command is used to sync the log information of transactions in the block",
+	Action:      oracle,
+	Flags:       append(app.Flags, cliFlags...),
 }
 
 var (
@@ -204,7 +158,7 @@ func init() {
 		&accountCommand,
 		&maintainerCommand,
 		&messengerCommand,
-		&monitorCommand,
+		&oracleCommand,
 	}
 
 	app.Flags = append(app.Flags, cliFlags...)
@@ -241,8 +195,8 @@ func messenger(ctx *cli.Context) error {
 	return run(ctx, mapprotocol.RoleOfMessenger)
 }
 
-func expose(ctx *cli.Context) error {
-	return run(ctx, mapprotocol.RoleOfMonitor)
+func oracle(ctx *cli.Context) error {
+	return run(ctx, mapprotocol.RoleOfOracle)
 }
 
 func run(ctx *cli.Context, role mapprotocol.Role) error {
@@ -312,47 +266,42 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		}
 		var (
 			newChain core.Chain
-			m        *metrics.ChainMetrics
 		)
 
 		logger := log.Root().New("chain", chainConfig.Name)
-		if ctx.Bool(config.MetricsFlag.Name) {
-			m = metrics.NewChainMetrics(chain.Name)
-		}
 		logger.Info("This task set skip error", "skip", ctx.Bool(config.SkipErrorFlag.Name))
 
 		switch chain.Type {
 		case chains.Ethereum:
-			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, role)
 			if err != nil {
 				return err
 			}
 			if idx == 0 {
 				mapprotocol.GlobalMapConn = newChain.(*chain2.Chain).EthClient()
-				mapprotocol.Init2MapHeightByLight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.Init2GetEth22MapNumber(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
-				mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitLightManager(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
+				//mapprotocol.InitOtherChain2MapVerifyRange(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 			}
 		case chains.Near:
-			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, role)
 		case chains.Bsc:
-			newChain, err = bsc.InitializeChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = bsc.InitializeChain(chainConfig, logger, sysErr, role)
 		case chains.Matic:
-			newChain, err = matic.InitializeChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = matic.InitializeChain(chainConfig, logger, sysErr, role)
 		case chains.Klaytn:
-			newChain, err = klaytn.InitializeChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = klaytn.InitializeChain(chainConfig, logger, sysErr, role)
 		case chains.Eth2:
-			newChain, err = eth2.InitializeChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = eth2.InitializeChain(chainConfig, logger, sysErr, role)
 		case chains.Platon:
-			newChain, err = platon.InitializeChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = platon.InitializeChain(chainConfig, logger, sysErr, role)
 		case chains.Conflux:
-			newChain, err = conflux.InitializeChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = conflux.InitializeChain(chainConfig, logger, sysErr, role)
 		case chains.Bttc:
-			newChain, err = bttc.NewChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = bttc.NewChain(chainConfig, logger, sysErr, role)
 		case chains.Tron:
-			newChain, err = tron.NewChain(chainConfig, logger, sysErr, m, role)
+			newChain, err = tron.NewChain(chainConfig, logger, sysErr, role)
 		default:
 			return errors.New("unrecognized Chain Type")
 		}
@@ -361,49 +310,8 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		}
 
 		mapprotocol.OnlineChaId[chainConfig.Id] = chainConfig.Name
-		mapprotocol.OnlineChainCfg[chainConfig.Id] = chainConfig.Endpoint
 		c.AddChain(newChain)
 	}
-
-	// Start prometheus and health server
-	if ctx.Bool(config.MetricsFlag.Name) {
-		port := ctx.Int(config.MetricsPort.Name)
-		blockTimeoutStr := os.Getenv(config.HealthBlockTimeout)
-		blockTimeout := config.DefaultBlockTimeout
-		if blockTimeoutStr != "" {
-			blockTimeout, err = strconv.ParseInt(blockTimeoutStr, 10, 0)
-			if err != nil {
-				return err
-			}
-		}
-		h := health.NewHealthServer(port, c.ToUCoreRegistry(), int(blockTimeout))
-
-		go func() {
-			http.Handle("/metrics", promhttp.Handler())
-			http.HandleFunc("/health", h.HealthStatus)
-			err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
-			if errors.Is(err, http.ErrServerClosed) {
-				log.Info("Health status server is shutting down", err)
-			} else {
-				log.Error("Error serving metrics", "err", err)
-			}
-		}()
-	}
-
-	if role == mapprotocol.RoleOfMonitor {
-		port := ctx.Int(config.ExposePortFlag.Name)
-		mux := http.NewServeMux()
-		mux.HandleFunc("/get/proof", monitor.Handler)
-
-		handler := cors.Default().Handler(mux)
-		err := http.ListenAndServe(fmt.Sprintf(":%d", port), handler)
-		if errors.Is(err, http.ErrServerClosed) {
-			log.Info("Health status server is shutting down", err)
-		} else {
-			log.Error("Error serving metrics", "err", err)
-		}
-	}
-
 	c.Start()
 
 	return nil

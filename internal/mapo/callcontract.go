@@ -1,38 +1,31 @@
 // Copyright 2021 Compass Systems
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package utils
+package mapo
 
 import (
 	"bytes"
-	"context"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
+	"github.com/mapprotocol/compass/internal/arb"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"strings"
 	"sync"
 
 	"github.com/mapprotocol/compass/pkg/util"
 
-	"github.com/mapprotocol/compass/internal/tx"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
-	iproof "github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/pkg/errors"
-)
-
-var (
-	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
 )
 
 type TxParams struct {
@@ -49,109 +42,75 @@ type TxProve struct {
 	TxIndex     uint
 }
 
-func ParseEthLogIntoSwapWithProofArgs(log types.Log, bridgeAddr common.Address, receipts []*types.Receipt, method string, fId, tId msg.ChainId) ([]byte, error) {
-	// calc tx proof
-	blockNumber := log.BlockNumber
-	transactionIndex := log.TxIndex
-
-	proof := light.NewNodeSet()
-	key, err := rlp.EncodeToBytes(transactionIndex)
-	if err != nil {
-		return nil, err
-	}
-
-	// assemble trie tree
-	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-	if err != nil {
-		return nil, err
-	}
-	for i, r := range receipts {
-		key, err := rlp.EncodeToBytes(uint(i))
+func AssembleEthProof(log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
+	var payloads []byte
+	switch proofType {
+	case constant.ProofTypeOfOrigin:
+	case constant.ProofTypeOfZk:
+	case constant.ProofTypeOfOracle:
+		receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
 		if err != nil {
 			return nil, err
 		}
-		value, err := rlp.EncodeToBytes(r)
+
+		pr := arb.Receipts{}
+		for _, r := range receipts {
+			pr = append(pr, &arb.Receipt{Receipt: r})
+		}
+
+		prf, err := proof.Get(pr, log.TxIndex)
 		if err != nil {
 			return nil, err
 		}
-		tr.Update(key, value)
-	}
 
-	tr = DeriveTire(receipts, tr)
-	if err = tr.Prove(key, 0, proof); err != nil {
-		return nil, err
-	}
+		var key []byte
+		key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
 
-	txProve := mapprotocol.TxProve{
-		Receipt:     receipts[transactionIndex],
-		Prove:       proof.NodeList(),
-		BlockNumber: blockNumber,
-		TxIndex:     transactionIndex,
-	}
+		pd := struct {
+			BlockNum     *big.Int
+			ReceiptProof ReceiptProof
+		}{
+			BlockNum: big.NewInt(int64(log.BlockNumber)),
+			ReceiptProof: ReceiptProof{
+				TxReceipt: *receipt,
+				KeyIndex:  util.Key2Hex(key, len(prf)),
+				Proof:     prf,
+			},
+		}
 
-	txProofBytes, err := rlp.EncodeToBytes(txProve)
-	if err != nil {
-		return nil, err
-	}
+		printProof(pd.ReceiptProof.Proof)
 
-	rp := mapprotocol.NewReceiptProof{
-		Router:   bridgeAddr,
-		Coin:     bridgeAddr, // common.BytesToAddress(token),
-		SrcChain: big.NewInt(0).SetUint64(uint64(fId)),
-		DstChain: big.NewInt(0).SetUint64(uint64(tId)),
-		TxProve:  txProofBytes,
-	}
-
-	payloads, err := rlp.EncodeToBytes(rp)
-	if err != nil {
-		return nil, err
+		payloads, err = mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), payloads)
-	//pack, err := mapprotocol.PackInput(mapprotocol.Near, mapprotocol.MethodVerifyProofData, payloads)
 	if err != nil {
-		return nil, errors.Wrap(err, "transferIn pack failed")
+		return nil, errors.Wrap(err, "mcs input pack failed")
 	}
 
+	//fmt.Println("-------- ", "0x"+common.Bytes2Hex(pack))
 	return pack, nil
 }
 
-type MapTxProve struct {
-	Header      *maptypes.Header
-	Receipt     *types.Receipt
-	Prove       light.NodeList
-	BlockNumber uint64
-	TxIndex     uint
+func printProof(proof [][]byte) {
+	p := make([]string, 0, len(proof))
+	for _, v := range proof {
+		p = append(p, "0x"+common.Bytes2Hex(v))
+		//fmt.Println("============================== proof: ", "0x"+common.Bytes2Hex(v))
+	}
 }
 
-func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, method string, fId msg.ChainId) ([]byte, error) {
-	header, err := client.MAPHeaderByNumber(context.Background(), latestBlock)
-	if err != nil {
-		return nil, fmt.Errorf("unable to query header Logs: %w", err)
-	}
-	txsHash, _, err := mapprotocol.GetMapTransactionsHashByBlockNumber(client, latestBlock, log.TxHash)
-	if err != nil {
-		return nil, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
-	}
-	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-	}
-	//
-	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfMap))
-	if remainder.Cmp(mapprotocol.Big0) == 0 {
-		lr, err := mapprotocol.GetLastReceipt(client, latestBlock)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get last receipts in epoch last %w", err)
-		}
-		receipts = append(receipts, lr)
-	}
-	_, data, err := AssembleMapProof(client, *log, receipts, header, fId, method, "")
-	return data, err
+type ReceiptProof struct {
+	TxReceipt mapprotocol.TxReceipt
+	KeyIndex  []byte
+	Proof     [][]byte
 }
 
-func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Receipt,
-	header *maptypes.Header, fId msg.ChainId, method, zkUrl string) (uint64, []byte, error) {
+func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.Receipt,
+	header *maptypes.Header, fId msg.ChainId, method, zkUrl string, proofType int64) (uint64, []byte, error) {
 	toChainID := log.Topics[2]
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
@@ -161,16 +120,19 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 	}
 
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
-	proof, err := iproof.Get(receipts, txIndex)
+	prf, err := proof.Get(types.Receipts(receipts), txIndex)
 	if err != nil {
 		return 0, nil, err
 	}
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := Key2Hex(key, len(proof))
+	ek := Key2Hex(key, len(prf))
+	if uToChainID == 8217 {
+		ek = util.Key2Hex(key, len(prf))
+	}
 	if zkUrl != "" {
-		ek = util.Key2Hex(key, len(proof))
+		ek = util.Key2Hex(key, len(prf))
 	}
 	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
 		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
@@ -189,7 +151,7 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			Header:   mapprotocol.ConvertHeader(header),
 			AggPk:    aggPK,
 			KeyIndex: ek,
-			Proof:    proof,
+			Proof:    prf,
 			Ist:      *istanbulExtra,
 			TxReceiptRlp: mapprotocol.TxReceiptRlp{
 				ReceiptType: receipt.ReceiptType,
@@ -198,12 +160,13 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 		}
 
 		var pack []byte
-		if zkUrl == "" {
+		switch proofType {
+		case constant.ProofTypeOfOrigin:
 			pack, err = mapprotocol.Map2Other.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(rp)
 			if err != nil {
 				return 0, nil, errors.Wrap(err, "getBytes failed")
 			}
-		} else {
+		case constant.ProofTypeOfZk:
 			zkProof, err := mapprotocol.GetZkProof(zkUrl, fId, header.Number.Uint64())
 			if err != nil {
 				return 0, nil, errors.Wrap(err, "GetZkProof failed")
@@ -213,10 +176,26 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 			if err != nil {
 				return 0, nil, errors.Wrap(err, "getBytes failed")
 			}
+		case constant.ProofTypeOfOracle:
+			pd := struct {
+				BlockNum     *big.Int
+				ReceiptProof ReceiptProof
+			}{
+				BlockNum: header.Number,
+				ReceiptProof: ReceiptProof{
+					TxReceipt: *receipt,
+					KeyIndex:  util.Key2Hex(key, len(prf)),
+					Proof:     prf,
+				},
+			}
+
+			pack, err = mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+			if err != nil {
+				return 0, nil, errors.Wrap(err, "getBytes failed")
+			}
 		}
 
 		payloads, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), pack)
-		//payloads, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, pack)
 		if err != nil {
 			return 0, nil, errors.Wrap(err, "eth pack failed")
 		}
@@ -230,8 +209,8 @@ func AssembleMapProof(cli *ethclient.Client, log types.Log, receipts []*types.Re
 		return 0, nil, err
 	}
 
-	nProof := make([]string, 0, len(proof))
-	for _, p := range proof {
+	nProof := make([]string, 0, len(prf))
+	for _, p := range prf {
 		nProof = append(nProof, "0x"+common.Bytes2Hex(p))
 	}
 	m := map[string]interface{}{

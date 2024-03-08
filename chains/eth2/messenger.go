@@ -11,7 +11,6 @@ import (
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/tx"
-	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/mapprotocol/compass/msg"
@@ -50,10 +49,6 @@ func (m *Messenger) sync() error {
 		time.Sleep(time.Hour * 2400)
 	}
 	var currentBlock = m.Cfg.StartBlock
-	big20 := big.NewInt(20)
-	if m.BlockConfirmations.Cmp(big20) == -1 {
-		m.BlockConfirmations = big20
-	}
 
 	for {
 		select {
@@ -67,33 +62,11 @@ func (m *Messenger) sync() error {
 				continue
 			}
 
-			if m.Metrics != nil {
-				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
-			}
-
-			left, right, err := mapprotocol.Get2MapVerifyRange(m.Cfg.Id)
-			if err != nil {
-				m.Log.Warn("Get2MapVerifyRange failed", "err", err)
-			}
-			if right != nil && right.Uint64() != 0 && right.Cmp(currentBlock) == -1 {
-				m.Log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "maxVerify", right)
-				time.Sleep(time.Minute)
-				continue
-			}
-
-			if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
-				m.Log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
-				currentBlock = left
-			}
-
-			//Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
-			// messager
-			// Parse out events
 			count, err := m.getEventsForBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
@@ -110,13 +83,6 @@ func (m *Messenger) sync() error {
 			if err != nil {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
-			if m.Metrics != nil {
-				m.Metrics.BlocksProcessed.Inc()
-				m.Metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
-			}
-
-			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)
-			m.LatestBlock.LastUpdated = time.Now()
 
 			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))

@@ -1,27 +1,29 @@
 package chain
 
 import (
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"time"
 
 	"github.com/mapprotocol/compass/core"
 
-	eth "github.com/ethereum/go-ethereum"
-	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/mapprotocol"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
-
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
+	eth "github.com/ethereum/go-ethereum"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/blockstore"
 )
 
 type (
 	SyncOpt        func(*CommonSync)
-	SyncMap2Other  func(*Maintainer, *big.Int) error
 	SyncHeader2Map func(*Maintainer, *big.Int) error
 	Mos            func(*Messenger, *big.Int) (int, error)
+	AssembleProof  func(*Messenger, *types.Log, int64, uint64) (*msg.Message, error)
+	OracleHandler  func(*Oracle, *big.Int) error
 )
 
 func OptOfInitHeight(height int64) SyncOpt {
@@ -42,6 +44,18 @@ func OptOfMos(fn Mos) SyncOpt {
 	}
 }
 
+func OptOfOracleHandler(fn OracleHandler) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.oracleHandler = fn
+	}
+}
+
+func OptOfAssembleProof(fn AssembleProof) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.assembleProof = fn
+	}
+}
+
 type CommonSync struct {
 	Cfg                Config
 	Conn               core.Connection
@@ -51,17 +65,18 @@ type CommonSync struct {
 	MsgCh              chan struct{}
 	SysErr             chan<- error // Reports fatal error to core
 	LatestBlock        metrics.LatestBlock
-	Metrics            *metrics.ChainMetrics
 	BlockConfirmations *big.Int
 	BlockStore         blockstore.Blockstorer
 	height             int64
 	syncHeaderToMap    SyncHeader2Map
 	mosHandler         Mos
+	oracleHandler      OracleHandler
+	assembleProof      AssembleProof
 }
 
 // NewCommonSync creates and returns a listener
 func NewCommonSync(conn core.Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
-	m *metrics.ChainMetrics, bs blockstore.Blockstorer, opts ...SyncOpt) *CommonSync {
+	bs blockstore.Blockstorer, opts ...SyncOpt) *CommonSync {
 	cs := &CommonSync{
 		Cfg:                *cfg,
 		Conn:               conn,
@@ -69,11 +84,11 @@ func NewCommonSync(conn core.Connection, cfg *Config, log log15.Logger, stop <-c
 		Stop:               stop,
 		SysErr:             sysErr,
 		LatestBlock:        metrics.LatestBlock{LastUpdated: time.Now()},
-		Metrics:            m,
 		BlockConfirmations: cfg.BlockConfirmations,
 		MsgCh:              make(chan struct{}),
 		BlockStore:         bs,
 		height:             1,
+		mosHandler:         defaultMosHandler,
 	}
 	for _, op := range opts {
 		op(cs)
@@ -101,7 +116,7 @@ func (c *CommonSync) WaitUntilMsgHandled(counter int) error {
 }
 
 // BuildQuery constructs a query for the bridgeContract by hashing sig to get the event topic
-func (c *CommonSync) BuildQuery(contract ethcommon.Address, sig []utils.EventSig, startBlock *big.Int, endBlock *big.Int) eth.FilterQuery {
+func (c *CommonSync) BuildQuery(contract ethcommon.Address, sig []constant.EventSig, startBlock *big.Int, endBlock *big.Int) eth.FilterQuery {
 	topics := make([]ethcommon.Hash, 0, len(sig))
 	for _, s := range sig {
 		topics = append(topics, s.GetTopic())

@@ -167,6 +167,15 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 }
 
 func (w *Writer) sendTx(addr string, input []byte) (string, error) {
+	/*
+		// online estimateEnergy
+		//contract, err := w.conn.cli.TriggerConstantContract(w.cfg.From, addr, "estimateenergy", "{}")
+		//if err != nil {
+		//	w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
+		//	return "", err
+		//}
+		//w.log.Info("------------ ", "resp", contract.EnergyUsed)
+	*/
 	// estimateEnergy
 	estimate, err := w.conn.cli.EstimateEnergy(w.cfg.From, addr, input, 0, "", 0)
 	if err != nil {

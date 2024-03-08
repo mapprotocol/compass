@@ -10,6 +10,8 @@ import (
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/pkg/errors"
 )
@@ -22,8 +24,8 @@ type Chain struct {
 	listen chains.Listener // The listener of this Chain
 }
 
-func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role, createConn core.CreateConn, opts ...SyncOpt) (*Chain, error) {
+func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role,
+	createConn core.CreateConn, opts ...SyncOpt) (*Chain, error) {
 	cfg, err := ParseConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -57,8 +59,9 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 	}
 
 	var listen chains.Listener
-	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, m, bs, opts...)
-	if role == mapprotocol.RoleOfMaintainer {
+	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, bs, opts...)
+	switch role {
+	case mapprotocol.RoleOfMaintainer:
 		if cfg.Id != cfg.MapChainID {
 			fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
 			height, err := fn()
@@ -69,20 +72,25 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m
 			mapprotocol.SyncOtherMap[cfg.Id] = height
 			mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		}
-
 		listen = NewMaintainer(cs)
-	} else if role == mapprotocol.RoleOfMessenger {
-		if cfg.Id != cfg.MapChainID {
-			// verify range
-			fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
-			left, right, err := fn()
-			if err != nil {
-				return nil, errors.Wrap(err, "Map2Other get init verifyHeight failed")
-			}
-			logger.Info("Map2other Current verify range", "id", cfg.Id, "left", left, "right", right, "lightNode", cfg.LightNode)
-			mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
-		}
+	case mapprotocol.RoleOfMessenger:
+		//if cfg.Id != cfg.MapChainID {
+		//	// verify range
+		//	fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
+		//	left, right, err := fn()
+		//	if err != nil {
+		//		//return nil, errors.Wrap(err, "Map2Other get init verifyHeight failed")
+		//	}
+		//	logger.Info("Map2other Current verify range", "id", cfg.Id, "left", left, "right", right, "lightNode", cfg.LightNode)
+		//	mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
+		//}
+
+		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
+		call := contract.New(conn, cfg.McsContract, oracleAbi)
+		mapprotocol.ContractMapping[cfg.Id] = call
 		listen = NewMessenger(cs)
+	case mapprotocol.RoleOfOracle:
+		listen = NewOracle(cs)
 	}
 	wri := NewWriter(conn, cfg, logger, stop, sysErr)
 

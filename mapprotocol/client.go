@@ -7,62 +7,31 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	"strings"
 	"time"
 
 	log "github.com/ChainSafe/log15"
-	"github.com/mapprotocol/compass/pkg/util"
-
-	"github.com/mapprotocol/compass/internal/constant"
-
-	"github.com/mapprotocol/compass/msg"
-
 	eth "github.com/ethereum/go-ethereum"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	maptypes "github.com/mapprotocol/atlas/core/types"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/mapprotocol/compass/pkg/util"
 )
 
-/*
-	some common client operations
-*/
-
-func GetTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
-	block, err := conn.BlockByNumber(context.Background(), number)
+func GetMapTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
+	block, err := conn.MAPBlockByNumber(context.Background(), number)
 	if err != nil {
 		return nil, err
 	}
 
-	txs := make([]common.Hash, 0, len(block.Transactions()))
-	for _, tx := range block.Transactions() {
-		txs = append(txs, tx.Hash())
+	txs := make([]common.Hash, 0, len(block.Transactions))
+	for _, tx := range block.Transactions {
+		ele := common.HexToHash(tx.Hash)
+		txs = append(txs, ele)
 	}
 	return txs, nil
-}
-
-func GetMapTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int, hash common.Hash) ([]common.Hash, bool, error) {
-	block, err := conn.MAPBlockByNumber(context.Background(), number)
-	if err != nil {
-		return nil, false, err
-	}
-
-	black := false
-	txs := make([]common.Hash, 0, len(block.Transactions()))
-	for _, tx := range block.Transactions() {
-		txs = append(txs, tx.Hash())
-		m, err := tx.AsMessage(maptypes.NewLondonSigner(big.NewInt(22776)), nil)
-		if err != nil {
-			continue
-		}
-		if strings.ToLower(m.From().Hex()) == "0xed396fb7ad38b8ef729d07c4a3c43589dd90a5d9" {
-			fmt.Println("-----", tx.Hash(), "-----", m.From().Hex())
-			black = true
-			break
-		}
-	}
-	return txs, black, nil
 }
 
 func GetLastReceipt(conn *ethclient.Client, latestBlock *big.Int) (*types.Receipt, error) {
@@ -190,10 +159,8 @@ func GetCurValidators(cli *ethclient.Client, number *big.Int) ([]byte, error) {
 			ele = append(ele, k)
 		}
 		ret = append(ret, ele)
-		//fmt.Println("----------- ", "0x"+common.Bytes2Hex(ele))
 	}
 
-	//fmt.Println("validator info", "0x"+common.Bytes2Hex(makeValidatorInfo(ret)))
 	return makeValidatorInfo(ret), nil
 }
 

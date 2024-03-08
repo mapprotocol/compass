@@ -9,7 +9,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.3.0
 	github.com/klaytn/klaytn v1.10.2
-	github.com/lbtsm/gotron-sdk v0.0.0-20231016064915-cd61dfdc85d6
+	github.com/lbtsm/gotron-sdk v0.0.0-20231025070359-ac656af37c4a
 	github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd
 	github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5
 	github.com/mr-tron/base58 v1.2.0

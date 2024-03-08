@@ -8,11 +8,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Env vars
-var (
-	HealthBlockTimeout = "BLOCK_TIMEOUT"
-)
-
 var (
 	ConfigFileFlag = &cli.StringFlag{
 		Name:  "config",
@@ -64,20 +59,6 @@ var (
 	}
 )
 
-// Metrics flags
-var (
-	MetricsFlag = &cli.BoolFlag{
-		Name:  "metrics",
-		Usage: "Enables metric server",
-	}
-
-	MetricsPort = &cli.IntFlag{
-		Name:  "metricsPort",
-		Usage: "Port to serve metrics on",
-		Value: 8001,
-	}
-)
-
 // Generate subcommand flags
 var (
 	PasswordFlag = &cli.StringFlag{
@@ -115,42 +96,8 @@ var (
 )
 
 var (
-	Account = &cli.StringFlag{
-		Name:  "account",
-		Usage: "the address of account",
-	}
-
-	Value = &cli.Int64Flag{
-		Name:  "amount",
-		Usage: "the amount of Map to stake for register",
-		Value: 100000,
-	}
-)
-
-var (
-	Relayer = &cli.StringFlag{
-		Name:  "relayer",
-		Usage: "the address of the relayer account",
-	}
-
-	Worker = &cli.StringFlag{
-		Name:  "worker",
-		Usage: "the address of the worker account",
-	}
-)
-
-// Test Setting Flags
-var (
 	TestKeyFlag = &cli.StringFlag{
 		Name:  "testkey",
 		Usage: "Applies a predetermined test keystore to the chains.",
-	}
-)
-
-var (
-	ExposePortFlag = &cli.IntFlag{
-		Name:  "exposePort",
-		Usage: "Port to serve on",
-		Value: 8002,
 	}
 )

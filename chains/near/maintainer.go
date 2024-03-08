@@ -57,10 +57,6 @@ func (m Maintainer) sync() error {
 				continue
 			}
 
-			if m.metrics != nil {
-				m.metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
-			}
-
 			if m.cfg.syncToMap {
 				// listen when catchup
 				m.log.Info("Sync Header to Map Chain", "target", latestBlock)
@@ -71,11 +67,6 @@ func (m Maintainer) sync() error {
 					util.Alarm(context.Background(), fmt.Sprintf("near sync header failed, err is %s", err.Error()))
 					continue
 				}
-			}
-
-			if m.metrics != nil {
-				m.metrics.BlocksProcessed.Inc()
-				m.metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
 			}
 
 			m.latestBlock.Height = big.NewInt(0).Set(latestBlock)

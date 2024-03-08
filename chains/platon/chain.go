@@ -3,6 +3,7 @@ package platon
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 
 	"github.com/mapprotocol/compass/internal/platon"
@@ -10,7 +11,6 @@ import (
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/tx"
 
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
@@ -18,9 +18,8 @@ import (
 	"github.com/mapprotocol/compass/msg"
 )
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role) (core.Chain, error) {
-	return chain.New(chainCfg, logger, sysErr, m, role, platon.NewConn, chain.OptOfSync2Map(syncHeaderToMap), chain.OptOfMos(mos))
+func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+	return chain.New(chainCfg, logger, sysErr, role, platon.NewConn, chain.OptOfSync2Map(syncHeaderToMap), chain.OptOfAssembleProof(assembleProof))
 }
 
 func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
@@ -29,7 +28,6 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 		return nil
 	}
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {
 		m.Log.Error("Get current synced Height failed", "err", err)
 		return err
@@ -83,61 +81,32 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	return nil
 }
 
-func mos(m *chain.Messenger, latestBlock *big.Int) (int, error) {
-	if !m.Cfg.SyncToMap {
-		return 0, nil
+func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64) (*msg.Message, error) {
+	var (
+		message   msg.Message
+		orderId   = log.Data[:32]
+		method    = m.GetMethod(log.Topics[0])
+		bigNumber = big.NewInt(int64(log.BlockNumber))
+	)
+	headerParam, err := platon.GetHeaderParam(m.Conn.Client(), bigNumber)
+	if err != nil {
+		return nil, err
 	}
-	m.Log.Debug("Querying block for events", "block", latestBlock)
-	count := 0
-	for idx, addr := range m.Cfg.McsContract {
-		query := m.BuildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
-		// querying for logs
-		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
-		if err != nil {
-			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
-		}
-		m.Log.Info("event", "latestBlock ", latestBlock, " logs ", len(logs))
-		if len(logs) == 0 {
-			return 0, nil
-		}
-		headerParam, err := platon.GetHeaderParam(m.Conn.Client(), latestBlock)
-		if err != nil {
-			return 0, err
-		}
-		// read through the log events and handle their deposit event if handler is recognized
-		for _, log := range logs {
-			// evm event to msg
-			var message msg.Message
-			// getOrderId
-			orderId := log.Data[:32]
-			method := m.GetMethod(log.Topics[0])
-			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-			}
-			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-			}
-
-			payload, err := platon.AssembleProof(headerParam, log, receipts, method, m.Cfg.Id)
-			if err != nil {
-				return 0, fmt.Errorf("unable to Parse Log: %w", err)
-			}
-
-			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
-			message.Idx = idx
-
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-				"orderId", ethcommon.Bytes2Hex(orderId))
-			err = m.Router.Send(message)
-			if err != nil {
-				m.Log.Error("Subscription error: failed to route message", "err", err)
-			}
-			count++
-		}
+	txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), bigNumber)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
 
-	return count, nil
+	payload, err := platon.AssembleProof(headerParam, log, receipts, method, m.Cfg.Id, proofType)
+	if err != nil {
+		return nil, fmt.Errorf("unable to Parse Log: %w", err)
+	}
+
+	msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
+	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+	return &message, nil
 }

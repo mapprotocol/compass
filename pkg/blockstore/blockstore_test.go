@@ -4,6 +4,7 @@
 package blockstore
 
 import (
+	"github.com/mapprotocol/compass/internal/constant"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -23,7 +24,7 @@ func TestSaveAndLoad(t *testing.T) {
 
 	chain := msg.ChainId(10)
 
-	bs, err := NewBlockstore(dir, chain, mapprotocol.ZeroAddress.String(), mapprotocol.RoleOfMaintainer)
+	bs, err := NewBlockstore(dir, chain, constant.ZeroAddress.String(), mapprotocol.RoleOfMaintainer)
 	if err != nil {
 		t.Fatal(err)
 	}

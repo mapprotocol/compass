@@ -2,21 +2,25 @@ package proof
 
 import (
 	"bytes"
+	"github.com/ethereum/go-ethereum/core/types"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 )
 
+var (
+	CacheReceipt = make(map[string][]*types.Receipt) // key -> chainId_blockHeight
+)
+
 var encodeBufferPool = sync.Pool{
 	New: func() interface{} { return new(bytes.Buffer) },
 }
 
-func Get(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
+func Get(receipts DerivableList, txIndex uint) ([][]byte, error) {
 	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
 	if err != nil {
 		return nil, err
@@ -40,7 +44,7 @@ func Get(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
 	return proof, nil
 }
 
-func deriveTire(rs types.Receipts, tr *trie.Trie) *trie.Trie {
+func deriveTire(rs DerivableList, tr *trie.Trie) *trie.Trie {
 	valueBuf := encodeBufferPool.Get().(*bytes.Buffer)
 	defer encodeBufferPool.Put(valueBuf)
 
@@ -69,7 +73,6 @@ type DerivableList interface {
 }
 
 func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
-	//fmt.Println("i ------------------------------- ", i)
 	buf.Reset()
 	list.EncodeIndex(i, buf)
 	return common.CopyBytes(buf.Bytes())

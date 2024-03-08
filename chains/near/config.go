@@ -14,7 +14,6 @@ import (
 	"github.com/mapprotocol/compass/internal/chain"
 
 	gconfig "github.com/mapprotocol/compass/config"
-	"github.com/mapprotocol/compass/connections/ethereum/egs"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/msg"
 )
@@ -152,15 +151,6 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 	if gsnApiKey, ok := chainCfg.Opts[chain.EGSApiKey]; ok && gsnApiKey != "" {
 		config.egsApiKey = gsnApiKey
 		delete(chainCfg.Opts, chain.EGSApiKey)
-	}
-
-	if speed, ok := chainCfg.Opts[chain.EGSSpeed]; ok && speed == egs.Average || speed == egs.Fast || speed == egs.Fastest {
-		config.egsSpeed = speed
-		delete(chainCfg.Opts, chain.EGSSpeed)
-	} else {
-		// Default to "fast"
-		config.egsSpeed = egs.Fast
-		delete(chainCfg.Opts, chain.EGSSpeed)
 	}
 
 	if syncToMap, ok := chainCfg.Opts[chain.SyncToMap]; ok && syncToMap == "true" {

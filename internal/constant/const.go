@@ -2,6 +2,7 @@ package constant
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/common"
 	"time"
 )
 
@@ -24,6 +25,10 @@ var (
 var (
 	MaintainerInterval = time.Second * 3
 	MessengerInterval  = time.Second * 1
+)
+
+var (
+	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
 )
 
 var (
@@ -51,6 +56,7 @@ var IgnoreError = map[string]struct{}{
 	"previous exe block headers should be updated before update light client": {},
 	"REVERT opcode executed":    {},
 	"Validators repetition add": {},
+	"oracle: already update":    {},
 }
 
 type BlockIdOfEth2 string
@@ -64,4 +70,10 @@ const (
 const (
 	SlotsPerEpoch   int64 = 32
 	EpochsPerPeriod int64 = 256
+)
+
+const (
+	ProofTypeOfOrigin = iota + 1
+	ProofTypeOfZk
+	ProofTypeOfOracle
 )

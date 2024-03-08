@@ -90,9 +90,6 @@ func (m *Maintainer) sync() error {
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
-			if m.Metrics != nil {
-				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
-			}
 
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
@@ -134,11 +131,6 @@ func (m *Maintainer) sync() error {
 			err = m.BlockStore.StoreBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
-			}
-
-			if m.Metrics != nil {
-				m.Metrics.BlocksProcessed.Inc()
-				m.Metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
 			}
 
 			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)

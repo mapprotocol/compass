@@ -19,13 +19,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-func NewChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role) (core.Chain, error) {
-	return createChain(chainCfg, logger, sysErr, m, role)
+func NewChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+	return createChain(chainCfg, logger, sysErr, role)
 }
 
-func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role, opts ...chain.SyncOpt) (core.Chain, error) {
+func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role, opts ...chain.SyncOpt) (core.Chain, error) {
 	config, err := parseCfg(chainCfg)
 	if err != nil {
 		return nil, err

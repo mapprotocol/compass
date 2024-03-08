@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/constant"
 	"io"
 	"math/big"
 	"net/http"
 	"time"
 
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -19,16 +19,10 @@ import (
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
-var (
-	systemAddr = common.HexToAddress("0x0000000000000000000000000000000000001010")
-)
-
-func NewChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role) (core.Chain, error) {
-	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection,
+func NewChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,
 		chain.OptOfSync2Map(syncHeaderToMap),
 		chain.OptOfInitHeight(mapprotocol.HeaderOneCount),
 		chain.OptOfMos(mosHandler),
@@ -41,7 +35,6 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 		return nil
 	}
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {
 		m.Log.Error("Get current synced Height failed", "err", err)
 		return err
@@ -149,7 +142,6 @@ func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
 			count++
 		}
 	}
-	//}
 
 	return count, nil
 }
@@ -184,7 +176,7 @@ func getReceiptsAndTxs(m *chain.Messenger, txsHash []common.Hash) ([]*types.Rece
 			return nil, nil, err
 		}
 		m.Log.Info("check address", "hash", oneTx.Hash(), "from", message.From(), "to", oneTx.To())
-		if oneTx.To().String() == utils.ZeroAddress.String() && message.From() == utils.ZeroAddress {
+		if oneTx.To().String() == constant.ZeroAddress.String() && message.From() == constant.ZeroAddress {
 			continue
 		}
 		cullSys = append(cullSys, r)

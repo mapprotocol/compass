@@ -712,6 +712,8 @@ github.com/labstack/gommon v0.3.0/go.mod h1:MULnywXg0yavhxWKc+lOruYdAhDwPK9wf0OL
 github.com/labstack/gommon v0.3.1/go.mod h1:uW6kP17uPlLJsD3ijUYn3/M5bAxtlZhMI6m3MFxTMTM=
 github.com/lbtsm/gotron-sdk v0.0.0-20231016064915-cd61dfdc85d6 h1:j8DhW9giA7JR+bWWBsRQaLV/flOnm9tbAVWDOc8XVAs=
 github.com/lbtsm/gotron-sdk v0.0.0-20231016064915-cd61dfdc85d6/go.mod h1:rwhdwJSs5ffxJP/rWDjwOmOm95jHuGctideF2iKVly8=
+github.com/lbtsm/gotron-sdk v0.0.0-20231025070359-ac656af37c4a h1:f1N82XwpXb57JFhW03/kR/jK4YJTE90/QrHiz/0riXg=
+github.com/lbtsm/gotron-sdk v0.0.0-20231025070359-ac656af37c4a/go.mod h1:rwhdwJSs5ffxJP/rWDjwOmOm95jHuGctideF2iKVly8=
 github.com/leanovate/gopter v0.2.9/go.mod h1:U2L/78B+KVFIx2VmW6onHJQzXtFb+p5y3y2Sh+Jxxv8=
 github.com/leodido/go-urn v1.2.0/go.mod h1:+8+nEpDfqqsY+g338gtMEUOtuK+4dEMhiQEgxpxOKII=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=

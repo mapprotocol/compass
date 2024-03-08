@@ -3,6 +3,7 @@ package klaytn
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"strings"
 	"time"
@@ -13,9 +14,7 @@ import (
 
 	"github.com/klaytn/klaytn/common"
 
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
-	ethcommon "github.com/ethereum/go-ethereum/common"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
@@ -38,16 +37,15 @@ func connectKClient(endpoint string) error {
 	return nil
 }
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role) (core.Chain, error) {
+func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	err := connectKClient(chainCfg.Endpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection,
+	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,
 		chain.OptOfSync2Map(syncHeaderToMap),
-		chain.OptOfMos(mosHandler))
+		chain.OptOfAssembleProof(assembleProof))
 }
 
 func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
@@ -96,7 +94,6 @@ func syncHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 	}
 
 	m.Log.Info("Find sync block", "current height", latestBlock)
-	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
 	if err != nil {
 		m.Log.Error("Get current synced Height failed", "err", err)
@@ -123,7 +120,6 @@ func sendSyncHeader(m *chain.Maintainer, latestBlock *big.Int, count int) error 
 		return err
 	}
 
-	//fmt.Println("input -------------- ", "0x"+ethcommon.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
@@ -160,60 +156,38 @@ func assembleHeader(client *ethclient.Client, latestBlock *big.Int, count int) (
 	return headers, nil
 }
 
-func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
-	if !m.Cfg.SyncToMap {
-		return 0, nil
+func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64) (*msg.Message, error) {
+	var (
+		message   msg.Message
+		orderId   = log.Data[:32]
+		method    = m.GetMethod(log.Topics[0])
+		bigNumber = big.NewInt(int64(log.BlockNumber))
+	)
+
+	txsHash, err := klaytn.GetTxsHashByBlockNumber(kClient, bigNumber)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 	}
-	count := 0
-	for idx, addr := range m.Cfg.McsContract {
-		m.Log.Debug("Querying block for events", "block", latestBlock)
-		query := m.BuildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
-		// querying for logs
-		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
-		if err != nil {
-			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
-		}
-
-		m.Log.Debug("Event", "latestBlock ", latestBlock, " logs ", len(logs))
-		for _, log := range logs {
-			var message msg.Message
-			orderId := log.Data[:32]
-			method := m.GetMethod(log.Topics[0])
-			txsHash, err := klaytn.GetTxsHashByBlockNumber(kClient, latestBlock)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-			}
-			receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-			if err != nil {
-				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-			}
-			// get block
-			header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
-			if err != nil {
-				return 0, err
-			}
-			kHeader, err := kClient.BlockByNumber(context.Background(), latestBlock)
-			if err != nil {
-				return 0, err
-			}
-
-			payload, err := klaytn.AssembleProof(kClient, klaytn.ConvertContractHeader(header, kHeader), log, m.Cfg.Id, receipts, method)
-			if err != nil {
-				return 0, fmt.Errorf("unable to Parse Log: %w", err)
-			}
-
-			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
-			message.Idx = idx
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-				"orderId", ethcommon.Bytes2Hex(orderId))
-			err = m.Router.Send(message)
-			if err != nil {
-				m.Log.Error("Subscription error: failed to route message", "err", err)
-			}
-			count++
-		}
+	receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+	// get block
+	header, err := m.Conn.Client().HeaderByNumber(context.Background(), bigNumber)
+	if err != nil {
+		return nil, err
+	}
+	kHeader, err := kClient.BlockByNumber(context.Background(), bigNumber)
+	if err != nil {
+		return nil, err
 	}
 
-	return count, nil
+	payload, err := klaytn.AssembleProof(kClient, klaytn.ConvertContractHeader(header, kHeader), log, m.Cfg.Id, receipts, method, proofType)
+	if err != nil {
+		return nil, fmt.Errorf("unable to Parse Log: %w", err)
+	}
+
+	msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
+	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+	return &message, nil
 }

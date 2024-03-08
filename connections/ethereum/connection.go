@@ -18,7 +18,6 @@ import (
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/mapprotocol/compass/connections/ethereum/egs"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 )
@@ -133,25 +132,12 @@ func (c *Connection) CallOpts() *bind.CallOpts {
 
 func (c *Connection) SafeEstimateGas(ctx context.Context) (*big.Int, error) {
 	var suggestedGasPrice *big.Int
-	// First attempt to use EGS for the gas price if the api key is supplied
-	if c.egsApiKey != "" {
-		price, err := egs.FetchGasPrice(c.egsApiKey, c.egsSpeed)
-		if err != nil {
-			c.log.Error("Couldn't fetch gasPrice from GSN", "err", err)
-		} else {
-			suggestedGasPrice = price
-		}
-	}
-
-	// Fallback to the node rpc method for the gas price if GSN did not provide a price
-	if suggestedGasPrice == nil {
-		c.log.Debug("Fetching gasPrice from node")
-		nodePriceEstimate, err := c.conn.SuggestGasPrice(context.TODO())
-		if err != nil {
-			return nil, err
-		} else {
-			suggestedGasPrice = nodePriceEstimate
-		}
+	c.log.Debug("Fetching gasPrice from node")
+	nodePriceEstimate, err := c.conn.SuggestGasPrice(context.TODO())
+	if err != nil {
+		return nil, err
+	} else {
+		suggestedGasPrice = nodePriceEstimate
 	}
 
 	gasPrice := multiplyGasPrice(suggestedGasPrice, c.gasMultiplier)

@@ -4,16 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	gconfig "github.com/mapprotocol/compass/config"
-	"github.com/mapprotocol/compass/connections/ethereum/egs"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/msg"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
 const (
@@ -42,6 +41,7 @@ var (
 	Eth2Url               = "eth2Url"
 	RedisOpt              = "redis"
 	ApiUrl                = "apiUrl"
+	OracleNode            = "oracleNode"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
@@ -68,10 +68,11 @@ type Config struct {
 	SyncChainIDList    []msg.ChainId  // chain ids which map sync to
 	LightNode          common.Address // the lightnode to sync header
 	SyncMap            map[msg.ChainId]*big.Int
-	Events             []utils.EventSig
+	Events             []constant.EventSig
 	SkipError          bool
 	Eth2Endpoint       string
 	ApiUrl             string
+	OracleNode         common.Address
 }
 
 // ParseConfig uses a core.ChainConfig to construct a corresponding Config
@@ -94,7 +95,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		BlockConfirmations: big.NewInt(0),
 		EgsApiKey:          "",
 		EgsSpeed:           "",
-		Events:             make([]utils.EventSig, 0),
+		Events:             make([]constant.EventSig, 0),
 		SkipError:          chainCfg.SkipError,
 		Eth2Endpoint:       "",
 		ApiUrl:             "",
@@ -178,13 +179,6 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		config.EgsApiKey = gsnApiKey
 	}
 
-	if speed, ok := chainCfg.Opts[EGSSpeed]; ok && speed == egs.Average || speed == egs.Fast || speed == egs.Fastest {
-		config.EgsSpeed = speed
-	} else {
-		// Default to "fast"
-		config.EgsSpeed = egs.Fast
-	}
-
 	if syncToMap, ok := chainCfg.Opts[SyncToMap]; ok && syncToMap == "true" {
 		config.SyncToMap = true
 	} else {
@@ -209,10 +203,14 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		config.LightNode = common.HexToAddress(lightnode)
 	}
 
+	if oracleNode, ok := chainCfg.Opts[OracleNode]; ok && oracleNode != "" {
+		config.OracleNode = common.HexToAddress(oracleNode)
+	}
+
 	if v, ok := chainCfg.Opts[Event]; ok && v != "" {
 		vs := strings.Split(v, "|")
 		for _, s := range vs {
-			config.Events = append(config.Events, utils.EventSig(s))
+			config.Events = append(config.Events, constant.EventSig(s))
 		}
 	}
 

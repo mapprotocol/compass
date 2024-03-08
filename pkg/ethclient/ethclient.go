@@ -22,11 +22,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/pkg/platon"
 	"math/big"
 	"net/http"
 	"strings"
-
-	"github.com/mapprotocol/compass/pkg/platon"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"

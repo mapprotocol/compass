@@ -64,10 +64,6 @@ func (m *Messenger) sync() error {
 				continue
 			}
 
-			if m.metrics != nil {
-				m.metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
-			}
-
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.blockConfirmations) == -1 {
 				m.log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
@@ -93,15 +89,9 @@ func (m *Messenger) sync() error {
 			if err != nil {
 				m.log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
-			if m.metrics != nil {
-				m.metrics.BlocksProcessed.Inc()
-			}
-
 			m.latestBlock.LastUpdated = time.Now()
 
-			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
-			//time.Sleep(RetryInterval)
 		}
 	}
 }
@@ -156,20 +146,20 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, nil
 	}
 
-	// check verify range
-	left, right, err := mapprotocol.Get2MapVerifyRange(m.cfg.id)
-	if err != nil {
-		m.log.Warn("Get2MapVerifyRange failed", "err", err)
-	}
-	if left != nil && left.Uint64() != 0 && left.Cmp(new(big.Int).SetUint64(data.Block.Header.Height)) == 1 {
-		m.log.Info("min verify range greater than currentBlock, skip", "currentBlock", data.Block.Header.Height,
-			"minVerify", left, "log", data)
-		return 0, nil
-	}
-	if right != nil && right.Uint64() != 0 && right.Cmp(new(big.Int).SetUint64(data.Block.Header.Height)) == -1 {
-		m.log.Info("currentBlock less than max verify range", "currentBlock", data.Block.Header.Height, "maxVerify", right, "log", data)
-		time.Sleep(time.Minute)
-	}
+	//// check verify range
+	//left, right, err := mapprotocol.Get2MapVerifyRange(m.cfg.id)
+	//if err != nil {
+	//	m.log.Warn("Get2MapVerifyRange failed", "err", err)
+	//}
+	//if left != nil && left.Uint64() != 0 && left.Cmp(new(big.Int).SetUint64(data.Block.Header.Height)) == 1 {
+	//	m.log.Info("min verify range greater than currentBlock, skip", "currentBlock", data.Block.Header.Height,
+	//		"minVerify", left, "log", data)
+	//	return 0, nil
+	//}
+	//if right != nil && right.Uint64() != 0 && right.Cmp(new(big.Int).SetUint64(data.Block.Header.Height)) == -1 {
+	//	m.log.Info("currentBlock less than max verify range", "currentBlock", data.Block.Header.Height, "maxVerify", right, "log", data)
+	//	time.Sleep(time.Minute)
+	//}
 
 	ret, err := m.makeMessage(target)
 	if err != nil {
