@@ -77,3 +77,19 @@ const (
 	ProofTypeOfZk
 	ProofTypeOfOracle
 )
+
+const (
+	LegacyTxType     = iota
+	AccessListTxType = 0x01
+	DynamicFeeTxType = 0x02
+	BlobTxType       = 0x03
+)
+
+var (
+	ReceiptStatusFailedRLP     = []byte{}
+	ReceiptStatusSuccessfulRLP = []byte{0x01}
+)
+
+const (
+	ReceiptStatusFailed = uint64(0)
+)

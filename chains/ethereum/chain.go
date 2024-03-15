@@ -179,25 +179,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		method    = m.GetMethod(log.Topics[0])
 		bigNumber = big.NewInt(int64(log.BlockNumber))
 	)
-	if m.Cfg.SyncToMap {
-		// when syncToMap we need to assemble a tx proof
-		txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), bigNumber)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-		}
-		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-		}
-		payload, err := mapo.AssembleEthProof(log, receipts, method, m.Cfg.Id, proofType)
-		if err != nil {
-			return nil, fmt.Errorf("unable to Parse Log: %w", err)
-		}
-
-		msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
-		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
-	} else if m.Cfg.Id == m.Cfg.MapChainID {
-		// when listen from map we also need to assemble a tx prove in a different way
+	if m.Cfg.Id == m.Cfg.MapChainID {
 		header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), bigNumber)
 		if err != nil {
 			return nil, fmt.Errorf("unable to query header Logs: %w", err)
@@ -226,6 +208,22 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 
 		msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash, method}
 		message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
+	} else if m.Cfg.SyncToMap {
+		txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), bigNumber)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+		}
+		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+		}
+		payload, err := mapo.AssembleEthProof(log, receipts, method, m.Cfg.Id, proofType)
+		if err != nil {
+			return nil, fmt.Errorf("unable to Parse Log: %w", err)
+		}
+
+		msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
+		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	}
 	return &message, nil
 }

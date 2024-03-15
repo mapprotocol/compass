@@ -1,4 +1,4 @@
-package arb
+package eth2
 
 import (
 	"bytes"
@@ -7,12 +7,6 @@ import (
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/proof"
 )
-
-const (
-	ArbitrumLegacyTxType = 120
-)
-
-type Receipts []*Receipt
 
 type Receipt struct {
 	*types.Receipt
@@ -28,18 +22,21 @@ func (r *Receipt) statusEncoding() []byte {
 	return r.PostState
 }
 
-// Len returns the number of receipts in this list.
+type Receipts []*Receipt
+
 func (rs Receipts) Len() int { return len(rs) }
 
-// EncodeIndex encodes the i'th receipt to w.
 func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 	r := rs[i]
 	data := &proof.ReceiptRLP{PostStateOrStatus: r.statusEncoding(), CumulativeGasUsed: r.CumulativeGasUsed, Bloom: r.Bloom, Logs: r.Logs}
+	if r.Type == constant.LegacyTxType {
+		rlp.Encode(w, data)
+		return
+	}
+	w.WriteByte(r.Type)
 	switch r.Type {
-	case constant.LegacyTxType, ArbitrumLegacyTxType:
+	case constant.AccessListTxType, constant.DynamicFeeTxType, constant.BlobTxType:
 		rlp.Encode(w, data)
 	default:
-		w.WriteByte(r.Type)
-		rlp.Encode(w, data)
 	}
 }

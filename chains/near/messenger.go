@@ -146,21 +146,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 		return 0, nil
 	}
 
-	//// check verify range
-	//left, right, err := mapprotocol.Get2MapVerifyRange(m.cfg.id)
-	//if err != nil {
-	//	m.log.Warn("Get2MapVerifyRange failed", "err", err)
-	//}
-	//if left != nil && left.Uint64() != 0 && left.Cmp(new(big.Int).SetUint64(data.Block.Header.Height)) == 1 {
-	//	m.log.Info("min verify range greater than currentBlock, skip", "currentBlock", data.Block.Header.Height,
-	//		"minVerify", left, "log", data)
-	//	return 0, nil
-	//}
-	//if right != nil && right.Uint64() != 0 && right.Cmp(new(big.Int).SetUint64(data.Block.Header.Height)) == -1 {
-	//	m.log.Info("currentBlock less than max verify range", "currentBlock", data.Block.Header.Height, "maxVerify", right, "log", data)
-	//	time.Sleep(time.Minute)
-	//}
-
 	ret, err := m.makeMessage(target)
 	if err != nil {
 		m.log.Error("make message failed", "err", err)

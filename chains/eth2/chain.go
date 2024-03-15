@@ -12,6 +12,8 @@ import (
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/pkg/errors"
 )
@@ -60,7 +62,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 
 	// simplified a little bit
 	var listen chains.Listener
-	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, bs)
+	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, bs, chain.OptOfOracleHandler(chain.DefaultOracleHandler))
 	switch role {
 	case mapprotocol.RoleOfMaintainer:
 		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
@@ -73,15 +75,12 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		listen = NewMaintainer(cs, conn.Eth2Client())
 	case mapprotocol.RoleOfMessenger:
-		//// verify range
-		//fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
-		//left, right, err := fn()
-		//if err != nil {
-		//	return nil, errors.Wrap(err, "eth2 get init verifyHeight failed")
-		//}
-		//logger.Info("Map2eth2 Current verify range", "left", left, "right", right, "lightNode", cfg.LightNode)
-		//mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
+		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
+		call := contract.New(conn, cfg.McsContract, oracleAbi)
+		mapprotocol.ContractMapping[cfg.Id] = call
 		listen = NewMessenger(cs)
+	case mapprotocol.RoleOfOracle:
+		listen = chain.NewOracle(cs)
 	}
 	wri := chain.NewWriter(conn, cfg, logger, stop, sysErr)
 

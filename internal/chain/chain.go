@@ -74,17 +74,6 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 		}
 		listen = NewMaintainer(cs)
 	case mapprotocol.RoleOfMessenger:
-		//if cfg.Id != cfg.MapChainID {
-		//	// verify range
-		//	fn := mapprotocol.Map2EthVerifyRange(cfg.From, cfg.LightNode, conn.Client())
-		//	left, right, err := fn()
-		//	if err != nil {
-		//		//return nil, errors.Wrap(err, "Map2Other get init verifyHeight failed")
-		//	}
-		//	logger.Info("Map2other Current verify range", "id", cfg.Id, "left", left, "right", right, "lightNode", cfg.LightNode)
-		//	mapprotocol.Map2OtherVerifyRange[cfg.Id] = fn
-		//}
-
 		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
 		call := contract.New(conn, cfg.McsContract, oracleAbi)
 		mapprotocol.ContractMapping[cfg.Id] = call

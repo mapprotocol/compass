@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
 	"time"
@@ -69,6 +70,7 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 		w.conn.UnlockOpts()
 		return err
 	}
+	fmt.Println("data ----------- ", "0x"+common.Bytes2Hex(data))
 	tx, err := w.sendTx(&w.cfg.LightNode, nil, data)
 	w.conn.UnlockOpts()
 	if err == nil {

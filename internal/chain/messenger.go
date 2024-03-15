@@ -116,23 +116,23 @@ func defaultMosHandler(m *Messenger, blockNumber *big.Int) (int, error) {
 				m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
 				continue
 			}
-			proofType, err := PreSendTx(idx, uint64(m.Cfg.Id), toChainID, blockNumber, orderId)
-			if errors.Is(err, OrderExist) {
-				m.Log.Info("This txHash order exist", "blockNumber", blockNumber, "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId))
-				continue
-			}
-			if err != nil {
-				return 0, err
-			}
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", common.Bytes2Hex(orderId))
+			//proofType, err := PreSendTx(idx, uint64(m.Cfg.Id), toChainID, blockNumber, orderId)
+			//if errors.Is(err, OrderExist) {
+			//	m.Log.Info("This txHash order exist", "blockNumber", blockNumber, "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId))
+			//	continue
+			//}
+			//if err != nil {
+			//	return 0, err
+			//}
 			tmpLog := log
-			message, err := m.assembleProof(m, &tmpLog, proofType, toChainID)
+			message, err := m.assembleProof(m, &tmpLog, 1, toChainID)
 			if err != nil {
 				return 0, err
 			}
 			message.Idx = idx
 
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-				"orderId", common.Bytes2Hex(orderId))
 			err = m.Router.Send(*message)
 			if err != nil {
 				m.Log.Error("Subscription error: failed to route message", "err", err)

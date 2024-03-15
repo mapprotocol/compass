@@ -9,17 +9,14 @@ import (
 	"encoding/json"
 	"github.com/mapprotocol/compass/internal/arb"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/op"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
-	"sync"
-
-	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -27,20 +24,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/pkg/errors"
 )
-
-type TxParams struct {
-	From  []byte
-	To    []byte
-	Value *big.Int
-}
-
-type TxProve struct {
-	Tx          *TxParams
-	Receipt     *types.Receipt
-	Prove       light.NodeList
-	BlockNumber uint64
-	TxIndex     uint
-}
 
 func AssembleEthProof(log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
 	var payloads []byte
@@ -53,12 +36,7 @@ func AssembleEthProof(log *types.Log, receipts []*types.Receipt, method string, 
 			return nil, err
 		}
 
-		pr := arb.Receipts{}
-		for _, r := range receipts {
-			pr = append(pr, &arb.Receipt{Receipt: r})
-		}
-
-		prf, err := proof.Get(pr, log.TxIndex)
+		prf, err := ethProof(fId, log.TxIndex, receipts)
 		if err != nil {
 			return nil, err
 		}
@@ -66,19 +44,14 @@ func AssembleEthProof(log *types.Log, receipts []*types.Receipt, method string, 
 		var key []byte
 		key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
 
-		pd := struct {
-			BlockNum     *big.Int
-			ReceiptProof ReceiptProof
-		}{
+		pd := proof.Data{
 			BlockNum: big.NewInt(int64(log.BlockNumber)),
-			ReceiptProof: ReceiptProof{
+			ReceiptProof: proof.ReceiptProof{
 				TxReceipt: *receipt,
 				KeyIndex:  util.Key2Hex(key, len(prf)),
 				Proof:     prf,
 			},
 		}
-
-		printProof(pd.ReceiptProof.Proof)
 
 		payloads, err = mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
 		if err != nil {
@@ -91,22 +64,30 @@ func AssembleEthProof(log *types.Log, receipts []*types.Receipt, method string, 
 		return nil, errors.Wrap(err, "mcs input pack failed")
 	}
 
-	//fmt.Println("-------- ", "0x"+common.Bytes2Hex(pack))
 	return pack, nil
 }
 
-func printProof(proof [][]byte) {
-	p := make([]string, 0, len(proof))
-	for _, v := range proof {
-		p = append(p, "0x"+common.Bytes2Hex(v))
-		//fmt.Println("============================== proof: ", "0x"+common.Bytes2Hex(v))
+func ethProof(fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte, error) {
+	var dls proof.DerivableList
+	switch fId {
+	case 421614, 42161: // arb
+		pr := arb.Receipts{}
+		for _, r := range receipts {
+			pr = append(pr, &arb.Receipt{Receipt: r})
+		}
+		dls = pr
+	case 10: // op
+		pr := op.Receipts{}
+		for _, r := range receipts {
+			pr = append(pr, &op.Receipt{Receipt: r})
+		}
+		dls = pr
 	}
-}
-
-type ReceiptProof struct {
-	TxReceipt mapprotocol.TxReceipt
-	KeyIndex  []byte
-	Proof     [][]byte
+	ret, err := proof.Get(dls, txIdx)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.Receipt,
@@ -128,7 +109,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := Key2Hex(key, len(prf))
-	if uToChainID == 8217 {
+	if uToChainID == 8217 || uToChainID == 1030 {
 		ek = util.Key2Hex(key, len(prf))
 	}
 	if zkUrl != "" {
@@ -177,12 +158,9 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 				return 0, nil, errors.Wrap(err, "getBytes failed")
 			}
 		case constant.ProofTypeOfOracle:
-			pd := struct {
-				BlockNum     *big.Int
-				ReceiptProof ReceiptProof
-			}{
+			pd := proof.Data{
 				BlockNum: header.Number,
-				ReceiptProof: ReceiptProof{
+				ReceiptProof: proof.ReceiptProof{
 					TxReceipt: *receipt,
 					KeyIndex:  util.Key2Hex(key, len(prf)),
 					Proof:     prf,
@@ -294,49 +272,4 @@ func ConvertNearReceipt(h *mapprotocol.TxReceipt) *TxReceipt {
 		Bloom:             "0x" + common.Bytes2Hex(h.Bloom),
 		Logs:              logs,
 	}
-}
-
-// deriveBufferPool holds temporary encoder buffers for DeriveSha and TX encoding.
-var encodeBufferPool = sync.Pool{
-	New: func() interface{} { return new(bytes.Buffer) },
-}
-
-// DerivableList is the input to DeriveSha.
-// It is implemented by the 'Transactions' and 'Receipts' types.
-// This is internal, do not use these methods.
-type DerivableList interface {
-	Len() int
-	EncodeIndex(int, *bytes.Buffer)
-}
-
-func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
-	buf.Reset()
-	list.EncodeIndex(i, buf)
-	// It's really unfortunate that we need to do perform this copy.
-	// StackTrie holds onto the values until Hash is called, so the values
-	// written to it must not alias.
-	return common.CopyBytes(buf.Bytes())
-}
-
-func DeriveTire(rs types.Receipts, tr *trie.Trie) *trie.Trie {
-	valueBuf := encodeBufferPool.Get().(*bytes.Buffer)
-	defer encodeBufferPool.Put(valueBuf)
-
-	var indexBuf []byte
-	for i := 1; i < rs.Len() && i <= 0x7f; i++ {
-		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))
-		value := encodeForDerive(rs, i, valueBuf)
-		tr.Update(indexBuf, value)
-	}
-	if rs.Len() > 0 {
-		indexBuf = rlp.AppendUint64(indexBuf[:0], 0)
-		value := encodeForDerive(rs, 0, valueBuf)
-		tr.Update(indexBuf, value)
-	}
-	for i := 0x80; i < rs.Len(); i++ {
-		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))
-		value := encodeForDerive(rs, i, valueBuf)
-		tr.Update(indexBuf, value)
-	}
-	return tr
 }

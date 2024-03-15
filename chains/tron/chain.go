@@ -47,7 +47,8 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		listen chains.Listener
 	)
 
-	if role == mapprotocol.RoleOfMaintainer {
+	switch role {
+	case mapprotocol.RoleOfMaintainer:
 		fn := Map2Tron(config.From, config.LightNode, conn.cli)
 		height, err := fn()
 		if err != nil {
@@ -57,8 +58,10 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		mapprotocol.SyncOtherMap[config.Id] = height
 		mapprotocol.Map2OtherHeight[config.Id] = fn
 		listen = NewMaintainer(logger)
-	} else if role == mapprotocol.RoleOfMessenger {
-
+	case mapprotocol.RoleOfMessenger:
+		listen = NewMessenger(logger)
+	case mapprotocol.RoleOfOracle:
+		listen = NewOracle(logger)
 	}
 
 	return &Chain{

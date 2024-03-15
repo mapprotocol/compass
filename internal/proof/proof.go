@@ -3,6 +3,8 @@ package proof
 import (
 	"bytes"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"math/big"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -15,6 +17,24 @@ import (
 var (
 	CacheReceipt = make(map[string][]*types.Receipt) // key -> chainId_blockHeight
 )
+
+type ReceiptRLP struct {
+	PostStateOrStatus []byte
+	CumulativeGasUsed uint64
+	Bloom             types.Bloom
+	Logs              []*types.Log
+}
+
+type Data struct {
+	BlockNum     *big.Int
+	ReceiptProof ReceiptProof
+}
+
+type ReceiptProof struct {
+	TxReceipt mapprotocol.TxReceipt
+	KeyIndex  []byte
+	Proof     [][]byte
+}
 
 var encodeBufferPool = sync.Pool{
 	New: func() interface{} { return new(bytes.Buffer) },

@@ -2,7 +2,6 @@ package chain
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -10,7 +9,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 	"math/big"
-	"strings"
 	"time"
 )
 
@@ -116,23 +114,10 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
-	input, err = mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, big.NewInt(int64(m.Cfg.Id)), input)
-	if err != nil {
-		return err
-	}
 
 	msgPayload := []interface{}{input}
 	if m.Cfg.Id == m.Cfg.MapChainID {
 		for _, cid := range m.Cfg.SyncChainIDList {
-			if name, ok := mapprotocol.OnlineChaId[cid]; ok && strings.ToLower(name) == "near" { // todo
-				param := map[string]interface{}{
-					"header": header.Number,
-				}
-				data, _ := json.Marshal(param)
-				msgPayload = []interface{}{data}
-			} else {
-				msgPayload = []interface{}{input}
-			}
 			message := msg.NewSyncFromMap(m.Cfg.MapChainID, cid, msgPayload, m.MsgCh)
 			err = m.Router.Send(message)
 			if err != nil {
