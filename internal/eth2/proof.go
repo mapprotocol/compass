@@ -1,7 +1,10 @@
 package eth2
 
 import (
-	"fmt"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/mapo"
+	"github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"os"
 	"os/exec"
@@ -11,15 +14,9 @@ import (
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"github.com/mapprotocol/compass/pkg/ethclient"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 	"github.com/pkg/errors"
 )
 
@@ -34,7 +31,7 @@ func init() {
 
 func Generate(slot, endpoint string) ([][32]byte, string, string, error) {
 	c := exec.Command(execPath, "generate", "--slot", slot, "--endpoint", endpoint)
-	log.Debug("eth exec", "path", execPath, "cmd", c.String())
+	log.Info("eth exec", "path", execPath, "cmd", c.String())
 	subOutPut, err := c.CombinedOutput()
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "command exec failed")
@@ -72,80 +69,57 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func GetProof(client *ethclient.Client, endPoint string, latestBlock *big.Int, log *types.Log, method string, fId msg.ChainId) ([]byte, error) {
-	header, err := client.EthLatestHeaderByNumber(endPoint, latestBlock)
-	if err != nil {
-		return nil, err
-	}
-	// when syncToMap we need to assemble a tx proof
-	txsHash, err := tx.GetTxsHashByBlockNumber(client, latestBlock)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-	}
-	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-	}
-	return AssembleProof(*ConvertHeader(header), *log, receipts, method, fId)
-}
-
-func AssembleProof(header BlockHeader, log types.Log, receipts []*types.Receipt, method string, fId msg.ChainId) ([]byte, error) {
+func AssembleProof(header BlockHeader, log types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
 		return nil, err
 	}
-
-	proof, err := getProof(receipts, txIndex)
+	pr := Receipts{}
+	for _, r := range receipts {
+		pr = append(pr, &Receipt{Receipt: r})
+	}
+	prf, err := proof.Get(pr, txIndex)
 	if err != nil {
 		return nil, err
 	}
-
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := utils.Key2Hex(key, len(proof))
 
-	pd := ReceiptProof{
-		Header:    header,
-		TxReceipt: *receipt,
-		KeyIndex:  ek,
-		Proof:     proof,
+	var input []byte
+	switch proofType {
+	case constant.ProofTypeOfOrigin:
+		ek := mapo.Key2Hex(key, len(prf))
+		pd := ReceiptProof{
+			Header:    header,
+			TxReceipt: *receipt,
+			KeyIndex:  ek,
+			Proof:     prf,
+		}
+
+		input, err = mapprotocol.Eth2.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+		if err != nil {
+			return nil, err
+		}
+	case constant.ProofTypeOfZk:
+	case constant.ProofTypeOfOracle:
+		pd := proof.Data{
+			BlockNum: big.NewInt(int64(log.BlockNumber)),
+			ReceiptProof: proof.ReceiptProof{
+				TxReceipt: *receipt,
+				KeyIndex:  util.Key2Hex(key, len(prf)),
+				Proof:     prf,
+			},
+		}
+		input, err = mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	input, err := mapprotocol.Eth2.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
-	if err != nil {
-		return nil, err
-	}
-
-	//fmt.Println("bsc getBytes after hex ------------ ", "0x"+common.Bytes2Hex(input))
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	//pack, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
 	if err != nil {
 		return nil, err
 	}
 	return pack, nil
-}
-
-func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
-	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-	if err != nil {
-		return nil, err
-	}
-
-	tr = utils.DeriveTire(receipts, tr)
-	ns := light.NewNodeSet()
-	key, err := rlp.EncodeToBytes(txIndex)
-	if err != nil {
-		return nil, err
-	}
-	if err = tr.Prove(key, 0, ns); err != nil {
-		return nil, err
-	}
-
-	proof := make([][]byte, 0, len(ns.NodeList()))
-	for _, v := range ns.NodeList() {
-		proof = append(proof, v)
-	}
-
-	return proof, nil
 }

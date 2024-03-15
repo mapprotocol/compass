@@ -141,14 +141,6 @@ func (m *Maintainer) sync() error {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
 
-			if m.Metrics != nil {
-				m.Metrics.BlocksProcessed.Inc()
-				m.Metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
-			}
-
-			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)
-			m.LatestBlock.LastUpdated = time.Now()
-
 			currentBlock.Add(currentBlock, big.NewInt(1))
 			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
 				time.Sleep(time.Second * 10)
@@ -161,7 +153,6 @@ func (m *Maintainer) sync() error {
 
 func (m *Maintainer) updateSyncHeight() error {
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-	//syncedHeight, err := mapprotocol.Get2MapByLight()
 	if err != nil {
 		m.Log.Error("Get synced Height failed", "err", err)
 		return err

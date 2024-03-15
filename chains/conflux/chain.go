@@ -3,12 +3,11 @@ package conflux
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"time"
 
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
-	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
@@ -25,17 +24,16 @@ var (
 	cli                       = &conflux.Client{}
 )
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role) (core.Chain, error) {
+func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	client, err := conflux.NewClient(chainCfg.Opts[chain.Eth2Url])
 	if err != nil {
 		panic("conflux init client failed" + err.Error())
 	}
 	cli = client
-	return chain.New(chainCfg, logger, sysErr, m, role, connection.NewConnection,
+	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,
 		chain.OptOfSync2Map(syncHeaderToMap),
 		chain.OptOfInitHeight(mapprotocol.HeaderOneCount),
-		chain.OptOfMos(mosHandler),
+		chain.OptOfAssembleProof(assembleProof),
 	)
 }
 
@@ -110,7 +108,6 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 
-	//fmt.Println("input --------- ", "0x"+ethcommon.Bytes2Hex(input))
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	msgpayload := []interface{}{id, input, true}
 	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgpayload, m.MsgCh)
@@ -129,52 +126,27 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	return nil
 }
 
-func mosHandler(m *chain.Messenger, latestBlock *big.Int) (int, error) {
-	if !m.Cfg.SyncToMap {
-		return 0, nil
-	}
-	m.Log.Debug("Querying block for events", "block", latestBlock)
+func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64) (*msg.Message, error) {
+	var (
+		message msg.Message
+		orderId = log.Data[:32]
+		method  = m.GetMethod(log.Topics[0])
+	)
 
-	count := 0
-	for idx, addr := range m.Cfg.McsContract {
-		query := m.BuildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
-		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
-		if err != nil {
-			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
-		}
-
-		m.Log.Debug("event", "latestBlock ", latestBlock, " logs ", len(logs))
-		for _, log := range logs {
-			var message msg.Message
-			// getOrderId
-			orderId := log.Data[:32]
-			method := m.GetMethod(log.Topics[0])
-			pivot, err := nearestPivot(m, new(big.Int).SetUint64(log.BlockNumber+conflux.DeferredExecutionEpochs))
-			if err != nil {
-				return 0, err
-			}
-
-			m.Log.Info("getPivot", "pivot", pivot)
-			payload, err := conflux.AssembleProof(cli, log.TxHash, log.BlockNumber, pivot.Uint64(), method, m.Cfg.Id)
-			if err != nil {
-				return 0, fmt.Errorf("unable to Parse Log: %w", err)
-			}
-
-			msgPayload := []interface{}{payload, orderId, latestBlock.Uint64(), log.TxHash}
-			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
-			message.Idx = idx
-
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-				"orderId", ethcommon.Bytes2Hex(orderId))
-			err = m.Router.Send(message)
-			if err != nil {
-				m.Log.Error("Subscription error: failed to route message", "err", err)
-			}
-			count++
-		}
+	pivot, err := nearestPivot(m, new(big.Int).SetUint64(log.BlockNumber+conflux.DeferredExecutionEpochs))
+	if err != nil {
+		return nil, err
 	}
 
-	return count, nil
+	m.Log.Info("getPivot", "pivot", pivot)
+	payload, err := conflux.AssembleProof(cli, log.TxHash, log.BlockNumber, uint64(proofType), pivot.Uint64(), method, m.Cfg.Id)
+	if err != nil {
+		return nil, fmt.Errorf("unable to Parse Log: %w", err)
+	}
+
+	msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
+	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+	return &message, nil
 }
 
 func getState(m *chain.Maintainer) (*conflux.ILightNodeState, error) {
@@ -240,7 +212,12 @@ func updateHeaders(m *chain.Maintainer, startNumber, endNumber uint64) error {
 			return err
 		}
 		id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
-		msgPayload := []interface{}{id, input}
+		data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, id, input)
+		if err != nil {
+			m.Log.Error("block2Map Failed to pack abi data", "err", err)
+			return err
+		}
+		msgPayload := []interface{}{id, data}
 		message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 		err = m.Router.Send(message)
 		if err != nil {

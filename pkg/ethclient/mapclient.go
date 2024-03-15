@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
-	"strings"
-
 	"github.com/mapprotocol/atlas/helper/bls"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -39,7 +37,7 @@ func (tx *rpcMAPTransaction) UnmarshalJSON(msg []byte) error {
 	return json.Unmarshal(msg, &tx.txExtraInfo)
 }
 
-func (ec *Client) getMAPBlock(ctx context.Context, method string, args ...interface{}) (*types.Block, error) {
+func (ec *Client) getMAPBlock(ctx context.Context, method string, args ...interface{}) (*Block, error) {
 	var raw json.RawMessage
 	err := ec.c.CallContext(ctx, &raw, method, args...)
 	if err != nil {
@@ -49,7 +47,7 @@ func (ec *Client) getMAPBlock(ctx context.Context, method string, args ...interf
 	}
 	// Decode header and transactions.
 	var head *types.Header
-	var body rpcMAPBlock
+	var body Block
 	if err := json.Unmarshal(raw, &head); err != nil {
 		return nil, err
 	}
@@ -62,29 +60,14 @@ func (ec *Client) getMAPBlock(ctx context.Context, method string, args ...interf
 	if head.TxHash != types.EmptyRootHash && len(body.Transactions) == 0 {
 		return nil, fmt.Errorf("server returned empty transaction list but block header indicates transactions")
 	}
-	// Fill the sender cache of transactions in the block.
-	txs := make([]*types.Transaction, len(body.Transactions))
-	for i, tx := range body.Transactions {
-		if tx.From != nil {
-			setMAPSenderFromServer(tx.tx, *tx.From, body.Hash)
-		}
-		txs[i] = tx.tx
-	}
-	blockSnark := &types.EpochSnarkData{
-		Bitmap: big.NewInt(0),
-	}
-	if body.EpochSnarkData != nil {
-		blockSnark.Signature = common.Hex2Bytes(body.EpochSnarkData.Signature)
-		blockSnark.Bitmap.SetString(strings.TrimPrefix(body.EpochSnarkData.Bitmap, "0x"), 16)
-	}
-	return types.NewBlockWithHeader(head).WithBody(txs, body.Randomness, blockSnark), nil
+	return &body, nil
 }
 
 // MAPBlockByHash returns the given full block.
 //
 // Note that loading full blocks requires two requests. Use HeaderByHash
 // if you don't need all transactions or uncle headers.
-func (ec *Client) MAPBlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
+func (ec *Client) MAPBlockByHash(ctx context.Context, hash common.Hash) (*Block, error) {
 	return ec.getMAPBlock(ctx, "eth_getBlockByHash", hash, true)
 }
 
@@ -93,7 +76,7 @@ func (ec *Client) MAPBlockByHash(ctx context.Context, hash common.Hash) (*types.
 //
 // Note that loading full blocks requires two requests. Use HeaderByNumber
 // if you don't need all transactions or uncle headers.
-func (ec *Client) MAPBlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
+func (ec *Client) MAPBlockByNumber(ctx context.Context, number *big.Int) (*Block, error) {
 	return ec.getMAPBlock(ctx, "eth_getBlockByNumber", toBlockNumArg(number), true)
 }
 

@@ -174,7 +174,7 @@ func (header BlockRlp) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, list)
 }
 
-func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot uint64, method string, fId msg.ChainId) ([]byte, error) {
+func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot, proofType uint64, method string, fId msg.ChainId) ([]byte, error) {
 	if epochNumber+DeferredExecutionEpochs > pivot {
 		return nil, errors.New("Pivot less than current block")
 	}
@@ -234,12 +234,8 @@ func AssembleProof(client *Client, txHash common.Hash, epochNumber, pivot uint64
 	if err != nil {
 		return nil, err
 	}
-	//fmt.Println("proof --------------------- ", common.Bytes2Hex(input))
-	//d, _ := rlp.EncodeToBytes(primitives.MustRLPEncodeReceipt(receipt))
-	//fmt.Println("-------------", "0x"+common.Bytes2Hex(d))
 
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	//pack, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
 	if err != nil {
 		return nil, err
 	}

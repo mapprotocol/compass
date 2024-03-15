@@ -1,18 +1,16 @@
 package bttc
 
 import (
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/proof"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/light"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/klaytn/klaytn/rlp"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
 type BlockHeader struct {
@@ -45,7 +43,7 @@ func convertHeader(header *types.Header) BlockHeader {
 	return BlockHeader{
 		ParentHash:       util.HashToByte(header.ParentHash),
 		Sha3Uncles:       util.HashToByte(header.UncleHash),
-		Miner:            utils.ZeroAddress,
+		Miner:            constant.ZeroAddress,
 		StateRoot:        util.HashToByte(header.Root),
 		TransactionsRoot: util.HashToByte(header.TxHash),
 		ReceiptsRoot:     util.HashToByte(header.ReceiptHash),
@@ -78,21 +76,21 @@ func AssembleProof(headers []BlockHeader, txIndex uint, fId msg.ChainId, allR []
 		return nil, err
 	}
 
-	proof, err := getProof(cullSys, txIndex)
+	prf, err := proof.Get(types.Receipts(cullSys), txIndex)
 	if err != nil {
 		return nil, err
 	}
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := util.Key2Hex(key, len(proof))
+	ek := util.Key2Hex(key, len(prf))
 
 	pd := ProofData{
 		Headers: headers,
 		ReceiptProof: ReceiptProof{
 			TxReceipt: *receipt,
 			KeyIndex:  ek,
-			Proof:     proof,
+			Proof:     prf,
 		},
 	}
 
@@ -106,28 +104,4 @@ func AssembleProof(headers []BlockHeader, txIndex uint, fId msg.ChainId, allR []
 	}
 
 	return pack, nil
-}
-
-func getProof(receipts []*types.Receipt, txIndex uint) ([][]byte, error) {
-	tr, err := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-	if err != nil {
-		return nil, err
-	}
-
-	tr = utils.DeriveTire(receipts, tr)
-	ns := light.NewNodeSet()
-	key, err := rlp.EncodeToBytes(txIndex)
-	if err != nil {
-		return nil, err
-	}
-	if err = tr.Prove(key, 0, ns); err != nil {
-		return nil, err
-	}
-
-	proof := make([][]byte, 0, len(ns.NodeList()))
-	for _, v := range ns.NodeList() {
-		proof = append(proof, v)
-	}
-
-	return proof, nil
 }

@@ -5,23 +5,19 @@ package mapprotocol
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
-	"math/big"
-	"time"
-
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/pkg/contract"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
+	"math/big"
 
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
 
-	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
-	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum"
 	goeth "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/pkg/errors"
@@ -31,32 +27,33 @@ type GetHeight func() (*big.Int, error)
 type GetVerifyRange func() (*big.Int, *big.Int, error)
 
 var (
-	MapId                string
-	GlobalMapConn        *ethclient.Client
-	SyncOtherMap         = make(map[msg.ChainId]*big.Int)                                                 // map to other chain init height
-	Map2OtherHeight      = make(map[msg.ChainId]GetHeight)                                                // get map to other height function collect
-	Map2OtherVerifyRange = make(map[msg.ChainId]GetVerifyRange)                                           // get map to other right verify range function collect
-	Get2MapHeight        = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }                // get other chain to map height
-	Get2MapVerifyRange   = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // get other chain to map verify height
-	GetEth22MapNumber    = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // can reform, return data is []byte
-	GetDataByManager     = func(string, ...interface{}) ([]byte, error) { return nil, nil }
-	Get2MapByLight       = func() (*big.Int, error) { return nil, nil }
+	MapId             string
+	GlobalMapConn     *ethclient.Client
+	SyncOtherMap      = make(map[msg.ChainId]*big.Int)  // map to other chain init height
+	Map2OtherHeight   = make(map[msg.ChainId]GetHeight) // get map to other height function collect
+	ContractMapping   = make(map[msg.ChainId]*contract.Call)
+	Get2MapHeight     = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }                // get other chain to map height
+	GetEth22MapNumber = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // can reform, return data is []byte
+	GetDataByManager  = func(string, ...interface{}) ([]byte, error) { return nil, nil }
+	// Map2OtherVerifyRange = make(map[msg.ChainId]GetVerifyRange) // get map to other right verify range function collect
+	// Get2MapVerifyRange   = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // get other chain to map verify height
+	// Get2MapByLight    = func() (*big.Int, error) { return nil, nil }
 )
 
-func Init2MapHeightByLight(lightNode common.Address) {
-	Get2MapByLight = func() (*big.Int, error) {
-		input, err := PackInput(Height, MethodOfHeaderHeight)
-		if err != nil {
-			return nil, errors.Wrap(err, "get other2map by light packInput failed")
-		}
-
-		height, err := HeaderHeight(lightNode, input)
-		if err != nil {
-			return nil, errors.Wrap(err, "get other2map by light headerHeight failed")
-		}
-		return height, nil
-	}
-}
+//func Init2MapHeightByLight(lightNode common.Address) {
+//	Get2MapByLight = func() (*big.Int, error) {
+//		input, err := PackInput(Height, MethodOfHeaderHeight)
+//		if err != nil {
+//			return nil, errors.Wrap(err, "get other2map by light packInput failed")
+//		}
+//
+//		height, err := HeaderHeight(lightNode, input)
+//		if err != nil {
+//			return nil, errors.Wrap(err, "get other2map by light headerHeight failed")
+//		}
+//		return height, nil
+//	}
+//}
 
 func InitLightManager(lightNode common.Address) {
 	GetDataByManager = func(method string, params ...interface{}) ([]byte, error) {
@@ -66,7 +63,7 @@ func InitLightManager(lightNode common.Address) {
 		}
 		output, err := GlobalMapConn.CallContract(
 			context.Background(),
-			goeth.CallMsg{From: ZeroAddress, To: &lightNode, Data: input},
+			goeth.CallMsg{From: constant.ZeroAddress, To: &lightNode, Data: input},
 			nil,
 		)
 		if err != nil {
@@ -94,7 +91,7 @@ func Init2GetEth22MapNumber(lightNode common.Address) {
 		}
 
 		output, err := GlobalMapConn.CallContract(context.Background(),
-			goeth.CallMsg{From: ZeroAddress, To: &lightNode, Data: input}, nil)
+			goeth.CallMsg{From: constant.ZeroAddress, To: &lightNode, Data: input}, nil)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -210,7 +207,7 @@ func UnpackHeaderHeightOutput(output []byte) (*big.Int, error) {
 }
 
 func HeaderHeight(to common.Address, input []byte) (*big.Int, error) {
-	output, err := GlobalMapConn.CallContract(context.Background(), goeth.CallMsg{From: ZeroAddress, To: &to, Data: input}, nil)
+	output, err := GlobalMapConn.CallContract(context.Background(), goeth.CallMsg{From: constant.ZeroAddress, To: &to, Data: input}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -221,20 +218,21 @@ func HeaderHeight(to common.Address, input []byte) (*big.Int, error) {
 	return height, nil
 }
 
-func InitOtherChain2MapVerifyRange(lightManager common.Address) {
-	Get2MapVerifyRange = func(chainId msg.ChainId) (*big.Int, *big.Int, error) {
-		input, err := PackInput(LightManger, MethodVerifiableHeaderRange, big.NewInt(int64(chainId)))
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "get other2map verifyRange packInput failed")
-		}
-
-		left, right, err := VerifyRange(lightManager, input)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "get other2map verifyRange by lightManager failed")
-		}
-		return left, right, nil
-	}
-}
+//
+//func InitOtherChain2MapVerifyRange(lightManager common.Address) {
+//	Get2MapVerifyRange = func(chainId msg.ChainId) (*big.Int, *big.Int, error) {
+//		input, err := PackInput(LightManger, MethodVerifiableHeaderRange, big.NewInt(int64(chainId)))
+//		if err != nil {
+//			return nil, nil, errors.Wrap(err, "get other2map verifyRange packInput failed")
+//		}
+//
+//		left, right, err := VerifyRange(lightManager, input)
+//		if err != nil {
+//			return nil, nil, errors.Wrap(err, "get other2map verifyRange by lightManager failed")
+//		}
+//		return left, right, nil
+//	}
+//}
 
 func Map2EthVerifyRange(fromUser string, lightNode common.Address, client *ethclient.Client) GetVerifyRange {
 	return func() (*big.Int, *big.Int, error) {
@@ -284,7 +282,7 @@ func Map2NearVerifyRange(lightNode string, client *nearclient.Client) GetVerifyR
 }
 
 func VerifyRange(to common.Address, input []byte) (*big.Int, *big.Int, error) {
-	output, err := GlobalMapConn.CallContract(context.Background(), goeth.CallMsg{From: ZeroAddress, To: &to, Data: input}, nil)
+	output, err := GlobalMapConn.CallContract(context.Background(), goeth.CallMsg{From: constant.ZeroAddress, To: &to, Data: input}, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -310,147 +308,4 @@ func UnpackVerifyRangeOutput(output []byte) (*big.Int, *big.Int, error) {
 		return new(big.Int), new(big.Int), err
 	}
 	return ret.Left, ret.Right, nil
-}
-
-type Connection interface {
-	Keypair() *secp256k1.Keypair
-	Client() *ethclient.Client
-}
-
-func RegisterRelayerWithConn(conn Connection, value int64, logger log15.Logger) error {
-	amoutnOfwei := ethToWei(value)
-	input, err := PackInput(ABIRelayer, MethodOfRegister)
-	if err != nil {
-		return err
-	}
-	kp := conn.Keypair()
-	err = sendContractTransaction(conn.Client(), kp.CommonAddress(),
-		RelayerAddress, amoutnOfwei, kp.PrivateKey(), input, logger)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func BindWorkerWithConn(conn Connection, worker string, logger log15.Logger) error {
-	workerAddr := common.HexToAddress(worker)
-	input, err := PackInput(ABIRelayer, MethodOfBindWorker, workerAddr)
-	if err != nil {
-		return err
-	}
-	kp := conn.Keypair()
-	err = sendContractTransaction(conn.Client(), kp.CommonAddress(),
-		RelayerAddress, nil, kp.PrivateKey(), input, logger)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ethToWei(registerValue int64) *big.Int {
-	baseUnit := big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil)
-	value := big.NewInt(0).Mul(big.NewInt(registerValue), baseUnit)
-	return value
-}
-
-func sendContractTransaction(client *ethclient.Client, from, toAddress common.Address,
-	value *big.Int, privateKey *ecdsa.PrivateKey, input []byte, logger log15.Logger) error {
-
-	// Ensure a valid value field and resolve the account nonce
-	nonce, err := client.PendingNonceAt(context.Background(), from)
-	if err != nil {
-		logger.Error("sendContractTransaction PendingNonceAt")
-		return err
-	}
-
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		logger.Error("sendContractTransaction SuggestGasPrice")
-		return err
-	}
-
-	gasLimit := uint64(2100000) // in units
-	// If the contract surely has code (or code is not needed), estimate the transaction
-	// 如果合同确实有代码（或不需要代码），则估计交易
-	msg := goeth.CallMsg{From: from, To: &toAddress, GasPrice: gasPrice, Value: value, Data: input}
-	gasLimit, err = client.EstimateGas(context.Background(), msg)
-	if err != nil {
-		logger.Warn("client.EstimateGas failed!", "err", err)
-	}
-	//log.Info("EstimateGas gasLimit : ", gasLimit)
-	if gasLimit < 1 {
-		//gasLimit = 866328
-		gasLimit = 2000000
-		logger.Info("use specified gasLimit", "gasLimit", gasLimit)
-	}
-
-	// Create the transaction, sign it and schedule it for execution
-	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, input)
-	logger.Info("NewTx", "gasLimit", gasLimit, "gasPrice", gasPrice)
-
-	chainID, err := client.ChainID(context.Background())
-	if err != nil {
-		logger.Error("sendContractTransaction ChainID")
-		return err
-	}
-	//log.Info("TX data nonce ", nonce, " transfer value ", value, " gasLimit ", gasLimit, " gasPrice ", gasPrice, " chainID ", chainID)
-	signer := types.LatestSignerForChainID(chainID)
-	signedTx, err := types.SignTx(tx, signer, privateKey)
-	if err != nil {
-		logger.Error("sendContractTransaction signedTx")
-		return err
-	}
-
-	err = client.SendTransaction(context.Background(), signedTx)
-	if err != nil {
-		logger.Error("sendContractTransaction client.SendTransaction")
-		return err
-	}
-	txHash := signedTx.Hash()
-	logger.Info("transaction sent", "txHash", txHash)
-	count := 0
-	for {
-		time.Sleep(time.Millisecond * 500)
-		_, isPending, err := client.TransactionByHash(context.Background(), txHash)
-
-		if err != nil {
-			logger.Error("sendContractTransaction TransactionByHash")
-			return err
-		}
-		count++
-		if !isPending {
-			break
-		} else {
-			logger.Info("transaction is pending, please wait...")
-		}
-	}
-	receipt, err := client.TransactionReceipt(context.Background(), txHash)
-	count1 := 0
-	if err != nil {
-		logger.Warn("TransactionReceipt failed, Retrying...", "err", err)
-		for {
-			time.Sleep(time.Second * 5)
-			count1++
-			receipt, err = client.TransactionReceipt(context.Background(), txHash)
-			if err == nil {
-				break
-			} else {
-				logger.Error("TransactionReceipt receipt finding...", "err", err)
-			}
-			if count1 > 10 {
-				return fmt.Errorf("exceed MAX tryout")
-			}
-		}
-	}
-	if receipt.Status == types.ReceiptStatusSuccessful {
-		logger.Info("Transaction Success", "block Number", receipt.BlockNumber.Uint64(), "blockhash", receipt.BlockHash.Hex())
-		return nil
-	} else if receipt.Status == types.ReceiptStatusFailed {
-		logger.Warn("TX data  ", "nonce", nonce, " transfer value", value, " gasLimit", gasLimit, " gasPrice", gasPrice, " chainID", chainID)
-		logger.Warn("Transaction Failed", "Block Number", receipt.BlockNumber.Uint64())
-		return fmt.Errorf("ReceiptStatusFailed")
-	}
-	return fmt.Errorf("ReceiptStatus:%v", receipt.Status)
 }

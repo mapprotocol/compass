@@ -9,11 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/mapprotocol/compass/mapprotocol"
-
-	"github.com/mapprotocol/compass/internal/discovery"
 
 	utilcore "github.com/ChainSafe/chainbridge-utils/core"
 	"github.com/ChainSafe/log15"
@@ -59,16 +55,11 @@ func (c *Core) Start() {
 	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigc)
 
-	err := discovery.Register(string(c.role), mapprotocol.OnlineChaId)
-	if err != nil {
-		log.Error("register failed", "err", err)
-	}
 	// Block here and wait for a signal
 	select {
 	case err := <-c.sysErr:
 		c.log.Error("FATAL ERROR. Shutting down.", "err", err)
 	case <-sigc:
-		_ = discovery.UnRegister()
 		c.log.Warn("Interrupt received, shutting down now.")
 	}
 

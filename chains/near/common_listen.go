@@ -24,14 +24,13 @@ type CommonListen struct {
 	msgCh              chan struct{}
 	sysErr             chan<- error // Reports fatal error to core
 	latestBlock        metrics.LatestBlock
-	metrics            *metrics.ChainMetrics
 	blockConfirmations *big.Int
 	blockStore         blockstore.Blockstorer
 }
 
 // NewCommonListen creates and returns a listener
 func NewCommonListen(conn Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error,
-	m *metrics.ChainMetrics, bs blockstore.Blockstorer) *CommonListen {
+	bs blockstore.Blockstorer) *CommonListen {
 	return &CommonListen{
 		cfg:                *cfg,
 		conn:               conn,
@@ -39,7 +38,6 @@ func NewCommonListen(conn Connection, cfg *Config, log log15.Logger, stop <-chan
 		stop:               stop,
 		sysErr:             sysErr,
 		latestBlock:        metrics.LatestBlock{LastUpdated: time.Now()},
-		metrics:            m,
 		blockConfirmations: cfg.blockConfirmations,
 		msgCh:              make(chan struct{}),
 		blockStore:         bs,

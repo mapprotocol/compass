@@ -3,7 +3,6 @@ package chain
 import (
 	"context"
 	"fmt"
-
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/util"
@@ -50,7 +49,6 @@ func (m *Maintainer) sync() error {
 
 	if m.Cfg.SyncToMap {
 		syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
-		//syncedHeight, err := mapprotocol.Get2MapByLight()
 		if err != nil {
 			m.Log.Error("Get synced Height failed", "err", err)
 			return err
@@ -90,17 +88,12 @@ func (m *Maintainer) sync() error {
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
-			if m.Metrics != nil {
-				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
-			}
 
-			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.QueryRetryInterval)
 				continue
 			}
-			// latestBlock must less than blockNumber of chain online，otherwise time.sleep
 			difference := new(big.Int).Sub(currentBlock, latestBlock)
 			if difference.Int64() > 0 {
 				m.Log.Info("chain online blockNumber less than local latestBlock, waiting...", "chainBlcNum", latestBlock,
@@ -134,11 +127,6 @@ func (m *Maintainer) sync() error {
 			err = m.BlockStore.StoreBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
-			}
-
-			if m.Metrics != nil {
-				m.Metrics.BlocksProcessed.Inc()
-				m.Metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
 			}
 
 			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)

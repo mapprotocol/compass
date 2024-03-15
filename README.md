@@ -195,7 +195,8 @@ Ethereum chains support the following additional options:
     "event": "mapTransferOut(...)|depositOutToken(...)",    // MCS events monitored by the program, multiple with | interval，
                                                             // Here we give the events that need to be monitored，Map:mapTransferOut(bytes,bytes,bytes32,uint256,uint256,bytes,uint256,bytes) Near: 2ef1cdf83614a69568ed2c96a275dd7fb2e63a464aa3a0ffe79f55d538c8b3b5|150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377
     "waterLine": "5000000000000000000",                     // If the user balance is lower than, an alarm will be triggered, unit ：wei
-    "alarmSecond": "3000",                                  // How long does the user balance remain unchanged, triggering the alarm, unit ：seconds                                              
+    "alarmSecond": "3000",                                  // How long does the user balance remain unchanged, triggering the alarm, unit ：seconds
+    "oracleNode": "1234"                                    // use to match event                                              
 }
 ```
 ## Blockstore

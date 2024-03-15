@@ -57,3 +57,28 @@ func (m *Messenger) SetRouter(r chains.Router) {
 func (m *Messenger) GetLatestBlock() metrics.LatestBlock {
 	return metrics.LatestBlock{}
 }
+
+type oracle struct {
+	Log log15.Logger
+}
+
+func NewOracle(log log15.Logger) *Messenger {
+	return &Messenger{Log: log}
+}
+
+func (m *oracle) Sync() error {
+	m.Log.Debug("Starting listener...")
+	go func() {
+		time.Sleep(time.Hour * 2400)
+	}()
+
+	return nil
+}
+
+func (m *oracle) SetRouter(r chains.Router) {
+
+}
+
+func (m *oracle) GetLatestBlock() metrics.LatestBlock {
+	return metrics.LatestBlock{}
+}

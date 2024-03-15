@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
 	"time"
@@ -29,7 +30,6 @@ func (w *Writer) execToMapMsg(m msg.Message) bool {
 			id, _ := m.Payload[0].(*big.Int)
 			marshal, _ := m.Payload[1].([]byte)
 			isEth2 := false
-			// Eth2 exclusive process
 			if len(m.Payload) >= 3 {
 				isEth2, _ = m.Payload[2].(bool)
 			}
@@ -65,12 +65,12 @@ func (w *Writer) toMap(m msg.Message, id *big.Int, marshal []byte, method string
 	}
 
 	data, err := mapprotocol.PackInput(mapprotocol.LightManger, method, id, marshal)
-	//data, err := mapprotocol.PackInput(mapprotocol.Bttc, method, marshal)
 	if err != nil {
 		w.log.Error("block2Map Failed to pack abi data", "err", err)
 		w.conn.UnlockOpts()
 		return err
 	}
+	fmt.Println("data ----------- ", "0x"+common.Bytes2Hex(data))
 	tx, err := w.sendTx(&w.cfg.LightNode, nil, data)
 	w.conn.UnlockOpts()
 	if err == nil {

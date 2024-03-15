@@ -1,19 +1,15 @@
 package bsc
 
 import (
-	"context"
-	"fmt"
+	"github.com/mapprotocol/compass/internal/mapo"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	iproof "github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"github.com/mapprotocol/compass/pkg/ethclient"
-	utils "github.com/mapprotocol/compass/shared/ethereum"
 )
 
 type Header struct {
@@ -86,48 +82,21 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func GetProof(client *ethclient.Client, latestBlock *big.Int, log *types.Log, method string, fId msg.ChainId) ([]byte, error) {
-	txsHash, err := tx.GetTxsHashByBlockNumber(client, latestBlock)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-	}
-	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-	}
-
-	headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
-	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
-		headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
-		header, err := client.HeaderByNumber(context.Background(), headerHeight)
-		if err != nil {
-			return nil, err
-		}
-		headers[i] = *header
-	}
-
-	params := make([]Header, 0, len(headers))
-	for _, h := range headers {
-		params = append(params, ConvertHeader(h))
-	}
-	return AssembleProof(params, *log, receipts, method, fId)
-}
-
-func AssembleProof(header []Header, log types.Log, receipts []*types.Receipt, method string, fId msg.ChainId) ([]byte, error) {
+func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
 		return nil, err
 	}
 
-	proof, err := iproof.Get(receipts, txIndex)
+	proof, err := iproof.Get(types.Receipts(receipts), txIndex)
 	if err != nil {
 		return nil, err
 	}
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := utils.Key2Hex(key, len(proof))
+	ek := mapo.Key2Hex(key, len(proof))
 
 	pd := ProofData{
 		Headers: header,

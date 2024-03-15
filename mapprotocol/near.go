@@ -15,13 +15,6 @@ const (
 	DepositOut  = "deposit out"
 )
 
-const (
-	HashOfTransferOut = "2ef1cdf83614a69568ed2c96a275dd7fb2e63a464aa3a0ffe79f55d538c8b3b5"
-	HashOfDepositOut  = "150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377"
-)
-
-var NearEventType = []string{TransferOut, DepositOut}
-
 type StreamerMessage struct {
 	Block  client.BlockView `json:"block"`
 	Shards []IndexerShard   `json:"shards"`
@@ -61,30 +54,6 @@ type Action struct {
 	SignerID            string        `json:"signer_id"`
 	SignerPublicKey     string        `json:"signer_public_key"`
 }
-
-/*
-Actions 结构如下：
-1.
-	type Actions struct {
-		Transfer Transfer `json:"Transfer"`
-	}
-
-	type Transfer struct {
-		Deposit string `json:"deposit"`
-	}
-
-2.
-	type FunctionCallAction struct {
-		FunctionCall FunctionCall `json:"function_call"`
-	}
-
-	type FunctionCall struct {
-		Args       string  `json:"args"`
-		Deposit    string  `json:"deposit"`
-		Gas        big.Int `json:"gas"`
-		MethodName string  `json:"method_name"`
-	}
-*/
 
 type IndexerTransactionWithOutcome struct {
 	Outcome     IndexerExecutionOutcomeWithOptionalReceipt `json:"outcome"`
@@ -168,16 +137,4 @@ type AccessKey struct {
 
 type (
 	TypeOfStateChange string
-	TypeOfCause       string
-)
-
-const (
-	AccountUpdate      TypeOfStateChange = "account_update"
-	ContractCodeUpdate TypeOfStateChange = "contract_code_update"
-	AccessKeyUpdate    TypeOfStateChange = "access_key_update"
-)
-
-const (
-	ReceiptProcessing     TypeOfCause = "receipt_processing"
-	TransactionProcessing TypeOfCause = "transaction_processing"
 )

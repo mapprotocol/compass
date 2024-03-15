@@ -23,19 +23,6 @@ func GetTxsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.
 	return txs, nil
 }
 
-func GetMapTxsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
-	block, err := conn.MAPBlockByNumber(context.Background(), number)
-	if err != nil {
-		return nil, err
-	}
-
-	txs := make([]common.Hash, 0, len(block.Transactions()))
-	for _, tx := range block.Transactions() {
-		txs = append(txs, tx.Hash())
-	}
-	return txs, nil
-}
-
 func GetReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([]*types.Receipt, error) {
 	type ele struct {
 		r   *types.Receipt
@@ -113,7 +100,6 @@ func GetMaticReceiptsByTxsHash(conn *ethclient.Client, txsHash []common.Hash) ([
 			go func(i int, tx common.Hash) {
 				for {
 					r, err := conn.TransactionReceipt(context.Background(), tx)
-					//fmt.Println("-----------------------", i, "-", tx, "-", err)
 					if err != nil {
 						if err.Error() == "not found" {
 							receive <- &ele{

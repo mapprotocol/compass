@@ -19,13 +19,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-func NewChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role) (core.Chain, error) {
-	return createChain(chainCfg, logger, sysErr, m, role)
+func NewChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+	return createChain(chainCfg, logger, sysErr, role)
 }
 
-func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, m *metrics.ChainMetrics,
-	role mapprotocol.Role, opts ...chain.SyncOpt) (core.Chain, error) {
+func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role, opts ...chain.SyncOpt) (core.Chain, error) {
 	config, err := parseCfg(chainCfg)
 	if err != nil {
 		return nil, err
@@ -49,7 +47,8 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		listen chains.Listener
 	)
 
-	if role == mapprotocol.RoleOfMaintainer {
+	switch role {
+	case mapprotocol.RoleOfMaintainer:
 		fn := Map2Tron(config.From, config.LightNode, conn.cli)
 		height, err := fn()
 		if err != nil {
@@ -59,8 +58,10 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		mapprotocol.SyncOtherMap[config.Id] = height
 		mapprotocol.Map2OtherHeight[config.Id] = fn
 		listen = NewMaintainer(logger)
-	} else if role == mapprotocol.RoleOfMessenger {
-
+	case mapprotocol.RoleOfMessenger:
+		listen = NewMessenger(logger)
+	case mapprotocol.RoleOfOracle:
+		listen = NewOracle(logger)
 	}
 
 	return &Chain{

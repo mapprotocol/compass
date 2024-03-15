@@ -2,12 +2,15 @@ package chain
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/big"
-	"time"
-
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
+	"math/big"
+	"strconv"
+	"time"
 
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/util"
@@ -58,36 +61,19 @@ func (m *Messenger) sync() error {
 				continue
 			}
 
-			if m.Metrics != nil {
-				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
-			}
-
-			if m.Cfg.SyncToMap {
-				left, right, err := mapprotocol.Get2MapVerifyRange(m.Cfg.Id)
-				if err != nil {
-					m.Log.Warn("Get2MapVerifyRange failed", "err", err)
-				}
-				if right != nil && right.Uint64() != 0 && right.Cmp(currentBlock) == -1 {
-					m.Log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "maxVerify", right)
-					time.Sleep(time.Minute)
-					continue
-				}
-				if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
-					m.Log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
-					currentBlock = left
-				}
-			}
-
 			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
-			// messager
-			// Parse out events
 			count, err := m.mosHandler(m, currentBlock)
 			if err != nil {
+				if errors.Is(err, NotVerifyAble) {
+					m.Log.Error("CurrentBlock not verify", "block", currentBlock, "err", err)
+					time.Sleep(constant.BalanceRetryInterval)
+					continue
+				}
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				time.Sleep(constant.BlockRetryInterval)
 				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
@@ -101,13 +87,6 @@ func (m *Messenger) sync() error {
 			if err != nil {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
-			if m.Metrics != nil {
-				m.Metrics.BlocksProcessed.Inc()
-				m.Metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
-			}
-
-			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)
-			m.LatestBlock.LastUpdated = time.Now()
 
 			currentBlock.Add(currentBlock, big.NewInt(1))
 			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
@@ -115,4 +94,51 @@ func (m *Messenger) sync() error {
 			}
 		}
 	}
+}
+
+func defaultMosHandler(m *Messenger, blockNumber *big.Int) (int, error) {
+	count := 0
+	for idx, addr := range m.Cfg.McsContract {
+		query := m.BuildQuery(addr, m.Cfg.Events, blockNumber, blockNumber)
+		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
+		if err != nil {
+			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
+		}
+
+		m.Log.Debug("event", "blockNumber ", blockNumber, " logs ", len(logs))
+		for _, log := range logs {
+			orderId := log.Data[:32]
+			toChainID, _ := strconv.ParseUint(mapprotocol.MapId, 10, 64)
+			if m.Cfg.Id == m.Cfg.MapChainID {
+				toChainID = binary.BigEndian.Uint64(log.Topics[2][len(log.Topics[2])-8:])
+			}
+			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
+				m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
+				continue
+			}
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", common.Bytes2Hex(orderId))
+			//proofType, err := PreSendTx(idx, uint64(m.Cfg.Id), toChainID, blockNumber, orderId)
+			//if errors.Is(err, OrderExist) {
+			//	m.Log.Info("This txHash order exist", "blockNumber", blockNumber, "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId))
+			//	continue
+			//}
+			//if err != nil {
+			//	return 0, err
+			//}
+			tmpLog := log
+			message, err := m.assembleProof(m, &tmpLog, 1, toChainID)
+			if err != nil {
+				return 0, err
+			}
+			message.Idx = idx
+
+			err = m.Router.Send(*message)
+			if err != nil {
+				m.Log.Error("Subscription error: failed to route message", "err", err)
+			}
+			count++
+		}
+	}
+	return count, nil
 }

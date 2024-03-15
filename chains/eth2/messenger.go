@@ -4,19 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/mapprotocol"
 	"math/big"
+	"strconv"
 	"time"
 
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/tx"
-	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/mapprotocol/compass/msg"
-
-	ethcommon "github.com/ethereum/go-ethereum/common"
 )
 
 type Messenger struct {
@@ -50,10 +50,6 @@ func (m *Messenger) sync() error {
 		time.Sleep(time.Hour * 2400)
 	}
 	var currentBlock = m.Cfg.StartBlock
-	big20 := big.NewInt(20)
-	if m.BlockConfirmations.Cmp(big20) == -1 {
-		m.BlockConfirmations = big20
-	}
 
 	for {
 		select {
@@ -67,33 +63,11 @@ func (m *Messenger) sync() error {
 				continue
 			}
 
-			if m.Metrics != nil {
-				m.Metrics.LatestKnownBlock.Set(float64(latestBlock.Int64()))
-			}
-
-			left, right, err := mapprotocol.Get2MapVerifyRange(m.Cfg.Id)
-			if err != nil {
-				m.Log.Warn("Get2MapVerifyRange failed", "err", err)
-			}
-			if right != nil && right.Uint64() != 0 && right.Cmp(currentBlock) == -1 {
-				m.Log.Info("currentBlock less than max verify range", "currentBlock", currentBlock, "maxVerify", right)
-				time.Sleep(time.Minute)
-				continue
-			}
-
-			if left != nil && left.Uint64() != 0 && left.Cmp(currentBlock) == 1 {
-				m.Log.Info("min verify range greater than currentBlock, set current to left", "currentBlock", currentBlock, "minVerify", left)
-				currentBlock = left
-			}
-
-			//Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
-			// messager
-			// Parse out events
 			count, err := m.getEventsForBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
@@ -110,13 +84,6 @@ func (m *Messenger) sync() error {
 			if err != nil {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
-			if m.Metrics != nil {
-				m.Metrics.BlocksProcessed.Inc()
-				m.Metrics.LatestProcessedBlock.Set(float64(latestBlock.Int64()))
-			}
-
-			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)
-			m.LatestBlock.LastUpdated = time.Now()
 
 			// Goto next block and reset retry counter
 			currentBlock.Add(currentBlock, big.NewInt(1))
@@ -134,25 +101,36 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	count := 0
 	for idx, addr := range m.Cfg.McsContract {
 		query := m.BuildQuery(addr, m.Cfg.Events, latestBlock, latestBlock)
-		// querying for logs
 		logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 		if err != nil {
 			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 		}
 
-		// read through the log events and handle their deposit event if handler is recognized
 		for _, log := range logs {
 			// evm event to msg
 			var message msg.Message
-			// getOrderId
 			orderId := log.Data[:32]
+			toChainID, _ := strconv.ParseUint(mapprotocol.MapId, 10, 64)
+			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
+				m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
+				continue
+			}
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "orderId", ethcommon.Bytes2Hex(orderId))
+			//proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), toChainID, latestBlock, orderId)
+			//if errors.Is(err, chain.OrderExist) {
+			//	m.Log.Info("This txHash order exist", "blockNumber", latestBlock, "txHash", log.TxHash)
+			//	continue
+			//}
+			if err != nil {
+				return 0, err
+			}
 			method := m.GetMethod(log.Topics[0])
 			header, err := m.Conn.Client().EthLatestHeaderByNumber(m.Cfg.Endpoint, latestBlock)
 			if err != nil {
 				return 0, err
 			}
 			// when syncToMap we need to assemble a tx proof
-			txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), latestBlock)
+			txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
 			if err != nil {
 				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 			}
@@ -160,7 +138,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			if err != nil {
 				return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 			}
-			payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id)
+			payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, constant.ProofTypeOfOracle)
 			if err != nil {
 				return 0, fmt.Errorf("unable to Parse Log: %w", err)
 			}
@@ -169,7 +147,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 			message.Idx = idx
 
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "orderId", ethcommon.Bytes2Hex(orderId))
 			err = m.Router.Send(message)
 			if err != nil {
 				m.Log.Error("Subscription error: failed to route message", "err", err)
