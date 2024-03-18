@@ -118,16 +118,16 @@ func defaultMosHandler(m *Messenger, blockNumber *big.Int) (int, error) {
 			}
 			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
 				"orderId", common.Bytes2Hex(orderId))
-			//proofType, err := PreSendTx(idx, uint64(m.Cfg.Id), toChainID, blockNumber, orderId)
-			//if errors.Is(err, OrderExist) {
-			//	m.Log.Info("This txHash order exist", "blockNumber", blockNumber, "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId))
-			//	continue
-			//}
-			//if err != nil {
-			//	return 0, err
-			//}
+			proofType, err := PreSendTx(idx, uint64(m.Cfg.Id), toChainID, blockNumber, orderId)
+			if errors.Is(err, OrderExist) {
+				m.Log.Info("This txHash order exist", "blockNumber", blockNumber, "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId))
+				continue
+			}
+			if err != nil {
+				return 0, err
+			}
 			tmpLog := log
-			message, err := m.assembleProof(m, &tmpLog, 1, toChainID)
+			message, err := m.assembleProof(m, &tmpLog, proofType, toChainID)
 			if err != nil {
 				return 0, err
 			}
