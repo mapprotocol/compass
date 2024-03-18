@@ -115,10 +115,14 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 		return err
 	}
 
-	msgPayload := []interface{}{input}
 	if m.Cfg.Id == m.Cfg.MapChainID {
+		data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, big.NewInt(int64(m.Cfg.Id)), input)
+		if err != nil {
+			return err
+		}
+
 		for _, cid := range m.Cfg.SyncChainIDList {
-			message := msg.NewSyncFromMap(m.Cfg.MapChainID, cid, msgPayload, m.MsgCh)
+			message := msg.NewSyncFromMap(m.Cfg.MapChainID, cid, []interface{}{data}, m.MsgCh)
 			err = m.Router.Send(message)
 			if err != nil {
 				m.Log.Error("subscription error: failed to route message", "err", err)
@@ -128,8 +132,7 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 		}
 	} else {
 		id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
-		msgPayload = []interface{}{id, input}
-		message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+		message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{id, input}, m.MsgCh)
 		err = m.Router.Send(message)
 		if err != nil {
 			m.Log.Error("subscription error: failed to route message", "err", err)
