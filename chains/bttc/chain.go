@@ -26,6 +26,7 @@ func NewChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- err
 		chain.OptOfSync2Map(syncHeaderToMap),
 		chain.OptOfInitHeight(mapprotocol.HeaderOneCount),
 		chain.OptOfMos(mosHandler),
+		chain.OptOfOracleHandler(chain.DefaultOracleHandler),
 	)
 }
 

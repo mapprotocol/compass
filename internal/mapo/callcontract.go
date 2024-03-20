@@ -82,6 +82,8 @@ func ethProof(fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte,
 			pr = append(pr, &op.Receipt{Receipt: r})
 		}
 		dls = pr
+	default:
+		dls = types.Receipts(receipts)
 	}
 	ret, err := proof.Get(dls, txIdx)
 	if err != nil {

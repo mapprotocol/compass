@@ -34,6 +34,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		chain.OptOfSync2Map(syncHeaderToMap),
 		chain.OptOfInitHeight(mapprotocol.HeaderOneCount),
 		chain.OptOfAssembleProof(assembleProof),
+		chain.OptOfOracleHandler(chain.DefaultOracleHandler),
 	)
 }
 
