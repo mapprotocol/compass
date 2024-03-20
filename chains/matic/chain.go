@@ -21,6 +21,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,
 		chain.OptOfSync2Map(syncHeaderToMap),
 		chain.OptOfInitHeight(12),
+		chain.OptOfOracleHandler(chain.DefaultOracleHandler),
 		chain.OptOfAssembleProof(assembleProof),
 	)
 }

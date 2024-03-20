@@ -45,7 +45,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 
 	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,
 		chain.OptOfSync2Map(syncHeaderToMap),
-		chain.OptOfAssembleProof(assembleProof))
+		chain.OptOfAssembleProof(assembleProof),
+		chain.OptOfOracleHandler(chain.DefaultOracleHandler))
 }
 
 func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {

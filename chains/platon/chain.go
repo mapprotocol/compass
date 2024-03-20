@@ -19,7 +19,7 @@ import (
 )
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
-	return chain.New(chainCfg, logger, sysErr, role, platon.NewConn, chain.OptOfSync2Map(syncHeaderToMap), chain.OptOfAssembleProof(assembleProof))
+	return chain.New(chainCfg, logger, sysErr, role, platon.NewConn, chain.OptOfSync2Map(syncHeaderToMap), chain.OptOfAssembleProof(assembleProof), chain.OptOfOracleHandler(chain.DefaultOracleHandler))
 }
 
 func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
