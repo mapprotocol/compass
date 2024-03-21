@@ -93,3 +93,10 @@ var (
 const (
 	ReceiptStatusFailed = uint64(0)
 )
+
+const (
+	MerlinChainId     = 4200
+	OpChainId         = 10
+	ArbChainId        = 421614
+	ArbTestnetChainId = 42161
+)

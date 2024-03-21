@@ -46,7 +46,7 @@ func Get(receipts DerivableList, txIndex uint) ([][]byte, error) {
 		return nil, err
 	}
 
-	tr = deriveTire(receipts, tr)
+	tr = DeriveTire(receipts, tr)
 	ns := light.NewNodeSet()
 	key, err := rlp.EncodeToBytes(txIndex)
 	if err != nil {
@@ -64,7 +64,7 @@ func Get(receipts DerivableList, txIndex uint) ([][]byte, error) {
 	return proof, nil
 }
 
-func deriveTire(rs DerivableList, tr *trie.Trie) *trie.Trie {
+func DeriveTire(rs DerivableList, tr *trie.Trie) *trie.Trie {
 	valueBuf := encodeBufferPool.Get().(*bytes.Buffer)
 	defer encodeBufferPool.Put(valueBuf)
 
