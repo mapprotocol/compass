@@ -70,13 +70,13 @@ func AssembleEthProof(log *types.Log, receipts []*types.Receipt, method string, 
 func ethProof(fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte, error) {
 	var dls proof.DerivableList
 	switch fId {
-	case 421614, 42161: // arb
+	case constant.ArbChainId, constant.ArbTestnetChainId:
 		pr := arb.Receipts{}
 		for _, r := range receipts {
 			pr = append(pr, &arb.Receipt{Receipt: r})
 		}
 		dls = pr
-	case 10: // op
+	case constant.OpChainId:
 		pr := op.Receipts{}
 		for _, r := range receipts {
 			pr = append(pr, &op.Receipt{Receipt: r})
