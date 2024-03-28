@@ -58,7 +58,6 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				time.Sleep(constant.TxRetryInterval)
 				continue
 			}
-			//w.conn.UnlockOpts()
 
 			var inputHash interface{}
 			if len(m.Payload) > 3 {

@@ -2,7 +2,6 @@ package chain
 
 import (
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/mapprotocol/compass/chains"
@@ -43,8 +42,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 	}
 
 	stop := make(chan int)
-	conn := createConn(cfg.Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice,
-		cfg.GasMultiplier, cfg.EgsApiKey, cfg.EgsSpeed)
+	conn := createConn(cfg.Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice, cfg.GasMultiplier)
 	err = conn.Connect()
 	if err != nil {
 		return nil, err
@@ -113,10 +111,6 @@ func (c *Chain) Id() msg.ChainId {
 
 func (c *Chain) Name() string {
 	return c.cfg.Name
-}
-
-func (c *Chain) LatestBlock() metrics.LatestBlock {
-	return c.listen.GetLatestBlock()
 }
 
 // Stop signals to any running routines to exit

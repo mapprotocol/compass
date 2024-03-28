@@ -2,12 +2,12 @@ package tron
 
 import (
 	"fmt"
+	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"math/big"
 	"os"
 
 	"github.com/mapprotocol/compass/keystore"
 
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/lbtsm/gotron-sdk/pkg/client"
@@ -35,6 +35,12 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		return nil, err
 	}
 
+	ethConn := connection.NewConnection(config.Eth2Endpoint, true, nil, logger, config.GasLimit, config.MaxGasPrice, 0)
+	err = ethConn.Connect()
+	if err != nil {
+		return nil, err
+	}
+
 	var pswd []byte
 	if pswdStr := os.Getenv(keystore.EnvPassword); pswdStr != "" {
 		pswd = []byte(pswdStr)
@@ -43,9 +49,14 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 	}
 
 	var (
-		stop   = make(chan int, 0)
+		stop   = make(chan int)
 		listen chains.Listener
 	)
+	bs, err := chain.SetupBlockStore(&config.Config, role)
+	if err != nil {
+		return nil, err
+	}
+	cs := chain.NewCommonSync(ethConn, &config.Config, logger, stop, sysErr, bs)
 
 	switch role {
 	case mapprotocol.RoleOfMaintainer:
@@ -59,9 +70,9 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		mapprotocol.Map2OtherHeight[config.Id] = fn
 		listen = NewMaintainer(logger)
 	case mapprotocol.RoleOfMessenger:
-		listen = NewMessenger(logger)
+		listen = newSync(cs, config.OracleNode, messengerHandler)
 	case mapprotocol.RoleOfOracle:
-		listen = NewOracle(logger)
+		listen = newSync(cs, config.OracleNode, oracleHandler)
 	}
 
 	return &Chain{
@@ -102,10 +113,6 @@ func (c *Chain) Id() msg.ChainId {
 
 func (c *Chain) Name() string {
 	return c.cfg.Name
-}
-
-func (c *Chain) LatestBlock() metrics.LatestBlock {
-	return c.listen.GetLatestBlock()
 }
 
 // Stop signals to any running routines to exit

@@ -29,8 +29,6 @@ type Connection struct {
 	gasLimit      *big.Int
 	maxGasPrice   *big.Int
 	gasMultiplier *big.Float
-	egsApiKey     string
-	egsSpeed      string
 	conn          *ethclient.Client
 	opts          *bind.TransactOpts
 	callOpts      *bind.CallOpts
@@ -42,7 +40,7 @@ type Connection struct {
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
 func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
-	gasMultiplier float64, gsnApiKey, gsnSpeed string) core.Connection {
+	gasMultiplier float64) core.Connection {
 	bigFloat := new(big.Float).SetFloat64(gasMultiplier)
 	return &Connection{
 		endpoint:      endpoint,
@@ -51,8 +49,6 @@ func NewConnection(endpoint string, http bool, kp *secp256k1.Keypair, log log15.
 		gasLimit:      gasLimit,
 		maxGasPrice:   gasPrice,
 		gasMultiplier: bigFloat,
-		egsApiKey:     gsnApiKey,
-		egsSpeed:      gsnSpeed,
 		log:           log,
 		stop:          make(chan int),
 	}
@@ -81,12 +77,14 @@ func (c *Connection) Connect() error {
 	}
 	c.opts = opts
 	c.nonce = 0
-	c.callOpts = &bind.CallOpts{From: c.kp.CommonAddress()}
 	return nil
 }
 
 // newTransactOpts builds the TransactOpts for the connection's keypair.
 func (c *Connection) newTransactOpts(value, gasLimit, gasPrice *big.Int) (*bind.TransactOpts, uint64, error) {
+	if c.kp == nil {
+		return nil, 0, nil
+	}
 	privateKey := c.kp.PrivateKey()
 	address := ethcrypto.PubkeyToAddress(privateKey.PublicKey)
 

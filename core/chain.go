@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,7 +21,6 @@ type Chain interface {
 	SetRouter(*Router)
 	Id() msg.ChainId
 	Name() string
-	LatestBlock() metrics.LatestBlock
 	Stop()
 	Conn() Connection
 }
@@ -67,4 +65,4 @@ type Eth2Connection interface {
 	Eth2Client() *eth2.Client
 }
 
-type CreateConn func(string, bool, *secp256k1.Keypair, log15.Logger, *big.Int, *big.Int, float64, string, string) Connection
+type CreateConn func(string, bool, *secp256k1.Keypair, log15.Logger, *big.Int, *big.Int, float64) Connection

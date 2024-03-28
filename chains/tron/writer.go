@@ -167,23 +167,20 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 }
 
 func (w *Writer) sendTx(addr string, input []byte) (string, error) {
-	/*
-		// online estimateEnergy
-		//contract, err := w.conn.cli.TriggerConstantContract(w.cfg.From, addr, "estimateenergy", "{}")
-		//if err != nil {
-		//	w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
-		//	return "", err
-		//}
-		//w.log.Info("------------ ", "resp", contract.EnergyUsed)
-	*/
-	// estimateEnergy
-	estimate, err := w.conn.cli.EstimateEnergy(w.cfg.From, addr, input, 0, "", 0)
+	// online estimateEnergy
+	contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, input)
 	if err != nil {
-		w.log.Error("Failed to EstimateEnergy", "err", err)
+		w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
 		return "", err
 	}
-	feeLimit := big.NewInt(0).Mul(big.NewInt(estimate.EnergyRequired), multiple)
-	w.log.Info("EstimateEnergy", "estimate", estimate, "multiple", multiple, "feeLimit", feeLimit)
+	//// estimateEnergy
+	//estimate, err := w.conn.cli.EstimateEnergy(w.cfg.From, addr, input, 0, "", 0)
+	//if err != nil {
+	//	w.log.Error("Failed to EstimateEnergy", "err", err)
+	//	return "", err
+	//}
+	feeLimit := big.NewInt(0).Mul(big.NewInt(contract.EnergyUsed), multiple)
+	w.log.Info("EstimateEnergy", "estimate", contract.EnergyUsed, "multiple", multiple, "feeLimit", feeLimit)
 	// send transaction
 	tx, err := w.conn.cli.TriggerContract(w.cfg.From, addr, input, feeLimit.Int64(), 0, "", 0)
 	if err != nil {

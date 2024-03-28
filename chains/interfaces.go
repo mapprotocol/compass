@@ -4,7 +4,6 @@
 package chains
 
 import (
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/mapprotocol/compass/msg"
 )
 
@@ -15,11 +14,9 @@ type Router interface {
 type Listener interface {
 	Sync() error
 	SetRouter(r Router)
-	GetLatestBlock() metrics.LatestBlock
 }
 
 const (
-	Map      = "map"
 	Bsc      = "bsc"
 	Matic    = "matic"
 	Klaytn   = "klaytn"
