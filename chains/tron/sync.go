@@ -50,12 +50,11 @@ type Handler func(*sync, *big.Int) (int, error)
 
 type sync struct {
 	*chain.CommonSync
-	oracleNode string
-	handler    Handler
+	handler Handler
 }
 
-func newSync(cs *chain.CommonSync, oracleNode string, handler Handler) *sync {
-	return &sync{CommonSync: cs, oracleNode: oracleNode, handler: handler}
+func newSync(cs *chain.CommonSync, handler Handler) *sync {
+	return &sync{CommonSync: cs, handler: handler}
 }
 
 func (m *sync) Sync() error {

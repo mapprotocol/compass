@@ -70,9 +70,9 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		mapprotocol.Map2OtherHeight[config.Id] = fn
 		listen = NewMaintainer(logger)
 	case mapprotocol.RoleOfMessenger:
-		listen = newSync(cs, config.OracleNode, messengerHandler)
+		listen = newSync(cs, messengerHandler)
 	case mapprotocol.RoleOfOracle:
-		listen = newSync(cs, config.OracleNode, oracleHandler)
+		listen = newSync(cs, oracleHandler)
 	}
 
 	return &Chain{
