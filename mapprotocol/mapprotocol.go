@@ -35,25 +35,7 @@ var (
 	Get2MapHeight     = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }                // get other chain to map height
 	GetEth22MapNumber = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // can reform, return data is []byte
 	GetDataByManager  = func(string, ...interface{}) ([]byte, error) { return nil, nil }
-	// Map2OtherVerifyRange = make(map[msg.ChainId]GetVerifyRange) // get map to other right verify range function collect
-	// Get2MapVerifyRange   = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // get other chain to map verify height
-	// Get2MapByLight    = func() (*big.Int, error) { return nil, nil }
 )
-
-//func Init2MapHeightByLight(lightNode common.Address) {
-//	Get2MapByLight = func() (*big.Int, error) {
-//		input, err := PackInput(Height, MethodOfHeaderHeight)
-//		if err != nil {
-//			return nil, errors.Wrap(err, "get other2map by light packInput failed")
-//		}
-//
-//		height, err := HeaderHeight(lightNode, input)
-//		if err != nil {
-//			return nil, errors.Wrap(err, "get other2map by light headerHeight failed")
-//		}
-//		return height, nil
-//	}
-//}
 
 func InitLightManager(lightNode common.Address) {
 	GetDataByManager = func(method string, params ...interface{}) ([]byte, error) {

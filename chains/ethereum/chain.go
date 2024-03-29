@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/internal/tx"
+	"github.com/pkg/errors"
 	"math/big"
 	"strconv"
 	"strings"
@@ -179,6 +181,17 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		method    = m.GetMethod(log.Topics[0])
 		bigNumber = big.NewInt(int64(log.BlockNumber))
 	)
+	if log.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
+		data, err := mapprotocol.Mcs.Events[mapprotocol.EventOfSwapInVerified].Inputs.UnpackValues(log.Data)
+		if err != nil {
+			return nil, errors.Wrap(err, "swapIn unpackData failed")
+		}
+
+		input, _ := mapprotocol.Mcs.Pack(mapprotocol.MethodOfSwapInVerified, data[0].([]byte))
+		msgPayload := []interface{}{input, orderId, log.BlockNumber, log.TxHash, mapprotocol.MethodOfSwapInVerified}
+		message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
+		return &message, nil
+	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
 		header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), bigNumber)
 		if err != nil {
@@ -201,6 +214,9 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 			receipts = append(receipts, lr)
 		}
 
+		if toChainID == constant.MerlinChainId {
+			method = mapprotocol.MethodOfVerifyAndStore
+		}
 		_, payload, err := mapo.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method, m.Cfg.ApiUrl, proofType)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
@@ -208,6 +224,9 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 
 		msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash, method}
 		message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
+		if toChainID == constant.MerlinChainId {
+			message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
+		}
 	} else if m.Cfg.SyncToMap {
 		txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), bigNumber)
 		if err != nil {
