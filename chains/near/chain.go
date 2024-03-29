@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/atlas/accounts/abi/bind"
 	"github.com/mapprotocol/compass/chains"
@@ -159,10 +158,6 @@ func (c *Chain) Id() msg.ChainId {
 
 func (c *Chain) Name() string {
 	return c.cfg.Name
-}
-
-func (c *Chain) LatestBlock() metrics.LatestBlock {
-	return c.listen.GetLatestBlock()
 }
 
 // Stop signals to any running routines to exit

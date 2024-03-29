@@ -53,8 +53,9 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 	case msg.SwapWithProof:
 		fallthrough
 	case msg.SwapWithMapProof:
-		// same process
 		return w.exeSwapMsg(m)
+	case msg.SwapWithMerlin:
+		return w.merlinWithMsg(m)
 	default:
 		w.log.Error("Unknown message type received", "type", m.Type)
 		return false

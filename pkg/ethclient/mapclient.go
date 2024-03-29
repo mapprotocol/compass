@@ -63,6 +63,28 @@ func (ec *Client) getMAPBlock(ctx context.Context, method string, args ...interf
 	return &body, nil
 }
 
+func (ec *Client) getTronBlock(ctx context.Context, method string, args ...interface{}) (*Block, error) {
+	var raw json.RawMessage
+	err := ec.c.CallContext(ctx, &raw, method, args...)
+	if err != nil {
+		return nil, err
+	} else if len(raw) == 0 {
+		return nil, ethereum.NotFound
+	}
+	// Decode header and transactions.
+	var body Block
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return nil, err
+	}
+	if common.HexToHash(body.TransactionsRoot) == types.EmptyRootHash && len(body.Transactions) > 0 {
+		return nil, fmt.Errorf("server returned non-empty transaction list but block header indicates no transactions")
+	}
+	if common.HexToHash(body.TransactionsRoot) != types.EmptyRootHash && len(body.Transactions) == 0 {
+		return nil, fmt.Errorf("server returned empty transaction list but block header indicates transactions")
+	}
+	return &body, nil
+}
+
 // MAPBlockByHash returns the given full block.
 //
 // Note that loading full blocks requires two requests. Use HeaderByHash
@@ -78,6 +100,10 @@ func (ec *Client) MAPBlockByHash(ctx context.Context, hash common.Hash) (*Block,
 // if you don't need all transactions or uncle headers.
 func (ec *Client) MAPBlockByNumber(ctx context.Context, number *big.Int) (*Block, error) {
 	return ec.getMAPBlock(ctx, "eth_getBlockByNumber", toBlockNumArg(number), true)
+}
+
+func (ec *Client) TronBlockByNumber(ctx context.Context, number *big.Int) (*Block, error) {
+	return ec.getTronBlock(ctx, "eth_getBlockByNumber", toBlockNumArg(number), true)
 }
 
 // MAPHeaderByNumber returns a block header from the current canonical chain. If number is

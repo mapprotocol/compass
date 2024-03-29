@@ -100,3 +100,7 @@ const (
 	ArbChainId        = 421614
 	ArbTestnetChainId = 42161
 )
+
+const (
+	TopicsOfSwapInVerified = "0x71b6b465a3e1914ab78a5c4e72ed92c70071ccf1a1bdee55bc47174cbcd47605"
+)

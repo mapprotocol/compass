@@ -101,10 +101,6 @@ func (c *CommonSync) SetRouter(r chains.Router) {
 	c.Router = r
 }
 
-func (c *CommonSync) GetLatestBlock() metrics.LatestBlock {
-	return c.LatestBlock
-}
-
 // WaitUntilMsgHandled this function will block untill message is handled
 func (c *CommonSync) WaitUntilMsgHandled(counter int) error {
 	c.Log.Debug("WaitUntilMsgHandled", "counter", counter)

@@ -110,13 +110,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := Key2Hex(key, len(prf))
-	if uToChainID == 8217 || uToChainID == 1030 {
-		ek = util.Key2Hex(key, len(prf))
-	}
-	if zkUrl != "" {
-		ek = util.Key2Hex(key, len(prf))
-	}
+	ek := util.Key2Hex(key, len(prf))
 	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
 		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 		nr := mapprotocol.MapTxReceipt{

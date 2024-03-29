@@ -124,7 +124,6 @@ func (c *Client) GetEpochReceipts(ctx context.Context, epoch types.EpochOrBlockH
 		return nil, err
 	}
 
-	//fmt.Println("data ------------------------------ ", string(data))
 	var ret [][]types.TransactionReceipt
 	err = json.Unmarshal(data, &ret)
 	if err != nil {

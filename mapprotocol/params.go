@@ -36,6 +36,9 @@ const (
 	MethodOfVerifyReceiptProof   = "verifyReceiptProof"
 	MethodOfOrderStatus          = "getOrderStatus"
 	MethodOfPropose              = "propose"
+	MethodOfVerifyAndStore       = "swapInVerify"
+	MethodOfSwapInVerified       = "swapInVerified"
+	EventOfSwapInVerified        = "mapSwapInVerified"
 )
 
 const (
