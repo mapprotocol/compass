@@ -139,7 +139,7 @@ A chain configurations take this form:
     "id": "0",                          // Chain ID
     "endpoint": "ws://<host>:<port>",   // Node endpoint
     "from": "0xff93...",                // On-chain address of maintainer
-    "keystorePath" : "keystore/path/",  // 
+    "keystorePath" : "keystore/path/",  // keystore path, plase user abs path
     "opts": {},                         // Chain-specific configuration options (see below)
 }
 ```
