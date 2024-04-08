@@ -1,10 +1,3 @@
-// Copyright 2021 Compass Systems
-// SPDX-License-Identifier: LGPL-3.0-only
-/*
-Provides the command-line interface for the chainbridge application.
-
-For configuration and CLI commands see the README: https://github.com/ChainSafe/ChainBridge.
-*/
 package main
 
 import (
@@ -15,8 +8,6 @@ import (
 	"github.com/mapprotocol/compass/chains/tron"
 
 	"github.com/mapprotocol/compass/chains/bttc"
-
-	"github.com/mapprotocol/compass/pkg/etcd"
 
 	"github.com/mapprotocol/compass/pkg/util"
 
@@ -47,18 +38,11 @@ var cliFlags = []cli.Flag{
 	config.ConfigFileFlag,
 	config.VerbosityFlag,
 	config.KeystorePathFlag,
+	config.KeyPathFlag,
 	config.BlockstorePathFlag,
 	config.FreshStartFlag,
 	config.LatestBlockFlag,
 	config.SkipErrorFlag,
-}
-
-var generateFlags = []cli.Flag{
-	config.PasswordFlag,
-	config.Sr25519Flag,
-	config.Secp256k1Flag,
-	config.Ed25519Flag,
-	config.SubkeyNetworkFlag,
 }
 
 var devFlags = []cli.Flag{
@@ -68,11 +52,7 @@ var devFlags = []cli.Flag{
 var importFlags = []cli.Flag{
 	config.EthereumImportFlag,
 	config.PrivateKeyFlag,
-	config.Sr25519Flag,
-	config.Secp256k1Flag,
-	config.Ed25519Flag,
 	config.PasswordFlag,
-	config.SubkeyNetworkFlag,
 	config.KeystorePathFlag,
 	config.TronFlag,
 	config.TronKeyNameFlag,
@@ -82,20 +62,8 @@ var accountCommand = cli.Command{
 	Name:  "accounts",
 	Usage: "manage bridge keystore",
 	Description: "The accounts command is used to manage the bridge keystore.\n" +
-		"\tTo generate a new account (key type generated is determined on the flag passed in): compass accounts generate\n" +
-		"\tTo import a keystore file: compass accounts import path/to/file\n" +
-		"\tTo import a geth keystore file: compass accounts import --ethereum path/to/file\n" +
-		"\tTo import a private key file: compass accounts import --privateKey private_key\n" +
-		"\tTo list keys: compass accounts list",
+		"\tTo import a tron private key file: compass accounts import --privateKey private_key",
 	Subcommands: []*cli.Command{
-		{
-			Action: wrapHandler(handleGenerateCmd),
-			Name:   "generate",
-			Usage:  "generate bridge keystore, key type determined by flag",
-			Flags:  generateFlags,
-			Description: "The generate subcommand is used to generate the bridge keystore.\n" +
-				"\tIf no options are specified, a secp256k1 key will be made.",
-		},
 		{
 			Action: wrapHandler(handleImportCmd),
 			Name:   "import",
@@ -103,14 +71,7 @@ var accountCommand = cli.Command{
 			Flags:  importFlags,
 			Description: "The import subcommand is used to import a keystore for the bridge.\n" +
 				"\tA path to the keystore must be provided\n" +
-				"\tUse --ethereum to import an ethereum keystore from external sources such as geth\n" +
 				"\tUse --privateKey to create a keystore from a provided private key.",
-		},
-		{
-			Action:      wrapHandler(handleListCmd),
-			Name:        "list",
-			Usage:       "list bridge keystore",
-			Description: "The list subcommand is used to list all of the bridge keystores.\n",
 		},
 	},
 }
@@ -214,20 +175,6 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 
 	log.Debug("Config on initialization...", "config", *cfg)
 
-	// Check for test key flag
-	var ks string
-	var insecure bool
-	if key := ctx.String(config.TestKeyFlag.Name); key != "" {
-		ks = key
-		insecure = true
-	} else {
-		ks = cfg.KeystorePath
-	}
-
-	err = etcd.Init(cfg.Other.Etcd)
-	if err != nil {
-		return err
-	}
 	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
 	// Used to signal core shutdown due to fatal error
 	sysErr := make(chan error)
@@ -242,6 +189,10 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	allChains = append(allChains, cfg.Chains...)
 
 	for idx, chain := range allChains {
+		ks := chain.KeystorePath
+		if ks == "" {
+			ks = ctx.String(config.KeyPathFlag.Name)
+		}
 		chainId, err := strconv.Atoi(chain.Id)
 		if err != nil {
 			return err
@@ -257,7 +208,6 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			Network:          chain.Network,
 			KeystorePath:     ks,
 			NearKeystorePath: chain.KeystorePath,
-			Insecure:         insecure,
 			BlockstorePath:   ctx.String(config.BlockstorePathFlag.Name),
 			FreshStart:       ctx.Bool(config.FreshStartFlag.Name),
 			LatestBlock:      ctx.Bool(config.LatestBlockFlag.Name),

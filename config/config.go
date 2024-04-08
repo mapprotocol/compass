@@ -1,6 +1,3 @@
-// Copyright 2021 Compass Systems
-// SPDX-License-Identifier: LGPL-3.0-only
-
 package config
 
 import (
@@ -15,14 +12,12 @@ import (
 
 const DefaultConfigPath = "./config.json"
 const DefaultKeystorePath = "./keys"
-const DefaultBlockTimeout = int64(180) // 3 minutes
 const MapChainID = "mapChainId"
 
 type Config struct {
-	MapChain     RawChainConfig   `json:"mapchain"`
-	Chains       []RawChainConfig `json:"chains"`
-	KeystorePath string           `json:"keystorePath,omitempty"`
-	Other        Construction     `json:"other,omitempty"`
+	MapChain RawChainConfig   `json:"mapchain"`
+	Chains   []RawChainConfig `json:"chains"`
+	Other    Construction     `json:"other,omitempty"`
 }
 
 // RawChainConfig is parsed directly from the config file and should be using to construct the core.ChainConfig
@@ -39,14 +34,7 @@ type RawChainConfig struct {
 
 type Construction struct {
 	MonitorUrl string `json:"monitor_url,omitempty"`
-	Etcd       string `json:"etcd,omitempty"`
 	Env        string `json:"env,omitempty"`
-}
-
-func NewConfig() *Config {
-	return &Config{
-		Chains: []RawChainConfig{},
-	}
 }
 
 func (c *Config) ToJSON(file string) *os.File {
@@ -118,9 +106,6 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 	if err != nil {
 		log.Warn("err loading json file", "err", err.Error())
 		return &fig, err
-	}
-	if ksPath := ctx.String(KeystorePathFlag.Name); ksPath != "" {
-		fig.KeystorePath = ksPath
 	}
 	log.Debug("Loaded config", "path", path)
 	err = fig.validate()

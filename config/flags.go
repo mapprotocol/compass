@@ -26,6 +26,11 @@ var (
 		Value: DefaultKeystorePath,
 	}
 
+	KeyPathFlag = &cli.StringFlag{
+		Name:  "keystorePath",
+		Usage: "Path to keystore",
+	}
+
 	TronFlag = &cli.BoolFlag{
 		Name:  "tron",
 		Usage: "Flag of tron",
@@ -59,23 +64,10 @@ var (
 	}
 )
 
-// Generate subcommand flags
 var (
 	PasswordFlag = &cli.StringFlag{
 		Name:  "password",
 		Usage: "Password used to encrypt the keystore. Used with --generate, --import, or --unlock",
-	}
-	Sr25519Flag = &cli.BoolFlag{
-		Name:  "sr25519",
-		Usage: "Specify account/key type as sr25519.",
-	}
-	Secp256k1Flag = &cli.BoolFlag{
-		Name:  "secp256k1",
-		Usage: "Specify account/key type as secp256k1.",
-	}
-	Ed25519Flag = &cli.BoolFlag{
-		Name:  "ed25519",
-		Usage: "Specify account/key type as near.",
 	}
 )
 
@@ -87,11 +79,6 @@ var (
 	PrivateKeyFlag = &cli.StringFlag{
 		Name:  "privateKey",
 		Usage: "Import a hex representation of a private key into a keystore.",
-	}
-	SubkeyNetworkFlag = &cli.StringFlag{
-		Name:        "network",
-		Usage:       "Specify the network to use for the address encoding (substrate/polkadot/centrifuge)",
-		DefaultText: "substrate",
 	}
 )
 

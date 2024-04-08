@@ -1,7 +1,6 @@
 package eth2
 
 import (
-	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/mapprotocol/compass/chains"
@@ -33,18 +32,18 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		return nil, err
 	}
 
-	kpI, err := keystore.KeypairFromAddress(cfg.From, keystore.EthChain, cfg.KeystorePath, chainCfg.Insecure)
+	kpI, err := keystore.KeypairFromEth(cfg.KeystorePath)
 	if err != nil {
 		return nil, err
 	}
-	kp, _ := kpI.(*secp256k1.Keypair)
+	//kp, _ := kpI.(*secp256k1.Keypair)
 	bs, err := chain.SetupBlockStore(cfg, role)
 	if err != nil {
 		return nil, err
 	}
 
 	stop := make(chan int)
-	conn := eth2.NewConnection(cfg.Endpoint, cfg.Eth2Endpoint, cfg.Http, kp, logger, cfg.GasLimit, cfg.MaxGasPrice,
+	conn := eth2.NewConnection(cfg.Endpoint, cfg.Eth2Endpoint, cfg.Http, kpI, logger, cfg.GasLimit, cfg.MaxGasPrice,
 		cfg.GasMultiplier)
 	err = conn.Connect()
 	if err != nil {
