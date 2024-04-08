@@ -3,7 +3,13 @@ package chain
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
@@ -96,7 +102,21 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 	if len(logs) == 0 {
 		return nil
 	}
-	m.Log.Info("find log", "block", latestBlock, "logs", len(logs))
+	if m.Cfg.Id == constant.MerlinChainId {
+		txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
+		if err != nil {
+			return fmt.Errorf("unable to get tx hashes Logs: %w", err)
+		}
+		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+		if err != nil {
+			return fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+		}
+		tr, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
+		tr = proof.DeriveTire(types.Receipts(receipts), tr)
+		m.Log.Info("oracle merlin receipt", "blockNumber", latestBlock, "hash", tr.Hash())
+		header.ReceiptHash = tr.Hash()
+	}
+	m.Log.Info("Find log", "block", latestBlock, "logs", len(logs))
 	var input []byte
 	if m.Cfg.ApiUrl == "" {
 		input, err = mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfPropose].Inputs.Pack(header.Number, header.ReceiptHash)
