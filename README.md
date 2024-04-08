@@ -35,22 +35,7 @@ the recommanded way to get the executable is to download it from the release pag
 
 ### 2. Prepare the accounts for each chain
 fund some accounts in order to send txs on each chain, you want to provice crosse-chain service.
-the esaiest way is to using the same one address for every chain.
-
-after that we need to import the account into the keystore of compass.  
-using the private key is the simplest way,run the following command in terminal:
-
-```zsh
-compass accounts import --privateKey '********** your private key **********'
-```
-
-during the process of importing, you will be asked to input a password.  
-the password is used to encrypt your keystore.you have to input it when unlocking your account.
-
-to list the imported keys in the keystore, using the command below:
-```zsh
-compass accounts list
-```
+the esaiest way is to using the same one address for every chain. Please prepare an account keystore.
 
 ### 3. Modify the configuration file
 copy a example configure file from
@@ -60,6 +45,7 @@ copy a example configure file from
     "id": "212",
     "endpoint": "http://18.142.54.137:7445",
     "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
+    "keystorePath": "/root/UTC-E0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
     "opts": {
       "mcs": "0x0ac4611305254cdd257beC56CB79CBeC720Cd02D",
       "lightnode": "0x000068656164657273746F726541646472657373",
@@ -76,6 +62,7 @@ copy a example configure file from
       "id": "34434",
       "endpoint": "http://18.138.248.113:8545",
       "from": "0xE0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
+      "keystorePath": "/root/UTC-E0DC8D7f134d0A79019BEF9C2fd4b2013a64fCD6",
       "opts": {
         "mcs": "0xcfc80beddb70f12af6da768fc30e396889dfce26",
         "lightnode": "0x80Be41aEBFdaDBD58a65aa549cB266dAFb6b8304",
@@ -94,7 +81,7 @@ fill the accounts for each chain.
 ### 4. Running the executable
 lauch and keep the executable runing simply by run:
 ```zsh
-compass maintainer --blockstore ./block-eth-map --config ./config-mcs-erh-map.json
+compass-oracle maintainer --blockstore ./block-eth-map --config ./config-mcs-erh-map.json
 ```
 you will be asked to input the password to unlock your account.(which you have inputed at step 2)
 if everything runs smoothly. it's all set
@@ -114,7 +101,7 @@ Synchronize the information of blocks in each chain according to the information
 
 Start with the following command:
 ```zsh
-compass maintainer --blockstore ./block-eth-map --config ./config.json
+compass-oracle maintainer --blockstore ./block-eth-map --config ./config.json
 ```
 
 # Messenger
@@ -123,12 +110,8 @@ Synchronize the log information of transactions of blocks in each chain accordin
 
 Start with the following command:
 ```zsh
-compass messenger --blockstore ./block-eth-map --config ./config.json
+compass-oracle messenger --blockstore ./block-eth-map --config ./config.json
 ```
-
-# Monitor
-
-Initiate monitoring of user balances and transactions
 
 # Configuration
 
@@ -156,7 +139,7 @@ A chain configurations take this form:
     "id": "0",                          // Chain ID
     "endpoint": "ws://<host>:<port>",   // Node endpoint
     "from": "0xff93...",                // On-chain address of maintainer
-    "keystorePath" : "/you/path/",      // 
+    "keystorePath" : "keystore/path/",  // 
     "opts": {},                         // Chain-specific configuration options (see below)
 }
 ```
@@ -170,6 +153,12 @@ A chain configurations take this form:
 |   near   | near     |
 |  klaytn  | klaytn   |
 |  platon  | platon   |
+| conflux  | conflux  |
+|  merlin  | ethereum |
+|  blast   | ethereum |
+| filecoin | ethereum |
+|   bevm   | ethereum |
+|   bttc   | bttc     |
 
 See `config.json.example` for an example configuration.
 
