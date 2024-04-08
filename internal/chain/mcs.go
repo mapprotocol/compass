@@ -154,35 +154,6 @@ func (w *Writer) merlinWithMsg(m msg.Message) bool {
 	}
 }
 
-/*
-VERIFY:
-
-		err = w.conn.LockAndUpdateOpts(needNonce)
-		if err != nil {
-			w.log.Error("Failed to update nonce", "err", err)
-			time.Sleep(constant.TxRetryInterval)
-			continue
-		}
-		input, _ = mapprotocol.Mcs.Pack(mapprotocol.MethodOfSwapInVerified, &count)
-		w.log.Info("Send transaction", "method", mapprotocol.MethodOfSwapInVerified, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
-		mcsTx, err = w.sendTx(&addr, nil, input)
-		if err != nil {
-			w.log.Warn("SwapInVerified TxHash Status is not successful, will retry", "err", err)
-			time.Sleep(constant.TxRetryInterval)
-			goto VERIFY
-		}
-
-		err = w.txStatus(mcsTx.Hash())
-		if err != nil {
-			w.log.Warn("SwapInVerified TxHash Status is not successful, will retry", "err", err)
-			goto VERIFY
-		} else {
-			m.DoneCh <- struct{}{}
-			return true
-		}
-
-	AFTER:
-*/
 func (w *Writer) mosAlarm(m msg.Message, tx interface{}, err error) {
 	util.Alarm(context.Background(), fmt.Sprintf("mos %s2%s failed, srcHash=%v err is %s", mapprotocol.OnlineChaId[m.Source],
 		mapprotocol.OnlineChaId[m.Destination], tx, err.Error()))

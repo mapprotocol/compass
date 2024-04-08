@@ -57,6 +57,7 @@ var IgnoreError = map[string]struct{}{
 	"REVERT opcode executed":    {},
 	"Validators repetition add": {},
 	"oracle: already update":    {},
+	"already verified":          {},
 }
 
 type BlockIdOfEth2 string
