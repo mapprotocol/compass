@@ -66,7 +66,7 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte) (*types.Transaction, error) {
 	gasPrice := w.conn.Opts().GasPrice
 	nonce := w.conn.Opts().Nonce
-	from := w.conn.Keypair().CommonAddress()
+	from := w.conn.Keypair().Address
 
 	msg := ethereum.CallMsg{
 		From:     from,
@@ -120,7 +120,7 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 
 	tx := types.NewTx(td)
 	chainID := big.NewInt(int64(w.cfg.Id))
-	privateKey := w.conn.Keypair().PrivateKey()
+	privateKey := w.conn.Keypair().PrivateKey
 
 	signedTx, err := types.SignTx(tx, types.NewLondonSigner(chainID), privateKey)
 	if err != nil {

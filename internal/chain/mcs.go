@@ -160,7 +160,7 @@ func (w *Writer) mosAlarm(m msg.Message, tx interface{}, err error) {
 }
 
 func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, method string, ret interface{}) error {
-	from := w.conn.Keypair().CommonAddress()
+	from := w.conn.Keypair().Address
 	outPut, err := w.conn.Client().CallContract(context.Background(),
 		ethereum.CallMsg{
 			From: from,
@@ -197,7 +197,7 @@ func (w *Writer) checkOrderId(toAddress *common.Address, input []byte, useAbi ab
 	if err != nil {
 		return false, err
 	}
-	from := w.conn.Keypair().CommonAddress()
+	from := w.conn.Keypair().Address
 	outPut, err := w.conn.Client().CallContract(context.Background(),
 		ethereum.CallMsg{
 			From: from,

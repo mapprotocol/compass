@@ -1,11 +1,11 @@
 package tron
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"math/big"
 
 	"google.golang.org/grpc"
 
-	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -39,7 +39,7 @@ func (c *Connection) Connect() error {
 	return nil
 }
 
-func (c *Connection) Keypair() *secp256k1.Keypair {
+func (c *Connection) Keypair() *keystore.Key {
 	return nil
 }
 

@@ -3,13 +3,13 @@ package platon
 import (
 	"context"
 	"errors"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"math/big"
 	"sync"
 	"time"
 
 	"github.com/mapprotocol/compass/core"
 
-	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -22,7 +22,7 @@ import (
 type Connection struct {
 	endpoint      string
 	http          bool
-	kp            *secp256k1.Keypair
+	kp            *keystore.Key
 	gasLimit      *big.Int
 	maxGasPrice   *big.Int
 	gasMultiplier *big.Float
@@ -36,7 +36,7 @@ type Connection struct {
 }
 
 // NewConn returns an uninitialized connection, must call Connection.Connect() before using.
-func NewConn(endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
+func NewConn(endpoint string, http bool, kp *keystore.Key, log log15.Logger, gasLimit, gasPrice *big.Int,
 	gasMultiplier float64) core.Connection {
 	bigFloat := new(big.Float).SetFloat64(gasMultiplier)
 	conn := Connection{
@@ -75,13 +75,13 @@ func (c *Connection) Connect() error {
 	}
 	c.opts = opts
 	c.nonce = 0
-	c.callOpts = &bind.CallOpts{From: c.kp.CommonAddress()}
+	c.callOpts = &bind.CallOpts{From: c.kp.Address}
 	return nil
 }
 
 // newTransactOpts builds the TransactOpts for the connection's keypair.
 func (c *Connection) newTransactOpts(value, gasLimit, gasPrice *big.Int) (*bind.TransactOpts, uint64, error) {
-	privateKey := c.kp.PrivateKey()
+	privateKey := c.kp.PrivateKey
 	address := ethcrypto.PubkeyToAddress(privateKey.PublicKey)
 
 	nonce, err := c.conn.PendingNonceAt(context.Background(), address)
@@ -108,7 +108,7 @@ func (c *Connection) newTransactOpts(value, gasLimit, gasPrice *big.Int) (*bind.
 	return auth, nonce, nil
 }
 
-func (c *Connection) Keypair() *secp256k1.Keypair {
+func (c *Connection) Keypair() *keystore.Key {
 	return c.kp
 }
 

@@ -1,11 +1,11 @@
 package eth2
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"math/big"
 
 	"github.com/mapprotocol/compass/core"
 
-	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/internal/eth2"
@@ -18,7 +18,7 @@ type Connection struct {
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
-func NewConnection(endpoint, eth2Endpoint string, http bool, kp *secp256k1.Keypair, log log15.Logger, gasLimit, gasPrice *big.Int,
+func NewConnection(endpoint, eth2Endpoint string, http bool, kp *keystore.Key, log log15.Logger, gasLimit, gasPrice *big.Int,
 	gasMultiplier float64) core.Eth2Connection {
 	conn := ethereum.NewConnection(endpoint, http, kp, log, gasLimit, gasPrice, gasMultiplier)
 	return &Connection{

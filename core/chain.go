@@ -1,12 +1,9 @@
-// Copyright 2021 Compass Systems
-// SPDX-License-Identifier: LGPL-3.0-only
-
 package core
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"math/big"
 
-	"github.com/ChainSafe/chainbridge-utils/crypto/secp256k1"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -43,7 +40,7 @@ type ChainConfig struct {
 
 type Connection interface {
 	Connect() error
-	Keypair() *secp256k1.Keypair
+	Keypair() *keystore.Key
 	Opts() *bind.TransactOpts
 	CallOpts() *bind.CallOpts
 	LockAndUpdateOpts(bool) error
@@ -65,4 +62,4 @@ type Eth2Connection interface {
 	Eth2Client() *eth2.Client
 }
 
-type CreateConn func(string, bool, *secp256k1.Keypair, log15.Logger, *big.Int, *big.Int, float64) Connection
+type CreateConn func(string, bool, *keystore.Key, log15.Logger, *big.Int, *big.Int, float64) Connection
