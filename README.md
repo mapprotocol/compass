@@ -95,6 +95,15 @@ under the root directory of the repo
 `make build`: Builds `compass` in `./build`.  
 `make install`: Uses `go install` to add `compass` to your GOBIN.
 
+# Oracle
+
+use the `oracle` mode to synchronize the information of blocks in each chain according to the information in the configuration file
+
+Start with the following command:
+```zsh
+compass-oracle oracle --blockstore ./block-eth-map --config ./config.json --keystorePath ./key.json
+```
+
 # Maintainer
 
 Synchronize the information of blocks in each chain according to the information in the configuration file
