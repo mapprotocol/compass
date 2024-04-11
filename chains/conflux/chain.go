@@ -140,7 +140,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 	}
 
 	m.Log.Info("getPivot", "pivot", pivot)
-	payload, err := conflux.AssembleProof(cli, log.TxHash, log.BlockNumber, uint64(proofType), pivot.Uint64(), method, m.Cfg.Id)
+	payload, err := conflux.AssembleProof(cli, log.TxHash, log.BlockNumber, pivot.Uint64(), uint64(proofType), method, m.Cfg.Id)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
