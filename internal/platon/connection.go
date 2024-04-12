@@ -66,7 +66,7 @@ func (c *Connection) Connect() error {
 	if err != nil {
 		return err
 	}
-	c.conn = ethclient.NewClient(rpcClient)
+	c.conn = ethclient.NewClient(rpcClient, c.endpoint)
 
 	// Construct tx opts, call opts, and nonce mechanism
 	opts, _, err := c.newTransactOpts(big.NewInt(0), c.gasLimit, c.maxGasPrice)

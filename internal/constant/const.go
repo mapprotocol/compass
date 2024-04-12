@@ -98,6 +98,8 @@ const (
 const (
 	MerlinChainId     = 4200
 	OpChainId         = 10
+	BaseChainId       = 8453
+	BlastChainId      = 81457
 	ArbChainId        = 421614
 	ArbTestnetChainId = 42161
 )
