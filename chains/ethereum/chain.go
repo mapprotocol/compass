@@ -236,7 +236,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		if err != nil {
 			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 		}
-		payload, err := mapo.AssembleEthProof(log, receipts, method, m.Cfg.Id, proofType)
+		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, method, m.Cfg.Id, proofType)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}

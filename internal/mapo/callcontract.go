@@ -5,6 +5,7 @@ package mapo
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"github.com/mapprotocol/compass/internal/arb"
@@ -25,7 +26,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func AssembleEthProof(log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
+func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
 	var payloads []byte
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
@@ -36,7 +37,7 @@ func AssembleEthProof(log *types.Log, receipts []*types.Receipt, method string, 
 			return nil, err
 		}
 
-		prf, err := ethProof(fId, log.TxIndex, receipts)
+		prf, err := ethProof(conn, fId, log.TxIndex, receipts)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +68,7 @@ func AssembleEthProof(log *types.Log, receipts []*types.Receipt, method string, 
 	return pack, nil
 }
 
-func ethProof(fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte, error) {
+func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte, error) {
 	var dls proof.DerivableList
 	switch fId {
 	case constant.ArbChainId, constant.ArbTestnetChainId:
@@ -76,10 +77,24 @@ func ethProof(fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte,
 			pr = append(pr, &arb.Receipt{Receipt: r})
 		}
 		dls = pr
-	case constant.OpChainId:
+	case constant.OpChainId, constant.BaseChainId, constant.BlastChainId:
 		pr := op.Receipts{}
 		for _, r := range receipts {
-			pr = append(pr, &op.Receipt{Receipt: r})
+			tmp, err := conn.OpReceipt(context.Background(), r.TxHash)
+			if err != nil {
+				continue
+			}
+			vptr := uint64(0)
+			nptr := uint64(0)
+			if tmp.DepositReceiptVersion != "" {
+				version, _ := big.NewInt(0).SetString(strings.TrimPrefix(tmp.DepositReceiptVersion, "0x"), 16)
+				vptr = version.Uint64()
+			}
+			if tmp.DepositNonce != "" {
+				nonce, _ := big.NewInt(0).SetString(strings.TrimPrefix(tmp.DepositNonce, "0x"), 16)
+				nptr = nonce.Uint64()
+			}
+			pr = append(pr, &op.Receipt{Receipt: r, DepositReceiptVersion: &vptr, DepositNonce: &nptr})
 		}
 		dls = pr
 	default:

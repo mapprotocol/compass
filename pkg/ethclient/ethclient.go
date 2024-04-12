@@ -1,20 +1,3 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
-// Package ethclient provides a client for the Ethereum RPC API.
 package ethclient
 
 import (
@@ -36,7 +19,8 @@ import (
 
 // Client defines typed wrappers for the Ethereum RPC API.
 type Client struct {
-	c *rpc.Client
+	c   *rpc.Client
+	url string
 }
 
 // Dial connects a client to the given URL.
@@ -49,12 +33,12 @@ func DialContext(ctx context.Context, rawurl string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(c), nil
+	return NewClient(c, rawurl), nil
 }
 
 // NewClient creates a client that uses the given RPC client.
-func NewClient(c *rpc.Client) *Client {
-	return &Client{c}
+func NewClient(c *rpc.Client, url string) *Client {
+	return &Client{c, url}
 }
 
 func (ec *Client) Close() {
@@ -657,4 +641,35 @@ func (ec *Client) PlatonGetBlockByNumber(ctx context.Context, number *big.Int) (
 		err = ethereum.NotFound
 	}
 	return head, err
+}
+
+type OpReceipt struct {
+	DepositNonce          string `json:"depositNonce,omitempty"`
+	DepositReceiptVersion string `json:"depositReceiptVersion,omitempty"`
+}
+
+func (ec *Client) OpReceipt(ctx context.Context, txHash common.Hash) (*OpReceipt, error) {
+	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_getTransactionReceipt\",\"params\": [\"%s\"],\"id\": 1\n}", txHash.Hex())
+	body := strings.NewReader(s)
+	resp, err := http.Post(ec.url, "application/json", body)
+	if err != nil {
+		return nil, err
+	}
+
+	var respmsg jsonrpcMessage
+	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
+		return nil, err
+	}
+
+	data := make([]byte, 0, len(respmsg.Result))
+	for _, res := range respmsg.Result {
+		data = append(data, res)
+	}
+	var ret *OpReceipt
+	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, err
 }
