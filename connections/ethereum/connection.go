@@ -23,19 +23,20 @@ import (
 )
 
 type Connection struct {
-	endpoint      string
-	http          bool
-	kp            *keystore.Key
-	gasLimit      *big.Int
-	maxGasPrice   *big.Int
-	gasMultiplier *big.Float
-	conn          *ethclient.Client
-	opts          *bind.TransactOpts
-	callOpts      *bind.CallOpts
-	nonce         uint64
-	optsLock      sync.Mutex
-	log           log15.Logger
-	stop          chan int // All routines should exit when this channel is closed
+	endpoint                  string
+	http                      bool
+	kp                        *keystore.Key
+	gasLimit                  *big.Int
+	maxGasPrice               *big.Int
+	gasMultiplier             *big.Float
+	conn                      *ethclient.Client
+	opts                      *bind.TransactOpts
+	callOpts                  *bind.CallOpts
+	nonce                     uint64
+	optsLock                  sync.Mutex
+	log                       log15.Logger
+	stop                      chan int // All routines should exit when this channel is closed
+	reqTime, cacheBlockNumber int64
 }
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
@@ -238,10 +239,16 @@ func (c *Connection) UnlockOpts() {
 
 // LatestBlock returns the latest block from the current chain
 func (c *Connection) LatestBlock() (*big.Int, error) {
+	// 1s req
+	if time.Now().Unix()-c.reqTime < 1 {
+		return big.NewInt(0).SetInt64(c.cacheBlockNumber), nil
+	}
 	bnum, err := c.conn.BlockNumber(context.Background())
 	if err != nil {
 		return nil, err
 	}
+	c.cacheBlockNumber = int64(bnum)
+	c.reqTime = time.Now().Unix()
 	return big.NewInt(0).SetUint64(bnum), nil
 }
 

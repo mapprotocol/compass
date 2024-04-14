@@ -2,9 +2,9 @@ package tron
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"math/big"
-
 	"google.golang.org/grpc"
+	"math/big"
+	"time"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -14,10 +14,11 @@ import (
 )
 
 type Connection struct {
-	endpoint string
-	cli      *client.GrpcClient
-	log      log15.Logger
-	stop     chan int
+	endpoint                  string
+	cli                       *client.GrpcClient
+	log                       log15.Logger
+	stop                      chan int
+	reqTime, cacheBlockNumber int64
 }
 
 func NewConnection(endpoint string, log log15.Logger) *Connection {
@@ -64,12 +65,19 @@ func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 
 // LatestBlock returns the latest block from the current chain
 func (c *Connection) LatestBlock() (*big.Int, error) {
+	// 1s req
+	if time.Now().Unix()-c.reqTime < 1 {
+		return big.NewInt(0).SetInt64(c.cacheBlockNumber), nil
+	}
+
 	bnum, err := c.cli.GetNowBlock()
 	if err != nil {
 		return nil, err
 	}
+	c.cacheBlockNumber = bnum.GetBlockHeader().GetRawData().Number
+	c.reqTime = time.Now().Unix()
 
-	return big.NewInt(0).SetInt64(bnum.GetBlockHeader().GetRawData().Number), nil // todo
+	return big.NewInt(0).SetInt64(bnum.GetBlockHeader().GetRawData().Number), nil
 }
 
 // EnsureHasBytecode asserts if contract code exists at the specified address

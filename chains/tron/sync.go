@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/proof"
@@ -51,10 +52,11 @@ type Handler func(*sync, *big.Int) (int, error)
 type sync struct {
 	*chain.CommonSync
 	handler Handler
+	conn    core.Connection
 }
 
-func newSync(cs *chain.CommonSync, handler Handler) *sync {
-	return &sync{CommonSync: cs, handler: handler}
+func newSync(cs *chain.CommonSync, handler Handler, conn core.Connection) *sync {
+	return &sync{CommonSync: cs, handler: handler, conn: conn}
 }
 
 func (m *sync) Sync() error {
@@ -70,7 +72,7 @@ func (m *sync) Sync() error {
 		return errors.New("polling terminated")
 	default:
 		for {
-			latestBlock, err := m.Conn.LatestBlock()
+			latestBlock, err := m.conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "err", err)
 				time.Sleep(constant.RetryLongInterval)
@@ -107,9 +109,9 @@ func (m *sync) Sync() error {
 }
 
 func messengerHandler(m *sync, current *big.Int) (int, error) {
-	m.Log.Info("Querying block for events", "block", current)
+	m.Log.Debug("Querying block for events", "block", current)
 	count := 0
-	for idx, addr := range m.Cfg.McsContract {
+	for idx, addr := range m.Cfg.TronContract {
 		query := m.BuildQuery(addr, m.Cfg.Events[0:0], current, current)
 		query = eth.FilterQuery{
 			FromBlock: current,
