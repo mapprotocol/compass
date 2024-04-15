@@ -10,6 +10,7 @@ import (
 	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mapprotocol/compass/internal/constant"
@@ -120,19 +121,24 @@ func defaultMosHandler(m *Messenger, blockNumber *big.Int) (int, error) {
 				if m.Cfg.Id == m.Cfg.MapChainID {
 					toChainID = binary.BigEndian.Uint64(log.Topics[2][len(log.Topics[2])-8:])
 				}
-				if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
+				chainName, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]
+				if !ok {
 					m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
 					continue
 				}
-				m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-					"orderId", common.Bytes2Hex(orderId))
-				proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, blockNumber, orderId)
-				if errors.Is(err, OrderExist) {
-					m.Log.Info("This txHash order exist", "blockNumber", blockNumber, "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId))
-					continue
-				}
-				if err != nil {
-					return 0, err
+				if strings.ToLower(chainName) == "near" {
+					proofType = 1
+				} else {
+					m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+						"orderId", common.Bytes2Hex(orderId))
+					proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, blockNumber, orderId)
+					if errors.Is(err, OrderExist) {
+						m.Log.Info("This txHash order exist", "blockNumber", blockNumber, "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId))
+						continue
+					}
+					if err != nil {
+						return 0, err
+					}
 				}
 			}
 
