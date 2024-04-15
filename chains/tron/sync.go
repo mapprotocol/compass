@@ -126,19 +126,27 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 			continue
 		}
 
-		txsHash, err := getTxsByBN(m.Conn.Client(), current)
-		if err != nil {
-			return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-		}
-		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-		if err != nil {
-			return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-		}
-
+		key := strconv.FormatUint(uint64(m.Cfg.Id), 10) + "_" + current.String()
 		for _, l := range logs {
 			if !existTopic(l.Topics[0], m.Cfg.Events) {
 				m.Log.Debug("ignore log, because topics not match", "blockNumber", l.BlockNumber, "logTopic", l.Topics[0])
 				continue
+			}
+
+			var receipts []*types.Receipt
+			if v, ok := proof.CacheReceipt[key]; ok {
+				receipts = v
+				m.Log.Info("use cache receipt", "latestBlock ", current, "txHash", l.TxHash)
+			} else {
+				txsHash, err := getTxsByBN(m.Conn.Client(), current)
+				if err != nil {
+					return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+				}
+				receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				if err != nil {
+					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+				}
+				proof.CacheReceipt[key] = receipts
 			}
 
 			orderId := l.Data[:32]
