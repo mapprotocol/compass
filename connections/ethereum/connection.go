@@ -240,7 +240,7 @@ func (c *Connection) UnlockOpts() {
 // LatestBlock returns the latest block from the current chain
 func (c *Connection) LatestBlock() (*big.Int, error) {
 	// 1s req
-	if time.Now().Unix()-c.reqTime < 1 {
+	if time.Now().Unix()-c.reqTime < constant.ReqInterval {
 		return big.NewInt(0).SetInt64(c.cacheBlockNumber), nil
 	}
 	bnum, err := c.conn.BlockNumber(context.Background())

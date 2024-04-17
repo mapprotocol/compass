@@ -8,7 +8,7 @@ CENT_TO?=0x1234567890
 CENT_TOKEN_ID?=0x5
 CENT_METADATA?=0x0
 
-.PHONY: help run build install license
+.PHONY: help build install
 all: help
 
 help: Makefile
@@ -24,7 +24,7 @@ get:
 
 build:
 	@echo "  >  \033[32mBuilding compass...\033[0m "
-	cd cmd/compass && go build -o ../../build/compass-oracle && cp ../../eth2/eth2-proof ../../build/
+	cd cmd/compass && go build -o ../../build/compass && cp ../../eth2/eth2-proof ../../build/
 
 dev:
 	@echo "  >  \033[32mBuilding compass-dev...\033[0m "
