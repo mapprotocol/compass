@@ -2,6 +2,7 @@ package tron
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/mapprotocol/compass/internal/constant"
 	"google.golang.org/grpc"
 	"math/big"
 	"time"
@@ -66,7 +67,7 @@ func (c *Connection) LockAndUpdateOpts(needNewNonce bool) error {
 // LatestBlock returns the latest block from the current chain
 func (c *Connection) LatestBlock() (*big.Int, error) {
 	// 1s req
-	if time.Now().Unix()-c.reqTime < 1 {
+	if time.Now().Unix()-c.reqTime < constant.ReqInterval {
 		return big.NewInt(0).SetInt64(c.cacheBlockNumber), nil
 	}
 
