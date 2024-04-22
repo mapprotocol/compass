@@ -102,7 +102,7 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 	if len(logs) == 0 {
 		return nil
 	}
-	if m.Cfg.Id == constant.MerlinChainId {
+	if m.Cfg.Id == constant.MerlinChainId || m.Cfg.Id == constant.ZkSyncChainId {
 		txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
 		if err != nil {
 			return fmt.Errorf("unable to get tx hashes Logs: %w", err)
@@ -116,7 +116,7 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 		m.Log.Info("oracle merlin receipt", "blockNumber", latestBlock, "hash", tr.Hash())
 		header.ReceiptHash = tr.Hash()
 	}
-	m.Log.Info("Find log", "block", latestBlock, "logs", len(logs))
+	m.Log.Info("Find log", "block", latestBlock, "logs", len(logs), "receipt", header.ReceiptHash)
 	var input []byte
 	if m.Cfg.ApiUrl == "" {
 		input, err = mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfPropose].Inputs.Pack(header.Number, header.ReceiptHash)
