@@ -97,6 +97,7 @@ const (
 
 const (
 	MerlinChainId     = 4200
+	ZkSyncChainId     = 324
 	OpChainId         = 10
 	BaseChainId       = 8453
 	BlastChainId      = 81457
