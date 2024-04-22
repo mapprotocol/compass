@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	DefaultGasLimit           = 6721975
-	DefaultGasPrice           = 20000000000
+	DefaultGasLimit           = 1000000
+	DefaultGasPrice           = 50000000
 	DefaultBlockConfirmations = 20
 	DefaultGasMultiplier      = 1
 )
@@ -33,8 +33,6 @@ var (
 	HttpOpt               = "http"
 	StartBlockOpt         = "startBlock"
 	BlockConfirmationsOpt = "blockConfirmations"
-	EGSApiKey             = "egsApiKey"
-	EGSSpeed              = "egsSpeed"
 	SyncToMap             = "syncToMap"
 	SyncIDList            = "syncIdList"
 	LightNode             = "lightnode"
@@ -62,9 +60,7 @@ type Config struct {
 	Http               bool // Config for type of connection
 	StartBlock         *big.Int
 	BlockConfirmations *big.Int
-	EgsApiKey          string // API key for ethgasstation to query gas prices
-	EgsSpeed           string // The speed which a transaction should be processed: average, fast, fastest. Default: fast
-	SyncToMap          bool   // Whether sync blockchain headers to Map
+	SyncToMap          bool // Whether sync blockchain headers to Map
 	MapChainID         msg.ChainId
 	SyncChainIDList    []msg.ChainId  // chain ids which map sync to
 	LightNode          common.Address // the lightnode to sync header
@@ -93,15 +89,12 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		MaxGasPrice:        big.NewInt(DefaultGasPrice),
 		GasMultiplier:      DefaultGasMultiplier,
 		LimitMultiplier:    DefaultGasMultiplier,
-		Http:               false,
+		Http:               true,
+		SyncToMap:          true,
 		StartBlock:         big.NewInt(0),
 		BlockConfirmations: big.NewInt(0),
-		EgsApiKey:          "",
-		EgsSpeed:           "",
 		Events:             make([]constant.EventSig, 0),
 		SkipError:          chainCfg.SkipError,
-		Eth2Endpoint:       "",
-		ApiUrl:             "",
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {
@@ -150,12 +143,6 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		}
 	}
 
-	if HTTP, ok := chainCfg.Opts[HttpOpt]; ok && HTTP == "true" {
-		config.Http = true
-	} else if HTTP, ok := chainCfg.Opts[HttpOpt]; ok && HTTP == "false" {
-		config.Http = false
-	}
-
 	if startBlock, ok := chainCfg.Opts[StartBlockOpt]; ok && startBlock != "" {
 		block := big.NewInt(0)
 		_, pass := block.SetString(startBlock, 10)
@@ -178,13 +165,8 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		config.BlockConfirmations = big.NewInt(DefaultBlockConfirmations)
 	}
 
-	if gsnApiKey, ok := chainCfg.Opts[EGSApiKey]; ok && gsnApiKey != "" {
-		config.EgsApiKey = gsnApiKey
-	}
-
-	if syncToMap, ok := chainCfg.Opts[SyncToMap]; ok && syncToMap == "true" {
-		config.SyncToMap = true
-	} else {
+	if syncToMap, ok := chainCfg.Opts[SyncToMap]; ok && syncToMap == "false" {
+		config.SyncToMap = false
 	}
 
 	if mapChainID, ok := chainCfg.Opts[gconfig.MapChainID]; ok {
@@ -229,6 +211,10 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		for _, addr := range strings.Split(contract, ",") {
 			config.TronContract = append(config.TronContract, common.HexToAddress(addr))
 		}
+	}
+
+	if config.OracleNode.String() == "" {
+		config.OracleNode = config.LightNode
 	}
 
 	return config, nil

@@ -38,7 +38,7 @@ func NewCommonListen(conn Connection, cfg *Config, log log15.Logger, stop <-chan
 		stop:               stop,
 		sysErr:             sysErr,
 		latestBlock:        metrics.LatestBlock{LastUpdated: time.Now()},
-		blockConfirmations: cfg.blockConfirmations,
+		blockConfirmations: cfg.BlockConfirmations,
 		msgCh:              make(chan struct{}),
 		blockStore:         bs,
 	}

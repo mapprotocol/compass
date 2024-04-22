@@ -23,8 +23,6 @@ type Connection struct {
 	gasLimit      *big.Int
 	maxGasPrice   *big.Int
 	gasMultiplier *big.Float
-	egsApiKey     string
-	egsSpeed      string
 	conn          *nearclient.Client
 	opts          *bind.TransactOpts
 	callOpts      *bind.CallOpts
@@ -36,7 +34,7 @@ type Connection struct {
 
 // NewConnection returns an uninitialized connection, must call Connection.Connect() before using.
 func NewConnection(endpoint string, http bool, kp *key.KeyPair, log log15.Logger, gasLimit, gasPrice *big.Int,
-	gasMultiplier *big.Float, gsnApiKey, gsnSpeed string) *Connection {
+	gasMultiplier *big.Float) *Connection {
 	return &Connection{
 		endpoint:      endpoint,
 		http:          http,
@@ -44,8 +42,6 @@ func NewConnection(endpoint string, http bool, kp *key.KeyPair, log log15.Logger
 		gasLimit:      gasLimit,
 		maxGasPrice:   gasPrice,
 		gasMultiplier: gasMultiplier,
-		egsApiKey:     gsnApiKey,
-		egsSpeed:      gsnSpeed,
 		log:           log,
 		stop:          make(chan int),
 	}

@@ -191,7 +191,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 					m.DoneCh <- struct{}{}
 					return true
 				}
-			} else if w.cfg.skipError {
+			} else if w.cfg.SkipError {
 				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "srcHash", inputHash, "err", err)
 				m.DoneCh <- struct{}{}
 				return true
@@ -227,7 +227,7 @@ func (w *writer) sendTx(toAddress string, method string, input []byte) (hash.Cry
 	}
 	res, err := w.conn.Client().TransactionSendAwait(
 		ctx,
-		w.cfg.from,
+		w.cfg.From,
 		toAddress,
 		[]action.Action{
 			action.NewFunctionCall(method, input, near.NewFunctionCallGas, b),

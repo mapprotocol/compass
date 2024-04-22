@@ -128,6 +128,8 @@ func defaultMosHandler(m *Messenger, blockNumber *big.Int) (int, error) {
 				}
 				if strings.ToLower(chainName) == "near" {
 					proofType = 1
+				} else if strings.ToLower(chainName) == "tron" {
+					proofType = 3
 				} else {
 					m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
 						"orderId", common.Bytes2Hex(orderId))

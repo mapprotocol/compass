@@ -1,7 +1,6 @@
 package chain
 
 import (
-	"fmt"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
@@ -41,7 +40,6 @@ func PreSendTx(idx int, selfChainId, toChainID uint64, blockNumber *big.Int, ord
 	if err != nil {
 		return 0, errors.Wrap(err, "OrderStatus failed")
 	}
-	fmt.Println("ret ", ret)
 	if ret.Exists {
 		return 0, OrderExist
 	}

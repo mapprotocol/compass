@@ -3,10 +3,8 @@ package tron
 import (
 	"fmt"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
-	"math/big"
-	"os"
-
 	"github.com/mapprotocol/compass/keystore"
+	"math/big"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
@@ -41,12 +39,7 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		return nil, err
 	}
 
-	var pswd []byte
-	if pswdStr := os.Getenv(keystore.EnvPassword); pswdStr != "" {
-		pswd = []byte(pswdStr)
-	} else {
-		pswd = keystore.GetPassword(fmt.Sprintf("Enter password for key %s:", chainCfg.From))
-	}
+	pswd := keystore.GetPassword(fmt.Sprintf("Enter password for key %s:", chainCfg.From))
 
 	var (
 		stop   = make(chan int)
