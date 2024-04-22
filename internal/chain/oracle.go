@@ -103,7 +103,7 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 	if len(logs) == 0 {
 		return nil
 	}
-	if m.Cfg.Id == constant.MerlinChainId {
+	if m.Cfg.Id == constant.MerlinChainId || m.Cfg.Id == constant.ZkSyncChainId {
 		txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
 		if err != nil {
 			return fmt.Errorf("unable to get tx hashes Logs: %w", err)
