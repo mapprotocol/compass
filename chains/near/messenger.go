@@ -50,7 +50,7 @@ func (m *Messenger) Sync() error {
 // a block will be retried up to RetryLimit times before continuing to the next block.
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
-	var currentBlock = m.cfg.startBlock
+	var currentBlock = m.cfg.StartBlock
 
 	for {
 		select {
@@ -71,8 +71,6 @@ func (m *Messenger) sync() error {
 				continue
 			}
 
-			// messager
-			// Parse out events
 			count, err := m.getEventsForBlock(currentBlock)
 			if err != nil {
 				m.log.Error("Failed to get events for block", "block", currentBlock, "err", err)
@@ -98,7 +96,7 @@ func (m *Messenger) sync() error {
 
 // getEventsForBlock looks for the deposit event in the latest block
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
-	if !m.cfg.syncToMap {
+	if !m.cfg.SyncToMap {
 		return 0, nil
 	}
 	// querying for logs
@@ -254,7 +252,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 		} else if strings.HasPrefix(tg.ExecutionOutcome.Outcome.Logs[1], mapprotocol.NearOfSwapIn) {
 			method = mapprotocol.MethodOfSwapIn
 		}
-		input, err := mapprotocol.Mcs.Pack(method, new(big.Int).SetUint64(uint64(m.cfg.id)), all)
+		input, err := mapprotocol.Mcs.Pack(method, new(big.Int).SetUint64(uint64(m.cfg.Id)), all)
 		if err != nil {
 			return 0, errors.Wrap(err, "transferIn pack failed")
 		}
@@ -265,7 +263,7 @@ func (m *Messenger) makeMessage(target []mapprotocol.IndexerExecutionOutcomeWith
 			orderId = append(orderId, id)
 		}
 		msgPayload := []interface{}{input, orderId, 0, tg.ExecutionOutcome.Outcome.ReceiptIDs}
-		message := msg.NewSwapWithProof(m.cfg.id, m.cfg.mapChainID, msgPayload, m.msgCh)
+		message := msg.NewSwapWithProof(m.cfg.Id, m.cfg.MapChainID, msgPayload, m.msgCh)
 		message.Idx = m.Idx(tg.ExecutionOutcome.Outcome.ExecutorID)
 		err = m.router.Send(message)
 		ret++

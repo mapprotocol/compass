@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	from     = "zmm.test.near"
+	from     = "xm.test.near"
 	to       = "atlas.test.near"
-	endPoint = "http://46.137.199.126:3030"
+	endPoint = "http://127.0.0.1:3030"
 )
 
 func dailRpc() *nearclient.Client {

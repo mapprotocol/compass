@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -116,33 +117,20 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 		m.Log.Info("oracle merlin receipt", "blockNumber", latestBlock, "hash", tr.Hash())
 		header.ReceiptHash = tr.Hash()
 	}
-	m.Log.Info("Find log", "block", latestBlock, "logs", len(logs), "receipt", header.ReceiptHash)
-	var input []byte
-	if m.Cfg.ApiUrl == "" {
-		input, err = mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfPropose].Inputs.Pack(header.Number, header.ReceiptHash)
-	} else { // todo
-		proof, err := mapprotocol.GetZkProof(m.Cfg.ApiUrl, m.Cfg.Id, latestBlock.Uint64())
-		if err != nil {
-			return err
-		}
-		validators, err := mapprotocol.GetCurValidators(m.Conn.Client(), latestBlock)
-		if err != nil {
-			return err
-		}
-		input, err = mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfPropose].Inputs.Pack(validators, header.Number, header.ReceiptHash, proof)
-	}
+	m.Log.Info("Find log", "block", latestBlock, "logs", len(logs))
+	input, err := mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfPropose].Inputs.Pack(header.Number, header.ReceiptHash)
 	if err != nil {
 		return err
 	}
 
+	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, big.NewInt(int64(m.Cfg.Id)), input)
-		if err != nil {
-			return err
-		}
-
+		toChainID := binary.BigEndian.Uint64(logs[0].Topics[1][len(logs[0].Topics[1])-8:])
 		for _, cid := range m.Cfg.SyncChainIDList {
-			message := msg.NewSyncFromMap(m.Cfg.MapChainID, cid, []interface{}{data}, m.MsgCh)
+			if toChainID != uint64(cid) {
+				continue
+			}
+			message := msg.NewSyncFromMap(m.Cfg.MapChainID, cid, []interface{}{id, input}, m.MsgCh)
 			err = m.Router.Send(message)
 			if err != nil {
 				m.Log.Error("subscription error: failed to route message", "err", err)
@@ -151,7 +139,6 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 			count++
 		}
 	} else {
-		id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 		message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{id, input}, m.MsgCh)
 		err = m.Router.Send(message)
 		if err != nil {

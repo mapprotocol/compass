@@ -179,6 +179,13 @@ func (w *Writer) sendTx(addr string, input []byte) (string, error) {
 	//	w.log.Error("Failed to EstimateEnergy", "err", err)
 	//	return "", err
 	//}
+	fmt.Println("contract -------------------- ", string(contract.Result.Message))
+	fmt.Println("contract -------------------- ", contract.EnergyUsed)
+	for _, bytes := range contract.ConstantResult {
+		fmt.Println("contract -------------------- ", string(bytes))
+	}
+
+	time.Sleep(time.Minute)
 	feeLimit := big.NewInt(0).Mul(big.NewInt(contract.EnergyUsed), multiple)
 	w.log.Info("EstimateEnergy", "estimate", contract.EnergyUsed, "multiple", multiple, "feeLimit", feeLimit)
 	// send transaction
@@ -231,10 +238,10 @@ func (w *Writer) mosAlarm(tx interface{}, err error) {
 }
 
 func (w *Writer) checkOrderId(toAddress string, input []byte) (bool, error) {
-	param := fmt.Sprintf("[{\"bytes32\":\"%v\"}]", input)
+	param := fmt.Sprintf("[{\"bytes32\":\"%v\"}]", common.Bytes2Hex(input))
 	call, err := w.conn.cli.TriggerConstantContract(w.cfg.From, toAddress, "orderList(bytes32)", param)
 	if err != nil {
-		return false, fmt.Errorf("map2tron call orderList failed, err is %v", err.Error())
+		return false, fmt.Errorf("call orderList failed, %v", err.Error())
 	}
 
 	resp, err := mapprotocol.Mcs.Methods[mapprotocol.MethodOfOrderList].Outputs.Unpack(call.ConstantResult[0])

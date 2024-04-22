@@ -41,22 +41,20 @@ type Chain struct {
 	listen chains.Listener // The listener of this chain
 }
 
-// checkBlockstore queries the blockstore for the latest known block. If the latest block is
-// greater than cfg.startBlock, then cfg.startBlock is replaced with the latest known block.
 func setupBlockstore(cfg *Config, kp *key.KeyPair, role mapprotocol.Role) (*blockstore.Blockstore, error) {
-	bs, err := blockstore.NewBlockstore(cfg.blockstorePath, cfg.id, kp.PublicKey.ToPublicKey().Hash(), role)
+	bs, err := blockstore.NewBlockstore(cfg.BlockstorePath, cfg.Id, kp.PublicKey.ToPublicKey().Hash(), role)
 	if err != nil {
 		return nil, err
 	}
 
-	if !cfg.freshStart {
+	if !cfg.FreshStart {
 		latestBlock, err := bs.TryLoadLatestBlock()
 		if err != nil {
 			return nil, err
 		}
 
-		if latestBlock.Cmp(cfg.startBlock) == 1 {
-			cfg.startBlock = latestBlock
+		if latestBlock.Cmp(cfg.StartBlock) == 1 {
+			cfg.StartBlock = latestBlock
 		}
 	}
 
@@ -70,7 +68,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		return nil, err
 	}
 
-	kp, err := keystore.NearKeyPairFrom(chainCfg.Network, cfg.keystorePath, cfg.from)
+	kp, err := keystore.NearKeyPairFrom(chainCfg.Network, cfg.KeystorePath, cfg.From)
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +79,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	}
 
 	stop := make(chan int)
-	conn := connection.NewConnection(cfg.endpoint, cfg.http, &kp, logger, cfg.gasLimit, cfg.maxGasPrice,
-		cfg.gasMultiplier, cfg.egsApiKey, cfg.egsSpeed)
+	conn := connection.NewConnection(cfg.Endpoint, cfg.Http, &kp, logger, cfg.GasLimit, cfg.MaxGasPrice, big.NewFloat(cfg.GasMultiplier))
 	err = conn.Connect()
 	if err != nil {
 		return nil, err
@@ -93,7 +90,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		if err != nil {
 			return nil, err
 		}
-		cfg.startBlock = curr
+		cfg.StartBlock = curr
 	}
 
 	// simplified a little bit
@@ -101,14 +98,6 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 	cs := NewCommonListen(conn, cfg, logger, stop, sysErr, bs)
 	if role == mapprotocol.RoleOfMessenger {
 		redis.Init(cfg.redisUrl)
-		//// verify range
-		//fn := mapprotocol.Map2NearVerifyRange(cfg.lightNode, conn.Client())
-		//left, right, err := fn()
-		//if err != nil {
-		//	return nil, errors.Wrap(err, "near get init verifyHeight failed")
-		//}
-		//logger.Info("Map2Near Current verify range", "left", left, "right", right, "lightNode", cfg.lightNode)
-		//mapprotocol.Map2OtherVerifyRange[cfg.id] = fn
 		listen = NewMessenger(cs)
 	} else if role == mapprotocol.RoleOfMaintainer {
 		fn := mapprotocol.Map2NearHeight(cfg.lightNode, conn.Client())
@@ -117,8 +106,8 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 			return nil, errors.Wrap(err, "near get init headerHeight failed")
 		}
 		logger.Info("Map2Near Current situation", "height", height, "lightNode", cfg.lightNode)
-		mapprotocol.SyncOtherMap[cfg.id] = height
-		mapprotocol.Map2OtherHeight[cfg.id] = fn
+		mapprotocol.SyncOtherMap[cfg.Id] = height
+		mapprotocol.Map2OtherHeight[cfg.Id] = fn
 		listen = NewMaintainer(cs)
 	}
 	writer := NewWriter(conn, cfg, logger, stop, sysErr)

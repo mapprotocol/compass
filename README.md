@@ -179,22 +179,17 @@ Ethereum chains support the following additional options:
 ```
 {
     "mcs": "0x12345...",                                    // Address of the bridge contract (required)
-    "maxGasPrice": "0x1234",                                // Gas price for transactions (default: 20000000000)
-    "gasLimit": "0x1234",                                   // Gas limit for transactions (default: 6721975)
+    "maxGasPrice": "0x1234",                                // Gas price for transactions (default: 50000000)
+    "gasLimit": "0x1234",                                   // Gas limit for transactions (default: 1000000)
     "gasMultiplier": "1.25",                                // Multiplies the gas price by the supplied value (default: 1)
-    "http": "true",                                         // Whether the chain connection is ws or http (default: false)
     "startBlock": "1234",                                   // The block to start processing events from (default: 0)
-    "blockConfirmations": "10"                              // Number of blocks to wait before processing a block
-    "egsApiKey": "xxx..."                                   // API key for Eth Gas Station (https://www.ethgasstation.info/)
-    "egsSpeed": "fast"                                      // Desired speed for gas price selection, the options are: "average", "fast", "fastest"
+    "blockConfirmations": "10"                              // Number of blocks to wait before processing a block (default: 20)
     "lightnode": "0x12345...",                              // the lightnode to sync header
-    "syncToMap": "true",                                    // Whether sync blockchain headers to Map
+    "syncToMap": "false",                                   // Whether sync blockchain headers to Map，(default : true)
     "syncIdList": "[214]"                                   // Those chain ids are synchronized to the map，and This configuration can only be used in mapchain
     "event": "mapTransferOut(...)|depositOutToken(...)",    // MCS events monitored by the program, multiple with | interval，
                                                             // Here we give the events that need to be monitored，Map:mapTransferOut(bytes,bytes,bytes32,uint256,uint256,bytes,uint256,bytes) Near: 2ef1cdf83614a69568ed2c96a275dd7fb2e63a464aa3a0ffe79f55d538c8b3b5|150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377
-    "waterLine": "5000000000000000000",                     // If the user balance is lower than, an alarm will be triggered, unit ：wei
-    "alarmSecond": "3000",                                  // How long does the user balance remain unchanged, triggering the alarm, unit ：seconds
-    "oracleNode": "1234"                                    // use to match event                                              
+    "oracleNode": "1234"                                    // use to match oracle event                                              
 }
 ```
 ## Blockstore

@@ -57,10 +57,10 @@ func (m Maintainer) sync() error {
 				continue
 			}
 
-			if m.cfg.syncToMap {
+			if m.cfg.SyncToMap {
 				// listen when catchup
 				m.log.Info("Sync Header to Map Chain", "target", latestBlock)
-				err = m.syncHeaderToMapChain(latestBlock)
+				err = m.toMapChain(latestBlock)
 				if err != nil {
 					m.log.Error("Failed to listen header for block", "block", latestBlock, "err", err)
 					time.Sleep(constant.QueryRetryInterval)
@@ -75,9 +75,9 @@ func (m Maintainer) sync() error {
 	}
 }
 
-// syncHeaderToMapChain listen header from current chain to Map chain
-func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
-	height, err := mapprotocol.Get2MapHeight(m.cfg.id)
+// toMapChain listen header from current chain to Map chain
+func (m *Maintainer) toMapChain(latestBlock *big.Int) error {
+	height, err := mapprotocol.Get2MapHeight(m.cfg.Id)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 
 	count := new(big.Int).Div(blocks, NearEpochSize).Uint64()
 	number := height.Uint64()
-	id := big.NewInt(0).SetUint64(uint64(m.cfg.id))
+	id := big.NewInt(0).SetUint64(uint64(m.cfg.Id))
 	for i := uint64(0); i < count; i++ {
 		blockDetails, err := m.conn.Client().BlockDetails(context.Background(), block.BlockID(number))
 		if err != nil {
@@ -113,7 +113,7 @@ func (m *Maintainer) syncHeaderToMapChain(latestBlock *big.Int) error {
 
 		number = lightBlock.InnerLite.Height
 
-		message := msg.NewSyncToMap(m.cfg.id, m.cfg.mapChainID, []interface{}{id, near.Borshify(lightBlock)}, m.msgCh)
+		message := msg.NewSyncToMap(m.cfg.Id, m.cfg.MapChainID, []interface{}{id, near.Borshify(lightBlock)}, m.msgCh)
 		err = m.router.Send(message)
 		if err != nil {
 			m.log.Error("subscription error: failed to route message", "err", err)
