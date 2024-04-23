@@ -103,20 +103,14 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 	if len(logs) == 0 {
 		return nil
 	}
-	if m.Cfg.Id == constant.MerlinChainId || m.Cfg.Id == constant.ZkSyncChainId {
-		txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
-		if err != nil {
-			return fmt.Errorf("unable to get tx hashes Logs: %w", err)
-		}
-		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-		if err != nil {
-			return fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-		}
-		tr, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-		tr = proof.DeriveTire(types.Receipts(receipts), tr)
-		m.Log.Info("oracle merlin receipt", "blockNumber", latestBlock, "hash", tr.Hash())
-		header.ReceiptHash = tr.Hash()
+	hash, err := generateReceipt(m, latestBlock)
+	if err != nil {
+		return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 	}
+	if hash != nil {
+		header.ReceiptHash = *hash
+	}
+
 	m.Log.Info("Find log", "block", latestBlock, "logs", len(logs))
 	input, err := mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfPropose].Inputs.Pack(header.Number, header.ReceiptHash)
 	if err != nil {
@@ -153,4 +147,31 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 		return err
 	}
 	return nil
+}
+
+func generateReceipt(m *Oracle, latestBlock *big.Int) (*common.Hash, error) {
+	if !exist(int64(m.Cfg.Id), []int64{constant.MerlinChainId, constant.ZkSyncChainId, constant.B2ChainId}) {
+		return nil, nil
+	}
+	txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+	tr, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
+	tr = proof.DeriveTire(types.Receipts(receipts), tr)
+	ret := tr.Hash()
+	return &ret, nil
+}
+
+func exist(target int64, dst []int64) bool {
+	for _, d := range dst {
+		if target == d {
+			return true
+		}
+	}
+	return false
 }
