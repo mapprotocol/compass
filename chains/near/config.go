@@ -47,5 +47,10 @@ func parseChainConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		delete(chainCfg.Opts, chain.RedisOpt)
 	}
 
+	if v, ok := chainCfg.Opts[chain.LightNode]; ok && v != "" {
+		ret.lightNode = v
+		delete(chainCfg.Opts, chain.LightNode)
+	}
+
 	return &ret, nil
 }

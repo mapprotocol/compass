@@ -217,5 +217,9 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		config.OracleNode = config.LightNode
 	}
 
+	if config.Id == config.MapChainID {
+		config.SyncToMap = false
+	}
+
 	return config, nil
 }
