@@ -3,7 +3,6 @@ package chain
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
@@ -24,8 +23,6 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 		case <-w.stop:
 			return false
 		default:
-			id, _ := m.Payload[0].(*big.Int)
-			marshal, _ := m.Payload[1].([]byte)
 			err := w.conn.LockAndUpdateOpts(needNonce)
 			if err != nil {
 				w.log.Error("Failed to update nonce", "err", err)
@@ -33,13 +30,7 @@ func (w *Writer) execMap2OtherMsg(m msg.Message) bool {
 				continue
 			}
 
-			data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, id, marshal)
-			if err != nil {
-				w.log.Error("map2other Failed to pack abi data", "err", err)
-				w.conn.UnlockOpts()
-				return false
-			}
-			tx, err := w.sendTx(&w.cfg.LightNode, nil, data)
+			tx, err := w.sendTx(&w.cfg.LightNode, nil, m.Payload[0].([]byte))
 			w.conn.UnlockOpts()
 			if err == nil {
 				// message successfully handled
