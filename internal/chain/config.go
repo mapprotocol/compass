@@ -213,7 +213,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		}
 	}
 
-	if config.OracleNode.String() == "" {
+	if config.OracleNode == constant.ZeroAddress {
 		config.OracleNode = config.LightNode
 	}
 
