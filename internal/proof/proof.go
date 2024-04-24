@@ -2,8 +2,11 @@ package proof
 
 import (
 	"bytes"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
+	"github.com/pkg/errors"
 	"math/big"
 	"sync"
 
@@ -34,6 +37,18 @@ type ReceiptProof struct {
 	TxReceipt mapprotocol.TxReceipt
 	KeyIndex  []byte
 	Proof     [][]byte
+}
+
+type NewData struct {
+	BlockNum     *big.Int
+	ReceiptProof NewReceiptProof
+}
+
+type NewReceiptProof struct {
+	TxReceipt   []byte
+	ReceiptType *big.Int
+	KeyIndex    []byte
+	Proof       [][]byte
 }
 
 var encodeBufferPool = sync.Pool{
@@ -96,4 +111,18 @@ func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
 	buf.Reset()
 	list.EncodeIndex(i, buf)
 	return common.CopyBytes(buf.Bytes())
+}
+
+func Pack(fId msg.ChainId, method string, abi abi.ABI, params ...interface{}) ([]byte, error) {
+	input, err := abi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(params...)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack getBytes failed")
+	}
+
+	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack mcs input failed")
+	}
+
+	return ret, nil
 }

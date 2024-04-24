@@ -89,30 +89,25 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 		return nil, err
 	}
 
-	proof, err := iproof.Get(types.Receipts(receipts), txIndex)
+	prf, err := iproof.Get(types.Receipts(receipts), txIndex)
 	if err != nil {
 		return nil, err
 	}
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := mapo.Key2Hex(key, len(proof))
+	ek := mapo.Key2Hex(key, len(prf))
 
 	pd := ProofData{
 		Headers: header,
 		ReceiptProof: ReceiptProof{
 			TxReceipt: *receipt,
 			KeyIndex:  ek,
-			Proof:     proof,
+			Proof:     prf,
 		},
 	}
 
-	input, err := mapprotocol.Bsc.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
-	if err != nil {
-		return nil, err
-	}
-
-	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	pack, err := iproof.Pack(fId, method, mapprotocol.Bsc, pd)
 	if err != nil {
 		return nil, err
 	}
