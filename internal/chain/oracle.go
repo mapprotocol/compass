@@ -120,11 +120,15 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	if m.Cfg.Id == m.Cfg.MapChainID {
 		toChainID := binary.BigEndian.Uint64(logs[0].Topics[1][len(logs[0].Topics[1])-8:])
+		data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, big.NewInt(int64(m.Cfg.Id)), input)
+		if err != nil {
+			return err
+		}
 		for _, cid := range m.Cfg.SyncChainIDList {
 			if toChainID != uint64(cid) {
 				continue
 			}
-			message := msg.NewSyncFromMap(m.Cfg.MapChainID, cid, []interface{}{id, input}, m.MsgCh)
+			message := msg.NewSyncFromMap(m.Cfg.MapChainID, cid, []interface{}{data}, m.MsgCh)
 			err = m.Router.Send(message)
 			if err != nil {
 				m.Log.Error("subscription error: failed to route message", "err", err)
