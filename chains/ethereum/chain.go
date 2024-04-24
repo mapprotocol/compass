@@ -59,20 +59,7 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 		return err
 	}
 	istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
-	var input []byte
-	if m.Cfg.ApiUrl == "" {
-		input, err = mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
-	} else {
-		proof, err := mapprotocol.GetZkProof(m.Cfg.ApiUrl, m.Cfg.Id, latestBlock.Uint64())
-		if err != nil {
-			return err
-		}
-		validators, err := mapprotocol.GetCurValidators(m.Conn.Client(), latestBlock)
-		if err != nil {
-			return err
-		}
-		input, err = mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodUpdateBlockHeader, validators, h, istanbulExtra, proof)
-	}
+	input, err := mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
 	if err != nil {
 		return err
 	}
@@ -80,7 +67,6 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 	msgpayload := []interface{}{input}
 	waitCount := len(m.Cfg.SyncChainIDList)
 	for _, cid := range m.Cfg.SyncChainIDList {
-		// Only when the latestblock is greater than the height of the synchronized block, the synchronization is performed
 		if v, ok := mapprotocol.SyncOtherMap[cid]; ok && latestBlock.Cmp(v) <= 0 {
 			waitCount--
 			m.Log.Info("map to other current less than synchronized headerHeight", "toChainId", cid, "synced height", v,
