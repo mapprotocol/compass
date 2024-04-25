@@ -103,7 +103,7 @@ var oracleCommand = cli.Command{
 }
 
 var (
-	Version = "1.2.0"
+	Version = "1.2.1"
 )
 
 // init initializes CLI
