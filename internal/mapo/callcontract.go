@@ -160,29 +160,45 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			}
 			payloads, err = proof.Pack(fId, method, mapprotocol.Mcs, rp, zkProof)
 		case constant.ProofTypeOfOracle:
-			d, err := rlp.EncodeToBytes(receipt)
-			if err != nil {
-				return 0, nil, errors.Wrap(err, "rlp encode failed")
-			}
-			pd := proof.NewData{
-				BlockNum: header.Number,
-				ReceiptProof: proof.NewReceiptProof{
-					TxReceipt:   d,
-					ReceiptType: receipt.ReceiptType,
-					KeyIndex:    util.Key2Hex(key, len(prf)),
-					Proof:       prf,
-				},
-			}
+			if uToChainID == 223 {
+				//d, err := rlp.EncodeToBytes(&receipt)
+				//if err != nil {
+				//	return 0, nil, errors.Wrap(err, "rlp encode failed")
+				//}
+				pd := proof.NewData{
+					BlockNum: header.Number,
+					ReceiptProof: proof.NewReceiptProof{
+						TxReceipt:   nrRlp,
+						ReceiptType: receipt.ReceiptType,
+						KeyIndex:    util.Key2Hex(key, len(prf)),
+						Proof:       prf,
+					},
+				}
 
-			payloads, err = proof.Pack(fId, method, mapprotocol.Mcs, pd)
-		}
-		if err != nil {
-			return 0, nil, errors.Wrap(err, "getBytes failed")
+				input, err := mapprotocol.ProofAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+				if err != nil {
+					return 0, nil, errors.Wrap(err, "pack getBytes failed")
+				}
+
+				payloads, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
+			} else {
+				pd := proof.Data{
+					BlockNum: header.Number,
+					ReceiptProof: proof.ReceiptProof{
+						TxReceipt: *receipt,
+						KeyIndex:  util.Key2Hex(key, len(prf)),
+						Proof:     prf,
+					},
+				}
+
+				payloads, err = proof.Pack(fId, method, mapprotocol.OracleAbi, pd)
+			}
 		}
 
 		if err != nil {
 			return 0, nil, err
 		}
+		//fmt.Println("------------------------- ", "0x"+common.Bytes2Hex(payloads))
 		return uToChainID, payloads, nil
 	}
 
