@@ -96,7 +96,7 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := mapo.Key2Hex(key, len(prf))
 
-	var input []byte
+	var pack []byte
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
 		pd := ProofData{
@@ -108,10 +108,7 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 			},
 		}
 
-		input, err = mapprotocol.Matic.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
-		if err != nil {
-			return nil, err
-		}
+		pack, err = proof.Pack(fId, method, mapprotocol.Matic, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
 		pd := proof.Data{
@@ -122,13 +119,10 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 				Proof:     prf,
 			},
 		}
-		input, err = mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
-		if err != nil {
-			return nil, err
-		}
+
+		pack, err = proof.Pack(fId, method, mapprotocol.OracleAbi, pd)
 	}
 
-	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
 	if err != nil {
 		return nil, err
 	}

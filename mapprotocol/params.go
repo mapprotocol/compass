@@ -1,6 +1,3 @@
-// Copyright 2021 Compass Systems
-// SPDX-License-Identifier: LGPL-3.0-only
-
 package mapprotocol
 
 import (
@@ -84,6 +81,7 @@ var (
 	Other, _       = abi.JSON(strings.NewReader(otherAbi))
 	Bttc, _        = abi.JSON(strings.NewReader(bttcAbi))
 	OracleAbi, _   = abi.JSON(strings.NewReader(OracleAbiJson))
+	ProofAbi, _    = abi.JSON(strings.NewReader(ProofAbiJson))
 )
 
 type Role string
