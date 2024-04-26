@@ -116,11 +116,6 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				continue
 			}
 			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "orderId", ethcommon.Bytes2Hex(orderId))
-			//proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), toChainID, latestBlock, orderId)
-			//if errors.Is(err, chain.OrderExist) {
-			//	m.Log.Info("This txHash order exist", "blockNumber", latestBlock, "txHash", log.TxHash)
-			//	continue
-			//}
 			if err != nil {
 				return 0, err
 			}

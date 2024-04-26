@@ -245,9 +245,7 @@ func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, 
 		return nil, errors.Wrap(err, "getFinalBytes pack")
 	}
 
-	//fmt.Println("proof hex ------------ ", "0x"+common.Bytes2Hex(input))
 	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-	//pack, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
 	if err != nil {
 		return nil, err
 	}
