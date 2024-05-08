@@ -160,11 +160,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			}
 			payloads, err = proof.Pack(fId, method, mapprotocol.Mcs, rp, zkProof)
 		case constant.ProofTypeOfOracle:
-			if uToChainID == 223 {
-				//d, err := rlp.EncodeToBytes(&receipt)
-				//if err != nil {
-				//	return 0, nil, errors.Wrap(err, "rlp encode failed")
-				//}
+			if uToChainID == 223 || uToChainID == 728126428 {
 				pd := proof.NewData{
 					BlockNum: header.Number,
 					ReceiptProof: proof.NewReceiptProof{
