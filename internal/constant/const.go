@@ -97,6 +97,7 @@ const (
 
 const (
 	MerlinChainId     = 4200
+	EthChainId        = 5
 	ZkSyncChainId     = 324
 	B2ChainId         = 223
 	OpChainId         = 10
