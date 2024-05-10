@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 	"math/big"
 	"sync"
@@ -115,6 +116,42 @@ func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
 
 func Pack(fId msg.ChainId, method string, abi abi.ABI, params ...interface{}) ([]byte, error) {
 	input, err := abi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(params...)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack getBytes failed")
+	}
+
+	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack mcs input failed")
+	}
+
+	return ret, nil
+}
+
+func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId, method string,
+	abi abi.ABI) ([]byte, error) {
+	nr := mapprotocol.MapTxReceipt{
+		PostStateOrStatus: receipt.PostStateOrStatus,
+		CumulativeGasUsed: receipt.CumulativeGasUsed,
+		Bloom:             receipt.Bloom,
+		Logs:              receipt.Logs,
+	}
+	nrRlp, err := rlp.EncodeToBytes(nr)
+	if err != nil {
+		return nil, err
+	}
+
+	pd := NewData{
+		BlockNum: big.NewInt(int64(blockNumber)),
+		ReceiptProof: NewReceiptProof{
+			TxReceipt:   nrRlp,
+			ReceiptType: receipt.ReceiptType,
+			KeyIndex:    util.Key2Hex(key, len(prf)),
+			Proof:       prf,
+		},
+	}
+
+	input, err := abi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
 	if err != nil {
 		return nil, errors.Wrap(err, "pack getBytes failed")
 	}

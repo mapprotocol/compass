@@ -231,7 +231,7 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 		_, pending, err := w.conn.Client().TransactionByHash(context.Background(), txHash) // Query whether it is on the chain
 		if pending {
 			w.log.Info("Tx is Pending, please wait...", "tx", txHash)
-			time.Sleep(w.queryInterval()) // todo suo xiao
+			time.Sleep(w.queryInterval())
 			count++
 			if count == 60 {
 				return errors.New("The Tx pending state is too long")

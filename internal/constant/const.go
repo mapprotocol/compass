@@ -104,6 +104,8 @@ const (
 	BlastChainId      = 81457
 	ArbChainId        = 421614
 	ArbTestnetChainId = 42161
+	MantleChainId     = 5000
+	ScrollChainId     = 534352
 )
 
 const (
