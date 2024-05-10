@@ -106,6 +106,7 @@ const (
 	ArbTestnetChainId = 42161
 	MantleChainId     = 5000
 	ScrollChainId     = 534352
+	ZkLinkChainId     = 810180
 )
 
 const (
