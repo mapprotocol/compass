@@ -46,7 +46,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 		return nil, err
 	}
 
-	if chainCfg.LatestBlock {
+	if chainCfg.LatestBlock || cfg.StartBlock == nil || cfg.StartBlock.Int64() == 0 {
 		curr, err := conn.LatestBlock()
 		if err != nil {
 			return nil, err

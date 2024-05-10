@@ -11,6 +11,7 @@ import (
 	"github.com/mapprotocol/compass/internal/arb"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/op"
+	"github.com/mapprotocol/compass/internal/scroll"
 	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"strings"
@@ -48,15 +49,19 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 		var key []byte
 		key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
 
-		pd := proof.Data{
-			BlockNum: big.NewInt(int64(log.BlockNumber)),
-			ReceiptProof: proof.ReceiptProof{
-				TxReceipt: *receipt,
-				KeyIndex:  util.Key2Hex(key, len(prf)),
-				Proof:     prf,
-			},
+		if fId == constant.MerlinChainId {
+			pd := proof.Data{
+				BlockNum: big.NewInt(int64(log.BlockNumber)),
+				ReceiptProof: proof.ReceiptProof{
+					TxReceipt: *receipt,
+					KeyIndex:  util.Key2Hex(key, len(prf)),
+					Proof:     prf,
+				},
+			}
+			pack, err = proof.Pack(fId, method, mapprotocol.OracleAbi, pd)
+		} else {
+			pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, mapprotocol.ProofAbi)
 		}
-		pack, err = proof.Pack(fId, method, mapprotocol.OracleAbi, pd)
 	}
 
 	if err != nil {
@@ -69,10 +74,16 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte, error) {
 	var dls proof.DerivableList
 	switch fId {
-	case constant.ArbChainId, constant.ArbTestnetChainId:
+	case constant.ArbChainId, constant.ArbTestnetChainId, constant.MantleChainId:
 		pr := arb.Receipts{}
 		for _, r := range receipts {
 			pr = append(pr, &arb.Receipt{Receipt: r})
+		}
+		dls = pr
+	case constant.ScrollChainId:
+		pr := scroll.Receipts{}
+		for _, r := range receipts {
+			pr = append(pr, &scroll.Receipt{Receipt: r})
 		}
 		dls = pr
 	case constant.OpChainId, constant.BaseChainId, constant.BlastChainId:
@@ -160,28 +171,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			}
 			payloads, err = proof.Pack(fId, method, mapprotocol.Mcs, rp, zkProof)
 		case constant.ProofTypeOfOracle:
-			if uToChainID == 223 {
-				//d, err := rlp.EncodeToBytes(&receipt)
-				//if err != nil {
-				//	return 0, nil, errors.Wrap(err, "rlp encode failed")
-				//}
-				pd := proof.NewData{
-					BlockNum: header.Number,
-					ReceiptProof: proof.NewReceiptProof{
-						TxReceipt:   nrRlp,
-						ReceiptType: receipt.ReceiptType,
-						KeyIndex:    util.Key2Hex(key, len(prf)),
-						Proof:       prf,
-					},
-				}
-
-				input, err := mapprotocol.ProofAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
-				if err != nil {
-					return 0, nil, errors.Wrap(err, "pack getBytes failed")
-				}
-
-				payloads, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
-			} else {
+			if uToChainID == constant.MerlinChainId {
 				pd := proof.Data{
 					BlockNum: header.Number,
 					ReceiptProof: proof.ReceiptProof{
@@ -192,13 +182,14 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 				}
 
 				payloads, err = proof.Pack(fId, method, mapprotocol.OracleAbi, pd)
+			} else {
+				payloads, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, mapprotocol.ProofAbi)
 			}
 		}
 
 		if err != nil {
 			return 0, nil, err
 		}
-		//fmt.Println("------------------------- ", "0x"+common.Bytes2Hex(payloads))
 		return uToChainID, payloads, nil
 	}
 
