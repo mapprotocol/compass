@@ -49,7 +49,7 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 		var key []byte
 		key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
 
-		if fId == 4200 {
+		if fId == constant.MerlinChainId {
 			pd := proof.Data{
 				BlockNum: big.NewInt(int64(log.BlockNumber)),
 				ReceiptProof: proof.ReceiptProof{
@@ -171,7 +171,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			}
 			payloads, err = proof.Pack(fId, method, mapprotocol.Mcs, rp, zkProof)
 		case constant.ProofTypeOfOracle:
-			if uToChainID == 4200 {
+			if uToChainID == constant.MerlinChainId {
 				pd := proof.Data{
 					BlockNum: header.Number,
 					ReceiptProof: proof.ReceiptProof{
