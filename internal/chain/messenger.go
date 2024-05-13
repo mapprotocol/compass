@@ -207,7 +207,6 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, err
 	}
 	message.Idx = idx
-	time.Sleep(time.Minute)
 	err = m.Router.Send(*message)
 	if err != nil {
 		m.Log.Error("Subscription error: failed to route message", "err", err)
