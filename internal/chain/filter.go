@@ -11,25 +11,21 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	"net/url"
 	"strings"
+	"time"
 )
 
-func (m *Messenger) filterMosHandler() (int, error) {
+func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 	count := 0
 	topic := ""
 	for idx, ele := range m.Cfg.Events {
 		topic += ele.GetTopic().Hex()
-		if idx != len(ele)-1 {
+		if idx != len(m.Cfg.Events)-1 {
 			topic += ","
 		}
 	}
-	urlPath, err := url.JoinPath(m.Cfg.FilterHost, fmt.Sprintf("%s?id=%d&project_id=%d&chain_id=%d&topic=%s&limit=10",
-		constant.FilterUrl, m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic))
-	if err != nil {
-		return 0, err
-	}
-	data, err := request(urlPath)
+	data, err := request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl, fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
+		m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)))
 	if err != nil {
 		return 0, err
 	}
@@ -42,11 +38,22 @@ func (m *Messenger) filterMosHandler() (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	if len(back.List) == 0 {
+		return 0, nil
+	}
+
 	for _, ele := range back.List {
 		idx := m.match(ele.ContractAddress)
 		if idx == -1 {
 			m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
+			continue
 		}
+		if latestBlock-ele.BlockNumber < m.BlockConfirmations.Uint64() {
+			m.Log.Debug("Block not ready, will retry", "currentBlock", ele.BlockNumber, "latest", latestBlock)
+			time.Sleep(constant.BalanceRetryInterval)
+			continue
+		}
+
 		split := strings.Split(ele.Topic, ",")
 		topics := make([]common.Hash, 0, len(split))
 		for _, sp := range split {
@@ -55,18 +62,18 @@ func (m *Messenger) filterMosHandler() (int, error) {
 		log := &types.Log{
 			Address:     common.HexToAddress(ele.ContractAddress),
 			Topics:      topics,
-			Data:        []byte(ele.LogData),
+			Data:        common.Hex2Bytes(ele.LogData),
 			BlockNumber: ele.BlockNumber,
 			TxHash:      common.HexToHash(ele.TxHash),
 			TxIndex:     ele.TxIndex,
 			BlockHash:   common.HexToHash(ele.BlockHash),
 			Index:       ele.LogIndex,
 		}
-		err = log2Msg(m, log, idx)
+		send, err := log2Msg(m, log, idx)
 		if err != nil {
 			return 0, err
 		}
-		count++
+		count += send
 		m.Cfg.StartBlock = big.NewInt(ele.Id)
 	}
 

@@ -106,7 +106,14 @@ func (m *Messenger) filter() error {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
-			count, err := m.filterMosHandler()
+			data, err := request(fmt.Sprintf("%s/%s", m.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterBlockUrl, m.Cfg.Id)))
+			if err != nil {
+				m.Log.Error("Unable to get latest block", "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+			latestBlock, _ := big.NewInt(0).SetString(data.(string), 10)
+			count, err := m.filterMosHandler(latestBlock.Uint64())
 			if err != nil {
 				if errors.Is(err, NotVerifyAble) {
 					time.Sleep(constant.BalanceRetryInterval)
@@ -142,17 +149,17 @@ func defaultMosHandler(m *Messenger, blockNumber *big.Int) (int, error) {
 		m.Log.Debug("event", "blockNumber ", blockNumber, " logs ", len(logs))
 		for _, log := range logs {
 			ele := log
-			err = log2Msg(m, &ele, idx)
+			send, err := log2Msg(m, &ele, idx)
 			if err != nil {
 				return 0, err
 			}
-			count++
+			count += send
 		}
 	}
 	return count, nil
 }
 
-func log2Msg(m *Messenger, log *types.Log, idx int) error {
+func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	var (
 		proofType int64
 		toChainID uint64
@@ -170,26 +177,26 @@ func log2Msg(m *Messenger, log *types.Log, idx int) error {
 		chainName, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]
 		if !ok {
 			m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
-			return nil
+			return 0, nil
 		}
 		if strings.ToLower(chainName) == "near" {
 			proofType = 1
 		} else if strings.ToLower(chainName) == "tron" {
 			proofType = 3
 		} else {
-			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-				"orderId", common.Bytes2Hex(orderId))
+			m.Log.Info("Event found", "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", common.Bytes2Hex(orderId))
 			proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId)
 			if errors.Is(err, OrderExist) {
 				m.Log.Info("This txHash order exist", "txHash", log.TxHash)
-				return nil
+				return 0, nil
 			}
 			if errors.Is(err, NotVerifyAble) {
 				m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash)
-				return err
+				return 0, err
 			}
+			m.Log.Info("Event found", "txHash", log.TxHash, "proofType", proofType)
 			if err != nil {
-				return err
+				return 0, err
 			}
 		}
 	}
@@ -197,13 +204,14 @@ func log2Msg(m *Messenger, log *types.Log, idx int) error {
 	tmpLog := log
 	message, err := m.assembleProof(m, tmpLog, proofType, toChainID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	message.Idx = idx
+	time.Sleep(time.Minute)
 	err = m.Router.Send(*message)
 	if err != nil {
 		m.Log.Error("Subscription error: failed to route message", "err", err)
-		return err
+		return 0, err
 	}
-	return nil
+	return 1, nil
 }
