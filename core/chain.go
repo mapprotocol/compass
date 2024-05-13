@@ -36,6 +36,8 @@ type ChainConfig struct {
 	LatestBlock      bool              // If true, overrides blockstore or latest block in config and starts from current block
 	Opts             map[string]string // Per chain options
 	SkipError        bool              // Flag of Skip Error
+	Filter           bool
+	FilterHost       string
 }
 
 type Connection interface {

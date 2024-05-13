@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
 
@@ -35,6 +36,7 @@ type RawChainConfig struct {
 type Construction struct {
 	MonitorUrl string `json:"monitor_url,omitempty"`
 	Env        string `json:"env,omitempty"`
+	Filter     string `json:"filter"`
 }
 
 func (c *Config) ToJSON(file string) *os.File {
@@ -112,6 +114,9 @@ func GetConfig(ctx *cli.Context) (*Config, error) {
 	// fill map chain config
 	fig.MapChain.Type = "ethereum"
 	fig.MapChain.Name = "map"
+	if ctx.Bool(FilterFlag.Name) && fig.Other.Filter == "" {
+		return nil, errors.New("filter url is empty")
+	}
 
 	if err != nil {
 		return nil, err

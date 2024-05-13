@@ -8,6 +8,9 @@ import (
 )
 
 func SetupBlockStore(cfg *Config, role mapprotocol.Role) (*blockstore.Blockstore, error) {
+	if cfg.Filter {
+		role += "-filter"
+	}
 	bs, err := blockstore.NewBlockstore(cfg.BlockstorePath, cfg.Id, cfg.From, role)
 	if err != nil {
 		return nil, err

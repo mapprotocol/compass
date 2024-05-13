@@ -43,6 +43,7 @@ var cliFlags = []cli.Flag{
 	config.FreshStartFlag,
 	config.LatestBlockFlag,
 	config.SkipErrorFlag,
+	config.FilterFlag,
 }
 
 var devFlags = []cli.Flag{
@@ -165,18 +166,13 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	if err != nil {
 		return err
 	}
-
 	log.Info("Starting Compass...")
 
 	cfg, err := config.GetConfig(ctx)
 	if err != nil {
 		return err
 	}
-
-	log.Debug("Config on initialization...", "config", *cfg)
-
 	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
-	// Used to signal core shutdown due to fatal error
 	sysErr := make(chan error)
 	mapcid, err := strconv.Atoi(cfg.MapChain.Id)
 	if err != nil {
@@ -197,7 +193,6 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		if err != nil {
 			return err
 		}
-		// write Map chain id to opts
 		mapprotocol.MapId = cfg.MapChain.Id
 		chain.Opts[config.MapChainID] = cfg.MapChain.Id
 		chainConfig := &core.ChainConfig{
@@ -213,14 +208,14 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			LatestBlock:      ctx.Bool(config.LatestBlockFlag.Name),
 			Opts:             chain.Opts,
 			SkipError:        ctx.Bool(config.SkipErrorFlag.Name),
+			Filter:           ctx.Bool(config.FilterFlag.Name),
+			FilterHost:       cfg.Other.Filter,
 		}
 		var (
 			newChain core.Chain
 		)
 
 		logger := log.Root().New("chain", chainConfig.Name)
-		logger.Info("This task set skip error", "skip", ctx.Bool(config.SkipErrorFlag.Name))
-
 		switch chain.Type {
 		case chains.Ethereum:
 			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, role)

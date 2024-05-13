@@ -62,6 +62,11 @@ var (
 		Name:  "skipError",
 		Usage: "Skip Error",
 	}
+
+	FilterFlag = &cli.BoolFlag{
+		Name:  "filter",
+		Usage: "use filter model",
+	}
 )
 
 var (
