@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"math/big"
@@ -30,6 +31,17 @@ func NewMessenger(cs *CommonSync) *Messenger {
 func (m *Messenger) Sync() error {
 	m.Log.Debug("Starting listener...")
 	go func() {
+		if !m.Cfg.SyncToMap && m.Cfg.Id != m.Cfg.MapChainID {
+			time.Sleep(time.Hour * 2400)
+			return
+		}
+		if m.Cfg.Filter {
+			err := m.filter()
+			if err != nil {
+				m.Log.Error("Polling blocks failed", "err", err)
+			}
+			return
+		}
 		err := m.sync()
 		if err != nil {
 			m.Log.Error("Polling blocks failed", "err", err)
@@ -44,12 +56,7 @@ func (m *Messenger) Sync() error {
 // a block will be retried up to BlockRetryLimit times before continuing to the next block.
 // However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
-	if !m.Cfg.SyncToMap && m.Cfg.Id != m.Cfg.MapChainID {
-		time.Sleep(time.Hour * 2400)
-		return nil
-	}
 	var currentBlock = m.Cfg.StartBlock
-
 	for {
 		select {
 		case <-m.Stop:
@@ -62,7 +69,6 @@ func (m *Messenger) sync() error {
 				continue
 			}
 
-			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.BalanceRetryInterval)
@@ -71,19 +77,16 @@ func (m *Messenger) sync() error {
 			count, err := m.mosHandler(m, currentBlock)
 			if err != nil {
 				if errors.Is(err, NotVerifyAble) {
-					m.Log.Error("CurrentBlock not verify", "block", currentBlock, "err", err)
 					time.Sleep(constant.BalanceRetryInterval)
 					continue
 				}
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
-				time.Sleep(constant.BlockRetryInterval)
 				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
+				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
 
-			// hold until all messages are handled
 			_ = m.WaitUntilMsgHandled(count)
-
 			err = m.BlockStore.StoreBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
@@ -93,6 +96,36 @@ func (m *Messenger) sync() error {
 			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
 				time.Sleep(constant.MessengerInterval)
 			}
+		}
+	}
+}
+
+func (m *Messenger) filter() error {
+	for {
+		select {
+		case <-m.Stop:
+			return errors.New("polling terminated")
+		default:
+			count, err := m.filterMosHandler()
+			if err != nil {
+				if errors.Is(err, NotVerifyAble) {
+					time.Sleep(constant.BalanceRetryInterval)
+					continue
+				}
+				m.Log.Error("Filter Failed to get events for block", "err", err)
+				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+
+			// hold until all messages are handled
+			_ = m.WaitUntilMsgHandled(count)
+			err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
+			if err != nil {
+				m.Log.Error("Filter Failed to write latest block to blockstore", "err", err)
+			}
+
+			time.Sleep(constant.BlockRetryInterval)
 		}
 	}
 }
@@ -108,55 +141,69 @@ func defaultMosHandler(m *Messenger, blockNumber *big.Int) (int, error) {
 
 		m.Log.Debug("event", "blockNumber ", blockNumber, " logs ", len(logs))
 		for _, log := range logs {
-			var (
-				proofType int64
-				toChainID uint64
-			)
-
-			if log.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
-				proofType = 3
-			} else {
-				orderId := log.Data[:32]
-				toChainID, _ = strconv.ParseUint(mapprotocol.MapId, 10, 64)
-				if m.Cfg.Id == m.Cfg.MapChainID {
-					toChainID = binary.BigEndian.Uint64(log.Topics[2][len(log.Topics[2])-8:])
-				}
-				chainName, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]
-				if !ok {
-					m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
-					continue
-				}
-				if strings.ToLower(chainName) == "near" {
-					proofType = 1
-				} else if strings.ToLower(chainName) == "tron" {
-					proofType = 3
-				} else {
-					m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
-						"orderId", common.Bytes2Hex(orderId))
-					proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, blockNumber, orderId)
-					if errors.Is(err, OrderExist) {
-						m.Log.Info("This txHash order exist", "blockNumber", blockNumber, "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId))
-						continue
-					}
-					if err != nil {
-						return 0, err
-					}
-				}
-			}
-
-			tmpLog := log
-			message, err := m.assembleProof(m, &tmpLog, proofType, toChainID)
+			ele := log
+			err = log2Msg(m, &ele, idx)
 			if err != nil {
 				return 0, err
-			}
-			message.Idx = idx
-
-			err = m.Router.Send(*message)
-			if err != nil {
-				m.Log.Error("Subscription error: failed to route message", "err", err)
 			}
 			count++
 		}
 	}
 	return count, nil
+}
+
+func log2Msg(m *Messenger, log *types.Log, idx int) error {
+	var (
+		proofType int64
+		toChainID uint64
+		err       error
+	)
+
+	if log.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
+		proofType = 3
+	} else {
+		orderId := log.Data[:32]
+		toChainID, _ = strconv.ParseUint(mapprotocol.MapId, 10, 64)
+		if m.Cfg.Id == m.Cfg.MapChainID {
+			toChainID = binary.BigEndian.Uint64(log.Topics[2][len(log.Topics[2])-8:])
+		}
+		chainName, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]
+		if !ok {
+			m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
+			return nil
+		}
+		if strings.ToLower(chainName) == "near" {
+			proofType = 1
+		} else if strings.ToLower(chainName) == "tron" {
+			proofType = 3
+		} else {
+			m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index,
+				"orderId", common.Bytes2Hex(orderId))
+			proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId)
+			if errors.Is(err, OrderExist) {
+				m.Log.Info("This txHash order exist", "txHash", log.TxHash)
+				return nil
+			}
+			if errors.Is(err, NotVerifyAble) {
+				m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash)
+				return err
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	tmpLog := log
+	message, err := m.assembleProof(m, tmpLog, proofType, toChainID)
+	if err != nil {
+		return err
+	}
+	message.Idx = idx
+	err = m.Router.Send(*message)
+	if err != nil {
+		m.Log.Error("Subscription error: failed to route message", "err", err)
+		return err
+	}
+	return nil
 }

@@ -71,6 +71,8 @@ type Config struct {
 	ApiUrl             string
 	OracleNode         common.Address
 	TronContract       []common.Address
+	Filter             bool
+	FilterHost         string
 }
 
 // ParseConfig uses a core.ChainConfig to construct a corresponding Config
@@ -95,6 +97,8 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		BlockConfirmations: big.NewInt(0),
 		Events:             make([]constant.EventSig, 0),
 		SkipError:          chainCfg.SkipError,
+		Filter:             chainCfg.Filter,
+		FilterHost:         chainCfg.FilterHost,
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {

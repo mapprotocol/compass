@@ -136,3 +136,12 @@ func (c *CommonSync) GetMethod(topic ethcommon.Hash) string {
 
 	return method
 }
+
+func (c *CommonSync) match(target string) int {
+	for idx, ele := range c.Cfg.McsContract {
+		if ele.Hex() == target {
+			return idx
+		}
+	}
+	return -1
+}

@@ -7,8 +7,8 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
-
 	"math/big"
+	"net/url"
 	"time"
 )
 
@@ -82,11 +82,25 @@ func (m *Maintainer) sync() error {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
-			latestBlock, err := m.Conn.LatestBlock()
-			if err != nil {
-				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
+			var (
+				latestBlock *big.Int
+				err         error
+			)
+			if m.Cfg.Filter {
+				urlPath, err := url.JoinPath(m.Cfg.FilterHost, constant.FilterBlockUrl)
+				if err != nil {
+					return err
+				}
+				data, err := request(urlPath)
+				m.Log.Info("Filter latest block", "block", data)
+				latestBlock, _ = big.NewInt(0).SetString(data.(string), 10)
+			} else {
+				latestBlock, err = m.Conn.LatestBlock()
+				if err != nil {
+					m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
+					time.Sleep(constant.BlockRetryInterval)
+					continue
+				}
 			}
 
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {

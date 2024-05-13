@@ -117,3 +117,11 @@ const (
 const (
 	ReqInterval = int64(2)
 )
+const (
+	ProjectOfMsger  = int64(1)
+	ProjectOfOracle = int64(8)
+)
+const (
+	FilterUrl      = "v1/mos/list"
+	FilterBlockUrl = "v1/block"
+)
