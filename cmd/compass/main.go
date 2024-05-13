@@ -219,6 +219,9 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		switch chain.Type {
 		case chains.Ethereum:
 			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, role)
+			if err != nil {
+				return err
+			}
 			if idx == 0 {
 				mapprotocol.GlobalMapConn = newChain.(*chain2.Chain).EthClient()
 				mapprotocol.Init2GetEth22MapNumber(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
