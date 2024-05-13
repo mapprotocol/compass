@@ -8,7 +8,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 	"math/big"
-	"net/url"
 	"time"
 )
 
@@ -87,12 +86,13 @@ func (m *Maintainer) sync() error {
 				err         error
 			)
 			if m.Cfg.Filter {
-				urlPath, err := url.JoinPath(m.Cfg.FilterHost, constant.FilterBlockUrl)
+				data, err := request(fmt.Sprintf("%s/%s", m.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterBlockUrl, m.Cfg.Id)))
 				if err != nil {
-					return err
+					m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
+					time.Sleep(constant.BlockRetryInterval)
+					continue
 				}
-				data, err := request(urlPath)
-				m.Log.Info("Filter latest block", "block", data)
+				m.Log.Debug("Filter latest block", "block", data)
 				latestBlock, _ = big.NewInt(0).SetString(data.(string), 10)
 			} else {
 				latestBlock, err = m.Conn.LatestBlock()
