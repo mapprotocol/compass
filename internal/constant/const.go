@@ -115,7 +115,7 @@ const (
 )
 
 const (
-	ReqInterval = int64(2)
+	ReqInterval = int64(3)
 )
 const (
 	ProjectOfMsger  = int64(1)

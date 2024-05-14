@@ -106,13 +106,12 @@ func (m *Messenger) filter() error {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
-			data, err := request(fmt.Sprintf("%s/%s", m.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterBlockUrl, m.Cfg.Id)))
+			latestBlock, err := m.filterLatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "err", err)
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
-			latestBlock, _ := big.NewInt(0).SetString(data.(string), 10)
 			count, err := m.filterMosHandler(latestBlock.Uint64())
 			if err != nil {
 				if errors.Is(err, NotVerifyAble) {
@@ -207,7 +206,6 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, err
 	}
 	message.Idx = idx
-	time.Sleep(time.Minute)
 	err = m.Router.Send(*message)
 	if err != nil {
 		m.Log.Error("Subscription error: failed to route message", "err", err)
