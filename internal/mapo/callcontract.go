@@ -48,7 +48,7 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 
 		var key []byte
 		key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
-		pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, mapprotocol.ProofAbi)
+		pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, log.Index, mapprotocol.ProofAbi)
 	}
 
 	if err != nil {
@@ -150,7 +150,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 		var payloads []byte
 		switch proofType {
 		case constant.ProofTypeOfOrigin:
-			payloads, err = proof.Pack(fId, method, mapprotocol.Map2Other, rp)
+			payloads, err = proof.V3Pack(fId, method, mapprotocol.Map2Other, log.Index, rp)
 		case constant.ProofTypeOfZk:
 			zkProof, err := mapprotocol.GetZkProof(zkUrl, fId, header.Number.Uint64())
 			if err != nil {
@@ -170,7 +170,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 
 				payloads, err = proof.Pack(fId, method, mapprotocol.OracleAbi, pd)
 			} else {
-				payloads, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, mapprotocol.ProofAbi)
+				payloads, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, log.Index, mapprotocol.ProofAbi)
 			}
 		}
 

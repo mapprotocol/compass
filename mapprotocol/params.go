@@ -36,6 +36,7 @@ const (
 	MethodOfVerifyAndStore       = "swapInVerify"
 	MethodOfSwapInVerified       = "swapInVerified"
 	EventOfSwapInVerified        = "mapSwapInVerified"
+	MethodOfTransferInWithIndex  = "transferInWithIndex"
 )
 
 const (
@@ -61,6 +62,7 @@ var (
 var (
 	HashOfDepositIn = common.HexToHash("0xb7100086a8e13ebae772a0f09b07046e389a6b036406d22b86f2d2e5b860a8d9")
 	HashOfSwapIn    = common.HexToHash("0xca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5")
+	HashOfMessageIn = common.HexToHash("0xf4397fd41454e34a9a4015d05a670124ecd71fe7f1d05578a62f8009b1a57f8a")
 	NearOfDepositIn = "150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377"
 	NearOfSwapIn    = "ca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5"
 )
