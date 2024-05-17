@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/pkg/errors"
-	"math/big"
-	"strconv"
-	"strings"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
@@ -179,9 +180,9 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		return &message, nil
 	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		if log.Topics[0] == mapprotocol.HashOfMessageIn {
-			method = mapprotocol.MethodOfTransferInWithIndex
-		}
+		// if log.Topics[0] == mapprotocol.HashOfMessageIn {
+		// 	method = mapprotocol.MethodOfTransferInWithIndex
+		// }
 		header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), bigNumber)
 		if err != nil {
 			return nil, fmt.Errorf("unable to query header Logs: %w", err)

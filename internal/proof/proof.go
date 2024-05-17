@@ -129,7 +129,7 @@ func Pack(fId msg.ChainId, method string, abi abi.ABI, params ...interface{}) ([
 	return ret, nil
 }
 
-func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId, method string, idx uint,
+func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId, method string, idx int,
 	abi abi.ABI) ([]byte, error) {
 	nr := mapprotocol.MapTxReceipt{
 		PostStateOrStatus: receipt.PostStateOrStatus,
@@ -168,7 +168,7 @@ func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf 
 	return ret, nil
 }
 
-func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx uint, params ...interface{}) ([]byte, error) {
+func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, params ...interface{}) ([]byte, error) {
 	input, err := abi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(params...)
 	if err != nil {
 		return nil, errors.Wrap(err, "pack getBytes failed")
