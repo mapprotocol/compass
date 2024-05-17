@@ -2,14 +2,15 @@ package proof
 
 import (
 	"bytes"
+	"math/big"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
-	"math/big"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -128,7 +129,7 @@ func Pack(fId msg.ChainId, method string, abi abi.ABI, params ...interface{}) ([
 	return ret, nil
 }
 
-func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId, method string,
+func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId, method string, idx uint,
 	abi abi.ABI) ([]byte, error) {
 	nr := mapprotocol.MapTxReceipt{
 		PostStateOrStatus: receipt.PostStateOrStatus,
@@ -156,6 +157,26 @@ func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf 
 		return nil, errors.Wrap(err, "pack getBytes failed")
 	}
 
+	if method == mapprotocol.MethodOfTransferInWithIndex {
+		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(int64(fId)), big.NewInt(int64(idx)), input)
+	}
+	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack mcs input failed")
+	}
+
+	return ret, nil
+}
+
+func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx uint, params ...interface{}) ([]byte, error) {
+	input, err := abi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(params...)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack getBytes failed")
+	}
+
+	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
+		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)), input)
+	}
 	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")
