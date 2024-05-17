@@ -2,14 +2,15 @@ package proof
 
 import (
 	"bytes"
+	"math/big"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
-	"math/big"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -173,7 +174,7 @@ func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx uint, params ...int
 		return nil, errors.Wrap(err, "pack getBytes failed")
 	}
 
-	if method == mapprotocol.MethodOfTransferInWithIndex {
+	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
 		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)), input)
 	}
 	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)

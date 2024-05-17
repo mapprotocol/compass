@@ -37,6 +37,7 @@ const (
 	MethodOfSwapInVerified       = "swapInVerified"
 	EventOfSwapInVerified        = "mapSwapInVerified"
 	MethodOfTransferInWithIndex  = "transferInWithIndex"
+	MethodOfSwapInWithIndex      = "swapInWithIndex"
 )
 
 const (
