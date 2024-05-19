@@ -46,7 +46,7 @@ func assembleProof(log *types.Log, receipts []*types.Receipt, method string, fId
 				Proof:       prf,
 			},
 		}
-		ret, err = proof.Pack(fId, method, mapprotocol.OracleAbi, pd)
+		ret, err = proof.Pack(fId, method, mapprotocol.ProofAbi, pd)
 	default:
 		panic("not support")
 	}
