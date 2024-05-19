@@ -1,8 +1,9 @@
 package bsc
 
 import (
-	"github.com/mapprotocol/compass/internal/mapo"
 	"math/big"
+
+	"github.com/mapprotocol/compass/internal/mapo"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"

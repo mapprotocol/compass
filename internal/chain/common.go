@@ -1,10 +1,11 @@
 package chain
 
 import (
+	"math/big"
+
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
-	"math/big"
 )
 
 var (

@@ -3,6 +3,10 @@ package tron
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"strconv"
+	"time"
+
 	eth "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -18,9 +22,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
-	"math/big"
-	"strconv"
-	"time"
 
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/chains"
@@ -142,7 +143,7 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				if err != nil {
 					return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 				}
-				receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+				receipts, err = tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
 				if err != nil {
 					return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 				}
