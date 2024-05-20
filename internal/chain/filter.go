@@ -3,16 +3,17 @@ package chain
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/internal/stream"
-	"github.com/pkg/errors"
 	"io"
 	"math/big"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/stream"
+	"github.com/pkg/errors"
 )
 
 func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
