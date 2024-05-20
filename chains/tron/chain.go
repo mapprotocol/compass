@@ -2,9 +2,10 @@ package tron
 
 import (
 	"fmt"
+	"math/big"
+
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/keystore"
-	"math/big"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
