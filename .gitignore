@@ -41,3 +41,4 @@ centrifuge-chain/
 # Solidity
 /solidity
 /cfgBuilder/*.toml
+todo.list

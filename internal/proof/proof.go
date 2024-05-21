@@ -157,7 +157,7 @@ func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf 
 		return nil, errors.Wrap(err, "pack getBytes failed")
 	}
 
-	if method == mapprotocol.MethodOfTransferInWithIndex {
+	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
 		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(int64(fId)), big.NewInt(int64(idx)), input)
 	}
 	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)

@@ -184,7 +184,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		} else if strings.ToLower(chainName) == "tron" {
 			proofType = 3
 		} else {
-			m.Log.Info("Event found", "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", common.Bytes2Hex(orderId))
+			m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", common.Bytes2Hex(orderId))
 			proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId)
 			if errors.Is(err, OrderExist) {
 				m.Log.Info("This txHash order exist", "txHash", log.TxHash)

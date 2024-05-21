@@ -148,7 +148,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			},
 		}
 
-		if (uToChainID == 71 || uToChainID == 1030) && method == mapprotocol.MethodOfSwapIn {
+		if (uToChainID == 1030 || uToChainID == 728126428) && method == mapprotocol.MethodOfSwapIn {
 			method = mapprotocol.MethodOfSwapInWithIndex
 		}
 
