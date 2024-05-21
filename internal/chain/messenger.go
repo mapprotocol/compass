@@ -187,14 +187,14 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 			m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", common.Bytes2Hex(orderId))
 			proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId)
 			if errors.Is(err, OrderExist) {
-				m.Log.Info("This txHash order exist", "txHash", log.TxHash)
+				m.Log.Info("This txHash order exist", "txHash", log.TxHash, "toChainID", toChainID)
 				return 0, nil
 			}
 			if errors.Is(err, NotVerifyAble) {
-				m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash)
+				m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash, "toChainID", toChainID)
 				return 0, err
 			}
-			m.Log.Info("Event found", "txHash", log.TxHash, "proofType", proofType)
+			m.Log.Info("Event found", "txHash", log.TxHash, "proofType", proofType, "toChainID", toChainID)
 			if err != nil {
 				return 0, err
 			}
