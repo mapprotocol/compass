@@ -119,7 +119,7 @@ func AssembleProof(header BlockHeader, log types.Log, receipts []*types.Receipt,
 				Proof:       prf,
 			},
 		}
-		pack, err = proof.Pack(fId, method, mapprotocol.OracleAbi, pd)
+		pack, err = proof.Pack(fId, method, mapprotocol.ProofAbi, pd)
 	}
 
 	return pack, nil
