@@ -100,27 +100,42 @@ func AssembleProof(header BlockHeader, log types.Log, receipts []*types.Receipt,
 		pack, err = proof.Pack(fId, method, mapprotocol.Eth2, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
-		nr := mapprotocol.MapTxReceipt{
-			PostStateOrStatus: receipt.PostStateOrStatus,
-			CumulativeGasUsed: receipt.CumulativeGasUsed,
-			Bloom:             receipt.Bloom,
-			Logs:              receipt.Logs,
+		if fId == 11155111 {
+			nr := mapprotocol.MapTxReceipt{
+				PostStateOrStatus: receipt.PostStateOrStatus,
+				CumulativeGasUsed: receipt.CumulativeGasUsed,
+				Bloom:             receipt.Bloom,
+				Logs:              receipt.Logs,
+			}
+			nrRlp, err := rlp.EncodeToBytes(nr)
+			if err != nil {
+				return nil, err
+			}
+			pd := proof.NewData{
+				BlockNum: big.NewInt(int64(log.BlockNumber)),
+				ReceiptProof: proof.NewReceiptProof{
+					TxReceipt:   nrRlp,
+					ReceiptType: receipt.ReceiptType,
+					KeyIndex:    util.Key2Hex(key, len(prf)),
+					Proof:       prf,
+				},
+			}
+			pack, err = proof.Pack(fId, method, mapprotocol.ProofAbi, pd)
+		} else {
+			pd := proof.Data{
+				BlockNum: big.NewInt(int64(log.BlockNumber)),
+				ReceiptProof: proof.ReceiptProof{
+					TxReceipt: *receipt,
+					KeyIndex:  util.Key2Hex(key, len(prf)),
+					Proof:     prf,
+				},
+			}
+			pack, err = proof.Pack(fId, method, mapprotocol.OracleAbi, pd)
 		}
-		nrRlp, err := rlp.EncodeToBytes(nr)
-		if err != nil {
-			return nil, err
-		}
-		pd := proof.NewData{
-			BlockNum: big.NewInt(int64(log.BlockNumber)),
-			ReceiptProof: proof.NewReceiptProof{
-				TxReceipt:   nrRlp,
-				ReceiptType: receipt.ReceiptType,
-				KeyIndex:    util.Key2Hex(key, len(prf)),
-				Proof:       prf,
-			},
-		}
-		pack, err = proof.Pack(fId, method, mapprotocol.ProofAbi, pd)
 	}
 
+	if err != nil {
+		return nil, err
+	}
 	return pack, nil
 }
