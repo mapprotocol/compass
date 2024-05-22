@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -15,8 +18,6 @@ import (
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
-	"math/big"
-	"time"
 )
 
 type Oracle struct {
@@ -111,7 +112,7 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 		header.ReceiptHash = *hash
 	}
 
-	m.Log.Info("Find log", "block", latestBlock, "logs", len(logs))
+	m.Log.Info("Find log", "block", latestBlock, "logs", len(logs), "receipt", header.ReceiptHash)
 	input, err := mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfPropose].Inputs.Pack(header.Number, header.ReceiptHash)
 	if err != nil {
 		return err

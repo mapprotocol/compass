@@ -62,7 +62,7 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte, error) {
 	var dls proof.DerivableList
 	switch fId {
-	case constant.ArbChainId, constant.ArbTestnetChainId, constant.MantleChainId:
+	case constant.ArbChainId, constant.ArbTestnetChainId, constant.MantleChainId, constant.DodoChainId:
 		pr := arb.Receipts{}
 		for _, r := range receipts {
 			pr = append(pr, &arb.Receipt{Receipt: r})
