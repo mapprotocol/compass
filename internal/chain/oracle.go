@@ -97,12 +97,13 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 	if err != nil {
 		return fmt.Errorf("oracle unable to Filter Logs: %w", err)
 	}
+	if len(logs) == 0 {
+		return nil
+	}
+
 	header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return fmt.Errorf("oracle get header failed, err: %w", err)
-	}
-	if len(logs) == 0 {
-		return nil
 	}
 	hash, err := generateReceipt(m, latestBlock)
 	if err != nil {
@@ -117,7 +118,6 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
-
 	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
 	for _, log := range logs {
 		if m.Cfg.Id == m.Cfg.MapChainID {
