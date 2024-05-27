@@ -213,12 +213,7 @@ func updateHeaders(m *chain.Maintainer, startNumber, endNumber uint64) error {
 			return err
 		}
 		id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
-		data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, id, input)
-		if err != nil {
-			m.Log.Error("block2Map Failed to pack abi data", "err", err)
-			return err
-		}
-		msgPayload := []interface{}{id, data}
+		msgPayload := []interface{}{id, input}
 		message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 		err = m.Router.Send(message)
 		if err != nil {

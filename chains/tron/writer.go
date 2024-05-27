@@ -179,6 +179,10 @@ func (w *Writer) sendTx(addr string, input []byte) (string, error) {
 	//	w.log.Error("Failed to EstimateEnergy", "err", err)
 	//	return "", err
 	//}
+	for _, v := range contract.ConstantResult {
+		fmt.Println("contract result", common.Bytes2Hex(v))
+	}
+
 	feeLimit := big.NewInt(0).Mul(big.NewInt(contract.EnergyUsed), multiple)
 	w.log.Info("EstimateEnergy", "estimate", contract.EnergyUsed, "multiple", multiple, "feeLimit", feeLimit)
 	// send transaction

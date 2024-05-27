@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/mapprotocol"
 	"math/big"
 	"strconv"
 	"time"
+
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/mapprotocol"
 
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"

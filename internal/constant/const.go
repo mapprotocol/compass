@@ -2,8 +2,9 @@ package constant
 
 import (
 	"errors"
-	"github.com/ethereum/go-ethereum/common"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
@@ -108,6 +109,7 @@ const (
 	MantleChainId     = 5000
 	ScrollChainId     = 534352
 	ZkLinkChainId     = 810180
+	DodoChainId       = 53457
 )
 
 const (
