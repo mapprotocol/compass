@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -33,6 +33,17 @@ func NewOracle(cs *CommonSync) *Oracle {
 func (m *Oracle) Sync() error {
 	m.Log.Debug("Starting listener...")
 	go func() {
+		if !m.Cfg.SyncToMap && m.Cfg.Id != m.Cfg.MapChainID {
+			time.Sleep(time.Hour * 2400)
+			return
+		}
+		if m.Cfg.Filter {
+			err := m.filter()
+			if err != nil {
+				m.Log.Error("Filter Polling blocks failed", "err", err)
+			}
+			return
+		}
 		err := m.sync()
 		if err != nil {
 			m.Log.Error("Polling blocks failed", "err", err)
@@ -43,12 +54,7 @@ func (m *Oracle) Sync() error {
 }
 
 func (m *Oracle) sync() error {
-	if !m.Cfg.SyncToMap && m.Cfg.Id != m.Cfg.MapChainID {
-		time.Sleep(time.Hour * 2400)
-		return nil
-	}
 	var currentBlock = m.Cfg.StartBlock
-
 	for {
 		select {
 		case <-m.Stop:
@@ -71,13 +77,13 @@ func (m *Oracle) sync() error {
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				time.Sleep(constant.BlockRetryInterval)
-				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
+				util.Alarm(context.Background(), fmt.Sprintf("oracle failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				continue
 			}
 
 			err = m.BlockStore.StoreBlock(currentBlock)
 			if err != nil {
-				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
+				m.Log.Error("Failed to write latest block to blockStore", "block", currentBlock, "err", err)
 			}
 
 			currentBlock.Add(currentBlock, big.NewInt(1))
@@ -88,10 +94,39 @@ func (m *Oracle) sync() error {
 	}
 }
 
-func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
-	m.Log.Debug("Querying block for events", "block", latestBlock)
-	count := 0
-	query := m.BuildQuery(m.Cfg.OracleNode, m.Cfg.Events, latestBlock, latestBlock)
+func (m *Oracle) filter() error {
+	for {
+		select {
+		case <-m.Stop:
+			return errors.New("filter polling terminated")
+		default:
+			latestBlock, err := m.filterLatestBlock()
+			if err != nil {
+				m.Log.Error("Unable to get latest block", "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+			err = m.filterOracle(latestBlock.Uint64())
+			if err != nil {
+				m.Log.Error("Failed to get events for block", "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				util.Alarm(context.Background(), fmt.Sprintf("oracle failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
+				continue
+			}
+
+			err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
+			if err != nil {
+				m.Log.Error("Filter Failed to write latest block to blockstore", "err", err)
+			}
+
+			time.Sleep(constant.MessengerInterval)
+		}
+	}
+}
+
+func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
+	m.Log.Debug("Querying block for events", "block", currentBlock)
+	query := m.BuildQuery(m.Cfg.OracleNode, m.Cfg.Events, currentBlock, currentBlock)
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
@@ -100,12 +135,21 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 	if len(logs) == 0 {
 		return nil
 	}
+	err = log2Oracle(m, logs, currentBlock)
+	if err != nil {
+		return err
+	}
 
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), latestBlock)
+	return nil
+}
+
+func log2Oracle(m *Oracle, logs []types.Log, currentBlock *big.Int) error {
+	count := 0
+	header, err := m.Conn.Client().HeaderByNumber(context.Background(), currentBlock)
 	if err != nil {
 		return fmt.Errorf("oracle get header failed, err: %w", err)
 	}
-	hash, err := generateReceipt(m, latestBlock)
+	hash, err := generateReceipt(m, currentBlock)
 	if err != nil {
 		return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 	}
@@ -113,7 +157,7 @@ func DefaultOracleHandler(m *Oracle, latestBlock *big.Int) error {
 		header.ReceiptHash = *hash
 	}
 
-	m.Log.Info("Find log", "block", latestBlock, "logs", len(logs), "receipt", header.ReceiptHash)
+	m.Log.Info("Find log", "block", currentBlock, "logs", len(logs), "receipt", header.ReceiptHash)
 	input, err := mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfPropose].Inputs.Pack(header.Number, header.ReceiptHash)
 	if err != nil {
 		return err

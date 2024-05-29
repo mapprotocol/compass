@@ -12,10 +12,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-
-	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/util"
 )
 
@@ -105,7 +104,7 @@ func (m *Messenger) filter() error {
 	for {
 		select {
 		case <-m.Stop:
-			return errors.New("polling terminated")
+			return errors.New("filter polling terminated")
 		default:
 			latestBlock, err := m.filterLatestBlock()
 			if err != nil {
@@ -120,7 +119,7 @@ func (m *Messenger) filter() error {
 					continue
 				}
 				m.Log.Error("Filter Failed to get events for block", "err", err)
-				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
+				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
@@ -129,10 +128,10 @@ func (m *Messenger) filter() error {
 			_ = m.WaitUntilMsgHandled(count)
 			err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
 			if err != nil {
-				m.Log.Error("Filter Failed to write latest block to blockstore", "err", err)
+				m.Log.Error("Filter Failed to write latest block to blockStore", "err", err)
 			}
 
-			time.Sleep(constant.BlockRetryInterval)
+			time.Sleep(constant.MessengerInterval)
 		}
 	}
 }
@@ -179,12 +178,12 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 			m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
 			return 0, nil
 		}
+		m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", common.Bytes2Hex(orderId))
 		if strings.ToLower(chainName) == "near" {
 			proofType = 1
 		} else if strings.ToLower(chainName) == "tron" {
 			proofType = 3
 		} else {
-			m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", common.Bytes2Hex(orderId))
 			proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId)
 			if errors.Is(err, OrderExist) {
 				m.Log.Info("This txHash order exist", "txHash", log.TxHash, "toChainID", toChainID)
