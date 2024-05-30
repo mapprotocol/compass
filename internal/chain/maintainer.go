@@ -87,18 +87,13 @@ func (m *Maintainer) sync() error {
 			)
 			if m.Cfg.Filter {
 				latestBlock, err = m.filterLatestBlock()
-				if err != nil {
-					m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-					time.Sleep(constant.BlockRetryInterval)
-					continue
-				}
 			} else {
 				latestBlock, err = m.Conn.LatestBlock()
-				if err != nil {
-					m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-					time.Sleep(constant.BlockRetryInterval)
-					continue
-				}
+			}
+			if err != nil {
+				m.Log.Error("Unable to get latest block", "filter", m.Cfg.Filter, "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
 			}
 
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
