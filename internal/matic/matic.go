@@ -96,6 +96,14 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := mapo.Key2Hex(key, len(prf))
 
+	idx := 0
+	for i, ele := range receipts[txIndex].Logs {
+		if ele.Index != log.Index {
+			continue
+		}
+		idx = i
+	}
+
 	var pack []byte
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
@@ -108,7 +116,8 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 			},
 		}
 
-		pack, err = proof.Pack(fId, method, mapprotocol.Matic, pd)
+		//pack, err = proof.Pack(fId, method, mapprotocol.Matic, pd)
+		pack, err = proof.V3Pack(fId, method, mapprotocol.Bsc, idx, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
 		pd := proof.Data{
