@@ -180,9 +180,6 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		return &message, nil
 	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		if log.Topics[0] == mapprotocol.HashOfMessageIn {
-			method = mapprotocol.MethodOfTransferInWithIndex
-		}
 		if method == mapprotocol.MethodOfSwapIn {
 			method = mapprotocol.MethodOfSwapInWithIndex
 		}
