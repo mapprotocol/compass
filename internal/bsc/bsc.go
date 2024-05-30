@@ -99,6 +99,14 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := mapo.Key2Hex(key, len(prf))
 
+	idx := 0
+	for i, ele := range receipts[txIndex].Logs {
+		if ele.Index != log.Index {
+			continue
+		}
+		idx = i
+	}
+
 	pd := ProofData{
 		Headers: header,
 		ReceiptProof: ReceiptProof{
@@ -108,7 +116,8 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 		},
 	}
 
-	pack, err := iproof.Pack(fId, method, mapprotocol.Bsc, pd)
+	pack, err := iproof.V3Pack(fId, method, mapprotocol.Bsc, idx, pd)
+	//pack, err := iproof.Pack(fId, method, mapprotocol.Bsc, pd)
 	if err != nil {
 		return nil, err
 	}
