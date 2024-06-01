@@ -126,7 +126,7 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 				return 0, err
 			}
 			// when syncToMap we need to assemble a tx proof
-			txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
+			txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), latestBlock)
 			if err != nil {
 				return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 			}

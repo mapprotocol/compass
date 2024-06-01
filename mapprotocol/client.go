@@ -20,7 +20,7 @@ import (
 	"github.com/mapprotocol/compass/pkg/util"
 )
 
-func GetMapTransactionsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
+func GetTxsByBn(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
 	block, err := conn.MAPBlockByNumber(context.Background(), number)
 	if err != nil {
 		return nil, err
