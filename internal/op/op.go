@@ -2,6 +2,7 @@ package op
 
 import (
 	"bytes"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/mapprotocol/compass/internal/constant"
