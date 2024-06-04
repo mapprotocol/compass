@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/mapprotocol/compass/internal/mapo"
+	"github.com/mapprotocol/compass/internal/op"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -90,7 +91,12 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 		return nil, err
 	}
 
-	prf, err := iproof.Get(types.Receipts(receipts), txIndex)
+	pr := op.Receipts{}
+	for _, r := range receipts {
+		pr = append(pr, &op.Receipt{Receipt: r})
+	}
+
+	prf, err := iproof.Get(pr, txIndex)
 	if err != nil {
 		return nil, err
 	}

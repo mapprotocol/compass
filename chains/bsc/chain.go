@@ -85,7 +85,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		method    = m.GetMethod(log.Topics[0])
 		bigNumber = big.NewInt(int64(log.BlockNumber))
 	)
-	txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), bigNumber)
+	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), bigNumber)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 	}

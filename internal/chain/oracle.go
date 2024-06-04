@@ -166,6 +166,10 @@ func log2Oracle(m *Oracle, logs []types.Log, currentBlock *big.Int) error {
 	for _, log := range logs {
 		if m.Cfg.Id == m.Cfg.MapChainID {
 			toChainID := binary.BigEndian.Uint64(log.Topics[1][len(logs[0].Topics[1])-8:])
+			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
+				m.Log.Info("Map Found a log that is not the current task", "blockNumber", log.BlockNumber, "toChainID", toChainID)
+				continue
+			}
 			data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, big.NewInt(int64(m.Cfg.Id)), input)
 			if err != nil {
 				return err
@@ -204,7 +208,7 @@ func generateReceipt(m *Oracle, latestBlock *big.Int) (*common.Hash, error) {
 	if !exist(int64(m.Cfg.Id), []int64{constant.MerlinChainId, constant.ZkSyncChainId, constant.B2ChainId, constant.ZkLinkChainId}) {
 		return nil, nil
 	}
-	txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), latestBlock)
+	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), latestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 	}

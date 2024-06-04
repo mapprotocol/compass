@@ -218,7 +218,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 			message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		}
 	} else if m.Cfg.SyncToMap {
-		txsHash, err := mapprotocol.GetMapTransactionsHashByBlockNumber(m.Conn.Client(), bigNumber)
+		txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), bigNumber)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 		}

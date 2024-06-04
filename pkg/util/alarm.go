@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -14,7 +14,7 @@ import (
 
 var (
 	prefix, hooksUrl = "", ""
-	monitor          = make(map[string]int64)
+	m                = NewRWMap()
 )
 
 func Init(env, hooks string) {
@@ -27,19 +27,23 @@ func Alarm(ctx context.Context, msg string) {
 		log.Info("hooks is empty")
 		return
 	}
-	if v, ok := monitor[msg]; ok {
+	fmt.Println("send alarm in")
+	v, ok := m.Get(msg)
+	if ok {
 		if time.Now().Unix()-v < 300 { // ignore same alarm in five minute
 			return
 		}
 	}
-	monitor[msg] = time.Now().Unix()
+
+	m.Set(msg, time.Now().Unix())
 	body, err := json.Marshal(map[string]interface{}{
 		"text": fmt.Sprintf("%s %s", prefix, msg),
 	})
 	if err != nil {
 		return
 	}
-	req, err := http.NewRequestWithContext(ctx, "POST", hooksUrl, ioutil.NopCloser(bytes.NewReader(body)))
+
+	req, err := http.NewRequestWithContext(ctx, "POST", hooksUrl, io.NopCloser(bytes.NewReader(body)))
 	if err != nil {
 		return
 	}
@@ -50,10 +54,10 @@ func Alarm(ctx context.Context, msg string) {
 		return
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Warn("read resp failed", "err", err)
 		return
 	}
-	log.Info("send alarm message", "resp", string(data))
+	fmt.Println("send alarm message", "resp", string(data))
 }
