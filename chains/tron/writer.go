@@ -105,32 +105,41 @@ func (w *Writer) syncMapToTron(m msg.Message) bool {
 
 func (w *Writer) exeMcs(m msg.Message) bool {
 	var errorCount, checkIdCount int64
+	addr := w.cfg.McsContract[m.Idx]
+	orderId := m.Payload[1].([]byte)
+	exits, err := w.checkOrderId(addr, orderId)
+	if err != nil {
+		w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
+		checkIdCount++
+		if checkIdCount == 10 {
+			util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
+			checkIdCount = 0
+		}
+	}
+	if exits {
+		w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
+		m.DoneCh <- struct{}{}
+		return true
+	}
+
 	for {
 		select {
 		case <-w.stop:
 			return false
 		default:
-			addr := w.cfg.McsContract[m.Idx]
-			orderId := m.Payload[1].([]byte)
-			exits, err := w.checkOrderId(addr, orderId)
-			if err != nil {
-				w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
-				checkIdCount++
-				if checkIdCount == 10 {
-					util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
-					checkIdCount = 0
-				}
-			}
-			if exits {
-				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
-				m.DoneCh <- struct{}{}
-				return true
-			}
-
 			var inputHash interface{}
 			if len(m.Payload) > 3 {
 				inputHash = m.Payload[3]
 			}
+
+			// todo rent energy
+			err = w.checkEnergy()
+			if err == nil {
+				w.log.Info("Check energy failed", "addr", addr, "srcHash", inputHash, "err", err)
+				time.Sleep(constant.TxRetryInterval)
+				continue
+			}
+
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash)
 			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte))
 			if err == nil {
@@ -173,12 +182,7 @@ func (w *Writer) sendTx(addr string, input []byte) (string, error) {
 		w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
 		return "", err
 	}
-	//// estimateEnergy
-	//estimate, err := w.conn.cli.EstimateEnergy(w.cfg.From, addr, input, 0, "", 0)
-	//if err != nil {
-	//	w.log.Error("Failed to EstimateEnergy", "err", err)
-	//	return "", err
-	//}
+
 	for _, v := range contract.ConstantResult {
 		fmt.Println("contract result", common.Bytes2Hex(v))
 	}
@@ -252,4 +256,30 @@ func (w *Writer) checkOrderId(toAddress string, input []byte) (bool, error) {
 		return false, errors.Wrap(err, "checkOrderId output copy failed")
 	}
 	return exist, nil
+}
+
+var mcsEnergy = int64(1500000)
+
+func (w *Writer) checkEnergy() error {
+	acc, err := w.conn.cli.GetAccountResource(w.cfg.From)
+	if err != nil {
+		return err
+	}
+
+	w.log.Info("Check energy, account energy detail", "acccount", w.cfg.From, "energy", acc.EnergyLimit)
+	if acc.EnergyLimit > mcsEnergy {
+		return nil
+	}
+	w.log.Info("Check energy, not have enough energy, will rent", "acccount", w.cfg.From)
+	// step rent energy
+	acccount, err := w.conn.cli.GetAccount(w.cfg.From)
+	if err != nil {
+		return err
+	}
+	w.log.Info("Check energy, account bal detail", "acccount", w.cfg.From, "trx", acccount.Balance)
+	if acccount.Balance < 250 {
+		return errors.New("account not have enough balance")
+	}
+	time.Sleep(time.Minute)
+	return nil
 }
