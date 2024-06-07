@@ -72,7 +72,7 @@ func (w *Writer) syncMapToTron(m msg.Message) bool {
 			return false
 		default:
 			input := m.Payload[0].([]byte)
-			tx, err := w.sendTx(w.cfg.LightNode, input, 0, 1)
+			tx, err := w.sendTx(w.cfg.LightNode, input, 0, 1, false)
 			if err == nil {
 				w.log.Info("Sync Map Header to tron chain tx execution", "tx", tx, "src", m.Source, "dst", m.Destination)
 				err = w.txStatus(tx)
@@ -141,15 +141,19 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				time.Sleep(constant.ThirtySecondInterval)
 				continue
 			}
+			time.Sleep(time.Minute)
 
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash)
-			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte), 0, int64(w.cfg.GasMultiplier))
+			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte), 0, int64(w.cfg.GasMultiplier), false)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash, "mcsTx", mcsTx)
 				err = w.txStatus(mcsTx)
 				if err != nil {
 					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
 				} else {
+					go func() {
+						w.newReturn()
+					}()
 					m.DoneCh <- struct{}{}
 					return true
 				}
@@ -177,7 +181,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 	}
 }
 
-func (w *Writer) sendTx(addr string, input []byte, txAmount, mul int64) (string, error) {
+func (w *Writer) sendTx(addr string, input []byte, txAmount, mul int64, ignore bool) (string, error) {
 	// online estimateEnergy
 	contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, input, txAmount)
 	if err != nil {
@@ -186,9 +190,10 @@ func (w *Writer) sendTx(addr string, input []byte, txAmount, mul int64) (string,
 	}
 
 	for _, v := range contract.ConstantResult {
-		w.log.Info("contract result", "err", string(v))
-		if strings.TrimSpace(string(v)) != "" {
-			return "", errors.New(string(v))
+		w.log.Info("contract result", "err", string(v), "v", v, "hex", common.Bytes2Hex(v))
+		ele := strings.TrimSpace(string(v))
+		if ele != "" && ele != "4,^" && ele != "0�" && !ignore {
+			return "", errors.New(ele)
 		}
 	}
 
@@ -286,17 +291,17 @@ func (w *Writer) rentEnergy() error {
 	}
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 	w.log.Info("Rent energy, will rent, account bal detail", "account", w.cfg.From, "trx", balance)
-	if balance < 340 {
+	if balance < 370 {
 		return errors.New("account not have enough balance(340 trx)")
 	}
 	//
-	input, err := mapprotocol.TronAbi.Pack("rentResource", common.HexToAddress("0x8CC6EBB687C0147F540089F7D932E48D0385C3CD"),
-		big.NewInt(244412000000), big.NewInt(1))
+	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,
+		big.NewInt(162932000000), big.NewInt(1))
 	if err != nil {
 		return errors.Wrap(err, "pack input failed")
 	}
 	w.log.Info("Rent energy will rent")
-	tx, err := w.sendTx(w.cfg.RentNode, input, 340000000, 1)
+	tx, err := w.sendTx(w.cfg.RentNode, input, 370000000, 1, false)
 	if err != nil {
 		return errors.Wrap(err, "sendTx failed")
 	}
@@ -312,7 +317,7 @@ func (w *Writer) returnEnergy(m msg.Message) bool {
 			return false
 		default:
 			input := m.Payload[0].([]byte)
-			tx, err := w.sendTx(w.cfg.RentNode, input, 0, 1)
+			tx, err := w.sendTx(w.cfg.RentNode, input, 0, 1, false)
 			if err == nil {
 				w.log.Info("Return energy success", "tx", tx)
 				err = w.txStatus(tx)
@@ -328,4 +333,20 @@ func (w *Writer) returnEnergy(m msg.Message) bool {
 		}
 	}
 
+}
+
+func (w *Writer) newReturn() {
+	w.log.Info("Return energy will start")
+	time.Sleep(time.Minute)
+	input, err := mapprotocol.TronAbi.Pack("returnResource", w.cfg.EthFrom, big.NewInt(162932000000), big.NewInt(1))
+	if err != nil {
+		w.log.Error("Return energy, GetAccount failed", "err", err)
+		return
+	}
+	tx, err := w.sendTx(w.cfg.RentNode, input, 0, 1, true)
+	if err != nil {
+		w.log.Error("Return energy, GetAccount failed", "err", err)
+		return
+	}
+	w.log.Info("Return energy success", "tx", tx)
 }

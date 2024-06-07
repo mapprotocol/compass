@@ -267,7 +267,7 @@ func returnEnergy(conn *Connection, cs *chain.CommonSync, cfg *Config) {
 		balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 		cs.Log.Info("Return energy, will Return, account bal detail", "account", cs.Cfg.From, "trx", balance)
 		// return
-		input, err := mapprotocol.TronAbi.Pack("returnResource", cfg.EthFrom, big.NewInt(244412000000), big.NewInt(1))
+		input, err := mapprotocol.TronAbi.Pack("returnResource", cfg.EthFrom, big.NewInt(162932000000), big.NewInt(1))
 		if err != nil {
 			cs.Log.Error("Return energy, GetAccount failed", "err", err)
 			continue
