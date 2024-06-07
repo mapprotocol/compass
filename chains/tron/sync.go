@@ -251,7 +251,12 @@ func returnEnergy(conn *Connection, cs *chain.CommonSync, cfg *Config) {
 		}
 		overage := acc.EnergyLimit - acc.EnergyUsed
 		cs.Log.Info("Return energy, account energy detail", "account", cs.Cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed)
+		if acc.EnergyLimit == 0 {
+			cs.Log.Info("Return energy, energy is zero, maybe not rent")
+			continue
+		}
 		if overage > mcsEnergy {
+			cs.Log.Info("Return energy, energy gather than once mcs, don return")
 			continue
 		}
 		account, err := conn.cli.GetAccount(cs.Cfg.From)

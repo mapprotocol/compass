@@ -186,7 +186,7 @@ func (w *Writer) sendTx(addr string, input []byte, txAmount, mul int64) (string,
 	}
 
 	for _, v := range contract.ConstantResult {
-		w.log.Info("contract result", string(v))
+		w.log.Info("contract result", "err", string(v))
 		if strings.TrimSpace(string(v)) != "" {
 			return "", errors.New(string(v))
 		}
@@ -276,6 +276,9 @@ func (w *Writer) rentEnergy() error {
 	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed)
 	if overage > mcsEnergy {
 		return nil
+	}
+	if acc.EnergyLimit != 0 {
+		return errors.New("energy is not zero, is renting, please return")
 	}
 	account, err := w.conn.cli.GetAccount(w.cfg.From)
 	if err != nil {
