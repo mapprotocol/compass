@@ -239,3 +239,42 @@ func getTxsByBN(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) 
 	}
 	return txs, nil
 }
+
+func returnEnergy(conn *Connection, cs *chain.CommonSync, cfg *Config) {
+	msgCh := make(chan struct{})
+	for {
+		time.Sleep(time.Minute)
+		acc, err := conn.cli.GetAccountResource(cs.Cfg.From)
+		if err != nil {
+			cs.Log.Error("Return energy, GetAccountResource failed", "err", err)
+			continue
+		}
+		overage := acc.EnergyLimit - acc.EnergyUsed
+		cs.Log.Info("Return energy, account energy detail", "account", cs.Cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed)
+		if overage > mcsEnergy {
+			continue
+		}
+		account, err := conn.cli.GetAccount(cs.Cfg.From)
+		if err != nil {
+			cs.Log.Error("Return energy, GetAccount failed", "err", err)
+			continue
+		}
+		balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
+		cs.Log.Info("Return energy, will Return, account bal detail", "account", cs.Cfg.From, "trx", balance)
+		// return
+		input, err := mapprotocol.TronAbi.Pack("returnResource", cfg.EthFrom, big.NewInt(244412000000), big.NewInt(1))
+		if err != nil {
+			cs.Log.Error("Return energy, GetAccount failed", "err", err)
+			continue
+		}
+		cs.Log.Info("Return energy, send msg")
+		message := msg.NewReturnEnergy(cs.Cfg.Id, cs.Cfg.Id, []interface{}{input}, msgCh)
+		err = cs.Router.Send(message)
+		if err != nil {
+			cs.Log.Error("Subscription error: failed to route message", "err", err)
+			continue
+		}
+		<-msgCh
+		cs.Log.Info("Return energy Success")
+	}
+}

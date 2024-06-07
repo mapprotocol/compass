@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	TxRetryInterval     = time.Second * 5 // TxRetryInterval Time between retrying a failed tx
-	NearTxRetryInterval = time.Second * 30
+	TxRetryInterval      = time.Second * 5 // TxRetryInterval Time between retrying a failed tx
+	ThirtySecondInterval = time.Second * 30
 )
 
 var (
