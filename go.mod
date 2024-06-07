@@ -8,7 +8,7 @@ require (
 	github.com/ethereum/go-ethereum v1.12.2
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/klaytn/klaytn v1.10.2
-	github.com/lbtsm/gotron-sdk v0.0.0-20231025070359-ac656af37c4a
+	github.com/lbtsm/gotron-sdk v0.0.0-20240606062614-534038e71cd3
 	github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd
 	github.com/mapprotocol/near-api-go v0.0.0-20220801061430-b9e1d4580dc5
 	github.com/mr-tron/base58 v1.2.0

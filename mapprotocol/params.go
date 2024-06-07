@@ -85,6 +85,7 @@ var (
 	Bttc, _        = abi.JSON(strings.NewReader(bttcAbi))
 	OracleAbi, _   = abi.JSON(strings.NewReader(OracleAbiJson))
 	ProofAbi, _    = abi.JSON(strings.NewReader(ProofAbiJson))
+	TronAbi, _     = abi.JSON(strings.NewReader(TronAbiJson))
 )
 
 type Role string

@@ -1,6 +1,7 @@
 package tron
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"strings"
 
 	"github.com/mapprotocol/compass/core"
@@ -10,6 +11,8 @@ import (
 type Config struct {
 	chain.Config
 	LightNode   string
+	RentNode    string
+	EthFrom     common.Address
 	McsContract []string
 }
 
@@ -31,6 +34,13 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 		for _, addr := range strings.Split(ele, ",") {
 			ret.McsContract = append(ret.McsContract, addr)
 		}
+	}
+
+	if ele, ok := chainCfg.Opts[chain.RentNode]; ok && ele != "" {
+		ret.RentNode = ele
+	}
+	if ele, ok := chainCfg.Opts[chain.EthFrom]; ok && ele != "" {
+		ret.EthFrom = common.HexToAddress(ele)
 	}
 	return &ret, nil
 }

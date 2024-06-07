@@ -41,6 +41,8 @@ var (
 	RedisOpt              = "redis"
 	ApiUrl                = "apiUrl"
 	OracleNode            = "oracleNode"
+	RentNode              = "rentNode"
+	EthFrom               = "ethFrom"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms

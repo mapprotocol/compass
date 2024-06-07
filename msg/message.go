@@ -12,6 +12,7 @@ var (
 	SyncFromMap      TransferType = "SyncFromMap"
 	SwapWithMapProof TransferType = "SwapWithMapProof"
 	SwapWithMerlin   TransferType = "SwapWithMerlin"
+	ReturnEnergy     TransferType = "ReturnEnergy"
 )
 
 // Message is used as a generic format to communicate between chains
@@ -69,6 +70,16 @@ func NewSwapWithMerlin(fromChainID, toChainID ChainId, payloads []interface{}, c
 		Source:      fromChainID,
 		Destination: toChainID,
 		Type:        SwapWithMerlin,
+		Payload:     payloads,
+		DoneCh:      ch,
+	}
+}
+
+func NewReturnEnergy(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {
+	return Message{
+		Source:      fromChainID,
+		Destination: toChainID,
+		Type:        ReturnEnergy,
 		Payload:     payloads,
 		DoneCh:      ch,
 	}

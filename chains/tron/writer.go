@@ -54,6 +54,8 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 		return w.syncMapToTron(m)
 	case msg.SwapWithMapProof:
 		return w.exeMcs(m)
+	case msg.ReturnEnergy:
+		return w.returnEnergy(m)
 	default:
 		w.log.Error("Unknown message type received", "type", m.Type)
 		return false
@@ -70,7 +72,7 @@ func (w *Writer) syncMapToTron(m msg.Message) bool {
 			return false
 		default:
 			input := m.Payload[0].([]byte)
-			tx, err := w.sendTx(w.cfg.LightNode, input)
+			tx, err := w.sendTx(w.cfg.LightNode, input, 0, 1)
 			if err == nil {
 				w.log.Info("Sync Map Header to tron chain tx execution", "tx", tx, "src", m.Source, "dst", m.Destination)
 				err = w.txStatus(tx)
@@ -105,34 +107,43 @@ func (w *Writer) syncMapToTron(m msg.Message) bool {
 
 func (w *Writer) exeMcs(m msg.Message) bool {
 	var errorCount, checkIdCount int64
+	addr := w.cfg.McsContract[m.Idx]
+	orderId := m.Payload[1].([]byte)
+	exits, err := w.checkOrderId(addr, orderId)
+	if err != nil {
+		w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
+		checkIdCount++
+		if checkIdCount == 10 {
+			util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
+			checkIdCount = 0
+		}
+	}
+	if exits {
+		w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
+		m.DoneCh <- struct{}{}
+		return true
+	}
+
 	for {
 		select {
 		case <-w.stop:
 			return false
 		default:
-			addr := w.cfg.McsContract[m.Idx]
-			orderId := m.Payload[1].([]byte)
-			exits, err := w.checkOrderId(addr, orderId)
-			if err != nil {
-				w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
-				checkIdCount++
-				if checkIdCount == 10 {
-					util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
-					checkIdCount = 0
-				}
-			}
-			if exits {
-				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
-				m.DoneCh <- struct{}{}
-				return true
-			}
-
 			var inputHash interface{}
 			if len(m.Payload) > 3 {
 				inputHash = m.Payload[3]
 			}
+
+			err = w.rentEnergy()
+			if err != nil {
+				w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
+				w.mosAlarm(inputHash, err)
+				time.Sleep(constant.ThirtySecondInterval)
+				continue
+			}
+
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash)
-			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte))
+			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte), 0, int64(w.cfg.GasMultiplier))
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash, "mcsTx", mcsTx)
 				err = w.txStatus(mcsTx)
@@ -166,27 +177,24 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 	}
 }
 
-func (w *Writer) sendTx(addr string, input []byte) (string, error) {
+func (w *Writer) sendTx(addr string, input []byte, txAmount, mul int64) (string, error) {
 	// online estimateEnergy
-	contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, input)
+	contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, input, txAmount)
 	if err != nil {
 		w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
 		return "", err
 	}
-	//// estimateEnergy
-	//estimate, err := w.conn.cli.EstimateEnergy(w.cfg.From, addr, input, 0, "", 0)
-	//if err != nil {
-	//	w.log.Error("Failed to EstimateEnergy", "err", err)
-	//	return "", err
-	//}
+
 	for _, v := range contract.ConstantResult {
-		fmt.Println("contract result", common.Bytes2Hex(v))
+		w.log.Info("contract result", string(v))
+		if strings.TrimSpace(string(v)) != "" {
+			return "", errors.New(string(v))
+		}
 	}
 
-	feeLimit := big.NewInt(0).Mul(big.NewInt(contract.EnergyUsed), multiple)
-	w.log.Info("EstimateEnergy", "estimate", contract.EnergyUsed, "multiple", multiple, "feeLimit", feeLimit)
-	// send transaction
-	tx, err := w.conn.cli.TriggerContract(w.cfg.From, addr, input, feeLimit.Int64(), 0, "", 0)
+	feeLimit := big.NewInt(0).Mul(big.NewInt(contract.EnergyUsed), big.NewInt(420*mul))
+	w.log.Info("EstimateEnergy", "estimate", contract.EnergyUsed, "multiple", multiple, "feeLimit", feeLimit, "mul", mul)
+	tx, err := w.conn.cli.TriggerContract(w.cfg.From, addr, input, feeLimit.Int64(), txAmount, "", 0)
 	if err != nil {
 		w.log.Error("Failed to TriggerContract", "err", err)
 		return "", err
@@ -208,7 +216,7 @@ func (w *Writer) sendTx(addr string, input []byte) (string, error) {
 	return common.Bytes2Hex(tx.GetTxid()), nil
 }
 
-func (w Writer) txStatus(txHash string) error {
+func (w *Writer) txStatus(txHash string) error {
 	var count int64
 	time.Sleep(time.Second * 2)
 	for {
@@ -252,4 +260,69 @@ func (w *Writer) checkOrderId(toAddress string, input []byte) (bool, error) {
 		return false, errors.Wrap(err, "checkOrderId output copy failed")
 	}
 	return exist, nil
+}
+
+var (
+	mcsEnergy = int64(1500000)
+	wei       = big.NewFloat(1000000)
+)
+
+func (w *Writer) rentEnergy() error {
+	acc, err := w.conn.cli.GetAccountResource(w.cfg.From)
+	if err != nil {
+		return err
+	}
+	overage := acc.EnergyLimit - acc.EnergyUsed
+	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed)
+	if overage > mcsEnergy {
+		return nil
+	}
+	account, err := w.conn.cli.GetAccount(w.cfg.From)
+	if err != nil {
+		return err
+	}
+	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
+	w.log.Info("Rent energy, will rent, account bal detail", "account", w.cfg.From, "trx", balance)
+	if balance < 340 {
+		return errors.New("account not have enough balance(340 trx)")
+	}
+	//
+	input, err := mapprotocol.TronAbi.Pack("rentResource", common.HexToAddress("0x8CC6EBB687C0147F540089F7D932E48D0385C3CD"),
+		big.NewInt(244412000000), big.NewInt(1))
+	if err != nil {
+		return errors.Wrap(err, "pack input failed")
+	}
+	w.log.Info("Rent energy will rent")
+	tx, err := w.sendTx(w.cfg.RentNode, input, 340000000, 1)
+	if err != nil {
+		return errors.Wrap(err, "sendTx failed")
+	}
+	w.log.Info("Rent energy success", "tx", tx)
+
+	return nil
+}
+
+func (w *Writer) returnEnergy(m msg.Message) bool {
+	for {
+		select {
+		case <-w.stop:
+			return false
+		default:
+			input := m.Payload[0].([]byte)
+			tx, err := w.sendTx(w.cfg.RentNode, input, 0, 1)
+			if err == nil {
+				w.log.Info("Return energy success", "tx", tx)
+				err = w.txStatus(tx)
+				if err != nil {
+					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
+				} else {
+					m.DoneCh <- struct{}{}
+					return true
+				}
+			}
+			util.Alarm(context.Background(), fmt.Sprintf("tron returnEnergy failed, err is %s", err.Error()))
+			time.Sleep(constant.BalanceRetryInterval)
+		}
+	}
+
 }
