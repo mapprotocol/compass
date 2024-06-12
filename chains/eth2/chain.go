@@ -76,12 +76,7 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
 		call := contract.New(conn, cfg.McsContract, oracleAbi)
 		mapprotocol.ContractMapping[cfg.Id] = call
-
-		if cfg.Filter {
-			listen = chain.NewMessenger(cs)
-		} else {
-			listen = NewMessenger(cs)
-		}
+		listen = NewMessenger(cs)
 	case mapprotocol.RoleOfOracle:
 		listen = chain.NewOracle(cs)
 	}

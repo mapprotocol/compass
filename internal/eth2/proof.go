@@ -67,7 +67,7 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func AssembleProof(header BlockHeader, log types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
+func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {

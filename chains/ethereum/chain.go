@@ -78,7 +78,7 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 		if fn, ok := mapprotocol.Map2OtherHeight[cid]; ok {
 			height, err := fn()
 			if err != nil {
-				return fmt.Errorf("get headerHeight failed, err is %v", err)
+				return fmt.Errorf("get headerHeight failed, cid(%d),err is %v", cid, err)
 			}
 			if latestBlock.Cmp(height) <= 0 {
 				waitCount--

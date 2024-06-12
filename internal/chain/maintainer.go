@@ -86,7 +86,7 @@ func (m *Maintainer) sync() error {
 				err         error
 			)
 			if m.Cfg.Filter {
-				latestBlock, err = m.filterLatestBlock()
+				latestBlock, err = m.FilterLatestBlock()
 			} else {
 				latestBlock, err = m.Conn.LatestBlock()
 			}
@@ -135,9 +135,6 @@ func (m *Maintainer) sync() error {
 			if err != nil {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
-
-			m.LatestBlock.Height = big.NewInt(0).Set(latestBlock)
-			m.LatestBlock.LastUpdated = time.Now()
 
 			currentBlock.Add(currentBlock, big.NewInt(1))
 			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {

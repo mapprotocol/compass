@@ -5,7 +5,6 @@ package blockstore
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -65,7 +64,7 @@ func (b *Blockstore) StoreBlock(block *big.Int) error {
 
 	// Write bytes to file
 	data := []byte(block.String())
-	err := ioutil.WriteFile(b.fullPath, data, 0600)
+	err := os.WriteFile(b.fullPath, data, 0600)
 	if err != nil {
 		return err
 	}
@@ -81,7 +80,7 @@ func (b *Blockstore) TryLoadLatestBlock() (*big.Int, error) {
 		return nil, err
 	}
 	if exists {
-		dat, err := ioutil.ReadFile(b.fullPath)
+		dat, err := os.ReadFile(b.fullPath)
 		if err != nil {
 			return nil, err
 		}
