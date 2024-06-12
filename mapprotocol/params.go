@@ -35,6 +35,7 @@ const (
 	MethodOfPropose              = "propose"
 	MethodOfVerifyAndStore       = "swapInVerify"
 	MethodOfSwapInVerified       = "swapInVerified"
+	MtdOfSwapInVerifiedWithIndex = "swapInVerifiedWithIndex"
 	EventOfSwapInVerified        = "mapSwapInVerified"
 	MethodOfTransferInWithIndex  = "transferInWithIndex"
 	MethodOfSwapInWithIndex      = "swapInWithIndex"

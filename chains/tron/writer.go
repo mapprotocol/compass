@@ -134,6 +134,19 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				inputHash = m.Payload[3]
 			}
 
+			contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, m.Payload[0].([]byte), 0)
+			if err != nil {
+				w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
+				time.Sleep(time.Minute)
+			}
+			for _, v := range contract.ConstantResult {
+				w.log.Info("contract result", "err", string(v), "v", v, "hex", common.Bytes2Hex(v))
+			}
+			w.log.Info("contract result", "used", contract.EnergyUsed)
+
+			w.log.Info("check orderId success")
+			time.Sleep(time.Minute)
+
 			err = w.rentEnergy()
 			if err != nil {
 				w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
@@ -294,14 +307,14 @@ func (w *Writer) rentEnergy() error {
 	if balance < 370 {
 		return errors.New("account not have enough balance(340 trx)")
 	}
-	//
+
 	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,
-		big.NewInt(162932000000), big.NewInt(1))
+		big.NewInt(81911000000), big.NewInt(1))
 	if err != nil {
 		return errors.Wrap(err, "pack input failed")
 	}
 	w.log.Info("Rent energy will rent")
-	tx, err := w.sendTx(w.cfg.RentNode, input, 370000000, 1, false)
+	tx, err := w.sendTx(w.cfg.RentNode, input, 226000000, 1, false)
 	if err != nil {
 		return errors.Wrap(err, "sendTx failed")
 	}
@@ -338,7 +351,7 @@ func (w *Writer) returnEnergy(m msg.Message) bool {
 func (w *Writer) newReturn() {
 	w.log.Info("Return energy will start")
 	time.Sleep(time.Minute)
-	input, err := mapprotocol.TronAbi.Pack("returnResource", w.cfg.EthFrom, big.NewInt(162932000000), big.NewInt(1))
+	input, err := mapprotocol.TronAbi.Pack("returnResource", w.cfg.EthFrom, big.NewInt(81911000000), big.NewInt(1))
 	if err != nil {
 		w.log.Error("Return energy, GetAccount failed", "err", err)
 		return

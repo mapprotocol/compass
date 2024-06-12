@@ -160,7 +160,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 				}
 				errorCount = 0
 			}
-			time.Sleep(constant.ThirtySecondInterval)
+			time.Sleep(constant.BalanceRetryInterval)
 		}
 	}
 
@@ -212,7 +212,7 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 					errorCount = 0
 				}
 			}
-			time.Sleep(constant.ThirtySecondInterval)
+			time.Sleep(constant.BalanceRetryInterval)
 		}
 	}
 }

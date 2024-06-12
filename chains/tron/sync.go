@@ -133,8 +133,11 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				m.Log.Debug("ignore log, because topics not match", "blockNumber", l.BlockNumber, "logTopic", l.Topics[0])
 				continue
 			}
-
-			var receipts []*types.Receipt
+			orderId := l.Data[:32]
+			var (
+				message  msg.Message
+				receipts []*types.Receipt
+			)
 			if v, ok := proof.CacheReceipt[key]; ok {
 				receipts = v
 				m.Log.Info("use cache receipt", "latestBlock ", current, "txHash", l.TxHash)
@@ -149,27 +152,47 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				}
 				proof.CacheReceipt[key] = receipts
 			}
+			if l.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
+				logIdx := 0
+				for i, ele := range receipts[l.TxIndex].Logs {
+					if ele.Index != l.Index {
+						continue
+					}
+					logIdx = i
+				}
 
-			orderId := l.Data[:32]
-			method := m.GetMethod(l.Topics[0])
-			toChainID, _ := strconv.ParseUint(mapprotocol.MapId, 10, 64)
-			m.Log.Info("Event found", "block", current, "txHash", l.TxHash, "logIdx", l.Index, "orderId", common.Bytes2Hex(orderId))
-			proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), toChainID, current, orderId)
-			if errors.Is(err, chain.OrderExist) {
-				m.Log.Info("This orderId exist", "block", current, "txHash", l.TxHash, "orderId", common.Bytes2Hex(orderId))
-				continue
-			}
-			if err != nil {
-				return 0, err
-			}
+				m.Log.Info("Event found SwapInVerified", "block", current, "txHash", l.TxHash, "idx", l.Index,
+					"logIdx", logIdx, "txIdx", l.TxIndex, "all", len(receipts[l.TxIndex].Logs))
+				data, err := mapprotocol.Mcs.Events[mapprotocol.EventOfSwapInVerified].Inputs.UnpackValues(l.Data)
+				if err != nil {
+					return 0, errors.Wrap(err, "swapIn unpackData failed")
+				}
 
-			tmp := l
-			input, err := assembleProof(&tmp, receipts, method, m.Cfg.Id, proofType)
-			if err != nil {
-				return 0, err
-			}
+				input, _ := mapprotocol.Mcs.Pack(mapprotocol.MtdOfSwapInVerifiedWithIndex, data[0].([]byte), big.NewInt(int64(logIdx)))
+				msgPayload := []interface{}{input, orderId, l.BlockNumber, l.TxHash, mapprotocol.MtdOfSwapInVerifiedWithIndex}
+				message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
+			} else {
 
-			message := msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, orderId, l.BlockNumber, l.TxHash}, m.MsgCh)
+				method := m.GetMethod(l.Topics[0])
+				toChainID, _ := strconv.ParseUint(mapprotocol.MapId, 10, 64)
+				m.Log.Info("Event found", "block", current, "txHash", l.TxHash, "logIdx", l.Index, "orderId", common.Bytes2Hex(orderId))
+				proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), toChainID, current, orderId)
+				if errors.Is(err, chain.OrderExist) {
+					m.Log.Info("This orderId exist", "block", current, "txHash", l.TxHash, "orderId", common.Bytes2Hex(orderId))
+					continue
+				}
+				if err != nil {
+					return 0, err
+				}
+
+				tmp := l
+				input, err := assembleProof(&tmp, receipts, method, m.Cfg.Id, proofType)
+				if err != nil {
+					return 0, err
+				}
+
+				message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, orderId, l.BlockNumber, l.TxHash}, m.MsgCh)
+			}
 			err = m.Router.Send(message)
 			if err != nil {
 				m.Log.Error("subscription error: failed to route message", "err", err)
@@ -241,9 +264,8 @@ func getTxsByBN(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) 
 }
 
 func returnEnergy(conn *Connection, cs *chain.CommonSync, cfg *Config) {
-	msgCh := make(chan struct{})
+	//msgCh := make(chan struct{})
 	for {
-		time.Sleep(time.Minute)
 		acc, err := conn.cli.GetAccountResource(cs.Cfg.From)
 		if err != nil {
 			cs.Log.Error("Return energy, GetAccountResource failed", "err", err)
@@ -267,19 +289,20 @@ func returnEnergy(conn *Connection, cs *chain.CommonSync, cfg *Config) {
 		balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 		cs.Log.Info("Return energy, will Return, account bal detail", "account", cs.Cfg.From, "trx", balance)
 		// return
-		input, err := mapprotocol.TronAbi.Pack("returnResource", cfg.EthFrom, big.NewInt(162932000000), big.NewInt(1))
-		if err != nil {
-			cs.Log.Error("Return energy, GetAccount failed", "err", err)
-			continue
-		}
+		//input, err := mapprotocol.TronAbi.Pack("returnResource", cfg.EthFrom, big.NewInt(162932000000), big.NewInt(1))
+		//if err != nil {
+		//	cs.Log.Error("Return energy, GetAccount failed", "err", err)
+		//	continue
+		//}
 		cs.Log.Info("Return energy, send msg")
-		message := msg.NewReturnEnergy(cs.Cfg.Id, cs.Cfg.Id, []interface{}{input}, msgCh)
-		err = cs.Router.Send(message)
-		if err != nil {
-			cs.Log.Error("Subscription error: failed to route message", "err", err)
-			continue
-		}
-		<-msgCh
-		cs.Log.Info("Return energy Success")
+		//message := msg.NewReturnEnergy(cs.Cfg.Id, cs.Cfg.Id, []interface{}{input}, msgCh)
+		//err = cs.Router.Send(message)
+		//if err != nil {
+		//	cs.Log.Error("Subscription error: failed to route message", "err", err)
+		//	continue
+		//}
+		//<-msgCh
+		//cs.Log.Info("Return energy Success")
+		time.Sleep(time.Minute)
 	}
 }
