@@ -129,3 +129,7 @@ const (
 	FilterUrl      = "v1/mos/list"
 	FilterBlockUrl = "v1/block"
 )
+
+var (
+	MapLogIdx = make(map[string]int64)
+)

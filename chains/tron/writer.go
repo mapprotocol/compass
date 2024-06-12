@@ -138,14 +138,26 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			if err != nil {
 				w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
 				time.Sleep(time.Minute)
+				continue
 			}
 			for _, v := range contract.ConstantResult {
-				w.log.Info("contract result", "err", string(v), "v", v, "hex", common.Bytes2Hex(v))
+				w.log.Info("Contract result", "err", string(v))
+				ele := strings.TrimSpace(string(v))
+				for e := range constant.IgnoreError {
+					if strings.Index(ele, e) != -1 {
+						w.log.Info("Ignore This Error, Continue to the next", "inputHash", inputHash, "err", ele)
+						m.DoneCh <- struct{}{}
+						return true
+					}
+				}
+				if ele != "" {
+					w.mosAlarm(inputHash, fmt.Errorf("contract result failed, err is %v", ele))
+					time.Sleep(time.Minute)
+					continue
+				}
 			}
-			w.log.Info("contract result", "used", contract.EnergyUsed)
-
-			w.log.Info("check orderId success")
-			time.Sleep(time.Minute)
+			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed)
+			//time.Sleep(time.Minute)
 
 			err = w.rentEnergy()
 			if err != nil {
@@ -154,7 +166,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				time.Sleep(constant.ThirtySecondInterval)
 				continue
 			}
-			time.Sleep(time.Minute)
+			//time.Sleep(time.Minute)
 
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash)
 			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte), 0, int64(w.cfg.GasMultiplier), false)
@@ -167,6 +179,9 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 					go func() {
 						w.newReturn()
 					}()
+					w.log.Info("Success idx ", "src", inputHash, "idx", constant.MapLogIdx[inputHash.(common.Hash).Hex()])
+					constant.MapLogIdx["0x"+mcsTx] = constant.MapLogIdx[inputHash.(common.Hash).Hex()]
+					w.log.Info("Success idx ", "des", "0x"+mcsTx, "idx", constant.MapLogIdx["0x"+mcsTx])
 					m.DoneCh <- struct{}{}
 					return true
 				}
@@ -304,8 +319,8 @@ func (w *Writer) rentEnergy() error {
 	}
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 	w.log.Info("Rent energy, will rent, account bal detail", "account", w.cfg.From, "trx", balance)
-	if balance < 370 {
-		return errors.New("account not have enough balance(340 trx)")
+	if balance < 226 {
+		return errors.New("account not have enough balance(226 trx)")
 	}
 
 	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,

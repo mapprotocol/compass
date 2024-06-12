@@ -153,14 +153,7 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				proof.CacheReceipt[key] = receipts
 			}
 			if l.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
-				logIdx := 0
-				for i, ele := range receipts[l.TxIndex].Logs {
-					if ele.Index != l.Index {
-						continue
-					}
-					logIdx = i
-				}
-
+				logIdx := constant.MapLogIdx[l.TxHash.Hex()]
 				m.Log.Info("Event found SwapInVerified", "block", current, "txHash", l.TxHash, "idx", l.Index,
 					"logIdx", logIdx, "txIdx", l.TxIndex, "all", len(receipts[l.TxIndex].Logs))
 				data, err := mapprotocol.Mcs.Events[mapprotocol.EventOfSwapInVerified].Inputs.UnpackValues(l.Data)
@@ -168,7 +161,7 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 					return 0, errors.Wrap(err, "swapIn unpackData failed")
 				}
 
-				input, _ := mapprotocol.Mcs.Pack(mapprotocol.MtdOfSwapInVerifiedWithIndex, data[0].([]byte), big.NewInt(int64(logIdx)))
+				input, _ := mapprotocol.Mcs.Pack(mapprotocol.MtdOfSwapInVerifiedWithIndex, data[0].([]byte), big.NewInt(logIdx))
 				msgPayload := []interface{}{input, orderId, l.BlockNumber, l.TxHash, mapprotocol.MtdOfSwapInVerifiedWithIndex}
 				message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
 			} else {
