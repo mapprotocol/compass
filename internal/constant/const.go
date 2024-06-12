@@ -110,6 +110,8 @@ const (
 	ScrollChainId     = 534352
 	ZkLinkChainId     = 810180
 	DodoChainId       = 53457
+	TronChainId       = 728126428
+	NearChainId       = 1360100178526209
 )
 
 const (
@@ -126,4 +128,8 @@ const (
 const (
 	FilterUrl      = "v1/mos/list"
 	FilterBlockUrl = "v1/block"
+)
+
+var (
+	MapLogIdx = make(map[string]int64)
 )

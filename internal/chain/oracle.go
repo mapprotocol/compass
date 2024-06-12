@@ -100,7 +100,7 @@ func (m *Oracle) filter() error {
 		case <-m.Stop:
 			return errors.New("filter polling terminated")
 		default:
-			latestBlock, err := m.filterLatestBlock()
+			latestBlock, err := m.FilterLatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "err", err)
 				time.Sleep(constant.BlockRetryInterval)

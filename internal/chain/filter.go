@@ -25,8 +25,9 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 			topic += ","
 		}
 	}
-	data, err := request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl, fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-		m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)))
+	data, err := Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
+		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
+			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)))
 	if err != nil {
 		return 0, err
 	}
@@ -45,7 +46,7 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 	}
 
 	for _, ele := range back.List {
-		idx := m.match(ele.ContractAddress)
+		idx := m.Match(ele.ContractAddress)
 		if idx == -1 {
 			m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
 			//m.Cfg.StartBlock = big.NewInt(ele.Id)
@@ -91,7 +92,7 @@ func (m *Oracle) filterOracle(latestBlock uint64) error {
 			topic += ","
 		}
 	}
-	data, err := request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
+	data, err := Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
 		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
 			m.Cfg.StartBlock.Int64(), constant.ProjectOfOracle, m.Cfg.Id, topic)))
 	if err != nil {
@@ -148,7 +149,7 @@ func (m *Oracle) filterOracle(latestBlock uint64) error {
 	return nil
 }
 
-func request(urlPath string) (interface{}, error) {
+func Request(urlPath string) (interface{}, error) {
 	resp, err := http.Get(urlPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "request get failed")

@@ -78,7 +78,7 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 		if fn, ok := mapprotocol.Map2OtherHeight[cid]; ok {
 			height, err := fn()
 			if err != nil {
-				return fmt.Errorf("get headerHeight failed, err is %v", err)
+				return fmt.Errorf("get headerHeight failed, cid(%d),err is %v", cid, err)
 			}
 			if latestBlock.Cmp(height) <= 0 {
 				waitCount--
@@ -180,9 +180,13 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		return &message, nil
 	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		if method == mapprotocol.MethodOfSwapIn {
+		if method == mapprotocol.MethodOfSwapIn && toChainID != constant.NearChainId {
 			method = mapprotocol.MethodOfSwapInWithIndex
 		}
+		if toChainID == constant.MerlinChainId || toChainID == constant.TronChainId {
+			method = mapprotocol.MethodOfVerifyAndStore
+		}
+
 		header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), bigNumber)
 		if err != nil {
 			return nil, fmt.Errorf("unable to query header Logs: %w", err)
@@ -204,9 +208,6 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 			receipts = append(receipts, lr)
 		}
 
-		if toChainID == constant.MerlinChainId {
-			method = mapprotocol.MethodOfVerifyAndStore
-		}
 		_, payload, err := mapo.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method, m.Cfg.ApiUrl, proofType)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)

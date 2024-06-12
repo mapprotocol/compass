@@ -163,6 +163,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			}
 			idx = i
 		}
+		constant.MapLogIdx[log.TxHash.Hex()] = int64(idx)
 
 		var payloads []byte
 		switch proofType {

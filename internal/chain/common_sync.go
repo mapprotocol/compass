@@ -10,7 +10,6 @@ import (
 
 	"github.com/mapprotocol/compass/core"
 
-	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
 	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -65,7 +64,6 @@ type CommonSync struct {
 	Stop                      <-chan int
 	MsgCh                     chan struct{}
 	SysErr                    chan<- error // Reports fatal error to core
-	LatestBlock               metrics.LatestBlock
 	BlockConfirmations        *big.Int
 	BlockStore                blockstore.Blockstorer
 	height                    int64
@@ -85,7 +83,6 @@ func NewCommonSync(conn core.Connection, cfg *Config, log log15.Logger, stop <-c
 		Log:                log,
 		Stop:               stop,
 		SysErr:             sysErr,
-		LatestBlock:        metrics.LatestBlock{LastUpdated: time.Now()},
 		BlockConfirmations: cfg.BlockConfirmations,
 		MsgCh:              make(chan struct{}),
 		BlockStore:         bs,
@@ -141,11 +138,11 @@ func (c *CommonSync) GetMethod(topic ethcommon.Hash) string {
 	return method
 }
 
-func (c *CommonSync) filterLatestBlock() (*big.Int, error) {
+func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {
 	if time.Now().Unix()-c.reqTime < constant.ReqInterval {
 		return big.NewInt(c.cacheBlockNumber), nil
 	}
-	data, err := request(fmt.Sprintf("%s/%s", c.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterBlockUrl, c.Cfg.Id)))
+	data, err := Request(fmt.Sprintf("%s/%s", c.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterBlockUrl, c.Cfg.Id)))
 	if err != nil {
 		c.Log.Error("Unable to get latest block", "err", err)
 		time.Sleep(constant.BlockRetryInterval)
@@ -161,7 +158,7 @@ func (c *CommonSync) filterLatestBlock() (*big.Int, error) {
 	return latestBlock, nil
 }
 
-func (c *CommonSync) match(target string) int {
+func (c *CommonSync) Match(target string) int {
 	for idx, ele := range c.Cfg.McsContract {
 		if ele.Hex() == target {
 			return idx
