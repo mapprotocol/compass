@@ -257,7 +257,7 @@ func (w *Writer) txStatus(txHash string) error {
 	var count int64
 	time.Sleep(time.Second * 2)
 	for {
-		id, err := w.conn.cli.GetTransactionByID(txHash)
+		id, err := w.conn.cli.GetTransactionInfoByID(txHash)
 		if err != nil {
 			w.log.Error("Failed to GetTransactionByID", "err", err)
 			time.Sleep(constant.QueryRetryInterval)
@@ -267,11 +267,11 @@ func (w *Writer) txStatus(txHash string) error {
 			}
 			continue
 		}
-		if id.Ret[0].ContractRet == core.Transaction_Result_SUCCESS {
+		if id.Receipt.Result == core.Transaction_Result_SUCCESS {
 			w.log.Info("Tx receipt status is success", "hash", txHash)
 			return nil
 		}
-		return fmt.Errorf("txHash(%s), status not success, current status is (%s)", txHash, id.Ret[0].ContractRet.String())
+		return fmt.Errorf("txHash(%s), status not success, current status is (%s)", txHash, id.Receipt.Result.String())
 	}
 }
 
