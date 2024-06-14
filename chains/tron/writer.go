@@ -166,8 +166,8 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			err = w.rentEnergy()
 			if err != nil {
 				w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
-				w.mosAlarm(inputHash, err)
-				time.Sleep(constant.ThirtySecondInterval)
+				w.mosAlarm(inputHash, errors.Wrap(err, "please admin handler"))
+				time.Sleep(time.Minute * 5)
 				continue
 			}
 			//time.Sleep(time.Minute)
@@ -323,8 +323,8 @@ func (w *Writer) rentEnergy() error {
 	}
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 	w.log.Info("Rent energy, will rent, account bal detail", "account", w.cfg.From, "trx", balance)
-	if balance < 226 {
-		return errors.New("account not have enough balance(226 trx)")
+	if balance < 500 {
+		return errors.New("account not have enough balance(500 trx)")
 	}
 
 	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,
@@ -338,6 +338,11 @@ func (w *Writer) rentEnergy() error {
 		return errors.Wrap(err, "sendTx failed")
 	}
 	w.log.Info("Rent energy success", "tx", tx)
+	err = w.txStatus(tx)
+	if err != nil {
+		w.log.Warn("TxHash Status is not successful, will retry", "err", err)
+		return err
+	}
 
 	return nil
 }
