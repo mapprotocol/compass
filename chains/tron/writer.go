@@ -167,7 +167,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			if err != nil {
 				w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
 				w.mosAlarm(inputHash, errors.Wrap(err, "please admin handler"))
-				time.Sleep(constant.BalanceRetryInterval)
+				time.Sleep(time.Minute * 5)
 				continue
 			}
 			//time.Sleep(time.Minute)
