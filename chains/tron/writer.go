@@ -143,6 +143,9 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			for _, v := range contract.ConstantResult {
 				w.log.Info("Contract result", "err", string(v))
 				ele := strings.TrimSpace(string(v))
+				if ele == "" {
+					continue
+				}
 				for e := range constant.IgnoreError {
 					if strings.Index(ele, e) != -1 {
 						w.log.Info("Ignore This Error, Continue to the next", "inputHash", inputHash, "err", ele)
@@ -150,11 +153,12 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 						return true
 					}
 				}
-				if ele != "" {
-					w.mosAlarm(inputHash, fmt.Errorf("contract result failed, err is %v", ele))
-					time.Sleep(time.Minute)
-					continue
-				}
+				err = errors.New(ele)
+			}
+			if err != nil {
+				w.mosAlarm(inputHash, fmt.Errorf("contract result failed, err is %v", err))
+				time.Sleep(time.Minute)
+				continue
 			}
 			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed)
 			//time.Sleep(time.Minute)

@@ -201,7 +201,7 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 		}
 
 		split := strings.Split(ele.Topic, ",")
-		topics := make([]common.Hash, len(split))
+		topics := make([]common.Hash, 0, len(split))
 		for _, sp := range split {
 			topics = append(topics, common.HexToHash(sp))
 		}
