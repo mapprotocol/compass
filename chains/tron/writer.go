@@ -143,6 +143,9 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			for _, v := range contract.ConstantResult {
 				w.log.Info("Contract result", "err", string(v))
 				ele := strings.TrimSpace(string(v))
+				if ele == "" {
+					continue
+				}
 				for e := range constant.IgnoreError {
 					if strings.Index(ele, e) != -1 {
 						w.log.Info("Ignore This Error, Continue to the next", "inputHash", inputHash, "err", ele)
