@@ -41,14 +41,13 @@ func (m *Messenger) Sync() error {
 			m.log.Error("Polling blocks failed", "err", err)
 		}
 	}()
+	go func() {
+		m.watchDog()
+	}()
 
 	return nil
 }
 
-// sync function of Messenger will poll for the latest block and listen the log information of transactions in the block
-// Polling begins at the block defined in `m.cfg.startBlock`. Failed attempts to fetch the latest block or parse
-// a block will be retried up to RetryLimit times before continuing to the next block.
-// However，an error in synchronizing the log will cause the entire program to block
 func (m *Messenger) sync() error {
 	var currentBlock = m.cfg.StartBlock
 
@@ -64,7 +63,6 @@ func (m *Messenger) sync() error {
 				continue
 			}
 
-			// Sleep if the difference is less than BlockDelay; (latest - current) < BlockDelay
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.blockConfirmations) == -1 {
 				m.log.Debug("Block not ready, will retry", "target", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.BlockRetryInterval)
@@ -94,7 +92,27 @@ func (m *Messenger) sync() error {
 	}
 }
 
-// getEventsForBlock looks for the deposit event in the latest block
+func (m *Messenger) watchDog() {
+	record := ""
+	for {
+		time.Sleep(time.Minute)
+		ctx := context.Background()
+		cmd := redis.GetClient().Get(ctx, redis.BlockHeight)
+		result, err := cmd.Result()
+		if err != nil && !errors.Is(err, rds.Nil) {
+			continue
+		}
+		m.log.Info("Near watchdog scan report", "current", result, "record", record)
+		if record != result {
+			record = result
+			continue
+		}
+		if record == result {
+			util.Alarm(context.Background(), fmt.Sprintf("near scan no change in one minute, please admin handler, now=%s", result))
+		}
+	}
+}
+
 func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 	if !m.cfg.SyncToMap {
 		return 0, nil
