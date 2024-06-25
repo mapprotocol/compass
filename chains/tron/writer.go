@@ -143,6 +143,9 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			for _, v := range contract.ConstantResult {
 				w.log.Info("Contract result", "err", string(v))
 				ele := strings.TrimSpace(string(v))
+				if ele == "" {
+					continue
+				}
 				for e := range constant.IgnoreError {
 					if strings.Index(ele, e) != -1 {
 						w.log.Info("Ignore This Error, Continue to the next", "inputHash", inputHash, "err", ele)
@@ -150,11 +153,12 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 						return true
 					}
 				}
-				if ele != "" {
-					w.mosAlarm(inputHash, fmt.Errorf("contract result failed, err is %v", ele))
-					time.Sleep(time.Minute)
-					continue
-				}
+				err = errors.New(ele)
+			}
+			if err != nil {
+				w.mosAlarm(inputHash, fmt.Errorf("contract result failed, err is %v", err))
+				time.Sleep(time.Minute)
+				continue
 			}
 			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed)
 			//time.Sleep(time.Minute)
@@ -162,8 +166,8 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			err = w.rentEnergy()
 			if err != nil {
 				w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
-				w.mosAlarm(inputHash, err)
-				time.Sleep(constant.ThirtySecondInterval)
+				w.mosAlarm(inputHash, errors.Wrap(err, "please admin handler"))
+				time.Sleep(time.Minute * 5)
 				continue
 			}
 			//time.Sleep(time.Minute)
@@ -253,7 +257,7 @@ func (w *Writer) txStatus(txHash string) error {
 	var count int64
 	time.Sleep(time.Second * 2)
 	for {
-		id, err := w.conn.cli.GetTransactionByID(txHash)
+		id, err := w.conn.cli.GetTransactionInfoByID(txHash)
 		if err != nil {
 			w.log.Error("Failed to GetTransactionByID", "err", err)
 			time.Sleep(constant.QueryRetryInterval)
@@ -263,11 +267,11 @@ func (w *Writer) txStatus(txHash string) error {
 			}
 			continue
 		}
-		if id.Ret[0].ContractRet == core.Transaction_Result_SUCCESS {
+		if id.Receipt.Result == core.Transaction_Result_SUCCESS {
 			w.log.Info("Tx receipt status is success", "hash", txHash)
 			return nil
 		}
-		return fmt.Errorf("txHash(%s), status not success, current status is (%s)", txHash, id.Ret[0].ContractRet.String())
+		return fmt.Errorf("txHash(%s), status not success, current status is (%s)", txHash, id.Receipt.Result.String())
 	}
 }
 
@@ -319,8 +323,8 @@ func (w *Writer) rentEnergy() error {
 	}
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 	w.log.Info("Rent energy, will rent, account bal detail", "account", w.cfg.From, "trx", balance)
-	if balance < 226 {
-		return errors.New("account not have enough balance(226 trx)")
+	if balance < 500 {
+		return errors.New("account not have enough balance(500 trx)")
 	}
 
 	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,
@@ -334,6 +338,11 @@ func (w *Writer) rentEnergy() error {
 		return errors.Wrap(err, "sendTx failed")
 	}
 	w.log.Info("Rent energy success", "tx", tx)
+	err = w.txStatus(tx)
+	if err != nil {
+		w.log.Warn("TxHash Status is not successful, will retry", "err", err)
+		return err
+	}
 
 	return nil
 }
