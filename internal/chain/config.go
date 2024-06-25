@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"strconv"
 	"strings"
+
+	"github.com/mapprotocol/compass/internal/constant"
 
 	"github.com/ethereum/go-ethereum/common"
 	gconfig "github.com/mapprotocol/compass/config"
@@ -18,7 +19,7 @@ import (
 const (
 	DefaultGasLimit           = 1000000
 	DefaultGasPrice           = 50000000
-	DefaultBlockConfirmations = 20
+	DefaultBlockConfirmations = 10
 	DefaultGasMultiplier      = 1
 )
 

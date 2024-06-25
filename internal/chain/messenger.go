@@ -96,6 +96,9 @@ func (m *Messenger) sync() error {
 			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
 				time.Sleep(constant.MessengerInterval)
 			}
+			if currentBlock.Int64()%100 == 0 {
+				m.Log.Info("Msger report progress", "latestBlock", latestBlock, "block", currentBlock)
+			}
 		}
 	}
 }

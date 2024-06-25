@@ -8,6 +8,7 @@ import (
 
 var (
 	ListKey     = "near_messsage_log"
+	BlockHeight = "block_height"
 	redisClient *redis.Client
 	once        = &sync.Once{}
 )
