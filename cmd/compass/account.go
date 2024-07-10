@@ -5,8 +5,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 
 	"github.com/lbtsm/gotron-sdk/pkg/account"
 

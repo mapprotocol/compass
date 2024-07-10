@@ -95,7 +95,7 @@ func (m *Messenger) sync() error {
 func (m *Messenger) watchDog() {
 	record := ""
 	for {
-		time.Sleep(time.Minute)
+		time.Sleep(time.Minute * 3)
 		ctx := context.Background()
 		cmd := redis.GetClient().Get(ctx, redis.BlockHeight)
 		result, err := cmd.Result()

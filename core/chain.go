@@ -1,8 +1,9 @@
 package core
 
 import (
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"

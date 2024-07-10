@@ -133,6 +133,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			if len(m.Payload) > 3 {
 				inputHash = m.Payload[3]
 			}
+			method := m.Payload[4].(string)
 
 			contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, m.Payload[0].([]byte), 0)
 			if err != nil {
@@ -161,16 +162,14 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				continue
 			}
 			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed)
-			//time.Sleep(time.Minute)
 
-			err = w.rentEnergy()
+			err = w.rentEnergy(contract.EnergyUsed, method)
 			if err != nil {
 				w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
 				w.mosAlarm(inputHash, errors.Wrap(err, "please admin handler"))
 				time.Sleep(time.Minute * 5)
 				continue
 			}
-			//time.Sleep(time.Minute)
 
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash)
 			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte), 0, int64(w.cfg.GasMultiplier), false)
@@ -181,7 +180,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
 				} else {
 					go func() {
-						w.newReturn()
+						w.newReturn(method)
 					}()
 					w.log.Info("Success idx ", "src", inputHash, "idx", constant.MapLogIdx[inputHash.(common.Hash).Hex()])
 					constant.MapLogIdx["0x"+mcsTx] = constant.MapLogIdx[inputHash.(common.Hash).Hex()]
@@ -300,18 +299,21 @@ func (w *Writer) checkOrderId(toAddress string, input []byte) (bool, error) {
 }
 
 var (
-	mcsEnergy = int64(1500000)
-	wei       = big.NewFloat(1000000)
+	wei = big.NewFloat(1000000)
 )
 
-func (w *Writer) rentEnergy() error {
+func (w *Writer) rentEnergy(used int64, method string) error {
 	acc, err := w.conn.cli.GetAccountResource(w.cfg.From)
 	if err != nil {
 		return err
 	}
-	overage := acc.EnergyLimit - acc.EnergyUsed
+	// overage := acc.EnergyLimit - acc.EnergyUsed
 	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed)
-	if overage > mcsEnergy {
+	// if overage > mcsEnergy {
+	// 	return nilcd
+	// }
+	if method == mapprotocol.MtdOfSwapInVerifiedWithIndex || method == mapprotocol.MethodOfSwapInVerified {
+		w.log.Info("Rent energy, call method is swapInVerified or withIndexm, dont need rent energy", "method", method)
 		return nil
 	}
 	if acc.EnergyLimit != 0 {
@@ -323,8 +325,8 @@ func (w *Writer) rentEnergy() error {
 	}
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 	w.log.Info("Rent energy, will rent, account bal detail", "account", w.cfg.From, "trx", balance)
-	if balance < 500 {
-		return errors.New("account not have enough balance(500 trx)")
+	if balance < 300 {
+		return errors.New("account not have enough balance(300 trx)")
 	}
 
 	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,
@@ -372,7 +374,11 @@ func (w *Writer) returnEnergy(m msg.Message) bool {
 
 }
 
-func (w *Writer) newReturn() {
+func (w *Writer) newReturn(method string) {
+	if method != mapprotocol.MtdOfSwapInVerifiedWithIndex && method != mapprotocol.MethodOfSwapInVerified {
+		w.log.Info("Return energy, call method is not swapInVerified or withIndex, dont need return energy", "method", method)
+		return
+	}
 	w.log.Info("Return energy will start")
 	time.Sleep(time.Minute)
 	input, err := mapprotocol.TronAbi.Pack("returnResource", w.cfg.EthFrom, big.NewInt(81911000000), big.NewInt(1))

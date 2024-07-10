@@ -1,11 +1,12 @@
 package tron
 
 import (
+	"math/big"
+	"time"
+
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/mapprotocol/compass/internal/constant"
 	"google.golang.org/grpc"
-	"math/big"
-	"time"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
