@@ -6,10 +6,11 @@ package ethereum
 import (
 	"context"
 	"errors"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"math/big"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 
 	"github.com/mapprotocol/compass/core"
 

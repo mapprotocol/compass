@@ -65,9 +65,6 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		listen = NewMaintainer(logger)
 	case mapprotocol.RoleOfMessenger:
 		listen = newSync(cs, messengerHandler, conn)
-		go func() {
-			//returnEnergy(conn, cs, config)
-		}()
 	case mapprotocol.RoleOfOracle:
 		listen = newSync(cs, oracleHandler, conn)
 	}
