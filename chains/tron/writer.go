@@ -54,8 +54,6 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 		return w.syncMapToTron(m)
 	case msg.SwapWithMapProof:
 		return w.exeMcs(m)
-	case msg.ReturnEnergy:
-		return w.returnEnergy(m)
 	default:
 		w.log.Error("Unknown message type received", "type", m.Type)
 		return false
@@ -179,9 +177,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				if err != nil {
 					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
 				} else {
-					go func() {
-						w.newReturn(method)
-					}()
+					w.newReturn(method)
 					w.log.Info("Success idx ", "src", inputHash, "idx", constant.MapLogIdx[inputHash.(common.Hash).Hex()])
 					constant.MapLogIdx["0x"+mcsTx] = constant.MapLogIdx[inputHash.(common.Hash).Hex()]
 					w.log.Info("Success idx ", "des", "0x"+mcsTx, "idx", constant.MapLogIdx["0x"+mcsTx])
@@ -307,13 +303,9 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	if err != nil {
 		return err
 	}
-	// overage := acc.EnergyLimit - acc.EnergyUsed
 	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed)
-	// if overage > mcsEnergy {
-	// 	return nilcd
-	// }
 	if method == mapprotocol.MtdOfSwapInVerifiedWithIndex || method == mapprotocol.MethodOfSwapInVerified {
-		w.log.Info("Rent energy, call method is swapInVerified or withIndexm, dont need rent energy", "method", method)
+		w.log.Info("Rent energy, call method is swapInVerified or withIndex, dont need rent energy", "method", method)
 		return nil
 	}
 	if acc.EnergyLimit != 0 {
@@ -325,17 +317,17 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	}
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 	w.log.Info("Rent energy, will rent, account bal detail", "account", w.cfg.From, "trx", balance)
-	if balance < 300 {
-		return errors.New("account not have enough balance(300 trx)")
+	if balance < 400 {
+		return errors.New("account not have enough balance(400 trx)")
 	}
 
 	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,
-		big.NewInt(81911000000), big.NewInt(1))
+		big.NewInt(171558000000), big.NewInt(1))
 	if err != nil {
 		return errors.Wrap(err, "pack input failed")
 	}
 	w.log.Info("Rent energy will rent")
-	tx, err := w.sendTx(w.cfg.RentNode, input, 226000000, 1, false)
+	tx, err := w.sendTx(w.cfg.RentNode, input, 371019500, 1, false)
 	if err != nil {
 		return errors.Wrap(err, "sendTx failed")
 	}
@@ -349,46 +341,30 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	return nil
 }
 
-func (w *Writer) returnEnergy(m msg.Message) bool {
-	for {
-		select {
-		case <-w.stop:
-			return false
-		default:
-			input := m.Payload[0].([]byte)
-			tx, err := w.sendTx(w.cfg.RentNode, input, 0, 1, false)
-			if err == nil {
-				w.log.Info("Return energy success", "tx", tx)
-				err = w.txStatus(tx)
-				if err != nil {
-					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
-				} else {
-					m.DoneCh <- struct{}{}
-					return true
-				}
-			}
-			util.Alarm(context.Background(), fmt.Sprintf("tron returnEnergy failed, err is %s", err.Error()))
-			time.Sleep(constant.BalanceRetryInterval)
-		}
-	}
-
-}
-
 func (w *Writer) newReturn(method string) {
 	if method != mapprotocol.MtdOfSwapInVerifiedWithIndex && method != mapprotocol.MethodOfSwapInVerified {
 		w.log.Info("Return energy, call method is not swapInVerified or withIndex, dont need return energy", "method", method)
 		return
 	}
 	w.log.Info("Return energy will start")
-	time.Sleep(time.Minute)
-	input, err := mapprotocol.TronAbi.Pack("returnResource", w.cfg.EthFrom, big.NewInt(81911000000), big.NewInt(1))
+	time.Sleep(constant.BlockRetryInterval)
+	acc, err := w.conn.cli.GetAccountResource(w.cfg.From)
 	if err != nil {
-		w.log.Error("Return energy, GetAccount failed", "err", err)
+		w.log.Error("Return energy, GetAccountResource failed", "err", err)
+		return
+	}
+	if acc.EnergyLimit <= 0 {
+		w.log.Info("Return energy, user not rent energy", "gas", acc.EnergyLimit)
+		return
+	}
+	input, err := mapprotocol.TronAbi.Pack("returnResource", w.cfg.EthFrom, big.NewInt(171558000000), big.NewInt(1))
+	if err != nil {
+		w.log.Error("Return energy, Pack failed", "err", err)
 		return
 	}
 	tx, err := w.sendTx(w.cfg.RentNode, input, 0, 1, true)
 	if err != nil {
-		w.log.Error("Return energy, GetAccount failed", "err", err)
+		w.log.Error("Return energy, sendTx failed", "err", err)
 		return
 	}
 	w.log.Info("Return energy success", "tx", tx)
