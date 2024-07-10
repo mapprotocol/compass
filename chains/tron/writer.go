@@ -325,8 +325,8 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	}
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 	w.log.Info("Rent energy, will rent, account bal detail", "account", w.cfg.From, "trx", balance)
-	if balance < 400 {
-		return errors.New("account not have enough balance(400 trx)")
+	if balance < 300 {
+		return errors.New("account not have enough balance(300 trx)")
 	}
 
 	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,
