@@ -62,7 +62,7 @@ func (m *Messenger) sync() error {
 			latestBlock, err := m.Conn.LatestBlock()
 			if err != nil {
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
-				time.Sleep(constant.RetryLongInterval)
+				time.Sleep(constant.QueryRetryInterval)
 				continue
 			}
 
@@ -137,7 +137,7 @@ func (m *Messenger) filter() error {
 			count, err := m.filterMosHandler(latestBlock.Uint64())
 			if err != nil {
 				if errors.Is(err, chain.NotVerifyAble) {
-					time.Sleep(constant.BalanceRetryInterval)
+					time.Sleep(constant.ThirtySecondInterval)
 					continue
 				}
 				m.Log.Error("Filter Failed to get events for block", "err", err)

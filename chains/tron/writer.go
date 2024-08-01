@@ -3,6 +3,7 @@ package tron
 import (
 	"context"
 	"fmt"
+	"github.com/lbtsm/gotron-sdk/pkg/proto/api"
 	"math/big"
 	"strings"
 	"time"
@@ -316,6 +317,9 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 		return err
 	}
 	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed)
+	if w.cfg.FeeType == constant.FeeRentType {
+		return w.feeRentEnergy(used, acc)
+	}
 	if method == mapprotocol.MtdOfSwapInVerifiedWithIndex || method == mapprotocol.MethodOfSwapInVerified {
 		w.log.Info("Rent energy, call method is swapInVerified or withIndex, dont need rent energy", "method", method)
 		return nil
@@ -353,8 +357,35 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	return nil
 }
 
+func (w *Writer) feeRentEnergy(used int64, acc *api.AccountResourceMessage) error {
+	resValue := int64(1000000)
+	rentDuration := int64(1)
+	if acc.EnergyLimit > used {
+		w.log.Info("FeeRentEnergy dont need rent, because account have enough energy", "have", acc.EnergyLimit, "used", used)
+		return nil
+	}
+	account, err := w.conn.cli.GetAccount(w.cfg.From)
+	if err != nil {
+		return err
+	}
+	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
+	res, err := GetOrderPrice(w.cfg.FeeKey, resValue, rentDuration)
+	if err != nil {
+		return err
+	}
+	if res.Data.PayAmount > balance {
+		return fmt.Errorf("account not have enough balance(%0.4f trx)", res.Data.PayAmount)
+	}
+	ret, err := OrderSubmit(w.cfg.FeeKey, w.cfg.From, resValue, rentDuration)
+	if err != nil {
+		return err
+	}
+	w.log.Info("FeeRentEnergy rent success", "no", ret.Data.OrderNo)
+	return nil
+}
+
 func (w *Writer) newReturn(method string) {
-	if method != mapprotocol.MtdOfSwapInVerifiedWithIndex && method != mapprotocol.MethodOfSwapInVerified {
+	if w.cfg.FeeType == constant.FeeRentType || (method != mapprotocol.MtdOfSwapInVerifiedWithIndex && method != mapprotocol.MethodOfSwapInVerified) {
 		w.log.Info("Return energy, call method is not swapInVerified or withIndex, dont need return energy", "method", method)
 		return
 	}
