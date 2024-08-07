@@ -19,7 +19,6 @@ var (
 
 var (
 	BlockRetryInterval = time.Second * 5
-	RetryLongInterval  = time.Second * 10
 	QueryRetryInterval = time.Second * 10
 )
 
@@ -64,9 +63,8 @@ var IgnoreError = map[string]struct{}{
 type BlockIdOfEth2 string
 
 const (
-	FinalBlockIdOfEth2   BlockIdOfEth2 = "finalized"
-	HeadBlockIdOfEth2    BlockIdOfEth2 = "head"
-	GenesisBlockIdOfEth2 BlockIdOfEth2 = "genesis"
+	FinalBlockIdOfEth2 BlockIdOfEth2 = "finalized"
+	HeadBlockIdOfEth2  BlockIdOfEth2 = "head"
 )
 
 const (
@@ -98,6 +96,7 @@ const (
 
 const (
 	MerlinChainId     = 4200
+	CfxChainId        = 1030
 	EthChainId        = 5
 	ZkSyncChainId     = 324
 	B2ChainId         = 223
@@ -132,4 +131,8 @@ const (
 
 var (
 	MapLogIdx = make(map[string]int64)
+)
+
+const (
+	FeeRentType = "fee.io"
 )

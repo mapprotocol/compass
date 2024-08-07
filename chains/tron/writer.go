@@ -3,6 +3,7 @@ package tron
 import (
 	"context"
 	"fmt"
+	"github.com/lbtsm/gotron-sdk/pkg/proto/api"
 	"math/big"
 	"strings"
 	"time"
@@ -70,7 +71,7 @@ func (w *Writer) syncMapToTron(m msg.Message) bool {
 			return false
 		default:
 			input := m.Payload[0].([]byte)
-			tx, err := w.sendTx(w.cfg.LightNode, input, 0, 1, false)
+			tx, err := w.sendTx(w.cfg.LightNode, input, 0, 1, 0, false)
 			if err == nil {
 				w.log.Info("Sync Map Header to tron chain tx execution", "tx", tx, "src", m.Source, "dst", m.Destination)
 				err = w.txStatus(tx)
@@ -170,7 +171,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			}
 
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash)
-			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte), 0, int64(w.cfg.GasMultiplier), false)
+			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte), 0, int64(w.cfg.GasMultiplier), 0, false)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash, "mcsTx", mcsTx)
 				err = w.txStatus(mcsTx)
@@ -208,7 +209,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 	}
 }
 
-func (w *Writer) sendTx(addr string, input []byte, txAmount, mul int64, ignore bool) (string, error) {
+func (w *Writer) sendTx(addr string, input []byte, txAmount, mul, used int64, ignore bool) (string, error) {
 	// online estimateEnergy
 	contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, input, txAmount)
 	if err != nil {
@@ -224,8 +225,20 @@ func (w *Writer) sendTx(addr string, input []byte, txAmount, mul int64, ignore b
 		}
 	}
 
-	feeLimit := big.NewInt(0).Mul(big.NewInt(contract.EnergyUsed), big.NewInt(420*mul))
-	w.log.Info("EstimateEnergy", "estimate", contract.EnergyUsed, "multiple", multiple, "feeLimit", feeLimit, "mul", mul)
+	if used == 0 {
+		used = contract.EnergyUsed
+	}
+	feeLimit := big.NewInt(0).Mul(big.NewInt(used), big.NewInt(420*mul))
+	w.log.Info("EstimateEnergy", "estimate", used, "multiple", multiple, "feeLimit", feeLimit, "mul", mul)
+
+	account, err := w.conn.cli.GetAccountResource(w.cfg.From)
+	if err != nil {
+		return "", errors.Wrap(err, "get account failed")
+	}
+	if used >= account.EnergyLimit {
+		return "", fmt.Errorf("txUsed(%d) energy more than acount have(%d)", used, account.EnergyLimit)
+	}
+
 	tx, err := w.conn.cli.TriggerContract(w.cfg.From, addr, input, feeLimit.Int64(), txAmount, "", 0)
 	if err != nil {
 		w.log.Error("Failed to TriggerContract", "err", err)
@@ -304,6 +317,9 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 		return err
 	}
 	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed)
+	if w.cfg.FeeType == constant.FeeRentType {
+		return w.feeRentEnergy(used, acc)
+	}
 	if method == mapprotocol.MtdOfSwapInVerifiedWithIndex || method == mapprotocol.MethodOfSwapInVerified {
 		w.log.Info("Rent energy, call method is swapInVerified or withIndex, dont need rent energy", "method", method)
 		return nil
@@ -327,7 +343,7 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 		return errors.Wrap(err, "pack input failed")
 	}
 	w.log.Info("Rent energy will rent")
-	tx, err := w.sendTx(w.cfg.RentNode, input, 371019500, 1, false)
+	tx, err := w.sendTx(w.cfg.RentNode, input, 371019500, 1, 0, false)
 	if err != nil {
 		return errors.Wrap(err, "sendTx failed")
 	}
@@ -341,8 +357,35 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	return nil
 }
 
+func (w *Writer) feeRentEnergy(used int64, acc *api.AccountResourceMessage) error {
+	resValue := int64(1000000)
+	rentDuration := int64(1)
+	if acc.EnergyLimit > used {
+		w.log.Info("FeeRentEnergy dont need rent, because account have enough energy", "have", acc.EnergyLimit, "used", used)
+		return nil
+	}
+	account, err := w.conn.cli.GetAccount(w.cfg.From)
+	if err != nil {
+		return err
+	}
+	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
+	res, err := GetOrderPrice(w.cfg.FeeKey, resValue, rentDuration)
+	if err != nil {
+		return err
+	}
+	if res.Data.PayAmount > balance {
+		return fmt.Errorf("account not have enough balance(%0.4f trx)", res.Data.PayAmount)
+	}
+	ret, err := OrderSubmit(w.cfg.FeeKey, w.cfg.From, resValue, rentDuration)
+	if err != nil {
+		return err
+	}
+	w.log.Info("FeeRentEnergy rent success", "no", ret.Data.OrderNo)
+	return nil
+}
+
 func (w *Writer) newReturn(method string) {
-	if method != mapprotocol.MtdOfSwapInVerifiedWithIndex && method != mapprotocol.MethodOfSwapInVerified {
+	if w.cfg.FeeType == constant.FeeRentType || (method != mapprotocol.MtdOfSwapInVerifiedWithIndex && method != mapprotocol.MethodOfSwapInVerified) {
 		w.log.Info("Return energy, call method is not swapInVerified or withIndex, dont need return energy", "method", method)
 		return
 	}
@@ -362,7 +405,7 @@ func (w *Writer) newReturn(method string) {
 		w.log.Error("Return energy, Pack failed", "err", err)
 		return
 	}
-	tx, err := w.sendTx(w.cfg.RentNode, input, 0, 1, true)
+	tx, err := w.sendTx(w.cfg.RentNode, input, 0, 1, 80000, true)
 	if err != nil {
 		w.log.Error("Return energy, sendTx failed", "err", err)
 		return

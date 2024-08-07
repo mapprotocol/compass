@@ -44,6 +44,8 @@ var (
 	OracleNode            = "oracleNode"
 	RentNode              = "rentNode"
 	EthFrom               = "ethFrom"
+	FeeKey                = "feeKey"
+	FeeType               = "feeType"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms

@@ -10,10 +10,9 @@ import (
 
 type Config struct {
 	chain.Config
-	LightNode   string
-	RentNode    string
-	EthFrom     common.Address
-	McsContract []string
+	LightNode, RentNode, FeeKey, FeeType string
+	EthFrom                              common.Address
+	McsContract                          []string
 }
 
 func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
@@ -41,6 +40,12 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 	}
 	if ele, ok := chainCfg.Opts[chain.EthFrom]; ok && ele != "" {
 		ret.EthFrom = common.HexToAddress(ele)
+	}
+	if ele, ok := chainCfg.Opts[chain.FeeKey]; ok && ele != "" {
+		ret.FeeKey = ele
+	}
+	if ele, ok := chainCfg.Opts[chain.FeeType]; ok && ele != "" {
+		ret.FeeType = ele
 	}
 	return &ret, nil
 }

@@ -31,6 +31,7 @@ type BlockHeader struct {
 	Size                  *hexutil.Big   `json:"size"`
 	Custom                []Bytes        `json:"custom"`
 	PosReference          *types.Hash    `json:"posReference"`
+	BaseFeePerGas         *hexutil.Big   `json:"baseFeePerGas"`
 }
 
 type Bytes []byte

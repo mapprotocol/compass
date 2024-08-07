@@ -10,11 +10,6 @@ import (
 	"github.com/mapprotocol/near-api-go/pkg/types/signature"
 )
 
-const (
-	TransferOut = "transfer out"
-	DepositOut  = "deposit out"
-)
-
 type StreamerMessage struct {
 	Block  client.BlockView `json:"block"`
 	Shards []IndexerShard   `json:"shards"`
