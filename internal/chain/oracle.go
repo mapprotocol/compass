@@ -205,7 +205,7 @@ func log2Oracle(m *Oracle, logs []types.Log, currentBlock *big.Int) error {
 }
 
 func generateReceipt(m *Oracle, latestBlock *big.Int) (*common.Hash, error) {
-	if !exist(int64(m.Cfg.Id), []int64{constant.MerlinChainId, constant.ZkSyncChainId, constant.B2ChainId, constant.ZkLinkChainId}) {
+	if !exist(int64(m.Cfg.Id), []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId, constant.B2ChainId, constant.ZkLinkChainId}) {
 		return nil, nil
 	}
 	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), latestBlock)
