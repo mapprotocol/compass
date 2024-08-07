@@ -228,7 +228,7 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 	var count int64
 	//time.Sleep(time.Second * 2)
 	for {
-		_, pending, err := w.conn.Client().TransactionByHash(context.Background(), txHash) // Query whether it is on the chain
+		pending, err := w.conn.Client().IsPendingByTxHash(context.Background(), txHash) // Query whether it is on the chain
 		if pending {
 			w.log.Info("Tx is Pending, please wait...", "tx", txHash)
 			time.Sleep(w.queryInterval())
