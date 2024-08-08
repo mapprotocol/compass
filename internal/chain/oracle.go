@@ -143,58 +143,49 @@ func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 	return nil
 }
 
-func log2Oracle(m *Oracle, logs []types.Log, currentBlock *big.Int) error {
+func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	count := 0
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), currentBlock)
+	header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
 	if err != nil {
 		return fmt.Errorf("oracle get header failed, err: %w", err)
 	}
-	hash, err := generateReceipt(m, currentBlock)
+	receiptHash, err := generateReceipt(m, blockNumber)
 	if err != nil {
 		return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 	}
-	if hash != nil {
-		header.ReceiptHash = *hash
+	if receiptHash != nil {
+		header.ReceiptHash = *receiptHash
 	}
 
-	m.Log.Info("Find log", "block", currentBlock, "logs", len(logs), "receipt", header.ReceiptHash)
-	input, err := mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfPropose].Inputs.Pack(header.Number, header.ReceiptHash)
-	if err != nil {
-		return err
-	}
-	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
+	m.Log.Info("Find log", "block", blockNumber, "logs", len(logs), "receipt", header.ReceiptHash)
+	id := big.NewInt(int64(m.Cfg.Id))
 	for _, log := range logs {
+		toChainID := uint64(m.Cfg.MapChainID)
 		if m.Cfg.Id == m.Cfg.MapChainID {
-			toChainID := binary.BigEndian.Uint64(log.Topics[1][len(logs[0].Topics[1])-8:])
+			toChainID = binary.BigEndian.Uint64(log.Topics[1][len(logs[0].Topics[1])-8:])
 			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
-				m.Log.Info("Map Found a log that is not the current task", "blockNumber", log.BlockNumber, "toChainID", toChainID)
+				m.Log.Info("Map Oracle Found a log that is not the current task", "blockNumber", log.BlockNumber, "toChainID", toChainID)
 				continue
 			}
-			data, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, big.NewInt(int64(m.Cfg.Id)), input)
-			if err != nil {
-				return err
-			}
-			for _, cid := range m.Cfg.SyncChainIDList {
-				if toChainID != uint64(cid) {
-					continue
-				}
-				message := msg.NewSyncFromMap(m.Cfg.MapChainID, cid, []interface{}{data}, m.MsgCh)
-				err = m.Router.Send(message)
-				if err != nil {
-					m.Log.Error("subscription error: failed to route message", "err", err)
-					return nil
-				}
-				count++
-			}
-		} else {
-			message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{id, input}, m.MsgCh)
-			err = m.Router.Send(message)
-			if err != nil {
-				m.Log.Error("subscription error: failed to route message", "err", err)
-				return nil
-			}
-			count++
 		}
+
+		ret, err := MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.Id))
+		if err != nil {
+			return err
+		}
+		m.Log.Info("MulSignInfo success", "ret", ret)
+		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(header.ReceiptHash, ret.Version, blockNumber, id)
+		if err != nil {
+			return err
+		}
+
+		err = m.Router.Send(msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{pack, header.ReceiptHash, blockNumber}, m.MsgCh))
+		if err != nil {
+			m.Log.Error("Proposal error: failed to route message", "err", err)
+			return err
+		}
+		count++
+
 	}
 
 	err = m.WaitUntilMsgHandled(count)

@@ -56,6 +56,8 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 		return w.exeSwapMsg(m)
 	case msg.SwapWithMerlin:
 		return w.merlinWithMsg(m)
+	case msg.Proposal:
+		return w.proposal(m)
 	default:
 		w.log.Error("Unknown message type received", "type", m.Type)
 		return false

@@ -12,7 +12,6 @@ import (
 const (
 	MethodVerifyProofData        = "verifyProofData"
 	MethodUpdateBlockHeader      = "updateBlockHeader"
-	MethodVerifiableHeaderRange  = "verifiableHeaderRange"
 	MethodOfHeaderHeight         = "headerHeight"
 	MethodOfTransferIn           = "transferIn"
 	MethodOfDepositIn            = "depositIn"
@@ -39,10 +38,13 @@ const (
 	EventOfSwapInVerified        = "mapSwapInVerified"
 	MethodOfTransferInWithIndex  = "transferInWithIndex"
 	MethodOfSwapInWithIndex      = "swapInWithIndex"
+	MethodOfMulSignInfo          = "multisigInfo"
+	MethodOfProposalInfo         = "proposalInfo"
+	MethodOfProposal             = "proposal"
+	MethodOfSolidityPack         = "soliditypack"
 )
 
 const (
-	NearVerifyRange  = "get_verifiable_header_range"
 	NearHeaderHeight = "get_header_height"
 )
 
@@ -78,7 +80,6 @@ var (
 	LightManger, _ = abi.JSON(strings.NewReader(LightMangerAbi))
 	Map2Other, _   = abi.JSON(strings.NewReader(Map2OtherAbi))
 	Height, _      = abi.JSON(strings.NewReader(HeightAbiJson))
-	Verify, _      = abi.JSON(strings.NewReader(VerifiableHeaderRangeAbiJson))
 	Matic, _       = abi.JSON(strings.NewReader(MaticAbiJson))
 	Eth2, _        = abi.JSON(strings.NewReader(Eth2AbiJson))
 	Platon, _      = abi.JSON(strings.NewReader(PlatonAbiJson))
@@ -87,6 +88,9 @@ var (
 	OracleAbi, _   = abi.JSON(strings.NewReader(OracleAbiJson))
 	ProofAbi, _    = abi.JSON(strings.NewReader(ProofAbiJson))
 	TronAbi, _     = abi.JSON(strings.NewReader(TronAbiJson))
+	SignerAbi, _   = abi.JSON(strings.NewReader(SignerJson))
+	PackAbi, _     = abi.JSON(strings.NewReader(PackJson))
+	GetAbi, _      = abi.JSON(strings.NewReader(GetJson))
 )
 
 type Role string

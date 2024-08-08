@@ -2,6 +2,9 @@ package tron
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
 	"math/big"
 
 	connection "github.com/mapprotocol/compass/connections/ethereum"
@@ -66,6 +69,10 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 	case mapprotocol.RoleOfMessenger:
 		listen = newSync(cs, messengerHandler, conn)
 	case mapprotocol.RoleOfOracle:
+		oAbi, _ := abi.New(mapprotocol.SignerJson)
+		oracleCall := contract.New(ethConn, []common.Address{config.OracleNode}, oAbi)
+		mapprotocol.SingMapping[config.Id] = oracleCall
+
 		listen = newSync(cs, oracleHandler, conn)
 	}
 

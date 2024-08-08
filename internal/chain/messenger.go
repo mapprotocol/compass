@@ -2,9 +2,11 @@ package chain
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 	"strconv"
 	"strings"
@@ -185,7 +187,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		if strings.ToLower(chainName) == "near" {
 			proofType = 1
 		} else if strings.ToLower(chainName) == "tron" {
-			proofType = 3
+			proofType = constant.ProofTypeOfNewOracle
 		} else {
 			proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId)
 			if errors.Is(err, OrderExist) {
@@ -202,9 +204,20 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 			}
 		}
 	}
+	var sign [][]byte
+	if proofType == constant.ProofTypeOfNewOracle {
+		ret, err := signer(m, log, toChainID)
+		if err != nil {
+			return 0, err
+		}
+		if !ret.CanVerify {
+			return 0, NotVerifyAble
+		}
+		sign = ret.Signatures
+	}
 
 	tmpLog := log
-	message, err := m.assembleProof(m, tmpLog, proofType, toChainID)
+	message, err := m.assembleProof(m, tmpLog, proofType, toChainID, sign)
 	if err != nil {
 		return 0, err
 	}
@@ -215,4 +228,38 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, err
 	}
 	return 1, nil
+}
+
+func signer(m *Messenger, log *types.Log, toChainID uint64) (*ProposalInfoResp, error) {
+	bn := big.NewInt(int64(log.BlockNumber))
+	ret, err := MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
+	if err != nil {
+		return nil, err
+	}
+	m.Log.Info("MulSignInfo success", "ret", ret)
+	header, err := m.Conn.Client().HeaderByNumber(context.Background(), big.NewInt(int64(log.BlockNumber)))
+	if err != nil {
+		return nil, err
+	}
+
+	piRet, err := ProposalInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), bn, header.ReceiptHash, ret.Version)
+	if err != nil {
+		return nil, err
+	}
+	if !piRet.CanVerify {
+		return nil, NotVerifyAble
+	}
+	m.Log.Info("ProposalInfo success", "piRet", piRet)
+	return piRet, nil
+}
+
+func personalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) {
+	fullMessage := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message)
+	hash := crypto.Keccak256Hash([]byte(fullMessage))
+	signatureBytes, err := crypto.Sign(hash.Bytes(), privateKey)
+	if err != nil {
+		return nil, err
+	}
+	signatureBytes[64] += 27
+	return signatureBytes, nil
 }

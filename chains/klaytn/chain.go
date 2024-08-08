@@ -157,7 +157,7 @@ func assembleHeader(client *ethclient.Client, latestBlock *big.Int, count int) (
 	return headers, nil
 }
 
-func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64) (*msg.Message, error) {
+func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
 		message   msg.Message
 		orderId   = log.Data[:32]

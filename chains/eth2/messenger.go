@@ -244,7 +244,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
-	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, constant.ProofTypeOfOracle)
+	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, constant.ProofTypeOfOracle, nil)
 	if err != nil {
 		return 0, fmt.Errorf("unable to Parse Log: %w", err)
 	}

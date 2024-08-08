@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -9,8 +10,9 @@ import (
 )
 
 var (
-	OrderExist    = errors.New("order exist")
-	NotVerifyAble = errors.New("not verify able")
+	OrderExist       = errors.New("order exist")
+	NotVerifyAble    = errors.New("not verify able")
+	ContractNotExist = errors.New("contract not exist")
 )
 
 type OrderStatusResp struct {
@@ -22,7 +24,7 @@ type OrderStatusResp struct {
 func OrderStatus(idx int, selfChainId, toChainID uint64, blockNumber *big.Int, orderId []byte) (*OrderStatusResp, error) {
 	call, ok := mapprotocol.ContractMapping[msg.ChainId(toChainID)]
 	if !ok {
-
+		return nil, ContractNotExist
 	}
 	var fixedOrderId [32]byte
 	for i, v := range orderId {
@@ -49,4 +51,43 @@ func PreSendTx(idx int, selfChainId, toChainID uint64, blockNumber *big.Int, ord
 	}
 
 	return ret.NodeType.Int64(), nil
+}
+
+type MulSignInfoResp struct {
+	Version [32]byte
+	Quorum  *big.Int
+	Singers []common.Address
+}
+
+func MulSignInfo(idx int, selfChainId, toChainID uint64) (*MulSignInfoResp, error) {
+	call, ok := mapprotocol.SingMapping[msg.ChainId(toChainID)]
+	if !ok {
+		return nil, ContractNotExist
+	}
+
+	ret := MulSignInfoResp{}
+	err := call.Call(mapprotocol.MethodOfMulSignInfo, &ret, idx)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
+}
+
+type ProposalInfoResp struct {
+	Singers    []common.Address
+	Signatures [][]byte
+	CanVerify  bool
+}
+
+func ProposalInfo(idx int, selfChainId, toChainID uint64, blockNumber *big.Int, receipt common.Hash, version [32]byte) (*ProposalInfoResp, error) {
+	call, ok := mapprotocol.SingMapping[msg.ChainId(toChainID)]
+	if !ok {
+		return nil, ContractNotExist
+	}
+	ret := ProposalInfoResp{}
+	err := call.Call(mapprotocol.MethodOfProposalInfo, &ret, idx, big.NewInt(int64(selfChainId)), blockNumber, receipt, version)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
 }

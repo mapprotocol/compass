@@ -2,6 +2,7 @@ package proof
 
 import (
 	"bytes"
+	maptypes "github.com/mapprotocol/atlas/core/types"
 	"math/big"
 	"sync"
 
@@ -43,6 +44,13 @@ type ReceiptProof struct {
 
 type NewData struct {
 	BlockNum     *big.Int
+	ReceiptProof NewReceiptProof
+}
+
+type SignData struct {
+	BlockNum     *big.Int
+	ReceiptRoot  [32]byte
+	Signatures   [][]byte
 	ReceiptProof NewReceiptProof
 }
 
@@ -160,6 +168,52 @@ func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf 
 	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
 		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(int64(fId)), big.NewInt(int64(idx)), input)
 	}
+	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack mcs input failed")
+	}
+
+	return ret, nil
+}
+
+func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId, idx int, method string, sign [][]byte) ([]byte, error) {
+	nr := mapprotocol.MapTxReceipt{
+		PostStateOrStatus: receipt.PostStateOrStatus,
+		CumulativeGasUsed: receipt.CumulativeGasUsed,
+		Bloom:             receipt.Bloom,
+		Logs:              receipt.Logs,
+	}
+	nrRlp, err := rlp.EncodeToBytes(nr)
+	if err != nil {
+		return nil, err
+	}
+
+	var fixedHash [32]byte
+	for i, v := range header.ReceiptHash {
+		fixedHash[i] = v
+	}
+
+	pd := SignData{
+		BlockNum:    header.Number,
+		ReceiptRoot: fixedHash,
+		Signatures:  sign,
+		ReceiptProof: NewReceiptProof{
+			TxReceipt:   nrRlp,
+			ReceiptType: receipt.ReceiptType,
+			KeyIndex:    util.Key2Hex(key, len(prf)),
+			Proof:       prf,
+		},
+	}
+
+	input, err := mapprotocol.GetAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack getBytes failed")
+	}
+
+	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
+		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(int64(fId)), big.NewInt(int64(idx)), input)
+	}
+	//ret, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, input)
 	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")
