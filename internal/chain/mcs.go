@@ -3,10 +3,11 @@ package chain
 import (
 	"context"
 	"fmt"
-	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/util"
@@ -236,7 +237,7 @@ func (w *Writer) proposal(m msg.Message) bool {
 				fixedHash[i] = v
 			}
 
-			data, err := mapprotocol.SignerAbi.Pack(mapprotocol.MethodOfProposal, big.NewInt(int64(m.Source)), blockNumber, fixedHash, sign)
+			data, err := mapprotocol.SignerAbi.Pack(mapprotocol.MethodOfPropose, big.NewInt(int64(m.Source)), blockNumber, fixedHash, sign)
 			if err != nil {
 				return false
 			}
