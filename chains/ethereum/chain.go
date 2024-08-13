@@ -169,13 +169,19 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		bigNumber = big.NewInt(int64(log.BlockNumber))
 	)
 	if log.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
+		logIdx, ok := constant.MapLogIdx[log.TxHash.Hex()]
+		if !ok {
+			m.Log.Info("Event found SwapInVerified, but dont this msger handler",
+				"block", bigNumber, "txHash", log.TxHash)
+			return nil, nil
+		}
 		data, err := mapprotocol.Mcs.Events[mapprotocol.EventOfSwapInVerified].Inputs.UnpackValues(log.Data)
 		if err != nil {
 			return nil, errors.Wrap(err, "swapIn unpackData failed")
 		}
 
-		input, _ := mapprotocol.Mcs.Pack(mapprotocol.MethodOfSwapInVerified, data[0].([]byte))
-		msgPayload := []interface{}{input, orderId, log.BlockNumber, log.TxHash, mapprotocol.MethodOfSwapInVerified}
+		input, _ := mapprotocol.Mcs.Pack(mapprotocol.MtdOfSwapInVerifiedWithIndex, data[0].([]byte), big.NewInt(logIdx))
+		msgPayload := []interface{}{input, orderId, log.BlockNumber, log.TxHash, mapprotocol.MtdOfSwapInVerifiedWithIndex}
 		message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
 		return &message, nil
 	}
