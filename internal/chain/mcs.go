@@ -125,6 +125,9 @@ func (w *Writer) merlinWithMsg(m msg.Message) bool {
 				if err != nil {
 					w.log.Warn("Store TxHash Status is not successful, will retry", "err", err)
 				} else {
+					w.log.Info("Success idx ", "src", inputHash, "idx", constant.MapLogIdx[inputHash.(common.Hash).Hex()])
+					constant.MapLogIdx[string(mcsTx.Hash().Hex())] = constant.MapLogIdx[inputHash.(common.Hash).Hex()]
+					w.log.Info("Success idx ", "des", mcsTx, "idx", constant.MapLogIdx[mcsTx.Hash().Hex()])
 					m.DoneCh <- struct{}{}
 					return true
 				}
