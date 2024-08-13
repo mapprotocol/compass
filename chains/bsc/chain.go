@@ -19,8 +19,11 @@ import (
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
 	role mapprotocol.Role) (core.Chain, error) {
-	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection, chain.OptOfSync2Map(syncHeaderToMap),
-		chain.OptOfInitHeight(mapprotocol.HeaderCountOfBsc), chain.OptOfAssembleProof(assembleProof), chain.OptOfOracleHandler(chain.DefaultOracleHandler))
+	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,
+		chain.OptOfSync2Map(syncHeaderToMap),
+		chain.OptOfInitHeight(mapprotocol.HeaderCountOfBsc),
+		chain.OptOfAssembleProof(assembleProof),
+		chain.OptOfOracleHandler(chain.DefaultOracleHandler))
 }
 
 func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
@@ -78,7 +81,7 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	return nil
 }
 
-func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64) (*msg.Message, error) {
+func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
 		message   msg.Message
 		orderId   = log.Data[:32]
@@ -117,7 +120,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		params = append(params, bsc.ConvertHeader(h))
 	}
 
-	payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id, proofType)
+	payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id, proofType, sign)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}

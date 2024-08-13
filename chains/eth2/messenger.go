@@ -244,7 +244,32 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
-	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, constant.ProofTypeOfOracle)
+
+	proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), big.NewInt(0).SetUint64(log.BlockNumber), orderId)
+	if errors.Is(err, chain.OrderExist) {
+		m.Log.Info("This txHash order exist", "txHash", log.TxHash)
+		return 0, nil
+	}
+	if errors.Is(err, chain.NotVerifyAble) {
+		m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash)
+		return 0, err
+	}
+	if err != nil {
+		return 0, err
+	}
+	var sign [][]byte
+	if proofType == constant.ProofTypeOfNewOracle {
+		ret, err := chain.Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log)
+		if err != nil {
+			return 0, err
+		}
+		if !ret.CanVerify {
+			return 0, chain.NotVerifyAble
+		}
+		sign = ret.Signatures
+	}
+
+	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, proofType, sign)
 	if err != nil {
 		return 0, fmt.Errorf("unable to Parse Log: %w", err)
 	}

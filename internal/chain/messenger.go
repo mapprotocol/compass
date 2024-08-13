@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -10,11 +11,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
 )
 
@@ -185,7 +189,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		if strings.ToLower(chainName) == "near" {
 			proofType = 1
 		} else if strings.ToLower(chainName) == "tron" {
-			proofType = 3
+			proofType = constant.ProofTypeOfNewOracle
 		} else {
 			proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId)
 			if errors.Is(err, OrderExist) {
@@ -196,15 +200,26 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 				m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash, "toChainID", toChainID)
 				return 0, err
 			}
-			m.Log.Info("Event found", "txHash", log.TxHash, "proofType", proofType, "toChainID", toChainID)
+			m.Log.Info("Event Proof", "txHash", log.TxHash, "proofType", proofType, "toChainID", toChainID)
 			if err != nil {
 				return 0, err
 			}
 		}
 	}
+	var sign [][]byte
+	if proofType == constant.ProofTypeOfNewOracle {
+		ret, err := Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log)
+		if err != nil {
+			return 0, err
+		}
+		if !ret.CanVerify {
+			return 0, NotVerifyAble
+		}
+		sign = ret.Signatures
+	}
 
 	tmpLog := log
-	message, err := m.assembleProof(m, tmpLog, proofType, toChainID)
+	message, err := m.assembleProof(m, tmpLog, proofType, toChainID, sign)
 	if err != nil {
 		return 0, err
 	}
@@ -215,4 +230,38 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, err
 	}
 	return 1, nil
+}
+
+func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*ProposalInfoResp, error) {
+	bn := big.NewInt(int64(log.BlockNumber))
+	ret, err := MulSignInfo(0, selfId, toId)
+	if err != nil {
+		return nil, err
+	}
+	// m.Log.Info("MulSignInfo success", "ret", ret)
+	header, err := cli.HeaderByNumber(context.Background(), big.NewInt(int64(log.BlockNumber)))
+	if err != nil {
+		return nil, err
+	}
+
+	piRet, err := ProposalInfo(0, selfId, toId, bn, header.ReceiptHash, ret.Version)
+	if err != nil {
+		return nil, err
+	}
+	if !piRet.CanVerify {
+		return nil, NotVerifyAble
+	}
+	// m.Log.Info("ProposalInfo success", "piRet", piRet)
+	return piRet, nil
+}
+
+func personalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) {
+	fullMessage := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message)
+	hash := crypto.Keccak256Hash([]byte(fullMessage))
+	signatureBytes, err := crypto.Sign(hash.Bytes(), privateKey)
+	if err != nil {
+		return nil, err
+	}
+	signatureBytes[64] += 27
+	return signatureBytes, nil
 }

@@ -2,7 +2,9 @@ package eth2
 
 import (
 	"github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/connections/eth2"
 	"github.com/mapprotocol/compass/core"
@@ -78,6 +80,9 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		mapprotocol.ContractMapping[cfg.Id] = call
 		listen = NewMessenger(cs)
 	case mapprotocol.RoleOfOracle:
+		oAbi, _ := abi.New(mapprotocol.SignerJson)
+		oracleCall := contract.New(conn, []common.Address{cfg.OracleNode}, oAbi)
+		mapprotocol.SingMapping[cfg.Id] = oracleCall
 		listen = chain.NewOracle(cs)
 	}
 	wri := chain.NewWriter(conn, cfg, logger, stop, sysErr)

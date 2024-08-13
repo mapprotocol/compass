@@ -2,6 +2,7 @@ package chain
 
 import (
 	"github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/core"
@@ -77,6 +78,9 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 	case mapprotocol.RoleOfOracle:
 		listen = NewOracle(cs)
 	}
+	oAbi, _ := abi.New(mapprotocol.SignerJson)
+	oracleCall := contract.New(conn, []common.Address{cfg.OracleNode}, oAbi)
+	mapprotocol.SingMapping[cfg.Id] = oracleCall
 	wri := NewWriter(conn, cfg, logger, stop, sysErr)
 
 	return &Chain{

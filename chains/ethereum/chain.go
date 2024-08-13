@@ -161,7 +161,7 @@ func headerToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	return nil
 }
 
-func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64) (*msg.Message, error) {
+func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
 		message   msg.Message
 		orderId   = log.Data[:32]
@@ -185,6 +185,15 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
 		return &message, nil
 	}
+	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), bigNumber)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+
 	if m.Cfg.Id == m.Cfg.MapChainID {
 		if method == mapprotocol.MethodOfSwapIn && toChainID != constant.NearChainId {
 			method = mapprotocol.MethodOfSwapInWithIndex
@@ -197,14 +206,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		if err != nil {
 			return nil, fmt.Errorf("unable to query header Logs: %w", err)
 		}
-		txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), bigNumber)
-		if err != nil {
-			return nil, fmt.Errorf("idSame unable to get tx hashes Logs: %w", err)
-		}
-		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-		}
+
 		remainder := big.NewInt(0).Mod(bigNumber, big.NewInt(mapprotocol.EpochOfMap))
 		if remainder.Cmp(mapprotocol.Big0) == 0 {
 			lr, err := mapprotocol.GetLastReceipt(m.Conn.Client(), bigNumber)
@@ -214,7 +216,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 			receipts = append(receipts, lr)
 		}
 
-		_, payload, err := mapo.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method, m.Cfg.ApiUrl, proofType)
+		_, payload, err := mapo.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method, m.Cfg.ApiUrl, proofType, sign)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}
@@ -225,15 +227,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 			message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		}
 	} else if m.Cfg.SyncToMap {
-		txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), bigNumber)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-		}
-		receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-		}
-		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, method, m.Cfg.Id, proofType)
+		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, method, m.Cfg.Id, proofType, sign)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}

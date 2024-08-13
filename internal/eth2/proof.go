@@ -1,6 +1,7 @@
 package eth2
 
 import (
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/internal/proof"
@@ -67,7 +69,8 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
+func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId,
+	proofType int64, sign [][]byte) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
@@ -102,32 +105,15 @@ func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt
 			KeyIndex:  ek,
 			Proof:     prf,
 		}
-		//pack, err = proof.Pack(fId, method, mapprotocol.Eth2, pd)
 		pack, err = proof.V3Pack(fId, method, mapprotocol.Eth2, idx, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
-
-		//nr := mapprotocol.MapTxReceipt{
-		//	PostStateOrStatus: receipt.PostStateOrStatus,
-		//	CumulativeGasUsed: receipt.CumulativeGasUsed,
-		//	Bloom:             receipt.Bloom,
-		//	Logs:              receipt.Logs,
-		//}
-		//nrRlp, err := rlp.EncodeToBytes(nr)
-		//if err != nil {
-		//	return nil, err
-		//}
-		//pd := proof.NewData{
-		//	BlockNum: big.NewInt(int64(log.BlockNumber)),
-		//	ReceiptProof: proof.NewReceiptProof{
-		//		TxReceipt:   nrRlp,
-		//		ReceiptType: receipt.ReceiptType,
-		//		KeyIndex:    util.Key2Hex(key, len(prf)),
-		//		Proof:       prf,
-		//	},
-		//}
-		//pack, err = proof.Pack(fId, method, mapprotocol.ProofAbi, pd)
 		pack, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi)
+	case constant.ProofTypeOfNewOracle:
+		pack, err = proof.SignOracle(&maptypes.Header{
+			ReceiptHash: header.ReceiptsRoot,
+			Number:      big.NewInt(int64(log.BlockNumber)),
+		}, receipt, key, prf, fId, idx, method, sign)
 	}
 
 	if err != nil {

@@ -135,41 +135,41 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			}
 			method := m.Payload[4].(string)
 
-			contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, m.Payload[0].([]byte), 0)
-			if err != nil {
-				w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
-				time.Sleep(time.Minute)
-				continue
-			}
-			for _, v := range contract.ConstantResult {
-				w.log.Info("Contract result", "err", string(v))
-				ele := strings.TrimSpace(string(v))
-				if ele == "" {
-					continue
-				}
-				for e := range constant.IgnoreError {
-					if strings.Index(ele, e) != -1 {
-						w.log.Info("Ignore This Error, Continue to the next", "inputHash", inputHash, "err", ele)
-						m.DoneCh <- struct{}{}
-						return true
-					}
-				}
-				err = errors.New(ele)
-			}
-			if err != nil {
-				w.mosAlarm(inputHash, fmt.Errorf("contract result failed, err is %v", err))
-				time.Sleep(time.Minute)
-				continue
-			}
-			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed)
-
-			err = w.rentEnergy(contract.EnergyUsed, method)
-			if err != nil {
-				w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
-				w.mosAlarm(inputHash, errors.Wrap(err, "please admin handler"))
-				time.Sleep(time.Minute * 5)
-				continue
-			}
+			//contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, m.Payload[0].([]byte), 0)
+			//if err != nil {
+			//	w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
+			//	time.Sleep(time.Minute)
+			//	continue
+			//}
+			//for _, v := range contract.ConstantResult {
+			//	w.log.Info("Contract result", "err", string(v))
+			//	ele := strings.TrimSpace(string(v))
+			//	if ele == "" {
+			//		continue
+			//	}
+			//	for e := range constant.IgnoreError {
+			//		if strings.Index(ele, e) != -1 {
+			//			w.log.Info("Ignore This Error, Continue to the next", "inputHash", inputHash, "err", ele)
+			//			m.DoneCh <- struct{}{}
+			//			return true
+			//		}
+			//	}
+			//	err = errors.New(ele)
+			//}
+			//if err != nil {
+			//	w.mosAlarm(inputHash, fmt.Errorf("contract result failed, err is %v", err))
+			//	time.Sleep(time.Minute)
+			//	continue
+			//}
+			//w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed)
+			//
+			//err = w.rentEnergy(contract.EnergyUsed, method)
+			//if err != nil {
+			//	w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
+			//	w.mosAlarm(inputHash, errors.Wrap(err, "please admin handler"))
+			//	time.Sleep(time.Minute * 5)
+			//	continue
+			//}
 
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash)
 			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte), 0, int64(w.cfg.GasMultiplier), 0, false)
@@ -212,31 +212,38 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 
 func (w *Writer) sendTx(addr string, input []byte, txAmount, mul, used int64, ignore bool) (string, error) {
 	// online estimateEnergy
-	contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, input, txAmount)
+	//contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, input, txAmount)
+	//if err != nil {
+	//	w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
+	//	return "", err
+	//}
+
+	//for _, v := range contract.ConstantResult {
+	//	w.log.Info("contract result", "err", string(v), "v", v, "hex", common.Bytes2Hex(v))
+	//	ele := strings.TrimSpace(string(v))
+	//	if ele != "" && ele != "4,^" && ele != "0�" && !ignore {
+	//		return "", errors.New(ele)
+	//	}
+	//}
+	//
+	//if used == 0 {
+	//	used = contract.EnergyUsed
+	//}
+
+	estimate, err := w.conn.cli.EstimateEnergy(w.cfg.From, addr, input, 0, "", 0)
 	if err != nil {
-		w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
+		w.log.Error("Failed to EstimateEnergy", "err", err)
 		return "", err
 	}
-
-	for _, v := range contract.ConstantResult {
-		w.log.Info("contract result", "err", string(v), "v", v, "hex", common.Bytes2Hex(v))
-		ele := strings.TrimSpace(string(v))
-		if ele != "" && ele != "4,^" && ele != "0�" && !ignore {
-			return "", errors.New(ele)
-		}
-	}
-
-	if used == 0 {
-		used = contract.EnergyUsed
-	}
-	feeLimit := big.NewInt(0).Mul(big.NewInt(used), big.NewInt(420*mul))
+	feeLimit := big.NewInt(0).Mul(big.NewInt(estimate.EnergyRequired), big.NewInt(420*mul))
 	w.log.Info("EstimateEnergy", "estimate", used, "multiple", multiple, "feeLimit", feeLimit, "mul", mul)
 
 	account, err := w.conn.cli.GetAccountResource(w.cfg.From)
 	if err != nil {
 		return "", errors.Wrap(err, "get account failed")
 	}
-	if used >= account.EnergyLimit {
+	//if used >= account.EnergyLimit {
+	if estimate.EnergyRequired >= account.EnergyLimit {
 		return "", fmt.Errorf("txUsed(%d) energy more than acount have(%d)", used, account.EnergyLimit)
 	}
 
@@ -316,6 +323,9 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	acc, err := w.conn.cli.GetAccountResource(w.cfg.From)
 	if err != nil {
 		return err
+	}
+	if acc.EnergyLimit != 0 {
+		return nil
 	}
 	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed)
 	if w.cfg.FeeType == constant.FeeRentType {

@@ -44,7 +44,6 @@ var IgnoreError = map[string]struct{}{
 	"invalid syncing block":             {},
 	"initialized or unknown epoch":      {},
 	"no need to update exe headers":     {},
-	"could not replace existing tx":     {},
 	"New block must have higher height": {},
 	"round mismatch":                    {},
 	"epoch mismatch":                    {},
@@ -76,6 +75,7 @@ const (
 	ProofTypeOfOrigin = iota + 1
 	ProofTypeOfZk
 	ProofTypeOfOracle
+	ProofTypeOfNewOracle
 )
 
 const (

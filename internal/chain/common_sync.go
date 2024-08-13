@@ -22,7 +22,7 @@ type (
 	SyncOpt        func(*CommonSync)
 	SyncHeader2Map func(*Maintainer, *big.Int) error
 	Mos            func(*Messenger, *big.Int) (int, error)
-	AssembleProof  func(*Messenger, *types.Log, int64, uint64) (*msg.Message, error)
+	AssembleProof  func(*Messenger, *types.Log, int64, uint64, [][]byte) (*msg.Message, error)
 	OracleHandler  func(*Oracle, *big.Int) error
 )
 

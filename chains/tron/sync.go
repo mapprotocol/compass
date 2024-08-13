@@ -110,7 +110,6 @@ func (m *sync) Sync() error {
 }
 
 func messengerHandler(m *sync, current *big.Int) (int, error) {
-	m.Log.Debug("Querying block for events", "block", current)
 	count := 0
 	for idx, addr := range m.Cfg.TronContract {
 		query := m.BuildQuery(addr, m.Cfg.Events[0:0], current, current)
@@ -183,7 +182,7 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				}
 
 				tmp := l
-				input, err := assembleProof(&tmp, receipts, method, m.Cfg.Id, proofType)
+				input, err := assembleProof(&tmp, receipts, method, m.Cfg.Id, m.Cfg.MapChainID, proofType)
 				if err != nil {
 					return 0, err
 				}
@@ -233,10 +232,17 @@ func oracleHandler(m *sync, latestBlock *big.Int) (int, error) {
 	tr = proof.DeriveTire(types.Receipts(receipts), tr)
 	m.Log.Info("oracle tron receipt", "blockNumber", latestBlock, "hash", tr.Hash())
 	receiptHash := tr.Hash()
-	input, err := mapprotocol.OracleAbi.Methods[mapprotocol.MethodOfPropose].Inputs.Pack(latestBlock, receiptHash)
+	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
+	if err != nil {
+		return 0, err
+	}
 
-	id := big.NewInt(0).SetUint64(uint64(m.Cfg.Id))
-	message := msg.NewSyncToMap(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{id, input}, m.MsgCh)
+	input, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receiptHash, ret.Version, latestBlock, big.NewInt(int64(m.Cfg.Id)))
+	if err != nil {
+		return 0, err
+	}
+
+	message := msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, receiptHash, latestBlock}, m.MsgCh)
 	err = m.Router.Send(message)
 	if err != nil {
 		m.Log.Error("subscription error: failed to route message", "err", err)
@@ -258,4 +264,23 @@ func getTxsByBN(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) 
 		txs = append(txs, ele)
 	}
 	return txs, nil
+}
+
+func getSigner(log *types.Log, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
+	bn := big.NewInt(int64(log.BlockNumber))
+	ret, err := chain.MulSignInfo(0, selfId, toChainID)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Get Version ret", ret)
+
+	piRet, err := chain.ProposalInfo(0, selfId, toChainID, bn, receiptHash, ret.Version)
+	if err != nil {
+		return nil, err
+	}
+	if !piRet.CanVerify {
+		return nil, chain.NotVerifyAble
+	}
+	fmt.Println("ProposalInfo success", "piRet", piRet)
+	return piRet, nil
 }

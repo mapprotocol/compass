@@ -1,9 +1,9 @@
 package bsc
 
 import (
+	"github.com/mapprotocol/compass/internal/mapo"
 	"math/big"
 
-	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/internal/op"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -84,7 +84,7 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
+func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64, sign [][]byte) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
