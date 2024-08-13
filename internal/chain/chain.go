@@ -79,7 +79,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 		listen = NewOracle(cs)
 	}
 	oAbi, _ := abi.New(mapprotocol.SignerJson)
-	oracleCall := contract.New(conn, []common.Address{cfg.LightNode}, oAbi)
+	oracleCall := contract.New(conn, []common.Address{cfg.OracleNode}, oAbi)
 	mapprotocol.SingMapping[cfg.Id] = oracleCall
 	wri := NewWriter(conn, cfg, logger, stop, sysErr)
 

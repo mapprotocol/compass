@@ -244,7 +244,21 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
-	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, constant.ProofTypeOfOracle, nil)
+
+	proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), big.NewInt(0).SetUint64(log.BlockNumber), orderId)
+	if errors.Is(err, chain.OrderExist) {
+		m.Log.Info("This txHash order exist", "txHash", log.TxHash)
+		return 0, nil
+	}
+	if errors.Is(err, chain.NotVerifyAble) {
+		m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash)
+		return 0, err
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, proofType, nil)
 	if err != nil {
 		return 0, fmt.Errorf("unable to Parse Log: %w", err)
 	}

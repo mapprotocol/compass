@@ -220,7 +220,7 @@ func (w *Writer) proposal(m msg.Message) bool {
 	var (
 		errorCount int64
 		needNonce  = true
-		addr       = w.cfg.LightNode
+		addr       = w.cfg.OracleNode
 	)
 	for {
 		select {

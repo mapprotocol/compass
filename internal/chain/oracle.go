@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"time"
+
+	"github.com/mapprotocol/compass/msg"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -126,7 +127,7 @@ func (m *Oracle) filter() error {
 
 func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 	m.Log.Debug("Querying block for events", "block", currentBlock)
-	query := m.BuildQuery(m.Cfg.OracleNode, m.Cfg.Events, currentBlock, currentBlock)
+	query := m.BuildQuery(m.Cfg.LightNode, m.Cfg.Events, currentBlock, currentBlock)
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
