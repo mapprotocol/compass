@@ -227,7 +227,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 			message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		}
 	} else if m.Cfg.SyncToMap {
-		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, method, m.Cfg.Id, proofType)
+		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, method, m.Cfg.Id, proofType, sign)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}

@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/mapprotocol/compass/internal/arb"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/op"
@@ -20,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -28,7 +30,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64) ([]byte, error) {
+func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId,
+	proofType int64, sign [][]byte) ([]byte, error) {
 	var (
 		pack []byte
 		err  error
@@ -40,26 +43,29 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 		}
 		idx = i
 	}
+	receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
+	if err != nil {
+		return nil, err
+	}
+	prf, receiptHash, err := ethProof(conn, fId, log.TxIndex, receipts)
+	if err != nil {
+		return nil, err
+	}
+
+	var key []byte
+	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
+
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
-		receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
-		if err != nil {
-			return nil, err
-		}
-
-		prf, err := ethProof(conn, fId, log.TxIndex, receipts)
-		if err != nil {
-			return nil, err
-		}
-
-		var key []byte
-		key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
 		pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi)
 	case constant.ProofTypeOfNewOracle:
+		pack, err = proof.SignOracle(&maptypes.Header{
+			ReceiptHash: receiptHash,
+			Number:      big.NewInt(int64(log.BlockNumber)),
+		}, receipt, key, prf, fId, idx, method, sign)
 	}
-
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +73,7 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	return pack, nil
 }
 
-func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte, error) {
+func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte, common.Hash, error) {
 	var dls proof.DerivableList
 	switch fId {
 	case constant.ArbChainId, constant.ArbTestnetChainId, constant.MantleChainId, constant.DodoChainId:
@@ -107,9 +113,13 @@ func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*t
 	}
 	ret, err := proof.Get(dls, txIdx)
 	if err != nil {
-		return nil, err
+		return nil, constant.ZeroAddress.Hash(), err
 	}
-	return ret, nil
+
+	tr, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
+	tr = proof.DeriveTire(dls, tr)
+
+	return ret, tr.Hash(), nil
 }
 
 func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.Receipt,
@@ -180,7 +190,6 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 		default:
 			payloads, err = proof.V3Pack(fId, method, mapprotocol.Map2Other, idx, rp)
 		}
-
 		if err != nil {
 			return 0, nil, err
 		}

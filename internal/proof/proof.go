@@ -2,9 +2,10 @@ package proof
 
 import (
 	"bytes"
-	maptypes "github.com/mapprotocol/atlas/core/types"
 	"math/big"
 	"sync"
+
+	maptypes "github.com/mapprotocol/atlas/core/types"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"

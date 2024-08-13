@@ -6,17 +6,19 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
 )
 
@@ -198,7 +200,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 				m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash, "toChainID", toChainID)
 				return 0, err
 			}
-			m.Log.Info("Event found", "txHash", log.TxHash, "proofType", proofType, "toChainID", toChainID)
+			m.Log.Info("Event Proof", "txHash", log.TxHash, "proofType", proofType, "toChainID", toChainID)
 			if err != nil {
 				return 0, err
 			}
@@ -206,7 +208,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	}
 	var sign [][]byte
 	if proofType == constant.ProofTypeOfNewOracle {
-		ret, err := signer(m, log, toChainID)
+		ret, err := Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log)
 		if err != nil {
 			return 0, err
 		}
@@ -230,26 +232,26 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	return 1, nil
 }
 
-func signer(m *Messenger, log *types.Log, toChainID uint64) (*ProposalInfoResp, error) {
+func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*ProposalInfoResp, error) {
 	bn := big.NewInt(int64(log.BlockNumber))
-	ret, err := MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
+	ret, err := MulSignInfo(0, selfId, toId)
 	if err != nil {
 		return nil, err
 	}
-	m.Log.Info("MulSignInfo success", "ret", ret)
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), big.NewInt(int64(log.BlockNumber)))
+	// m.Log.Info("MulSignInfo success", "ret", ret)
+	header, err := cli.HeaderByNumber(context.Background(), big.NewInt(int64(log.BlockNumber)))
 	if err != nil {
 		return nil, err
 	}
 
-	piRet, err := ProposalInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), bn, header.ReceiptHash, ret.Version)
+	piRet, err := ProposalInfo(0, selfId, toId, bn, header.ReceiptHash, ret.Version)
 	if err != nil {
 		return nil, err
 	}
 	if !piRet.CanVerify {
 		return nil, NotVerifyAble
 	}
-	m.Log.Info("ProposalInfo success", "piRet", piRet)
+	// m.Log.Info("ProposalInfo success", "piRet", piRet)
 	return piRet, nil
 }
 

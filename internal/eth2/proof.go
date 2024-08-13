@@ -1,6 +1,7 @@
 package eth2
 
 import (
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/internal/proof"
@@ -103,11 +105,15 @@ func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt
 			KeyIndex:  ek,
 			Proof:     prf,
 		}
-		//pack, err = proof.Pack(fId, method, mapprotocol.Eth2, pd)
 		pack, err = proof.V3Pack(fId, method, mapprotocol.Eth2, idx, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
 		pack, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi)
+	case constant.ProofTypeOfNewOracle:
+		pack, err = proof.SignOracle(&maptypes.Header{
+			ReceiptHash: header.ReceiptsRoot,
+			Number:      big.NewInt(int64(log.BlockNumber)),
+		}, receipt, key, prf, fId, idx, method, sign)
 	}
 
 	if err != nil {

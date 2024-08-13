@@ -257,8 +257,19 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	var sign [][]byte
+	if proofType == constant.ProofTypeOfNewOracle {
+		ret, err := chain.Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log)
+		if err != nil {
+			return 0, err
+		}
+		if !ret.CanVerify {
+			return 0, chain.NotVerifyAble
+		}
+		sign = ret.Signatures
+	}
 
-	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, proofType, nil)
+	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, proofType, sign)
 	if err != nil {
 		return 0, fmt.Errorf("unable to Parse Log: %w", err)
 	}
