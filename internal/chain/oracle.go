@@ -9,6 +9,7 @@ import (
 
 	"github.com/mapprotocol/compass/msg"
 
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -197,7 +198,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 }
 
 func generateReceipt(cli *ethclient.Client, selfId int64, latestBlock *big.Int) (*common.Hash, error) {
-	if !exist(int64(m.Cfg.Id), []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId, constant.B2ChainId, constant.ZkLinkChainId}) {
+	if !exist(selfId, []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId, constant.B2ChainId, constant.ZkLinkChainId}) {
 		return nil, nil
 	}
 	txsHash, err := mapprotocol.GetTxsByBn(cli, latestBlock)
