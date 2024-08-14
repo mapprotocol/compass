@@ -196,7 +196,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	return nil
 }
 
-func generateReceipt(cli *ethclient.Client,, selfId int64, latestBlock *big.Int) (*common.Hash, error) {
+func generateReceipt(cli *ethclient.Client, selfId int64, latestBlock *big.Int) (*common.Hash, error) {
 	if !exist(int64(m.Cfg.Id), []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId, constant.B2ChainId, constant.ZkLinkChainId}) {
 		return nil, nil
 	}
