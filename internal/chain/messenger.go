@@ -242,11 +242,11 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*Propos
 	}
 	receiptHash := header.ReceiptHash
 	hash, _ := generateReceipt(cli, int64(selfId), big.NewInt(int64(log.BlockNumber)))
-	if hash != nil {
-		receiptHash = *receiptHash
+	if receiptHash != nil {
+		header.ReceiptHash = *hash
 	}
 
-	piRet, err := ProposalInfo(0, selfId, toId, bn, receiptHash, ret.Version)
+	piRet, err := ProposalInfo(0, selfId, toId, bn, header.ReceiptHash, ret.Version)
 	if err != nil {
 		return nil, err
 	}
