@@ -151,7 +151,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	if err != nil {
 		return fmt.Errorf("oracle get header failed, err: %w", err)
 	}
-	receiptHash, err := generateReceipt(m.Conn.Client(), m.Cfg.Id, blockNumber)
+	receiptHash, err := generateReceipt(m.Conn.Client(), int64(m.Cfg.Id), blockNumber)
 	if err != nil {
 		return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 	}
