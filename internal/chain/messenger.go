@@ -212,9 +212,6 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		if !ret.CanVerify {
-			return 0, NotVerifyAble
-		}
 		sign = ret.Signatures
 	}
 
@@ -243,8 +240,13 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*Propos
 	if err != nil {
 		return nil, err
 	}
+	receiptHash := header.ReceiptHash
+	hash, _ := generateReceipt(cli, int64(selfId), big.NewInt(int64(log.BlockNumber)))
+	if hash != nil {
+		receiptHash = *receiptHash
+	}
 
-	piRet, err := ProposalInfo(0, selfId, toId, bn, header.ReceiptHash, ret.Version)
+	piRet, err := ProposalInfo(0, selfId, toId, bn, receiptHash, ret.Version)
 	if err != nil {
 		return nil, err
 	}

@@ -150,7 +150,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	if err != nil {
 		return fmt.Errorf("oracle get header failed, err: %w", err)
 	}
-	receiptHash, err := generateReceipt(m, blockNumber)
+	receiptHash, err := generateReceipt(m.Conn.Client(), m.Cfg.Id, blockNumber)
 	if err != nil {
 		return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 	}
@@ -196,15 +196,15 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	return nil
 }
 
-func generateReceipt(m *Oracle, latestBlock *big.Int) (*common.Hash, error) {
+func generateReceipt(cli *ethclient.Client,, selfId int64, latestBlock *big.Int) (*common.Hash, error) {
 	if !exist(int64(m.Cfg.Id), []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId, constant.B2ChainId, constant.ZkLinkChainId}) {
 		return nil, nil
 	}
-	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), latestBlock)
+	txsHash, err := mapprotocol.GetTxsByBn(cli, latestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 	}
-	receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+	receipts, err := tx.GetReceiptsByTxsHash(cli, txsHash)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
