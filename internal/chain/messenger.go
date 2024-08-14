@@ -240,7 +240,6 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*Propos
 	if err != nil {
 		return nil, err
 	}
-	receiptHash := header.ReceiptHash
 	hash, _ := generateReceipt(cli, int64(selfId), big.NewInt(int64(log.BlockNumber)))
 	if hash != nil {
 		header.ReceiptHash = *hash
