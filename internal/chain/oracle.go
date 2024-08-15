@@ -9,7 +9,6 @@ import (
 
 	"github.com/mapprotocol/compass/msg"
 
-	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -18,6 +17,7 @@ import (
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 )

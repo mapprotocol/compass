@@ -153,7 +153,7 @@ func (c *Connection) SafeEstimateGas(ctx context.Context) (*big.Int, error) {
 func (c *Connection) EstimateGasLondon(ctx context.Context, baseFee *big.Int) (*big.Int, *big.Int, error) {
 	var maxPriorityFeePerGas, maxFeePerGas *big.Int
 	if c.maxGasPrice.Cmp(baseFee) < 0 {
-		maxPriorityFeePerGas = big.NewInt(1000000000)
+		maxPriorityFeePerGas = big.NewInt(1000000)
 		maxFeePerGas = new(big.Int).Add(c.maxGasPrice, maxPriorityFeePerGas)
 		return maxPriorityFeePerGas, maxFeePerGas, nil
 	}

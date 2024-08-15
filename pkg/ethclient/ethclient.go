@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/pkg/platon"
 	"math/big"
 	"net/http"
 	"strings"
+
+	"github.com/mapprotocol/compass/pkg/platon"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -688,4 +689,26 @@ func (ec *Client) OpReceipt(ctx context.Context, txHash common.Hash) (*OpReceipt
 	}
 
 	return ret, err
+}
+
+func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param string) (uint64, error) {
+	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_estimateGas\",\"params\": [{\"from\":\"%s\",\"to\":\"%s\",\"data\":\"%s\"}],\"id\": 1\n}",
+		from, to, param)
+	body := strings.NewReader(s)
+	resp, err := http.Post(endpoint, "application/json", body)
+	if err != nil {
+		return 0, err
+	}
+
+	var respmsg jsonrpcMessage
+	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
+		return 0, err
+	}
+
+	data := make([]byte, 0, len(respmsg.Result))
+	for _, res := range respmsg.Result {
+		data = append(data, res)
+	}
+	fmt.Println("SelfEstimateGas ------------------------ ", string(data))
+	return 0, err
 }
