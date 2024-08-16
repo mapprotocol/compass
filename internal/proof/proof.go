@@ -234,7 +234,7 @@ func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, params ...inte
 	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
 		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)), input)
 	}
-	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
+	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)), input)
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")
 	}

@@ -112,6 +112,10 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		proof.CacheReceipt[key] = receipts
 	}
 
+	var orderId32 [32]byte
+	for idx, v := range orderId {
+		orderId32[idx] = v
+	}
 	headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
 	for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
 		headerHeight := new(big.Int).Add(bigNumber, new(big.Int).SetInt64(int64(i)))
@@ -127,7 +131,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		mHeaders = append(mHeaders, matic.ConvertHeader(h))
 	}
 
-	payload, err := matic.AssembleProof(mHeaders, log, m.Cfg.Id, receipts, method, proofType)
+	payload, err := matic.AssembleProof(mHeaders, log, m.Cfg.Id, receipts, method, proofType, orderId32)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}

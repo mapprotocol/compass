@@ -84,7 +84,8 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId, proofType int64, sign [][]byte) ([]byte, error) {
+func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, method string,
+	fId msg.ChainId, proofType int64, sign [][]byte, orderId [32]byte) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
@@ -122,7 +123,7 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 		},
 	}
 
-	pack, err := iproof.V3Pack(fId, method, mapprotocol.Bsc, idx, pd)
+	pack, err := iproof.V3Pack(fId, method, mapprotocol.Bsc, idx, orderId, pd)
 	//pack, err := iproof.Pack(fId, method, mapprotocol.Bsc, pd)
 	if err != nil {
 		return nil, err

@@ -80,7 +80,8 @@ type ReceiptProof struct {
 	Proof     [][]byte
 }
 
-func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, receipts []*types.Receipt, method string, proofType int64) ([]byte, error) {
+func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, receipts []*types.Receipt,
+	method string, proofType int64, orderId [32]byte) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
@@ -117,7 +118,7 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 		}
 
 		//pack, err = proof.Pack(fId, method, mapprotocol.Matic, pd)
-		pack, err = proof.V3Pack(fId, method, mapprotocol.Bsc, idx, pd)
+		pack, err = proof.V3Pack(fId, method, mapprotocol.Bsc, idx, orderId, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
 		pd := proof.Data{
