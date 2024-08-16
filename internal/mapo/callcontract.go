@@ -31,7 +31,7 @@ import (
 )
 
 func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId,
-	proofType int64, sign [][]byte) ([]byte, error) {
+	proofType int64, sign [][]byte, orderId [32]byte) ([]byte, error) {
 	var (
 		pack []byte
 		err  error
@@ -59,12 +59,12 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	case constant.ProofTypeOfOrigin:
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
-		pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi)
+		pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi, orderId)
 	case constant.ProofTypeOfNewOracle:
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: receiptHash,
 			Number:      big.NewInt(int64(log.BlockNumber)),
-		}, receipt, key, prf, fId, idx, method, sign)
+		}, receipt, key, prf, fId, idx, method, sign, orderId)
 	}
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*t
 }
 
 func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.Receipt,
-	header *maptypes.Header, fId msg.ChainId, method, zkUrl string, proofType int64, sign [][]byte) (uint64, []byte, error) {
+	header *maptypes.Header, fId msg.ChainId, method, zkUrl string, proofType int64, sign [][]byte, orderId [32]byte) (uint64, []byte, error) {
 	toChainID := log.Topics[2]
 	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
 	txIndex := log.TxIndex
@@ -173,7 +173,9 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			}
 			idx = i
 		}
+
 		constant.MapLogIdx[log.TxHash.Hex()] = int64(idx)
+		constant.MapOrderId[log.TxHash.Hex()] = orderId
 
 		var payloads []byte
 		switch proofType {
@@ -184,9 +186,9 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			}
 			payloads, err = proof.Pack(fId, method, mapprotocol.Mcs, rp, zkProof)
 		case constant.ProofTypeOfOracle:
-			payloads, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi)
+			payloads, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi, orderId)
 		case constant.ProofTypeOfNewOracle:
-			payloads, err = proof.SignOracle(header, receipt, key, prf, fId, idx, method, sign)
+			payloads, err = proof.SignOracle(header, receipt, key, prf, fId, idx, method, sign, orderId)
 		default:
 			payloads, err = proof.V3Pack(fId, method, mapprotocol.Map2Other, idx, rp)
 		}

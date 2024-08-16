@@ -268,13 +268,17 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		}
 		sign = ret.Signatures
 	}
+	var orderId32 [32]byte
+	for i, v := range orderId {
+		orderId32[i] = v
+	}
 
-	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, proofType, sign)
+	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, proofType, sign, orderId32)
 	if err != nil {
 		return 0, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
-	msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
+	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
 	message := msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	message.Idx = idx
 

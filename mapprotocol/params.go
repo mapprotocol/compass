@@ -32,7 +32,7 @@ const (
 	MethodOfVerifyReceiptProof   = "verifyReceiptProof"
 	MethodOfOrderStatus          = "getOrderStatus"
 	MethodOfPropose              = "propose"
-	MethodOfVerifyAndStore       = "swapInVerify"
+	MethodOfVerifyWithOrderId    = "swapInVerifyWithOrderId"
 	MethodOfSwapInVerified       = "swapInVerified"
 	MtdOfSwapInVerifiedWithIndex = "swapInVerifiedWithIndex"
 	EventOfSwapInVerified        = "mapSwapInVerified"
@@ -40,7 +40,6 @@ const (
 	MethodOfSwapInWithIndex      = "swapInWithIndex"
 	MethodOfMulSignInfo          = "multisigInfo"
 	MethodOfProposalInfo         = "proposalInfo"
-	MethodOfProposal             = "propose"
 	MethodOfSolidityPack         = "soliditypack"
 )
 

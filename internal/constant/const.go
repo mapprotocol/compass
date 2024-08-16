@@ -132,7 +132,8 @@ const (
 )
 
 var (
-	MapLogIdx = make(map[string]int64)
+	MapLogIdx  = make(map[string]int64)
+	MapOrderId = make(map[string][32]byte)
 )
 
 const (

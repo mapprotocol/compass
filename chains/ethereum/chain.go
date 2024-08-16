@@ -194,12 +194,13 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
 
+	var orderId32 [32]byte
+	for idx, v := range orderId {
+		orderId32[idx] = v
+	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		if method == mapprotocol.MethodOfSwapIn && toChainID != constant.NearChainId {
-			method = mapprotocol.MethodOfSwapInWithIndex
-		}
-		if toChainID == constant.MerlinChainId || toChainID == constant.TronChainId {
-			method = mapprotocol.MethodOfVerifyAndStore
+		if method == mapprotocol.MethodOfSwapIn && (toChainID == constant.MerlinChainId || toChainID == constant.TronChainId) {
+			method = mapprotocol.MethodOfVerifyWithOrderId
 		}
 
 		header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), bigNumber)
@@ -216,23 +217,24 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 			receipts = append(receipts, lr)
 		}
 
-		_, payload, err := mapo.AssembleMapProof(m.Conn.Client(), log, receipts, header, m.Cfg.MapChainID, method, m.Cfg.ApiUrl, proofType, sign)
+		_, payload, err := mapo.AssembleMapProof(m.Conn.Client(), log, receipts, header,
+			m.Cfg.MapChainID, method, m.Cfg.ApiUrl, proofType, sign, orderId32)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}
 
-		msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash, method}
+		msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash, method}
 		message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		if toChainID == constant.MerlinChainId {
 			message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		}
 	} else if m.Cfg.SyncToMap {
-		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, method, m.Cfg.Id, proofType, sign)
+		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, method, m.Cfg.Id, proofType, sign, orderId32)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}
 
-		msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
+		msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
 		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	}
 	return &message, nil

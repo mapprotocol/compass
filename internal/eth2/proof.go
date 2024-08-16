@@ -70,7 +70,7 @@ type ReceiptProof struct {
 }
 
 func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId,
-	proofType int64, sign [][]byte) ([]byte, error) {
+	proofType int64, sign [][]byte, orderId [32]byte) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
@@ -108,12 +108,12 @@ func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt
 		pack, err = proof.V3Pack(fId, method, mapprotocol.Eth2, idx, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
-		pack, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi)
+		pack, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi, orderId)
 	case constant.ProofTypeOfNewOracle:
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: header.ReceiptsRoot,
 			Number:      big.NewInt(int64(log.BlockNumber)),
-		}, receipt, key, prf, fId, idx, method, sign)
+		}, receipt, key, prf, fId, idx, method, sign, orderId)
 	}
 
 	if err != nil {

@@ -144,6 +144,10 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 			return nil, err
 		}
 	}
+	var orderId32 [32]byte
+	for idx, v := range orderId {
+		orderId32[idx] = v
+	}
 
 	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), big.NewInt(int64(log.BlockNumber)))
 	if err != nil {
@@ -154,7 +158,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
 	m.Log.Info("getPivot", "pivot", pivot)
-	payload, err := conflux.AssembleProof(cli, pivot.Uint64(), uint64(proofType), method, m.Cfg.Id, log, receipts)
+	payload, err := conflux.AssembleProof(cli, pivot.Uint64(), uint64(proofType), method, m.Cfg.Id, log, receipts, orderId32)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
