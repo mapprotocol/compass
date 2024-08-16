@@ -278,7 +278,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
-	msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
+	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
 	message := msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	message.Idx = idx
 

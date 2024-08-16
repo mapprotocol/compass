@@ -170,6 +170,10 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
 			} else {
 				method := m.GetMethod(l.Topics[0])
+				var orderId32 [32]byte
+				for i, v := range orderId {
+					orderId32[i] = v
+				}
 				toChainID, _ := strconv.ParseUint(mapprotocol.MapId, 10, 64)
 				m.Log.Info("Event found", "block", current, "txHash", l.TxHash, "logIdx", l.Index, "orderId", common.Bytes2Hex(orderId))
 				proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), toChainID, current, orderId)
@@ -182,12 +186,12 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				}
 
 				tmp := l
-				input, err := assembleProof(&tmp, receipts, method, m.Cfg.Id, m.Cfg.MapChainID, proofType)
+				input, err := assembleProof(&tmp, receipts, method, m.Cfg.Id, m.Cfg.MapChainID, proofType, orderId32)
 				if err != nil {
 					return 0, err
 				}
 
-				message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, orderId, l.BlockNumber, l.TxHash}, m.MsgCh)
+				message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, orderId32, l.BlockNumber, l.TxHash}, m.MsgCh)
 			}
 			err = m.Router.Send(message)
 			if err != nil {
