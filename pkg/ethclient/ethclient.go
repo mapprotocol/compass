@@ -706,7 +706,6 @@ func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param
 	if err != nil {
 		return 0, err
 	}
-
 	var respmsg jsonrpcMessage
 	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
 		return 0, err
@@ -717,7 +716,7 @@ func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param
 	if err != nil {
 		return ret, err
 	}
-	if customErr.Message != "" && customErr.Data != "" {
+	if customErr.Message != "" {
 		return ret, fmt.Errorf("%s:%s", customErr.Message, customErr.Data)
 	}
 	if len(respmsg.Result) != 0 {
@@ -728,5 +727,5 @@ func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param
 		ret = tmp.Uint64()
 	}
 
-	return ret, err
+	return ret, nil
 }
