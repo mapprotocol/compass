@@ -692,6 +692,12 @@ func (ec *Client) OpReceipt(ctx context.Context, txHash common.Hash) (*OpReceipt
 	return ret, err
 }
 
+type Error struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    string `json:"data"`
+}
+
 func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param string) (uint64, error) {
 	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_estimateGas\",\"params\": [{\"from\":\"%s\",\"to\":\"%s\",\"data\":\"%s\"}],\"id\": 1}",
 		from, to, param)
@@ -705,14 +711,22 @@ func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param
 	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
 		return 0, err
 	}
-
-	data := make([]byte, 0, len(respmsg.Result))
-	for _, res := range respmsg.Result {
-		data = append(data, res)
+	ret := uint64(0)
+	customErr := Error{}
+	err = json.Unmarshal(respmsg.Error, &customErr)
+	if err != nil {
+		return ret, err
 	}
-	fmt.Println("SelfEstimateGas ------------------------ ", respmsg)
-	fmt.Println("SelfEstimateGas ------------------------ ", string(data))
-	fmt.Println("SelfEstimateGas ------------------------ ", s)
-	fmt.Println("SelfEstimateGas ------------------------ ", endpoint)
-	return 0, err
+	if customErr.Message != "" && customErr.Data != "" {
+		return ret, fmt.Errorf("%s:%s", customErr.Message, customErr.Data)
+	}
+	if len(respmsg.Result) != 0 {
+		tmp, ok := big.NewInt(0).SetString(strings.TrimPrefix(string(respmsg.Result), "0x"), 16)
+		if !ok {
+			return ret, fmt.Errorf("result convert int failed, result:%s", string(respmsg.Result))
+		}
+		ret = tmp.Uint64()
+	}
+
+	return ret, err
 }
