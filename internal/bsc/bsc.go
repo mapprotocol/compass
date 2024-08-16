@@ -123,7 +123,7 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 		},
 	}
 
-	pack, err := iproof.V3Pack(fId, method, mapprotocol.Bsc, idx, orderId, pd)
+	pack, err := iproof.V3Pack(fId, method, mapprotocol.Bsc, idx, orderId, false, pd)
 	//pack, err := iproof.Pack(fId, method, mapprotocol.Bsc, pd)
 	if err != nil {
 		return nil, err
