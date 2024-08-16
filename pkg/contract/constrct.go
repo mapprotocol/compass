@@ -2,6 +2,7 @@ package contract
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -46,5 +47,6 @@ func (c *Call) Call(method string, ret interface{}, idx int, params ...interface
 		return err
 	}
 
+	fmt.Print("outPut ----------------------------------- ", outPut)
 	return c.abi.UnpackOutput(method, ret, outPut)
 }

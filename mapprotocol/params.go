@@ -40,7 +40,6 @@ const (
 	MethodOfSwapInWithIndex      = "swapInWithIndex"
 	MethodOfMulSignInfo          = "multisigInfo"
 	MethodOfProposalInfo         = "proposalInfo"
-	MethodOfProposal             = "propose"
 	MethodOfSolidityPack         = "soliditypack"
 )
 

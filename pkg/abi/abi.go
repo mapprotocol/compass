@@ -1,6 +1,7 @@
 package abi
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"strings"
 )
@@ -37,6 +38,7 @@ func (a *Abi) UnpackOutput(method string, ret interface{}, output []byte) error 
 		return err
 	}
 
+	fmt.Print("unpack ----------------------------------- ", unpack)
 	if err = outputs.Copy(ret, unpack); err != nil {
 		return err
 	}
