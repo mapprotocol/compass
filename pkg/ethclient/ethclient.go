@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/pkg/platon"
 	"math/big"
 	"net/http"
 	"strings"
+
+	"github.com/mapprotocol/compass/pkg/platon"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -610,6 +611,7 @@ type jsonrpcMessage struct {
 	Method  string          `json:"method,omitempty"`
 	Params  json.RawMessage `json:"params,omitempty"`
 	Result  json.RawMessage `json:"result,omitempty"`
+	Error   json.RawMessage `json:"error,omitempty"`
 }
 
 // EthLatestHeaderByNumber returns a block header from the current canonical chain. If number is
@@ -665,7 +667,7 @@ type OpReceipt struct {
 }
 
 func (ec *Client) OpReceipt(ctx context.Context, txHash common.Hash) (*OpReceipt, error) {
-	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_getTransactionReceipt\",\"params\": [\"%s\"],\"id\": 1\n}", txHash.Hex())
+	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_getTransactionReceipt\",\"params\": [\"%s\"],\"id\": 1}", txHash.Hex())
 	body := strings.NewReader(s)
 	resp, err := http.Post(ec.url, "application/json", body)
 	if err != nil {
@@ -685,6 +687,45 @@ func (ec *Client) OpReceipt(ctx context.Context, txHash common.Hash) (*OpReceipt
 	err = json.Unmarshal(data, &ret)
 	if err != nil {
 		return nil, err
+	}
+
+	return ret, err
+}
+
+type Error struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    string `json:"data"`
+}
+
+func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param string) (uint64, error) {
+	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_estimateGas\",\"params\": [{\"from\":\"%s\",\"to\":\"%s\",\"data\":\"%s\"}],\"id\": 1}",
+		from, to, param)
+	body := strings.NewReader(s)
+	resp, err := http.Post(endpoint, "application/json", body)
+	if err != nil {
+		return 0, err
+	}
+
+	var respmsg jsonrpcMessage
+	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
+		return 0, err
+	}
+	ret := uint64(0)
+	customErr := Error{}
+	err = json.Unmarshal(respmsg.Error, &customErr)
+	if err != nil {
+		return ret, err
+	}
+	if customErr.Message != "" && customErr.Data != "" {
+		return ret, fmt.Errorf("%s:%s", customErr.Message, customErr.Data)
+	}
+	if len(respmsg.Result) != 0 {
+		tmp, ok := big.NewInt(0).SetString(strings.TrimPrefix(string(respmsg.Result), "0x"), 16)
+		if !ok {
+			return ret, fmt.Errorf("result convert int failed, result:%s", string(respmsg.Result))
+		}
+		ret = tmp.Uint64()
 	}
 
 	return ret, err

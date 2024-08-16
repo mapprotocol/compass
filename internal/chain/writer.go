@@ -77,9 +77,14 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 		Value:    value,
 		Data:     input,
 	}
+
 	gasLimit, err := w.conn.Client().EstimateGas(context.Background(), msg)
 	if err != nil {
 		w.log.Error("EstimateGas failed sendTx", "error:", err.Error())
+		if err.Error() == "execution reverted" {
+			_, err = w.conn.Client().SelfEstimateGas(context.Background(),
+				w.cfg.Endpoint, from.Hex(), toAddress.Hex(), "0x"+common.Bytes2Hex(input))
+		}
 		return nil, err
 	}
 
