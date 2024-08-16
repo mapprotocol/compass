@@ -178,7 +178,7 @@ func (header BlockRlp) EncodeRLP(w io.Writer) error {
 }
 
 func AssembleProof(client *Client, pivot, proofType uint64, method string, fId msg.ChainId, log *ethtypes.Log,
-	receipts []*ethtypes.Receipt) ([]byte, error) {
+	receipts []*ethtypes.Receipt, orderId [32]byte) ([]byte, error) {
 	var (
 		ret, input []byte
 	)
@@ -192,7 +192,7 @@ func AssembleProof(client *Client, pivot, proofType uint64, method string, fId m
 		}
 		//ek := util.Key2Hex(key, len(prf))
 		receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
-		ret, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, 0, mapprotocol.ProofAbi)
+		ret, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, 0, mapprotocol.ProofAbi, orderId)
 	default:
 		if log.BlockNumber+DeferredExecutionEpochs > pivot {
 			return nil, errors.New("Pivot less than current block")
