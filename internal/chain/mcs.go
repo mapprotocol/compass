@@ -38,10 +38,10 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 		case <-w.stop:
 			return false
 		default:
-			orderId := m.Payload[1].([]byte)
+			orderId := m.Payload[1].([32]byte)
 			exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
 			if err != nil {
-				w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
+				w.log.Error("check orderId exist failed ", "err", err)
 				checkIdCount++
 				if checkIdCount == 10 {
 					util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
@@ -49,7 +49,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				}
 			}
 			if exits {
-				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId))
+				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", orderId)
 				m.DoneCh <- struct{}{}
 				return true
 			}
@@ -67,7 +67,6 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			}
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
 			mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
-			//err := w.call(&addr, m.Payload[0].([]byte), mapprotocol.Other, mapprotocol.MethodVerifyProofData)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash, "mcsTx", mcsTx.Hash())
 				err = w.txStatus(mcsTx.Hash())
@@ -128,8 +127,9 @@ func (w *Writer) merlinWithMsg(m msg.Message) bool {
 				if err != nil {
 					w.log.Warn("Store TxHash Status is not successful, will retry", "err", err)
 				} else {
-					w.log.Info("Success idx ", "src", inputHash, "idx", constant.MapLogIdx[inputHash.(common.Hash).Hex()])
-					constant.MapLogIdx[string(mcsTx.Hash().Hex())] = constant.MapLogIdx[inputHash.(common.Hash).Hex()]
+					w.log.Info("Success idx ", "src", inputHash, "idx", constant.MapLogIdx[inputHash.(common.Hash).Hex()], "orderId", constant.MapOrderId[inputHash.(common.Hash).Hex()])
+					constant.MapLogIdx[mcsTx.Hash().Hex()] = constant.MapLogIdx[inputHash.(common.Hash).Hex()]
+					constant.MapOrderId[mcsTx.Hash().Hex()] = constant.MapOrderId[inputHash.(common.Hash).Hex()]
 					w.log.Info("Success idx ", "des", mcsTx, "idx", constant.MapLogIdx[mcsTx.Hash().Hex()])
 					m.DoneCh <- struct{}{}
 					return true
@@ -336,12 +336,8 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	return nil
 }
 
-func (w *Writer) checkOrderId(toAddress *common.Address, input []byte, useAbi abi.ABI, method string) (bool, error) {
-	var fixedOrderId [32]byte
-	for idx, v := range input {
-		fixedOrderId[idx] = v
-	}
-	data, err := mapprotocol.PackInput(useAbi, method, fixedOrderId)
+func (w *Writer) checkOrderId(toAddress *common.Address, input [32]byte, useAbi abi.ABI, method string) (bool, error) {
+	data, err := mapprotocol.PackInput(useAbi, method, input)
 	if err != nil {
 		return false, err
 	}

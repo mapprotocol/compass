@@ -47,6 +47,6 @@ func (c *Call) Call(method string, ret interface{}, idx int, params ...interface
 		return err
 	}
 
-	fmt.Print("outPut ----------------------------------- ", outPut)
+	fmt.Print("outPut ----------------------------------- ", outPut, " ++++ ", c.toC[idx])
 	return c.abi.UnpackOutput(method, ret, outPut)
 }

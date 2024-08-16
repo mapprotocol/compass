@@ -32,7 +32,7 @@ const (
 	MethodOfVerifyReceiptProof   = "verifyReceiptProof"
 	MethodOfOrderStatus          = "getOrderStatus"
 	MethodOfPropose              = "propose"
-	MethodOfVerifyAndStore       = "swapInVerify"
+	MethodOfVerifyWithOrderId    = "swapInVerifyWithOrderId"
 	MethodOfSwapInVerified       = "swapInVerified"
 	MtdOfSwapInVerifiedWithIndex = "swapInVerifiedWithIndex"
 	EventOfSwapInVerified        = "mapSwapInVerified"
