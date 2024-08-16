@@ -611,6 +611,7 @@ type jsonrpcMessage struct {
 	Method  string          `json:"method,omitempty"`
 	Params  json.RawMessage `json:"params,omitempty"`
 	Result  json.RawMessage `json:"result,omitempty"`
+	Error   json.RawMessage `json:"error,omitempty"`
 }
 
 // EthLatestHeaderByNumber returns a block header from the current canonical chain. If number is
@@ -666,7 +667,7 @@ type OpReceipt struct {
 }
 
 func (ec *Client) OpReceipt(ctx context.Context, txHash common.Hash) (*OpReceipt, error) {
-	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_getTransactionReceipt\",\"params\": [\"%s\"],\"id\": 1\n}", txHash.Hex())
+	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_getTransactionReceipt\",\"params\": [\"%s\"],\"id\": 1}", txHash.Hex())
 	body := strings.NewReader(s)
 	resp, err := http.Post(ec.url, "application/json", body)
 	if err != nil {
@@ -692,7 +693,7 @@ func (ec *Client) OpReceipt(ctx context.Context, txHash common.Hash) (*OpReceipt
 }
 
 func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param string) (uint64, error) {
-	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_estimateGas\",\"params\": [{\"from\":\"%s\",\"to\":\"%s\",\"data\":\"%s\"}],\"id\": 1\n}",
+	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_estimateGas\",\"params\": [{\"from\":\"%s\",\"to\":\"%s\",\"data\":\"%s\"}],\"id\": 1}",
 		from, to, param)
 	body := strings.NewReader(s)
 	resp, err := http.Post(endpoint, "application/json", body)
@@ -709,6 +710,9 @@ func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param
 	for _, res := range respmsg.Result {
 		data = append(data, res)
 	}
+	fmt.Println("SelfEstimateGas ------------------------ ", respmsg)
 	fmt.Println("SelfEstimateGas ------------------------ ", string(data))
+	fmt.Println("SelfEstimateGas ------------------------ ", s)
+	fmt.Println("SelfEstimateGas ------------------------ ", endpoint)
 	return 0, err
 }
