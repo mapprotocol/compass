@@ -225,7 +225,7 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 	return ret, nil
 }
 
-func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, params ...interface{}) ([]byte, error) {
+func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, orderId [32]byte, params ...interface{}) ([]byte, error) {
 	input, err := abi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(params...)
 	if err != nil {
 		return nil, errors.Wrap(err, "pack getBytes failed")
