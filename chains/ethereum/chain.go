@@ -202,6 +202,9 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		if method == mapprotocol.MethodOfSwapIn && (toChainID == constant.MerlinChainId || toChainID == constant.TronChainId) {
 			method = mapprotocol.MethodOfVerifyWithOrderId
 		}
+		if method == mapprotocol.MethodOfSwapInWithIndex {
+			method = mapprotocol.MethodOfSwapIn
+		}
 
 		header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), bigNumber)
 		if err != nil {

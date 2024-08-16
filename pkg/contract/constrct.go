@@ -2,8 +2,6 @@ package contract
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
@@ -47,6 +45,5 @@ func (c *Call) Call(method string, ret interface{}, idx int, params ...interface
 		return err
 	}
 
-	fmt.Print("outPut ----------------------------------- ", outPut, " ++++ ", c.toC[idx])
 	return c.abi.UnpackOutput(method, ret, outPut)
 }

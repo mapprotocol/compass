@@ -68,7 +68,8 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
 			mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
 			if err == nil {
-				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash, "mcsTx", mcsTx.Hash())
+				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination,
+					"srcHash", inputHash, "mcsTx", mcsTx.Hash())
 				err = w.txStatus(mcsTx.Hash())
 				if err != nil {
 					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
