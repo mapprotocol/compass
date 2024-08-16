@@ -163,7 +163,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
-	msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
+	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
 	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	return &message, nil
 }
