@@ -225,7 +225,7 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 	return ret, nil
 }
 
-func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, orderId [32]byte, params ...interface{}) ([]byte, error) {
+func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, orderId [32]byte, map2other bool, params ...interface{}) ([]byte, error) {
 	input, err := abi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(params...)
 	if err != nil {
 		return nil, errors.Wrap(err, "pack getBytes failed")
@@ -234,7 +234,14 @@ func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, orderId [32]by
 	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
 		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)), input)
 	}
-	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)), input)
+	var ret []byte
+	if map2other {
+		ret, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
+			big.NewInt(int64(idx)), orderId, input)
+	} else {
+		ret, err = mapprotocol.PackInput(mapprotocol.OldMcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
+	}
+
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")
 	}

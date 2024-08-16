@@ -190,7 +190,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 		case constant.ProofTypeOfNewOracle:
 			payloads, err = proof.SignOracle(header, receipt, key, prf, fId, idx, method, sign, orderId)
 		default:
-			payloads, err = proof.V3Pack(fId, method, mapprotocol.Map2Other, idx, orderId, rp)
+			payloads, err = proof.V3Pack(fId, method, mapprotocol.Map2Other, idx, orderId, true, rp)
 		}
 		if err != nil {
 			return 0, nil, err
