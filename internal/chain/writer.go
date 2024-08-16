@@ -79,7 +79,7 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	}
 
 	selfGasLimit, err := w.conn.Client().SelfEstimateGas(context.Background(),
-		w.cfg.Endpoint, from.Hex(), toAddress.Hex(), common.Bytes2Hex(input))
+		w.cfg.Endpoint, from.Hex(), toAddress.Hex(), "0x"+common.Bytes2Hex(input))
 	w.log.Error("EstimateGas failed sendTx", "error:", err, "selfGasLimit", selfGasLimit)
 
 	gasLimit, err := w.conn.Client().EstimateGas(context.Background(), msg)
