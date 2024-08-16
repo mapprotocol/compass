@@ -230,7 +230,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	orderId := log.Data[:32]
 	method := m.GetMethod(log.Topics[0])
 	blockNumber := big.NewInt(0).SetUint64(log.BlockNumber)
-	m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId))
+	m.Log.Info("Event found", "BlockNumber", log.BlockNumber, "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId), "method", method)
 	header, err := m.Conn.Client().EthLatestHeaderByNumber(m.Cfg.Endpoint, blockNumber)
 	if err != nil {
 		return 0, err
