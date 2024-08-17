@@ -59,7 +59,8 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	case constant.ProofTypeOfOrigin:
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
-		pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi, orderId)
+		pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, idx,
+			mapprotocol.ProofAbi, orderId, false)
 	case constant.ProofTypeOfNewOracle:
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: receiptHash,
@@ -186,7 +187,8 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			}
 			payloads, err = proof.Pack(fId, method, mapprotocol.Mcs, rp, zkProof)
 		case constant.ProofTypeOfOracle:
-			payloads, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi, orderId)
+			payloads, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId,
+				method, idx, mapprotocol.ProofAbi, orderId, false)
 		case constant.ProofTypeOfNewOracle:
 			payloads, err = proof.SignOracle(header, receipt, key, prf, fId, idx, method, sign, orderId, true)
 		default:

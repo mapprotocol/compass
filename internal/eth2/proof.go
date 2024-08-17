@@ -108,7 +108,8 @@ func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt
 		pack, err = proof.V3Pack(fId, method, mapprotocol.Eth2, idx, orderId, false, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
-		pack, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, idx, mapprotocol.ProofAbi, orderId)
+		pack, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, idx,
+			mapprotocol.ProofAbi, orderId, false)
 	case constant.ProofTypeOfNewOracle:
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: header.ReceiptsRoot,
