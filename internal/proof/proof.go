@@ -139,7 +139,7 @@ func Pack(fId msg.ChainId, method string, abi abi.ABI, params ...interface{}) ([
 }
 
 func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId, method string, idx int,
-	abi abi.ABI, orderId [32]byte) ([]byte, error) {
+	abi abi.ABI, orderId [32]byte, map2other bool) ([]byte, error) {
 	nr := mapprotocol.MapTxReceipt{
 		PostStateOrStatus: receipt.PostStateOrStatus,
 		CumulativeGasUsed: receipt.CumulativeGasUsed,
@@ -169,8 +169,14 @@ func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf 
 	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
 		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(int64(fId)), big.NewInt(int64(idx)), input)
 	}
-	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)),
-		orderId, input)
+	var ret []byte
+	if map2other {
+		ret, err = mapprotocol.PackInput(mapprotocol.OldMcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
+	} else {
+		ret, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)),
+			orderId, input)
+	}
+
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")
 	}
@@ -179,7 +185,7 @@ func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf 
 }
 
 func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId,
-	idx int, method string, sign [][]byte, orderId [32]byte) ([]byte, error) {
+	idx int, method string, sign [][]byte, orderId [32]byte, map2other bool) ([]byte, error) {
 	nr := mapprotocol.MapTxReceipt{
 		PostStateOrStatus: receipt.PostStateOrStatus,
 		CumulativeGasUsed: receipt.CumulativeGasUsed,
@@ -216,8 +222,14 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
 		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(int64(fId)), big.NewInt(int64(idx)), input)
 	}
-	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
-		big.NewInt(int64(idx)), orderId, input)
+	var ret []byte
+	if map2other {
+		ret, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
+			big.NewInt(int64(idx)), orderId, input)
+	} else {
+		ret, err = mapprotocol.PackInput(mapprotocol.OldMcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
+	}
+
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")
 	}

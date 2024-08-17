@@ -130,7 +130,7 @@ func (c *CommonSync) GetMethod(topic ethcommon.Hash) string {
 	if topic == mapprotocol.HashOfDepositIn {
 		method = mapprotocol.MethodOfDepositIn
 	} else if topic == mapprotocol.HashOfSwapIn {
-		method = mapprotocol.MethodOfSwapInWithIndex
+		method = mapprotocol.MethodOfSwapIn
 	} else if topic == mapprotocol.HashOfMessageIn {
 		method = mapprotocol.MethodOfTransferInWithIndex
 	}

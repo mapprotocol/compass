@@ -69,7 +69,7 @@ func assembleProof(log *types.Log, receipts []*types.Receipt, method string, fId
 		ret, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: tr.Hash(),
 			Number:      big.NewInt(int64(log.BlockNumber)),
-		}, receipt, key, prf, fId, idx, method, signerRet.Signatures, orderId)
+		}, receipt, key, prf, fId, idx, method, signerRet.Signatures, orderId, false)
 	default:
 		panic("not support")
 	}
