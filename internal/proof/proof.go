@@ -171,10 +171,10 @@ func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf 
 	}
 	var ret []byte
 	if map2other {
-		ret, err = mapprotocol.PackInput(mapprotocol.OldMcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
-	} else {
 		ret, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)),
 			orderId, input)
+	} else {
+		ret, err = mapprotocol.PackInput(mapprotocol.OldMcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
 	}
 
 	if err != nil {
