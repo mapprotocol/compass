@@ -108,7 +108,11 @@ func (w *Writer) syncMapToTron(m msg.Message) bool {
 func (w *Writer) exeMcs(m msg.Message) bool {
 	var errorCount, checkIdCount int64
 	addr := w.cfg.McsContract[m.Idx]
-	orderId := m.Payload[1].([]byte)
+	orderId32 := m.Payload[1].([32]byte)
+	var orderId []byte
+	for _, v := range orderId32 {
+		orderId = append(orderId, v)
+	}
 	exits, err := w.checkOrderId(addr, orderId)
 	if err != nil {
 		w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
@@ -161,7 +165,8 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				time.Sleep(time.Minute)
 				continue
 			}
-			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed)
+			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed, "method", method)
+			time.Sleep(time.Minute * 10)
 
 			err = w.rentEnergy(contract.EnergyUsed, method)
 			if err != nil {
@@ -233,6 +238,7 @@ func (w *Writer) sendTx(addr, method string, input []byte, txAmount, mul, used i
 		used = contract.EnergyUsed
 	}
 
+	// // testnet
 	// estimate, err := w.conn.cli.EstimateEnergy(w.cfg.From, addr, input, 0, "", 0)
 	// if err != nil {
 	// 	w.log.Error("Failed to EstimateEnergy", "err", err)
@@ -241,13 +247,14 @@ func (w *Writer) sendTx(addr, method string, input []byte, txAmount, mul, used i
 	feeLimit := big.NewInt(0).Mul(big.NewInt(used), big.NewInt(420*mul))
 	w.log.Info("EstimateEnergy", "estimate", used, "multiple", multiple, "feeLimit", feeLimit, "mul", mul)
 
-	account, err := w.conn.cli.GetAccountResource(w.cfg.From)
+	acc, err := w.conn.cli.GetAccountResource(w.cfg.From)
 	if err != nil {
 		return "", errors.Wrap(err, "get account failed")
 	}
-	if used >= account.EnergyLimit && method != "rent" {
+	// 22000 > (40000 - 10000) = false, 继续执行
+	if used >= (acc.EnergyLimit-acc.EnergyUsed) && method != "rent" {
 		//if estimate.EnergyRequired >= account.EnergyLimit {
-		return "", fmt.Errorf("txUsed(%d) energy more than acount have(%d)", used, account.EnergyLimit)
+		return "", fmt.Errorf("txUsed(%d) energy more than acount have(%d)", used, acc.EnergyLimit)
 	}
 
 	tx, err := w.conn.cli.TriggerContract(w.cfg.From, addr, input, feeLimit.Int64(), txAmount, "", 0)
@@ -343,7 +350,9 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 		return nil
 	}
 	mul := float64(used) * 1.1
-	if acc.EnergyLimit > int64(mul) {
+	if (acc.EnergyLimit - acc.EnergyUsed) > int64(mul) {
+		w.log.Info("Rent energy, account have enough energy", "account", w.cfg.From,
+			"have", acc.EnergyLimit-acc.EnergyUsed, "estimate", mul)
 		return nil
 	}
 
