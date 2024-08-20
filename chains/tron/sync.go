@@ -137,6 +137,10 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				message  msg.Message
 				receipts []*types.Receipt
 			)
+			var orderId32 [32]byte
+			for i, v := range orderId {
+				orderId32[i] = v
+			}
 			if v, ok := proof.CacheReceipt[key]; ok {
 				receipts = v
 				m.Log.Info("use cache receipt", "latestBlock ", current, "txHash", l.TxHash)
@@ -158,6 +162,7 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 						"block", current, "txHash", l.TxHash, "logIdx", logIdx)
 					continue
 				}
+				saveOrderId, _ := constant.MapOrderId[l.TxHash.Hex()]
 				m.Log.Info("Event found SwapInVerified", "block", current, "txHash", l.TxHash, "idx", l.Index,
 					"logIdx", logIdx, "txIdx", l.TxIndex, "all", len(receipts[l.TxIndex].Logs))
 				data, err := mapprotocol.Mcs.Events[mapprotocol.EventOfSwapInVerified].Inputs.UnpackValues(l.Data)
@@ -165,15 +170,11 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 					return 0, errors.Wrap(err, "swapIn unpackData failed")
 				}
 
-				input, _ := mapprotocol.Mcs.Pack(mapprotocol.MtdOfSwapInVerifiedWithIndex, data[0].([]byte), big.NewInt(logIdx))
-				msgPayload := []interface{}{input, orderId, l.BlockNumber, l.TxHash, mapprotocol.MtdOfSwapInVerifiedWithIndex}
+				input, _ := mapprotocol.Mcs.Pack(mapprotocol.MethodOfSwapInVerified, data[0].([]byte), big.NewInt(logIdx), saveOrderId)
+				msgPayload := []interface{}{input, orderId32, l.BlockNumber, l.TxHash, mapprotocol.MethodOfSwapInVerified}
 				message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
 			} else {
 				method := m.GetMethod(l.Topics[0])
-				var orderId32 [32]byte
-				for i, v := range orderId {
-					orderId32[i] = v
-				}
 				toChainID, _ := strconv.ParseUint(mapprotocol.MapId, 10, 64)
 				m.Log.Info("Event found", "block", current, "txHash", l.TxHash, "logIdx", l.Index, "orderId", common.Bytes2Hex(orderId))
 				proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), toChainID, current, orderId)

@@ -368,7 +368,7 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 		return errors.Wrap(err, "pack input failed")
 	}
 	w.log.Info("Rent energy will rent")
-	tx, err := w.sendTx(w.cfg.RentNode, "rent", input, 371019500, 1, 0, false)
+	tx, err := w.sendTx(w.cfg.RentNode, "rent", input, 371019500, 1, 70000, false)
 	if err != nil {
 		return errors.Wrap(err, "sendTx failed")
 	}
