@@ -72,7 +72,7 @@ func (w *Writer) syncMapToTron(m msg.Message) bool {
 			return false
 		default:
 			input := m.Payload[0].([]byte)
-			tx, err := w.sendTx(w.cfg.LightNode, input, 0, 1, 0, false)
+			tx, err := w.sendTx(w.cfg.LightNode, mapprotocol.MethodUpdateBlockHeader, input, 0, 1, 0, false)
 			if err == nil {
 				w.log.Info("Sync Map Header to tron chain tx execution", "tx", tx, "src", m.Source, "dst", m.Destination)
 				err = w.txStatus(tx)
@@ -171,13 +171,16 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				continue
 			}
 
-			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash)
-			mcsTx, err := w.sendTx(addr, m.Payload[0].([]byte), 0, int64(w.cfg.GasMultiplier), 0, false)
+			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash, "method", method)
+			mcsTx, err := w.sendTx(addr, method, m.Payload[0].([]byte), 0, int64(w.cfg.GasMultiplier),
+				0, false)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash, "mcsTx", mcsTx)
 				err = w.txStatus(mcsTx)
 				if err != nil {
-					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
+					w.log.Warn("TxHash status is not successful, will retry", "err", err)
+					m.DoneCh <- struct{}{}
+					return true
 				} else {
 					w.newReturn(method)
 					w.log.Info("Success idx ", "src", inputHash, "idx", constant.MapLogIdx[inputHash.(common.Hash).Hex()])
@@ -210,7 +213,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 	}
 }
 
-func (w *Writer) sendTx(addr string, input []byte, txAmount, mul, used int64, ignore bool) (string, error) {
+func (w *Writer) sendTx(addr, method string, input []byte, txAmount, mul, used int64, ignore bool) (string, error) {
 	// online estimateEnergy
 	contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, input, txAmount)
 	if err != nil {
@@ -238,14 +241,14 @@ func (w *Writer) sendTx(addr string, input []byte, txAmount, mul, used int64, ig
 	feeLimit := big.NewInt(0).Mul(big.NewInt(used), big.NewInt(420*mul))
 	w.log.Info("EstimateEnergy", "estimate", used, "multiple", multiple, "feeLimit", feeLimit, "mul", mul)
 
-	// account, err := w.conn.cli.GetAccountResource(w.cfg.From)
-	// if err != nil {
-	// 	return "", errors.Wrap(err, "get account failed")
-	// }
-	//if used >= account.EnergyLimit {
-	// if estimate.EnergyRequired >= account.EnergyLimit {
-	// 	return "", fmt.Errorf("txUsed(%d) energy more than acount have(%d)", used, account.EnergyLimit)
-	// }
+	account, err := w.conn.cli.GetAccountResource(w.cfg.From)
+	if err != nil {
+		return "", errors.Wrap(err, "get account failed")
+	}
+	if used >= account.EnergyLimit && method != "rent" {
+		//if estimate.EnergyRequired >= account.EnergyLimit {
+		return "", fmt.Errorf("txUsed(%d) energy more than acount have(%d)", used, account.EnergyLimit)
+	}
 
 	tx, err := w.conn.cli.TriggerContract(w.cfg.From, addr, input, feeLimit.Int64(), txAmount, "", 0)
 	if err != nil {
@@ -324,26 +327,26 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	if err != nil {
 		return err
 	}
-	if acc.EnergyLimit != 0 {
-		return nil
-	}
-	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed)
 	if w.cfg.FeeType == constant.FeeRentType {
 		return w.feeRentEnergy(used, acc)
 	}
-	if method == mapprotocol.MtdOfSwapInVerifiedWithIndex || method == mapprotocol.MethodOfSwapInVerified {
-		w.log.Info("Rent energy, call method is swapInVerified or withIndex, dont need rent energy", "method", method)
-		return nil
-	}
-	if acc.EnergyLimit != 0 {
-		return errors.New("energy is not zero, is renting, please return")
-	}
+
 	account, err := w.conn.cli.GetAccount(w.cfg.From)
 	if err != nil {
 		return err
 	}
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
-	w.log.Info("Rent energy, will rent, account bal detail", "account", w.cfg.From, "trx", balance)
+	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed,
+		"trx", balance)
+	if method == mapprotocol.MtdOfSwapInVerifiedWithIndex || method == mapprotocol.MethodOfSwapInVerified {
+		w.log.Info("Rent energy, call method is swapInVerified or withIndex, dont need rent energy", "method", method)
+		return nil
+	}
+	mul := float64(used) * 1.1
+	if acc.EnergyLimit > int64(mul) {
+		return nil
+	}
+
 	if balance < 400 {
 		return errors.New("account not have enough balance(400 trx)")
 	}
@@ -354,7 +357,7 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 		return errors.Wrap(err, "pack input failed")
 	}
 	w.log.Info("Rent energy will rent")
-	tx, err := w.sendTx(w.cfg.RentNode, input, 371019500, 1, 0, false)
+	tx, err := w.sendTx(w.cfg.RentNode, "rent", input, 371019500, 1, 0, false)
 	if err != nil {
 		return errors.Wrap(err, "sendTx failed")
 	}
@@ -416,7 +419,7 @@ func (w *Writer) newReturn(method string) {
 		w.log.Error("Return energy, Pack failed", "err", err)
 		return
 	}
-	tx, err := w.sendTx(w.cfg.RentNode, input, 0, 1, 80000, true)
+	tx, err := w.sendTx(w.cfg.RentNode, "return", input, 0, 1, 80000, true)
 	if err != nil {
 		w.log.Error("Return energy, sendTx failed", "err", err)
 		return
