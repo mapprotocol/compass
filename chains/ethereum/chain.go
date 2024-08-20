@@ -175,13 +175,14 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 				"block", bigNumber, "txHash", log.TxHash)
 			return nil, nil
 		}
+		saveOrderId, _ := constant.MapOrderId[log.TxHash.Hex()]
 		data, err := mapprotocol.Mcs.Events[mapprotocol.EventOfSwapInVerified].Inputs.UnpackValues(log.Data)
 		if err != nil {
 			return nil, errors.Wrap(err, "swapIn unpackData failed")
 		}
 
-		input, _ := mapprotocol.Mcs.Pack(mapprotocol.MtdOfSwapInVerifiedWithIndex, data[0].([]byte), big.NewInt(logIdx))
-		msgPayload := []interface{}{input, orderId, log.BlockNumber, log.TxHash, mapprotocol.MtdOfSwapInVerifiedWithIndex}
+		input, _ := mapprotocol.Mcs.Pack(mapprotocol.MethodOfSwapInVerified, data[0].([]byte), big.NewInt(logIdx), saveOrderId)
+		msgPayload := []interface{}{input, orderId, log.BlockNumber, log.TxHash, mapprotocol.MethodOfSwapInVerified}
 		message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
 		return &message, nil
 	}
