@@ -36,6 +36,7 @@ type Writer struct {
 	pass   []byte
 	ks     *keystore.KeyStore
 	acc    *keystore.Account
+	isRent bool
 }
 
 func newWriter(conn *Connection, cfg *Config, log log15.Logger, stop <-chan int, sysErr chan<- error, pass []byte) *Writer {
@@ -166,7 +167,6 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				continue
 			}
 			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed, "method", method)
-			time.Sleep(time.Minute * 10)
 
 			err = w.rentEnergy(contract.EnergyUsed, method)
 			if err != nil {
@@ -184,8 +184,6 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				err = w.txStatus(mcsTx)
 				if err != nil {
 					w.log.Warn("TxHash status is not successful, will retry", "err", err)
-					m.DoneCh <- struct{}{}
-					return true
 				} else {
 					w.newReturn(method)
 					w.log.Info("Success idx ", "src", inputHash, "idx", constant.MapLogIdx[inputHash.(common.Hash).Hex()])
@@ -208,6 +206,9 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				}
 				w.log.Warn("Execution failed, will retry", "srcHash", inputHash, "err", err)
 			}
+			w.newReturn(method)
+			m.DoneCh <- struct{}{}
+			return true
 			errorCount++
 			if errorCount >= 10 {
 				w.mosAlarm(inputHash, err)
@@ -374,10 +375,11 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	w.log.Info("Rent energy success", "tx", tx)
 	err = w.txStatus(tx)
 	if err != nil {
-		w.log.Warn("TxHash Status is not successful, will retry", "err", err)
+		w.log.Warn("Rent TxHash Status is not successful, will retry", "err", err)
 		return err
 	}
 
+	w.isRent = true
 	return nil
 }
 
@@ -413,6 +415,10 @@ func (w *Writer) newReturn(method string) {
 		w.log.Info("Return energy, call method is not swapInVerified or withIndex, dont need return energy", "method", method)
 		return
 	}
+	if !w.isRent {
+		w.log.Info("Return energy, is not rent, dont return")
+		return
+	}
 	w.log.Info("Return energy will start")
 	time.Sleep(constant.BlockRetryInterval)
 	acc, err := w.conn.cli.GetAccountResource(w.cfg.From)
@@ -420,7 +426,7 @@ func (w *Writer) newReturn(method string) {
 		w.log.Error("Return energy, GetAccountResource failed", "err", err)
 		return
 	}
-	if acc.EnergyLimit <= 0 {
+	if acc.EnergyLimit-40004 <= 0 {
 		w.log.Info("Return energy, user not rent energy", "gas", acc.EnergyLimit)
 		return
 	}
@@ -434,5 +440,10 @@ func (w *Writer) newReturn(method string) {
 		w.log.Error("Return energy, sendTx failed", "err", err)
 		return
 	}
+	err = w.txStatus(tx)
+	if err != nil {
+		w.log.Warn("Return TxHash Status is not successful, will retry", "err", err)
+	}
 	w.log.Info("Return energy success", "tx", tx)
+	w.isRent = false
 }
