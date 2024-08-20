@@ -247,14 +247,15 @@ func (w *Writer) sendTx(addr, method string, input []byte, txAmount, mul, used i
 	feeLimit := big.NewInt(0).Mul(big.NewInt(used), big.NewInt(420*mul))
 	w.log.Info("EstimateEnergy", "estimate", used, "multiple", multiple, "feeLimit", feeLimit, "mul", mul)
 
-	acc, err := w.conn.cli.GetAccountResource(w.cfg.From)
+	acco, err := w.conn.cli.GetAccountResource(w.cfg.From)
 	if err != nil {
 		return "", errors.Wrap(err, "get account failed")
 	}
+	final := float64(used) * 1.1
 	// 22000 > (40000 - 10000) = false, 继续执行
-	if used >= (acc.EnergyLimit-acc.EnergyUsed) && method != "rent" {
+	if int64(final) >= (acco.EnergyLimit-acco.EnergyUsed) && method != "rent" {
 		//if estimate.EnergyRequired >= account.EnergyLimit {
-		return "", fmt.Errorf("txUsed(%d) energy more than acount have(%d)", used, acc.EnergyLimit)
+		return "", fmt.Errorf("txUsed(%d) energy more than acount have(%d)", int64(final), acco.EnergyLimit)
 	}
 
 	tx, err := w.conn.cli.TriggerContract(w.cfg.From, addr, input, feeLimit.Int64(), txAmount, "", 0)
