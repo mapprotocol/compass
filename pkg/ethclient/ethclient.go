@@ -755,21 +755,22 @@ func (ec *Client) BscHeaderByNumber(endpoint string, number *big.Int) (*BscHeade
 	for _, res := range respmsg.Result {
 		data = append(data, res)
 	}
-	var head Header
+	var head BscHeader
 	err = json.Unmarshal(data, &head)
 	if err != nil {
 		return nil, err
 	}
 
-	type Tmp struct {
-		WithdrawalsHash string `json:"withdrawalsRoot" rlp:"optional"`
-	}
-	var tmp Tmp
-	err = json.Unmarshal(data, &tmp)
-	if err != nil {
-		return nil, err
-	}
-
-	head.WithdrawalsHash = tmp.WithdrawalsHash
+	fmt.Println("data -------------------------- ", string(data))
+	//type Tmp struct {
+	//	WithdrawalsHash string `json:"withdrawalsRoot" rlp:"optional"`
+	//}
+	//var tmp Tmp
+	//err = json.Unmarshal(data, &tmp)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//head.WithdrawalsRoot = tmp.WithdrawalsHash
 	return &head, err
 }
