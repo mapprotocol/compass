@@ -80,6 +80,8 @@ func ConvertHeader(header *ethclient.BscHeader) Header {
 		Nonce:                 nonce,
 		BaseFeePerGas:         header.BaseFee,
 		WithdrawalsRoot:       common.Hex2Bytes(header.WithdrawalsRoot),
+		BlobGasUsed:           blobGasUsed,
+		ExcessBlobGas:         excessBlobGas,
 		ParentBeaconBlockRoot: parentBeaconBlockRoot,
 	}
 }
