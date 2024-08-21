@@ -1,7 +1,6 @@
 package bsc
 
 import (
-	"context"
 	"fmt"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -110,14 +109,14 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 	for idx, v := range orderId {
 		orderId32[idx] = v
 	}
-	headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
+	headers := make([]*ethclient.BscHeader, mapprotocol.HeaderCountOfBsc)
 	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
 		headerHeight := new(big.Int).Add(bigNumber, new(big.Int).SetInt64(int64(i)))
-		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+		header, err := m.Conn.Client().BscHeaderByNumber(m.Cfg.Endpoint, headerHeight)
 		if err != nil {
 			return nil, err
 		}
-		headers[i] = *header
+		headers[i] = header
 	}
 
 	params := make([]bsc.Header, 0, len(headers))
