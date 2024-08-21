@@ -729,3 +729,47 @@ func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param
 
 	return ret, nil
 }
+
+type BscHeader struct {
+	types.Header
+	WithdrawalsRoot       string `json:"withdrawalsRoot"`
+	BlobGasUsed           string `json:"blobGasUsed"`
+	ExcessBlobGas         string `json:"excessBlobGas"`
+	ParentBeaconBlockRoot string `json:"parentBeaconBlockRoot"`
+}
+
+func (ec *Client) BscHeaderByNumber(endpoint string, number *big.Int) (*BscHeader, error) {
+	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_getBlockByNumber\",\"params\": [\"%s\",true],\"id\": 1\n}", toBlockNumArg(number))
+	body := strings.NewReader(s)
+	resp, err := http.Post(endpoint, "application/json", body)
+	if err != nil {
+		return nil, err
+	}
+
+	var respmsg jsonrpcMessage
+	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
+		return nil, err
+	}
+
+	data := make([]byte, 0, len(respmsg.Result))
+	for _, res := range respmsg.Result {
+		data = append(data, res)
+	}
+	var head Header
+	err = json.Unmarshal(data, &head)
+	if err != nil {
+		return nil, err
+	}
+
+	type Tmp struct {
+		WithdrawalsHash string `json:"withdrawalsRoot" rlp:"optional"`
+	}
+	var tmp Tmp
+	err = json.Unmarshal(data, &tmp)
+	if err != nil {
+		return nil, err
+	}
+
+	head.WithdrawalsHash = tmp.WithdrawalsHash
+	return &head, err
+}

@@ -2,7 +2,9 @@ package bsc
 
 import (
 	"github.com/mapprotocol/compass/internal/mapo"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
+	"strings"
 
 	"github.com/mapprotocol/compass/internal/op"
 
@@ -15,25 +17,29 @@ import (
 )
 
 type Header struct {
-	ParentHash       []byte         `json:"parentHash"`
-	Sha3Uncles       []byte         `json:"sha3Uncles"`
-	Miner            common.Address `json:"miner"`
-	StateRoot        []byte         `json:"stateRoot"`
-	TransactionsRoot []byte         `json:"transactionsRoot"`
-	ReceiptsRoot     []byte         `json:"receiptsRoot"`
-	LogsBloom        []byte         `json:"logsBloom"`
-	Difficulty       *big.Int       `json:"difficulty"`
-	Number           *big.Int       `json:"number"`
-	GasLimit         *big.Int       `json:"gasLimit"`
-	GasUsed          *big.Int       `json:"gasUsed"`
-	Timestamp        *big.Int       `json:"timestamp"`
-	ExtraData        []byte         `json:"extraData"`
-	MixHash          []byte         `json:"mixHash"`
-	Nonce            []byte         `json:"nonce"`
-	BaseFeePerGas    *big.Int       `json:"baseFeePerGas"`
+	ParentHash            []byte         `json:"parentHash"`
+	Sha3Uncles            []byte         `json:"sha3Uncles"`
+	Miner                 common.Address `json:"miner"`
+	StateRoot             []byte         `json:"stateRoot"`
+	TransactionsRoot      []byte         `json:"transactionsRoot"`
+	ReceiptsRoot          []byte         `json:"receiptsRoot"`
+	LogsBloom             []byte         `json:"logsBloom"`
+	Difficulty            *big.Int       `json:"difficulty"`
+	Number                *big.Int       `json:"number"`
+	GasLimit              *big.Int       `json:"gasLimit"`
+	GasUsed               *big.Int       `json:"gasUsed"`
+	Timestamp             *big.Int       `json:"timestamp"`
+	ExtraData             []byte         `json:"extraData"`
+	MixHash               []byte         `json:"mixHash"`
+	Nonce                 []byte         `json:"nonce"`
+	BaseFeePerGas         *big.Int       `json:"baseFeePerGas"`
+	WithdrawalsRoot       []byte         `json:"withdrawalsRoot"`
+	BlobGasUsed           *big.Int       `json:"blobGasUsed"`
+	ExcessBlobGas         *big.Int       `json:"excessBlobGas"`
+	ParentBeaconBlockRoot []byte         `json:"parentBeaconBlockRoot"`
 }
 
-func ConvertHeader(header types.Header) Header {
+func ConvertHeader(header *ethclient.BscHeader) Header {
 	bloom := make([]byte, 0, len(header.Bloom))
 	for _, b := range header.Bloom {
 		bloom = append(bloom, b)
@@ -45,23 +51,36 @@ func ConvertHeader(header types.Header) Header {
 	if header.BaseFee == nil {
 		header.BaseFee = new(big.Int)
 	}
+	parentBeaconBlockRoot := common.Hex2Bytes("0x0000000000000000000000000000000000000000000000000000000000000001")
+	if header.ParentBeaconBlockRoot != "" && header.ParentBeaconBlockRoot != "0x" {
+		parentBeaconBlockRoot = common.Hex2Bytes(header.ParentBeaconBlockRoot)
+	}
+	blobGasUsed, excessBlobGas := big.NewInt(0), big.NewInt(0)
+	if header.BlobGasUsed != "" && strings.TrimPrefix(header.BlobGasUsed, "0x") != "" {
+		blobGasUsed, _ = blobGasUsed.SetString(strings.TrimPrefix(header.BlobGasUsed, "0x"), 16)
+	}
+	if header.ExcessBlobGas != "" && strings.TrimPrefix(header.ExcessBlobGas, "0x") != "" {
+		excessBlobGas, _ = excessBlobGas.SetString(strings.TrimPrefix(header.ExcessBlobGas, "0x"), 16)
+	}
 	return Header{
-		ParentHash:       hashToByte(header.ParentHash),
-		Sha3Uncles:       hashToByte(header.UncleHash),
-		Miner:            header.Coinbase,
-		StateRoot:        hashToByte(header.Root),
-		TransactionsRoot: hashToByte(header.TxHash),
-		ReceiptsRoot:     hashToByte(header.ReceiptHash),
-		LogsBloom:        bloom,
-		Difficulty:       header.Difficulty,
-		Number:           header.Number,
-		GasLimit:         new(big.Int).SetUint64(header.GasLimit),
-		GasUsed:          new(big.Int).SetUint64(header.GasUsed),
-		Timestamp:        new(big.Int).SetUint64(header.Time),
-		ExtraData:        header.Extra,
-		MixHash:          hashToByte(header.MixDigest),
-		Nonce:            nonce,
-		BaseFeePerGas:    header.BaseFee,
+		ParentHash:            hashToByte(header.ParentHash),
+		Sha3Uncles:            hashToByte(header.UncleHash),
+		Miner:                 header.Coinbase,
+		StateRoot:             hashToByte(header.Root),
+		TransactionsRoot:      hashToByte(header.TxHash),
+		ReceiptsRoot:          hashToByte(header.ReceiptHash),
+		LogsBloom:             bloom,
+		Difficulty:            header.Difficulty,
+		Number:                header.Number,
+		GasLimit:              new(big.Int).SetUint64(header.GasLimit),
+		GasUsed:               new(big.Int).SetUint64(header.GasUsed),
+		Timestamp:             new(big.Int).SetUint64(header.Time),
+		ExtraData:             header.Extra,
+		MixHash:               hashToByte(header.MixDigest),
+		Nonce:                 nonce,
+		BaseFeePerGas:         header.BaseFee,
+		WithdrawalsRoot:       common.Hex2Bytes(header.WithdrawalsRoot),
+		ParentBeaconBlockRoot: parentBeaconBlockRoot,
 	}
 }
 

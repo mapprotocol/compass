@@ -13,6 +13,7 @@ import (
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
 	"strconv"
 )
@@ -44,14 +45,14 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 		return nil
 	}
 	m.Log.Info("Find sync block", "current height", latestBlock)
-	headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
+	headers := make([]*ethclient.BscHeader, mapprotocol.HeaderCountOfBsc)
 	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
 		headerHeight := new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(int64(i)))
-		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+		header, err := m.Conn.Client().BscHeaderByNumber(m.Cfg.Endpoint, headerHeight)
 		if err != nil {
 			return err
 		}
-		headers[mapprotocol.HeaderCountOfBsc-i-1] = *header
+		headers[mapprotocol.HeaderCountOfBsc-i-1] = header
 	}
 
 	params := make([]bsc.Header, 0, len(headers))
