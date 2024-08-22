@@ -1,6 +1,7 @@
 package bsc
 
 import (
+	"fmt"
 	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
@@ -62,6 +63,14 @@ func ConvertHeader(header *ethclient.BscHeader) Header {
 	if header.ExcessBlobGas != "" && strings.TrimPrefix(header.ExcessBlobGas, "0x") != "" {
 		excessBlobGas, _ = excessBlobGas.SetString(strings.TrimPrefix(header.ExcessBlobGas, "0x"), 16)
 	}
+
+	fmt.Println("header.Number ------------------------------ ", header.Number)
+	fmt.Println("header.WithdrawalsRoot ------------------------------ ", common.Hex2Bytes(header.WithdrawalsRoot))
+	fmt.Println("header.BaseFee ------------------------------ ", header.BaseFee)
+	fmt.Println("header.blobGasUsed ------------------------------ ", blobGasUsed)
+	fmt.Println("header.excessBlobGas ------------------------------ ", excessBlobGas)
+	fmt.Println("header.parentBeaconBlockRoot ------------------------------ ", parentBeaconBlockRoot)
+
 	return Header{
 		ParentHash:            hashToByte(header.ParentHash),
 		Sha3Uncles:            hashToByte(header.UncleHash),
