@@ -763,14 +763,20 @@ func (ec *Client) BscHeaderByNumber(endpoint string, number *big.Int) (*BscHeade
 
 	fmt.Println("data -------------------------- ", head.WithdrawalsRoot)
 	type Tmp struct {
-		WithdrawalsRoot string `json:"withdrawalsRoot" rlp:"optional"`
+		WithdrawalsRoot       string `json:"withdrawalsRoot" rlp:"optional"`
+		BlobGasUsed           string `json:"blobGasUsed" rlp:"optional"`
+		ExcessBlobGas         string `json:"excessBlobGas" rlp:"optional"`
+		ParentBeaconBlockRoot string `json:"parentBeaconBlockRoot" rlp:"optional"`
 	}
 	var tmp Tmp
 	err = json.Unmarshal(data, &tmp)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("tmp -------------------------- ", tmp.WithdrawalsRoot)
-	//head.WithdrawalsRoot = tmp.WithdrawalsHash
+
+	head.WithdrawalsRoot = tmp.WithdrawalsRoot
+	head.BlobGasUsed = tmp.BlobGasUsed
+	head.ExcessBlobGas = tmp.ExcessBlobGas
+	head.ParentBeaconBlockRoot = tmp.ParentBeaconBlockRoot
 	return &head, err
 }
