@@ -761,7 +761,7 @@ func (ec *Client) BscHeaderByNumber(endpoint string, number *big.Int) (*BscHeade
 		return nil, err
 	}
 
-	//fmt.Println("data -------------------------- ", string(data))
+	fmt.Println("data -------------------------- ", head.WithdrawalsRoot)
 	//type Tmp struct {
 	//	WithdrawalsHash string `json:"withdrawalsRoot" rlp:"optional"`
 	//}
