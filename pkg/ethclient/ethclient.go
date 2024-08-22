@@ -732,10 +732,10 @@ func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param
 
 type BscHeader struct {
 	types.Header
-	WithdrawalsRoot       string `json:"withdrawalsRoot"`
-	BlobGasUsed           string `json:"blobGasUsed"`
-	ExcessBlobGas         string `json:"excessBlobGas"`
-	ParentBeaconBlockRoot string `json:"parentBeaconBlockRoot"`
+	WithdrawalsRoot       string `json:"withdrawalsRoot" rlp:"optional"`
+	BlobGasUsed           string `json:"blobGasUsed" rlp:"optional"`
+	ExcessBlobGas         string `json:"excessBlobGas" rlp:"optional"`
+	ParentBeaconBlockRoot string `json:"parentBeaconBlockRoot" rlp:"optional"`
 }
 
 func (ec *Client) BscHeaderByNumber(endpoint string, number *big.Int) (*BscHeader, error) {
@@ -762,15 +762,15 @@ func (ec *Client) BscHeaderByNumber(endpoint string, number *big.Int) (*BscHeade
 	}
 
 	fmt.Println("data -------------------------- ", head.WithdrawalsRoot)
-	//type Tmp struct {
-	//	WithdrawalsHash string `json:"withdrawalsRoot" rlp:"optional"`
-	//}
-	//var tmp Tmp
-	//err = json.Unmarshal(data, &tmp)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
+	type Tmp struct {
+		WithdrawalsRoot string `json:"withdrawalsRoot" rlp:"optional"`
+	}
+	var tmp Tmp
+	err = json.Unmarshal(data, &tmp)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("tmp -------------------------- ", tmp.WithdrawalsRoot)
 	//head.WithdrawalsRoot = tmp.WithdrawalsHash
 	return &head, err
 }
