@@ -1,7 +1,6 @@
 package bsc
 
 import (
-	"fmt"
 	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
@@ -54,7 +53,7 @@ func ConvertHeader(header *ethclient.BscHeader) Header {
 	}
 	parentBeaconBlockRoot := common.Hex2Bytes("0x0000000000000000000000000000000000000000000000000000000000000001")
 	if header.ParentBeaconBlockRoot != "" && header.ParentBeaconBlockRoot != "0x" {
-		parentBeaconBlockRoot = common.Hex2Bytes(header.ParentBeaconBlockRoot)
+		parentBeaconBlockRoot = common.Hex2Bytes(strings.TrimPrefix(header.ParentBeaconBlockRoot, "0x"))
 	}
 	blobGasUsed, excessBlobGas := big.NewInt(0), big.NewInt(0)
 	if header.BlobGasUsed != "" && strings.TrimPrefix(header.BlobGasUsed, "0x") != "" {
@@ -63,13 +62,6 @@ func ConvertHeader(header *ethclient.BscHeader) Header {
 	if header.ExcessBlobGas != "" && strings.TrimPrefix(header.ExcessBlobGas, "0x") != "" {
 		excessBlobGas, _ = excessBlobGas.SetString(strings.TrimPrefix(header.ExcessBlobGas, "0x"), 16)
 	}
-
-	fmt.Println("header.Number ------------------------------ ", header.Number)
-	fmt.Println("header.WithdrawalsRoot ------------------------------ ", common.Hex2Bytes(header.WithdrawalsRoot))
-	fmt.Println("header.BaseFee ------------------------------ ", header.BaseFee)
-	fmt.Println("header.blobGasUsed ------------------------------ ", blobGasUsed)
-	fmt.Println("header.excessBlobGas ------------------------------ ", excessBlobGas)
-	fmt.Println("header.parentBeaconBlockRoot ------------------------------ ", parentBeaconBlockRoot)
 
 	return Header{
 		ParentHash:            hashToByte(header.ParentHash),
@@ -88,7 +80,7 @@ func ConvertHeader(header *ethclient.BscHeader) Header {
 		MixHash:               hashToByte(header.MixDigest),
 		Nonce:                 nonce,
 		BaseFeePerGas:         header.BaseFee,
-		WithdrawalsRoot:       common.Hex2Bytes(header.WithdrawalsRoot),
+		WithdrawalsRoot:       common.Hex2Bytes(strings.TrimPrefix(header.WithdrawalsRoot, "0x")),
 		BlobGasUsed:           blobGasUsed,
 		ExcessBlobGas:         excessBlobGas,
 		ParentBeaconBlockRoot: parentBeaconBlockRoot,

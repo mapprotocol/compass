@@ -777,6 +777,5 @@ func (ec *Client) BscHeaderByNumber(endpoint string, number *big.Int) (*BscHeade
 	head.BlobGasUsed = tmp.BlobGasUsed
 	head.ExcessBlobGas = tmp.ExcessBlobGas
 	head.ParentBeaconBlockRoot = tmp.ParentBeaconBlockRoot
-	fmt.Println("data -------------------------- ", head.WithdrawalsRoot)
 	return &head, err
 }
