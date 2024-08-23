@@ -358,17 +358,17 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 		return nil
 	}
 
-	if balance < 400 {
-		return errors.New("account not have enough balance(400 trx)")
+	if balance < 711 {
+		return errors.New("account not have enough balance(711 trx)")
 	}
 
 	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,
-		big.NewInt(171558000000), big.NewInt(1))
+		big.NewInt(312156000000), big.NewInt(1))
 	if err != nil {
 		return errors.Wrap(err, "pack input failed")
 	}
 	w.log.Info("Rent energy will rent")
-	tx, err := w.sendTx(w.cfg.RentNode, "rent", input, 371019500, 1, 70000, false)
+	tx, err := w.sendTx(w.cfg.RentNode, "rent", input, 711000000, 1, 70000, false)
 	if err != nil {
 		return errors.Wrap(err, "sendTx failed")
 	}
@@ -426,11 +426,11 @@ func (w *Writer) newReturn(method string) {
 		w.log.Error("Return energy, GetAccountResource failed", "err", err)
 		return
 	}
-	if acc.EnergyLimit-40004 <= 0 {
+	if acc.EnergyLimit-20004 <= 0 {
 		w.log.Info("Return energy, user not rent energy", "gas", acc.EnergyLimit)
 		return
 	}
-	input, err := mapprotocol.TronAbi.Pack("returnResource", w.cfg.EthFrom, big.NewInt(171558000000), big.NewInt(1))
+	input, err := mapprotocol.TronAbi.Pack("returnResource", w.cfg.EthFrom, big.NewInt(312156000000), big.NewInt(1))
 	if err != nil {
 		w.log.Error("Return energy, Pack failed", "err", err)
 		return
