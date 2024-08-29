@@ -200,7 +200,6 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 				m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash, "toChainID", toChainID)
 				return 0, err
 			}
-			m.Log.Info("Event Proof", "txHash", log.TxHash, "proofType", proofType, "toChainID", toChainID)
 			if err != nil {
 				return 0, err
 			}

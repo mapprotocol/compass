@@ -110,10 +110,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		for _, addr := range strings.Split(contract, ",") {
 			config.McsContract = append(config.McsContract, common.HexToAddress(addr))
 		}
-	} else {
-		return nil, fmt.Errorf("must provide opts.mcs field for ethereum config")
 	}
-
 	if gasPrice, ok := chainCfg.Opts[MaxGasPriceOpt]; ok {
 		price := big.NewInt(0)
 		_, pass := price.SetString(gasPrice, 10)

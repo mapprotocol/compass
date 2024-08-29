@@ -118,11 +118,11 @@ func (m *Oracle) filterOracle(latestBlock uint64) error {
 			m.Cfg.StartBlock = big.NewInt(ele.Id)
 			continue
 		}
-		if latestBlock-ele.BlockNumber < m.BlockConfirmations.Uint64() {
-			m.Log.Debug("Block not ready, will retry", "currentBlock", ele.BlockNumber, "latest", latestBlock)
-			time.Sleep(constant.BalanceRetryInterval)
-			continue
-		}
+		//if latestBlock-ele.BlockNumber < m.BlockConfirmations.Uint64() {
+		//	m.Log.Debug("Block not ready, will retry", "currentBlock", ele.BlockNumber, "latest", latestBlock)
+		//	time.Sleep(constant.BalanceRetryInterval)
+		//	continue
+		//}
 
 		split := strings.Split(ele.Topic, ",")
 		topics := make([]common.Hash, 0, len(split))
