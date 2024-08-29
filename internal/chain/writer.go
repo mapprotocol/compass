@@ -95,6 +95,7 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	//gasLimit = 5000000000
 	gasTipCap := w.conn.Opts().GasTipCap
 	gasFeeCap := w.conn.Opts().GasFeeCap
+	w.log.Info("SendTx gasPrice before", "gasPrice", gasPrice, "gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap)
 	if w.cfg.LimitMultiplier > 1 {
 		gasLimit = uint64(float64(gasLimit) * w.cfg.LimitMultiplier)
 	}

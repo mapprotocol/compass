@@ -112,7 +112,6 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		proof.CacheReceipt[key] = receipts
 	}
 
-	fmt.Println("method -------------------------------- ", method)
 	var orderId32 [32]byte
 	for idx, v := range orderId {
 		orderId32[idx] = v
