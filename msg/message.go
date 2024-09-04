@@ -13,6 +13,7 @@ var (
 	SwapWithMapProof TransferType = "SwapWithMapProof"
 	SwapWithMerlin   TransferType = "SwapWithMerlin"
 	Proposal         TransferType = "proposal"
+	Empty            TransferType = "empty"
 )
 
 // Message is used as a generic format to communicate between chains
@@ -82,5 +83,12 @@ func NewProposal(fromChainID, toChainID ChainId, payloads []interface{}, ch chan
 		Type:        Proposal,
 		Payload:     payloads,
 		DoneCh:      ch,
+	}
+}
+
+func NewEmpty(ch chan<- struct{}) Message {
+	return Message{
+		Type:   Empty,
+		DoneCh: ch,
 	}
 }
