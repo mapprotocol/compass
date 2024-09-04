@@ -86,9 +86,11 @@ func NewProposal(fromChainID, toChainID ChainId, payloads []interface{}, ch chan
 	}
 }
 
-func NewEmpty(ch chan<- struct{}) Message {
+func NewEmpty(fromChainID, toChainID ChainId, ch chan<- struct{}) Message {
 	return Message{
-		Type:   Empty,
-		DoneCh: ch,
+		Source:      fromChainID,
+		Destination: toChainID,
+		Type:        Empty,
+		DoneCh:      ch,
 	}
 }
