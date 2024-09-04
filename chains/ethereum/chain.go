@@ -173,7 +173,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		if !ok {
 			m.Log.Info("Event found SwapInVerified, but dont this msger handler",
 				"block", bigNumber, "txHash", log.TxHash)
-			emptyMsg := msg.NewEmpty(m.MsgCh)
+			emptyMsg := msg.NewEmpty(m.Cfg.MapChainID, m.Cfg.Id, m.MsgCh)
 			return &emptyMsg, nil
 		}
 		saveOrderId, _ := constant.MapOrderId[log.TxHash.Hex()]
