@@ -347,10 +347,10 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed,
 		"trx", balance)
-	if method == mapprotocol.MtdOfSwapInVerifiedWithIndex || method == mapprotocol.MethodOfSwapInVerified {
-		w.log.Info("Rent energy, call method is swapInVerified or withIndex, dont need rent energy", "method", method)
-		return nil
-	}
+	// if method == mapprotocol.MethodOfSwapIn || method == mapprotocol.MethodOfSwapInVerified {
+	// 	w.log.Info("Rent energy, call method is swapInVerified or withIndex, dont need rent energy", "method", method)
+	// 	return nil
+	// }
 	mul := float64(used) * 1.1
 	if (acc.EnergyLimit - acc.EnergyUsed) > int64(mul) {
 		w.log.Info("Rent energy, account have enough energy", "account", w.cfg.From,
@@ -411,10 +411,10 @@ func (w *Writer) feeRentEnergy(used int64, acc *api.AccountResourceMessage) erro
 }
 
 func (w *Writer) newReturn(method string) {
-	if w.cfg.FeeType == constant.FeeRentType || (method != mapprotocol.MtdOfSwapInVerifiedWithIndex && method != mapprotocol.MethodOfSwapInVerified) {
-		w.log.Info("Return energy, call method is not swapInVerified or withIndex, dont need return energy", "method", method)
-		return
-	}
+	// if w.cfg.FeeType == constant.FeeRentType || (method != mapprotocol.MtdOfSwapInVerifiedWithIndex && method != mapprotocol.MethodOfSwapInVerified) {
+	// 	w.log.Info("Return energy, call method is not swapInVerified or withIndex, dont need return energy", "method", method)
+	// 	return
+	// }
 	if !w.isRent {
 		w.log.Info("Return energy, is not rent, dont return")
 		return
