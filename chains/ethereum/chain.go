@@ -201,7 +201,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		orderId32[idx] = v
 	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		if method == mapprotocol.MethodOfSwapIn && (toChainID == constant.MerlinChainId || toChainID == constant.TronChainId) {
+		if method == mapprotocol.MethodOfSwapIn && (toChainID == constant.TronChainId) { // toChainID == constant.MerlinChainId ||
 			method = mapprotocol.MethodOfVerifyWithOrderId
 		}
 
