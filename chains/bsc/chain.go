@@ -2,6 +2,9 @@ package bsc
 
 import (
 	"fmt"
+	"math/big"
+	"strconv"
+
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/core/types"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
@@ -13,8 +16,6 @@ import (
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
-	"math/big"
-	"strconv"
 )
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
