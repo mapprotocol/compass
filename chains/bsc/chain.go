@@ -1,8 +1,10 @@
 package bsc
 
 import (
-	"context"
 	"fmt"
+	"math/big"
+	"strconv"
+
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/core/types"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
@@ -13,8 +15,7 @@ import (
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"math/big"
-	"strconv"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
 func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
@@ -44,14 +45,14 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 		return nil
 	}
 	m.Log.Info("Find sync block", "current height", latestBlock)
-	headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
+	headers := make([]*ethclient.BscHeader, mapprotocol.HeaderCountOfBsc)
 	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
 		headerHeight := new(big.Int).Sub(latestBlock, new(big.Int).SetInt64(int64(i)))
-		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+		header, err := m.Conn.Client().BscHeaderByNumber(m.Cfg.Endpoint, headerHeight)
 		if err != nil {
 			return err
 		}
-		headers[mapprotocol.HeaderCountOfBsc-i-1] = *header
+		headers[mapprotocol.HeaderCountOfBsc-i-1] = header
 	}
 
 	params := make([]bsc.Header, 0, len(headers))
@@ -109,14 +110,14 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 	for idx, v := range orderId {
 		orderId32[idx] = v
 	}
-	headers := make([]types.Header, mapprotocol.HeaderCountOfBsc)
+	headers := make([]*ethclient.BscHeader, mapprotocol.HeaderCountOfBsc)
 	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
 		headerHeight := new(big.Int).Add(bigNumber, new(big.Int).SetInt64(int64(i)))
-		header, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+		header, err := m.Conn.Client().BscHeaderByNumber(m.Cfg.Endpoint, headerHeight)
 		if err != nil {
 			return nil, err
 		}
-		headers[i] = *header
+		headers[i] = header
 	}
 
 	params := make([]bsc.Header, 0, len(headers))
