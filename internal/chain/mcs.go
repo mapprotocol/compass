@@ -66,6 +66,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				inputHash = m.Payload[3]
 			}
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
+			//err := w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
 			mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination,
@@ -317,9 +318,9 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	}
 
 	ret := struct {
-		Success  bool
-		Message  string
-		LogsHash []byte
+		Success bool
+		Message string
+		Logs    []byte
 	}{}
 	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
 	if err != nil {
@@ -331,7 +332,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	}
 	if ret.Success == true {
 		w.log.Info("Mcs verify log success", "success", ret.Success)
-		w.log.Info("Mcs verify log success", "logs", "0x"+common.Bytes2Hex(ret.LogsHash))
+		w.log.Info("Mcs verify log success", "logs", "0x"+common.Bytes2Hex(ret.Logs))
 	}
 
 	return nil
