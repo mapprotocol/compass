@@ -1,6 +1,7 @@
 package bsc
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -51,10 +52,12 @@ func ConvertHeader(header *ethclient.BscHeader) Header {
 	if header.BaseFee == nil {
 		header.BaseFee = new(big.Int)
 	}
-	parentBeaconBlockRoot := common.Hex2Bytes("0x0000000000000000000000000000000000000000000000000000000000000001")
-	if header.ParentBeaconBlockRoot != "" && header.ParentBeaconBlockRoot != "0x" {
+	parentBeaconBlockRoot := common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
+	if header.ParentBeaconBlockRoot != "" && strings.TrimPrefix(header.ParentBeaconBlockRoot, "0x") != "" {
+		fmt.Println(header.Number, " ---- header.ParentBeaconBlockRoot ---------------------------- ", header.ParentBeaconBlockRoot)
 		parentBeaconBlockRoot = common.Hex2Bytes(strings.TrimPrefix(header.ParentBeaconBlockRoot, "0x"))
 	}
+
 	blobGasUsed, excessBlobGas := big.NewInt(0), big.NewInt(0)
 	if header.BlobGasUsed != "" && strings.TrimPrefix(header.BlobGasUsed, "0x") != "" {
 		blobGasUsed, _ = blobGasUsed.SetString(strings.TrimPrefix(header.BlobGasUsed, "0x"), 16)
