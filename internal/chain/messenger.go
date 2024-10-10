@@ -206,7 +206,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		}
 	}
 	var sign [][]byte
-	if proofType == constant.ProofTypeOfNewOracle {
+	if proofType == constant.ProofTypeOfNewOracle { // todo proofType = 4的时候，修改字段
 		ret, err := Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log)
 		if err != nil {
 			return 0, err
@@ -232,7 +232,7 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*Propos
 	bn := big.NewInt(int64(log.BlockNumber))
 	ret, err := MulSignInfo(0, selfId, toId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("MulSignInfo failed: %w", err)
 	}
 	// m.Log.Info("MulSignInfo success", "ret", ret)
 	header, err := cli.HeaderByNumber(context.Background(), big.NewInt(int64(log.BlockNumber)))
@@ -246,7 +246,7 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*Propos
 
 	piRet, err := ProposalInfo(0, selfId, toId, bn, header.ReceiptHash, ret.Version)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ProposalInfo failed: %w", err)
 	}
 	if !piRet.CanVerify {
 		return nil, NotVerifyAble
