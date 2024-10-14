@@ -113,12 +113,7 @@ func (m *Oracle) filterOracle(latestBlock uint64) error {
 	}
 
 	for _, ele := range back.List {
-		//if m.Cfg.LightNode.Hex() != ele.ContractAddress {
-		//	m.Log.Info("Filter Oracle Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
-		//	m.Cfg.StartBlock = big.NewInt(ele.Id)
-		//	continue
-		//}
-		idx := m.Match(ele.ContractAddress) // todo 新版 oracle
+		idx := m.Match(ele.ContractAddress) // 新版 oracle
 		if idx == -1 {
 			m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
 			continue

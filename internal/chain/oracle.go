@@ -66,7 +66,7 @@ func (m *Oracle) sync() error {
 			}
 
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
-				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
+				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock, "sub", big.NewInt(0).Sub(latestBlock, currentBlock))
 				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
@@ -124,7 +124,7 @@ func (m *Oracle) filter() error {
 
 func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 	m.Log.Debug("Querying block for events", "block", currentBlock)
-	query := m.BuildQuery(m.Cfg.LightNode, m.Cfg.Events, currentBlock, currentBlock) // todo
+	query := m.BuildQuery(m.Cfg.McsContract[0], m.Cfg.Events, currentBlock, currentBlock)
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
@@ -143,23 +143,18 @@ func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 
 func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	count := 0
-	//header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
-	//if err != nil {
-	//	return fmt.Errorf("oracle get header failed, err: %w", err)
-	//}
-
-	//if receiptHash != nil {
-	//	header.ReceiptHash = *receiptHash
-	//}
-
 	id := big.NewInt(int64(m.Cfg.Id))
-	for _, log := range logs {
+	for idx, log := range logs {
+		if idx != 0 {
+			continue
+		}
 		toChainID := uint64(m.Cfg.MapChainID)
 		if m.Cfg.Id == m.Cfg.MapChainID {
+			continue
 			toChainID = binary.BigEndian.Uint64(log.Topics[1][len(logs[0].Topics[1])-8:])
 			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
 				m.Log.Info("Map Oracle Found a log that is not the current task", "blockNumber", log.BlockNumber, "toChainID", toChainID)
-				continue
+				//continue
 			}
 		}
 
@@ -170,7 +165,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 		}
 		m.Log.Info("Find log", "block", blockNumber, "logs", len(logs), "receipt", receipt)
 
-		ret, err := MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.Id))
+		ret, err := MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
 		if err != nil {
 			return err
 		}

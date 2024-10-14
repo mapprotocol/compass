@@ -114,7 +114,7 @@ func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: header.ReceiptsRoot,
 			Number:      big.NewInt(int64(log.BlockNumber)),
-		}, receipt, key, prf, fId, idx, method, sign, orderId, false)
+		}, receipt, key, prf, fId, idx, method, sign, orderId, false, log)
 	}
 
 	if err != nil {

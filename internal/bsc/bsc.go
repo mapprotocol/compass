@@ -2,19 +2,19 @@ package bsc
 
 import (
 	"fmt"
-	"math/big"
-	"strings"
-
-	"github.com/mapprotocol/compass/internal/mapo"
-	"github.com/mapprotocol/compass/internal/op"
-	"github.com/mapprotocol/compass/pkg/ethclient"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/mapo"
+	"github.com/mapprotocol/compass/internal/op"
+	"github.com/mapprotocol/compass/internal/proof"
 	iproof "github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
+	"math/big"
+	"strings"
 )
 
 type Header struct {
@@ -111,6 +111,7 @@ type ReceiptProof struct {
 
 func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, method string,
 	fId msg.ChainId, proofType int64, sign [][]byte, orderId [32]byte) ([]byte, error) {
+	var ret []byte
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
@@ -138,54 +139,24 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 		}
 		idx = i
 	}
-	//fmt.Println("idx -------------- ", idx)
+	switch proofType {
+	case constant.ProofTypeOfOrigin:
+		pd := ProofData{
+			Headers: header,
+			ReceiptProof: ReceiptProof{
+				TxReceipt: *receipt,
+				KeyIndex:  ek,
+				Proof:     prf,
+			},
+		}
 
-	pd := ProofData{
-		Headers: header,
-		ReceiptProof: ReceiptProof{
-			TxReceipt: *receipt,
-			KeyIndex:  ek,
-			Proof:     prf,
-		},
+		ret, err = iproof.V3Pack(fId, method, mapprotocol.Bsc, idx, orderId, false, pd)
+		if err != nil {
+			return nil, err
+		}
+	case constant.ProofTypeOfNewOracle:
+		ret, err = proof.SignOracle(nil, nil, key, prf, fId, idx, method, sign, orderId, false, log)
 	}
 
-	//input, err := mapprotocol.Bsc.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
-	//if err != nil {
-	//	return nil, errors.Wrap(err, "pack getBytes failed")
-	//}
-	//for _, h := range pd.Headers {
-	//	fmt.Println("ParentHash", "0x"+common.Bytes2Hex(h.ParentHash))
-	//	fmt.Println("Sha3Uncles", "0x"+common.Bytes2Hex(h.Sha3Uncles))
-	//	fmt.Println("StateRoot", "0x"+common.Bytes2Hex(h.StateRoot))
-	//	fmt.Println("TransactionsRoot", "0x"+common.Bytes2Hex(h.TransactionsRoot))
-	//	fmt.Println("ReceiptsRoot", "0x"+common.Bytes2Hex(h.ReceiptsRoot))
-	//	fmt.Println("LogsBloom", "0x"+common.Bytes2Hex(h.LogsBloom))
-	//	fmt.Println("ExtraData", "0x"+common.Bytes2Hex(h.ExtraData))
-	//	fmt.Println("MixHash", "0x"+common.Bytes2Hex(h.MixHash))
-	//	fmt.Println("Nonce", "0x"+common.Bytes2Hex(h.Nonce))
-	//	fmt.Println("WithdrawalsRoot", "0x"+common.Bytes2Hex(h.WithdrawalsRoot))
-	//	fmt.Println("ParentBeaconBlockRoot", "0x"+common.Bytes2Hex(h.ParentBeaconBlockRoot))
-	//	fmt.Println("Miner", h.Miner.String())
-	//	fmt.Println("Difficulty", h.Difficulty.String())
-	//	fmt.Println("Number", h.Number.String())
-	//	fmt.Println("GasLimit", h.GasLimit.String())
-	//	fmt.Println("GasUsed", h.GasUsed.String())
-	//	fmt.Println("Timestamp", h.Timestamp.String())
-	//	fmt.Println("BaseFeePerGas", h.BaseFeePerGas.String())
-	//	fmt.Println("BlobGasUsed", h.BlobGasUsed.String())
-	//	fmt.Println("ExcessBlobGas", h.ExcessBlobGas.String())
-	//}
-	//
-	//fmt.Println("KeyIndex ", "0x"+common.Bytes2Hex(pd.ReceiptProof.KeyIndex))
-	//for _, r := range pd.ReceiptProof.Proof {
-	//	fmt.Println("proof ", "0x"+common.Bytes2Hex(r))
-	//}
-	//pack, err := mapprotocol.LightManger.Pack(mapprotocol.MethodVerifyProofData, new(big.Int).SetUint64(uint64(fId)), input)
-
-	pack, err := iproof.V3Pack(fId, method, mapprotocol.Bsc, idx, orderId, false, pd)
-
-	if err != nil {
-		return nil, err
-	}
-	return pack, nil
+	return ret, nil
 }

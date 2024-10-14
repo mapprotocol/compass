@@ -24,60 +24,61 @@ import (
 
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *Writer) exeSwapMsg(m msg.Message) bool {
-	return w.callContractWithMsg(w.cfg.McsContract[m.Idx], m)
+	//return w.callContractWithMsg(w.cfg.McsContract[m.Idx], m)
+	return w.callContractWithMsg(w.cfg.LightNode, m)
 }
 
 // callContractWithMsg contract using address and function signature with message info
 func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 	var (
-		errorCount, checkIdCount int64
-		needNonce                = true
+		errorCount, _ int64
+		needNonce     = true
 	)
 	for {
 		select {
 		case <-w.stop:
 			return false
 		default:
-			orderId := m.Payload[1].([32]byte)
-			exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
-			if err != nil {
-				w.log.Error("check orderId exist failed ", "err", err)
-				checkIdCount++
-				if checkIdCount == 10 {
-					util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
-					checkIdCount = 0
-				}
-			}
-			if exits {
-				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", orderId)
-				m.DoneCh <- struct{}{}
-				return true
-			}
-
-			err = w.conn.LockAndUpdateOpts(needNonce)
-			if err != nil {
-				w.log.Error("Failed to update nonce", "err", err)
-				time.Sleep(constant.TxRetryInterval)
-				continue
-			}
+			//orderId := m.Payload[1].([32]byte)
+			//exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
+			//if err != nil {
+			//	w.log.Error("check orderId exist failed ", "err", err)
+			//	checkIdCount++
+			//	if checkIdCount == 10 {
+			//		util.Alarm(context.Background(), fmt.Sprintf("writer mos checkOrderId failed, err is %s", err.Error()))
+			//		checkIdCount = 0
+			//	}
+			//}
+			//if exits {
+			//	w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", orderId)
+			//	m.DoneCh <- struct{}{}
+			//	return true
+			//}
+			//
+			//err = w.conn.LockAndUpdateOpts(needNonce)
+			//if err != nil {
+			//	w.log.Error("Failed to update nonce", "err", err)
+			//	time.Sleep(constant.TxRetryInterval)
+			//	continue
+			//}
 
 			var inputHash interface{}
 			if len(m.Payload) > 3 {
 				inputHash = m.Payload[3]
 			}
 			w.log.Info("Send transaction", "addr", addr, "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
-			//err := w.call(&addr, m.Payload[0].([]byte), mapprotocol.LightManger, mapprotocol.MethodVerifyProofData)
-			mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
+			err := w.call(&addr, m.Payload[0].([]byte), mapprotocol.Other, mapprotocol.MethodVerifyProofData)
+			//mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination,
-					"srcHash", inputHash, "mcsTx", mcsTx.Hash())
-				err = w.txStatus(mcsTx.Hash())
-				if err != nil {
-					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
-				} else {
-					m.DoneCh <- struct{}{}
-					return true
-				}
+					"srcHash", inputHash) //, "mcsTx", mcsTx.Hash())
+				//err = w.txStatus(mcsTx.Hash())
+				//if err != nil {
+				//	w.log.Warn("TxHash Status is not successful, will retry", "err", err)
+				//} else {
+				m.DoneCh <- struct{}{}
+				return true
+				//}
 			} else if w.cfg.SkipError && errorCount >= 9 {
 				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "srcHash", inputHash, "err", err)
 				m.DoneCh <- struct{}{}
@@ -162,62 +163,6 @@ func (w *Writer) merlinWithMsg(m msg.Message) bool {
 	}
 }
 
-//func (w *Writer) proposal(m msg.Message) bool {
-//	var (
-//		errorCount int64
-//		needNonce  = true
-//		addr       = w.cfg.LightNode
-//		//addr       = w.cfg.OracleNode
-//	)
-//	for {
-//		select {
-//		case <-w.stop:
-//			return false
-//		default:
-//			err := w.conn.LockAndUpdateOpts(needNonce)
-//			if err != nil {
-//				w.log.Error("Failed to update nonce", "err", err)
-//				time.Sleep(constant.TxRetryInterval)
-//				continue
-//			}
-//
-//			w.log.Info("Send proposal transaction", "addr", addr, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
-//			mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
-//			if err == nil {
-//				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "mcsTx", mcsTx.Hash())
-//				err = w.txStatus(mcsTx.Hash())
-//				if err != nil {
-//					w.log.Warn("Store TxHash Status is not successful, will retry", "err", err)
-//				} else {
-//					m.DoneCh <- struct{}{}
-//					return true
-//				}
-//			} else if w.cfg.SkipError && errorCount >= 9 {
-//				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "err", err)
-//				m.DoneCh <- struct{}{}
-//				return true
-//			} else {
-//				for e := range constant.IgnoreError {
-//					if strings.Index(err.Error(), e) != -1 {
-//						w.log.Info("Ignore This Error, Continue to the next", "id", m.Destination, "err", err)
-//						m.DoneCh <- struct{}{}
-//						return true
-//					}
-//				}
-//				w.log.Warn("Execution SwapInVerify failed, will retry", "err", err)
-//			}
-//
-//			needNonce = w.needNonce(err)
-//			errorCount++
-//			if errorCount >= 10 {
-//				w.mosAlarm(m, "proposal", err)
-//				errorCount = 0
-//			}
-//			time.Sleep(constant.TxRetryInterval)
-//		}
-//	}
-//}
-
 func (w *Writer) proposal(m msg.Message) bool {
 	var (
 		errorCount int64
@@ -230,7 +175,7 @@ func (w *Writer) proposal(m msg.Message) bool {
 			return false
 		default:
 			pack := m.Payload[0].([]byte)
-			receiptHash := m.Payload[1].(common.Hash)
+			receiptHash := m.Payload[1].(*common.Hash)
 			blockNumber := m.Payload[2].(*big.Int)
 			hash := common.Bytes2Hex(crypto.Keccak256(pack))
 			sign, err := personalSign(string(common.Hex2Bytes(hash)), w.conn.Keypair().PrivateKey)
@@ -318,9 +263,9 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	}
 
 	ret := struct {
-		Success bool
-		Message string
-		Logs    []byte
+		Success  bool
+		Message  string
+		LogsHash []byte
 	}{}
 	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
 	if err != nil {
@@ -332,7 +277,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	}
 	if ret.Success == true {
 		w.log.Info("Mcs verify log success", "success", ret.Success)
-		w.log.Info("Mcs verify log success", "logs", "0x"+common.Bytes2Hex(ret.Logs))
+		w.log.Info("Mcs verify log success", "logs", "0x"+common.Bytes2Hex(ret.LogsHash))
 	}
 
 	return nil

@@ -3,21 +3,15 @@ package chain
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
 )
@@ -74,7 +68,7 @@ func (m *Messenger) sync() error {
 			}
 
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
-				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
+				m.Log.Info("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
@@ -171,48 +165,53 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		toChainID uint64
 		err       error
 	)
+	if m.Cfg.Id == m.Cfg.MapChainID {
+		return 0, nil
+	}
 
-	if log.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
-		proofType = 3
-	} else {
-		orderId := log.Data[:32]
-		toChainID, _ = strconv.ParseUint(mapprotocol.MapId, 10, 64)
-		if m.Cfg.Id == m.Cfg.MapChainID {
-			toChainID = binary.BigEndian.Uint64(log.Topics[2][len(log.Topics[2])-8:])
-		}
-		chainName, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]
-		if !ok {
-			m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
-			return 0, nil
-		}
-		m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", common.Bytes2Hex(orderId))
-		if strings.ToLower(chainName) == "near" {
-			proofType = 1
-		} else if strings.ToLower(chainName) == "tron" {
-			proofType = constant.ProofTypeOfNewOracle
-		} else {
-			proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId)
-			if errors.Is(err, OrderExist) {
-				m.Log.Info("This txHash order exist", "txHash", log.TxHash, "toChainID", toChainID)
-				return 0, nil
-			}
-			if errors.Is(err, NotVerifyAble) {
-				m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash, "toChainID", toChainID)
-				return 0, err
-			}
-			if err != nil {
-				return 0, err
-			}
-		}
-	}
+	proofType = 4
+	//if log.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
+	//	proofType = 3
+	//} else {
+	//	orderId := log.Data[:32]
+	//	toChainID, _ = strconv.ParseUint(mapprotocol.MapId, 10, 64)
+	//	if m.Cfg.Id == m.Cfg.MapChainID {
+	//		toChainID = binary.BigEndian.Uint64(log.Topics[2][len(log.Topics[2])-8:])
+	//	}
+	//	chainName, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]
+	//	if !ok {
+	//		m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
+	//		return 0, nil
+	//	}
+	//	m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", common.Bytes2Hex(orderId))
+	//	if strings.ToLower(chainName) == "near" {
+	//		proofType = 1
+	//	} else if strings.ToLower(chainName) == "tron" {
+	//		proofType = constant.ProofTypeOfNewOracle
+	//	} else {
+	//		proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId)
+	//		if errors.Is(err, OrderExist) {
+	//			m.Log.Info("This txHash order exist", "txHash", log.TxHash, "toChainID", toChainID)
+	//			return 0, nil
+	//		}
+	//		if errors.Is(err, NotVerifyAble) {
+	//			m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash, "toChainID", toChainID)
+	//			return 0, err
+	//		}
+	//		if err != nil {
+	//			return 0, err
+	//		}
+	//	}
+	//}
 	var sign [][]byte
-	if proofType == constant.ProofTypeOfNewOracle { // todo proofType = 4的时候，修改字段
-		ret, err := Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log)
-		if err != nil {
-			return 0, err
-		}
-		sign = ret.Signatures
+	//if proofType == constant.ProofTypeOfNewOracle { // todo proofType = 4的时候，修改字段
+	ret, err := Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log)
+	fmt.Println("err -------------- ", err, "ret ", ret)
+	if err != nil {
+		return 0, err
 	}
+	sign = ret.Signatures
+	//}
 
 	tmpLog := log
 	message, err := m.assembleProof(m, tmpLog, proofType, toChainID, sign)
@@ -234,12 +233,11 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*Propos
 	if err != nil {
 		return nil, fmt.Errorf("MulSignInfo failed: %w", err)
 	}
-	// m.Log.Info("MulSignInfo success", "ret", ret)
 	header, err := cli.HeaderByNumber(context.Background(), big.NewInt(int64(log.BlockNumber)))
 	if err != nil {
 		return nil, err
 	}
-	hash, _ := generateReceipt(cli, int64(selfId), big.NewInt(int64(log.BlockNumber)))
+	hash, _ := generateReceipt(log)
 	if hash != nil {
 		header.ReceiptHash = *hash
 	}
@@ -251,7 +249,6 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*Propos
 	if !piRet.CanVerify {
 		return nil, NotVerifyAble
 	}
-	// m.Log.Info("ProposalInfo success", "piRet", piRet)
 	return piRet, nil
 }
 

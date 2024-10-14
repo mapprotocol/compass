@@ -201,10 +201,6 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		orderId32[idx] = v
 	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		// if method == mapprotocol.MethodOfSwapIn && (toChainID == constant.TronChainId) { // toChainID == constant.MerlinChainId ||
-		// 	method = mapprotocol.MethodOfVerifyWithOrderId
-		// }
-
 		header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), bigNumber)
 		if err != nil {
 			return nil, fmt.Errorf("unable to query header Logs: %w", err)
