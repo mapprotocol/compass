@@ -118,7 +118,7 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 		}
 
 		//pack, err = proof.Pack(fId, method, mapprotocol.Matic, pd)
-		pack, err = proof.V3Pack(fId, method, mapprotocol.Bsc, idx, orderId, false, pd)
+		pack, err = proof.V3Pack(fId, method, mapprotocol.Matic, idx, orderId, false, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
 		pd := proof.Data{
