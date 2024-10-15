@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/internal/op"
@@ -139,6 +140,7 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 		}
 		idx = i
 	}
+
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
 		pd := ProofData{
@@ -155,7 +157,9 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 			return nil, err
 		}
 	case constant.ProofTypeOfNewOracle:
-		ret, err = proof.SignOracle(nil, nil, key, prf, fId, idx, method, sign, orderId, false, log)
+		ret, err = proof.SignOracle(&maptypes.Header{
+			ReceiptHash: common.BytesToHash(header[0].ReceiptsRoot),
+		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
 	}
 
 	return ret, nil

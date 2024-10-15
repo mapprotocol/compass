@@ -257,8 +257,8 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, err
 	}
 	var sign [][]byte
-	if proofType == constant.ProofTypeOfNewOracle {
-		ret, err := chain.Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log)
+	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
+		ret, err := chain.Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log, proofType)
 		if err != nil {
 			return 0, err
 		}

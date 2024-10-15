@@ -35,10 +35,13 @@ const (
 	MethodOfSwapInVerified       = "swapInVerified"
 	EventOfSwapInVerified        = "mapSwapInVerified"
 	MethodOfTransferInWithIndex  = "transferInWithIndex"
+	MethodOfMessageIn            = "messageIn"
 	MethodOfSwapInWithIndex      = "swapInWithIndex"
 	MethodOfMulSignInfo          = "multisigInfo"
 	MethodOfProposalInfo         = "proposalInfo"
 	MethodOfSolidityPack         = "soliditypack"
+	MethodOfNodeType             = "nodeType"
+	MethodOfMptPack              = "mptPack"
 )
 
 const (
@@ -46,14 +49,12 @@ const (
 )
 
 const (
-	EpochOfMap          = 50000
-	EpochOfBsc          = 200
-	HeaderCountOfBsc    = 12
-	HeaderCountOfMatic  = 16
-	HeaderCountOfPlaton = 430
-	EpochOfKlaytn       = 3600
-	HeaderOneCount      = 1
-	HeaderCountOfBttc   = 64
+	EpochOfMap         = 50000
+	EpochOfBsc         = 200
+	HeaderCountOfBsc   = 12
+	HeaderCountOfMatic = 16
+	EpochOfKlaytn      = 3600
+	HeaderOneCount     = 1
 )
 
 var (
@@ -61,11 +62,10 @@ var (
 )
 
 var (
-	HashOfDepositIn = common.HexToHash("0xb7100086a8e13ebae772a0f09b07046e389a6b036406d22b86f2d2e5b860a8d9")
-	HashOfSwapIn    = common.HexToHash("0xca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5")
-	HashOfMessageIn = common.HexToHash("0x66e2de40f0c0fe334b556647c99aae36be85f9975cda26f72954d14f728e7dc9")
-	NearOfDepositIn = "150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377"
-	NearOfSwapIn    = "ca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5"
+	TopicOfClientNotify      = common.HexToHash("0x7063ee7ac21ca792eb7d62d3a65598a5c986c4b0f7bd701aa453eb8a1387c956")
+	TopicOfManagerNotifySend = common.HexToHash("0x6644f11ec136e82ae3a252660a2fea9e5d412868cd38474ba2ba564b8f19cb73")
+	NearOfDepositIn          = "150bd848adaf4e3e699dcac82d75f111c078ce893375373593cc1b9208998377"
+	NearOfSwapIn             = "ca1cf8cebf88499429cca8f87cbca15ab8dafd06702259a5344ddce89ef3f3a5"
 )
 
 var (
@@ -80,9 +80,7 @@ var (
 	Height, _      = abi.JSON(strings.NewReader(HeightAbiJson))
 	Matic, _       = abi.JSON(strings.NewReader(MaticAbiJson))
 	Eth2, _        = abi.JSON(strings.NewReader(Eth2AbiJson))
-	Platon, _      = abi.JSON(strings.NewReader(PlatonAbiJson))
-	Other, _       = abi.JSON(strings.NewReader(otherAbi))
-	Bttc, _        = abi.JSON(strings.NewReader(bttcAbi))
+	Other, _       = abi.JSON(strings.NewReader(OtherAbi))
 	OracleAbi, _   = abi.JSON(strings.NewReader(OracleAbiJson))
 	ProofAbi, _    = abi.JSON(strings.NewReader(ProofAbiJson))
 	TronAbi, _     = abi.JSON(strings.NewReader(TronAbiJson))
@@ -104,8 +102,7 @@ var (
 )
 
 var (
-	ConfirmsOfMatic             = big.NewInt(10)
-	HeaderLenOfBttc       int64 = 10
-	HeaderLengthOfEth2          = 20
-	HeaderLengthOfConflux       = 20
+	ConfirmsOfMatic       = big.NewInt(10)
+	HeaderLengthOfEth2    = 20
+	HeaderLengthOfConflux = 20
 )

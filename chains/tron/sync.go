@@ -175,9 +175,8 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
 			} else {
 				method := m.GetMethod(l.Topics[0])
-				toChainID, _ := strconv.ParseUint(mapprotocol.MapId, 10, 64)
 				m.Log.Info("Event found", "block", current, "txHash", l.TxHash, "logIdx", l.Index, "orderId", common.Bytes2Hex(orderId))
-				proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), toChainID, current, orderId)
+				proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), current, orderId)
 				if errors.Is(err, chain.OrderExist) {
 					m.Log.Info("This orderId exist", "block", current, "txHash", l.TxHash, "orderId", common.Bytes2Hex(orderId))
 					continue

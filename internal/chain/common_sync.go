@@ -119,23 +119,14 @@ func (c *CommonSync) BuildQuery(contract ethcommon.Address, sig []constant.Event
 	query := eth.FilterQuery{
 		FromBlock: startBlock,
 		ToBlock:   endBlock,
-		//Addresses: []ethcommon.Address{contract},
-		//Topics:    [][]ethcommon.Hash{topics},
+		Addresses: []ethcommon.Address{contract},
+		Topics:    [][]ethcommon.Hash{topics},
 	}
 	return query
 }
 
 func (c *CommonSync) GetMethod(topic ethcommon.Hash) string {
-	method := mapprotocol.MethodOfTransferIn
-	if topic == mapprotocol.HashOfDepositIn {
-		method = mapprotocol.MethodOfDepositIn
-	} else if topic == mapprotocol.HashOfSwapIn {
-		method = mapprotocol.MethodOfSwapIn
-	} else if topic == mapprotocol.HashOfMessageIn {
-		method = mapprotocol.MethodOfTransferInWithIndex
-	}
-
-	return method
+	return mapprotocol.MethodOfMessageIn
 }
 
 func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {

@@ -84,7 +84,7 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 	return count, nil
 }
 
-func (m *Oracle) filterOracle(latestBlock uint64) error {
+func (m *Oracle) filterOracle() error {
 	topic := ""
 	for idx, ele := range m.Cfg.Events {
 		topic += ele.GetTopic().Hex()
