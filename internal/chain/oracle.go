@@ -201,7 +201,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 
 		tmp := log
 		switch nodeType.Int64() {
-		case 4: //mpt
+		case constant.ProofTypeOfNewOracle: //mpt
 			if log.Topics[0] != mapprotocol.TopicOfClientNotify && log.Topics[0] != mapprotocol.TopicOfManagerNotifySend { // 忽略mos的交易topic
 				m.Log.Info("Oracle model get node type is", "nodeType", nodeType, "topic", log.Topics[0])
 				continue
@@ -215,11 +215,13 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			if genRece != nil {
 				receipt = genRece
 			}
-		case 5: // log
+		case constant.ProofTypeOfLogOracle: // log
 			if log.Topics[0] == mapprotocol.TopicOfClientNotify || log.Topics[0] == mapprotocol.TopicOfManagerNotifySend {
 				continue
 			}
 			receipt, err = genLogReceipt(&tmp) //  hash修改
+		default:
+			panic("unhandled default case")
 		}
 		if err != nil {
 			return fmt.Errorf("oracle generate receipt failed, err is %w", err)

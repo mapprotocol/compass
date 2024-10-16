@@ -150,7 +150,7 @@ func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {
 }
 
 func (c *CommonSync) Match(target string) int {
-	for idx, ele := range c.Cfg.McsContract {
+	for idx, ele := range append(c.Cfg.McsContract, c.Cfg.LightNode) {
 		if ele.Hex() == target {
 			return idx
 		}
