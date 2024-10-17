@@ -2,7 +2,6 @@ package proof
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
@@ -283,7 +282,6 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 		return nil, errors.Wrap(err, "pack mcs input failed")
 	}
 
-	fmt.Println("ret ", common.Bytes2Hex(ret))
 	return ret, nil
 }
 
