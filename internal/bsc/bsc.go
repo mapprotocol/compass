@@ -157,6 +157,7 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 			return nil, err
 		}
 	case constant.ProofTypeOfNewOracle:
+	case constant.ProofTypeOfLogOracle:
 		ret, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: common.BytesToHash(header[0].ReceiptsRoot),
 		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)

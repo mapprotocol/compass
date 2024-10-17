@@ -62,6 +62,7 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 		pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, idx,
 			mapprotocol.ProofAbi, orderId, false)
 	case constant.ProofTypeOfNewOracle:
+	case constant.ProofTypeOfLogOracle:
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: receiptHash,
 			Number:      big.NewInt(int64(log.BlockNumber)),
