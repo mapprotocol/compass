@@ -197,13 +197,12 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			}
 		}
 
-		m.Log.Info("Oracle model get node type is", "nodeType", nodeType, "topic", log.Topics[0])
-
+		m.Log.Info("Oracle model get node type is", "blockNumber", blockNumber, "nodeType", nodeType, "topic", log.Topics[0])
 		tmp := log
 		switch nodeType.Int64() {
 		case constant.ProofTypeOfNewOracle: //mpt
 			if log.Topics[0] != mapprotocol.TopicOfClientNotify && log.Topics[0] != mapprotocol.TopicOfManagerNotifySend { // 忽略mos的交易topic
-				m.Log.Info("Oracle model get node type is", "nodeType", nodeType, "topic", log.Topics[0])
+				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
 				continue
 			}
 			header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
@@ -217,6 +216,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			}
 		case constant.ProofTypeOfLogOracle: // log
 			if log.Topics[0] == mapprotocol.TopicOfClientNotify || log.Topics[0] == mapprotocol.TopicOfManagerNotifySend {
+				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
 				continue
 			}
 			receipt, err = genLogReceipt(&tmp) //  hash修改
