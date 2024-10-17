@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -55,6 +56,7 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
 
+	fmt.Println("proofType ------------------- ", proofType)
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
 	case constant.ProofTypeOfZk:
@@ -62,6 +64,7 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 		pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, idx,
 			mapprotocol.ProofAbi, orderId, false)
 	case constant.ProofTypeOfNewOracle:
+		fallthrough
 	case constant.ProofTypeOfLogOracle:
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: receiptHash,
@@ -191,6 +194,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			payloads, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId,
 				method, idx, mapprotocol.ProofAbi, orderId, false)
 		case constant.ProofTypeOfNewOracle:
+			fallthrough
 		case constant.ProofTypeOfLogOracle:
 			payloads, err = proof.SignOracle(header, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
 		default:

@@ -260,7 +260,7 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 	if err != nil {
 		return nil, fmt.Errorf("ProposalInfo failed: %w", err)
 	}
-	fmt.Println("piRet ------------------- ", piRet)
+	//fmt.Println("piRet ------------------- ", piRet)
 	if !piRet.CanVerify {
 		return nil, NotVerifyAble
 	}

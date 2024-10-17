@@ -60,6 +60,7 @@ func assembleProof(log *types.Log, receipts []*types.Receipt, method string, fId
 		}
 		ret, err = proof.Pack(fId, method, mapprotocol.ProofAbi, pd)
 	case constant.ProofTypeOfNewOracle:
+		fallthrough
 	case constant.ProofTypeOfLogOracle:
 		tr, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
 		tr = proof.DeriveTire(types.Receipts(receipts), tr)
