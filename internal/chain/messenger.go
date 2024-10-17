@@ -74,7 +74,7 @@ func (m *Messenger) sync() error {
 			}
 
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
-				m.Log.Info("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
+				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
 				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
