@@ -92,55 +92,61 @@ func (m *Oracle) filterOracle() error {
 			topic += ","
 		}
 	}
-	data, err := Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfOracle, m.Cfg.Id, topic)))
-	if err != nil {
-		return err
-	}
-	listData, err := json.Marshal(data)
-	if err != nil {
-		return errors.Wrap(err, "marshal resp.Data failed")
-	}
-	back := stream.MosListResp{}
-	err = json.Unmarshal(listData, &back)
-	if err != nil {
-		return err
-	}
-	if len(back.List) == 0 {
-		time.Sleep(constant.QueryRetryInterval)
-		return nil
-	}
 
-	for _, ele := range back.List {
-		idx := m.Match(ele.ContractAddress) // 新版 oracle
-		if idx == -1 {
-			m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
-			continue
-		}
-
-		split := strings.Split(ele.Topic, ",")
-		topics := make([]common.Hash, 0, len(split))
-		for _, sp := range split {
-			topics = append(topics, common.HexToHash(sp))
-		}
-		log := types.Log{
-			Address:     common.HexToAddress(ele.ContractAddress),
-			Topics:      topics,
-			Data:        common.Hex2Bytes(ele.LogData),
-			BlockNumber: ele.BlockNumber,
-			TxHash:      common.HexToHash(ele.TxHash),
-			TxIndex:     ele.TxIndex,
-			BlockHash:   common.HexToHash(ele.BlockHash),
-			Index:       ele.LogIndex,
-		}
-		err = log2Oracle(m, []types.Log{log}, big.NewInt(0).SetUint64(ele.BlockNumber))
+	tmp := int64(0)
+	for _, pid := range []int64{constant.ProjectOfOracle, constant.ProjectOfMsger} {
+		data, err := Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
+			fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
+				m.Cfg.StartBlock.Int64(), pid, m.Cfg.Id, topic)))
 		if err != nil {
 			return err
 		}
-		m.Cfg.StartBlock = big.NewInt(ele.Id)
-	}
+		listData, err := json.Marshal(data)
+		if err != nil {
+			return errors.Wrap(err, "marshal resp.Data failed")
+		}
+		back := stream.MosListResp{}
+		err = json.Unmarshal(listData, &back)
+		if err != nil {
+			return err
+		}
+		if len(back.List) == 0 {
+			time.Sleep(constant.QueryRetryInterval)
+			return nil
+		}
 
+		for _, ele := range back.List {
+			idx := m.Match(ele.ContractAddress) // 新版 oracle
+			if idx == -1 {
+				m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
+				continue
+			}
+
+			split := strings.Split(ele.Topic, ",")
+			topics := make([]common.Hash, 0, len(split))
+			for _, sp := range split {
+				topics = append(topics, common.HexToHash(sp))
+			}
+			log := types.Log{
+				Address:     common.HexToAddress(ele.ContractAddress),
+				Topics:      topics,
+				Data:        common.Hex2Bytes(ele.LogData),
+				BlockNumber: ele.BlockNumber,
+				TxHash:      common.HexToHash(ele.TxHash),
+				TxIndex:     ele.TxIndex,
+				BlockHash:   common.HexToHash(ele.BlockHash),
+				Index:       ele.LogIndex,
+			}
+			err = log2Oracle(m, []types.Log{log}, big.NewInt(0).SetUint64(ele.BlockNumber))
+			if err != nil {
+				return err
+			}
+			if ele.Id > tmp {
+				tmp = ele.Id
+			}
+		}
+	}
+	m.Cfg.StartBlock = big.NewInt(tmp)
 	return nil
 }
 

@@ -1,7 +1,6 @@
 package bsc
 
 import (
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -55,7 +54,7 @@ func ConvertHeader(header *ethclient.BscHeader) Header {
 	}
 	parentBeaconBlockRoot := common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
 	if header.ParentBeaconBlockRoot != "" && strings.TrimPrefix(header.ParentBeaconBlockRoot, "0x") != "" {
-		fmt.Println(header.Number, " ---- header.ParentBeaconBlockRoot ---------------------------- ", header.ParentBeaconBlockRoot)
+		//fmt.Println(header.Number, " ---- header.ParentBeaconBlockRoot ---------------------------- ", header.ParentBeaconBlockRoot)
 		parentBeaconBlockRoot = common.Hex2Bytes(strings.TrimPrefix(header.ParentBeaconBlockRoot, "0x"))
 	}
 

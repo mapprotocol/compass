@@ -232,7 +232,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 		if err != nil {
 			return err
 		}
-		m.Log.Info("MulSignInfo success", "ret", ret)
+		//m.Log.Info("MulSignInfo success", "ret", ret)
 		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, blockNumber, id)
 		if err != nil {
 			return err
