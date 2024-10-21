@@ -174,10 +174,6 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	orderId := log.Topics[1]
 	toChainID, _ = strconv.ParseUint(strconv.FormatUint(uint64(m.Cfg.MapChainID), 10), 10, 64)
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		fmt.Println("1 ---- ", log.Topics[2].Bytes()[0:8])
-		fmt.Println("2 ---- ", log.Topics[2].Bytes()[8:16])
-		fmt.Println("3 ---- ", log.Topics[2].Bytes()[16:24])
-		fmt.Println("4 ---- ", log.Topics[2].Bytes()[24:])
 		toChainID = big.NewInt(0).SetBytes(log.Topics[2].Bytes()[8:16]).Uint64()
 	}
 	chainName, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]

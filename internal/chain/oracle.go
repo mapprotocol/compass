@@ -144,10 +144,10 @@ func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 	if err != nil {
 		return fmt.Errorf("oracle unable to Filter Logs: %w", err)
 	}
-	m.Log.Debug("Querying block for events", "block", currentBlock, "logs", len(logs))
 	if len(logs) == 0 {
 		return nil
 	}
+	m.Log.Info("Querying block for events", "block", currentBlock, "logs", len(logs))
 	err = log2Oracle(m, logs, currentBlock)
 	if err != nil {
 		return err
@@ -176,7 +176,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	for _, log := range logs {
 		toChainID := uint64(m.Cfg.MapChainID)
 		if m.Cfg.Id == m.Cfg.MapChainID {
-			toChainID = getToChainId(log.Topics)
+			toChainID = big.NewInt(0).SetBytes(log.Topics[2].Bytes()[8:16]).Uint64()
 			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
 				m.Log.Info("Map Oracle Found a log that is not the current task", "blockNumber", log.BlockNumber, "toChainID", toChainID)
 				continue
@@ -232,7 +232,6 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 		if err != nil {
 			return err
 		}
-		//m.Log.Info("MulSignInfo success", "ret", ret)
 		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, blockNumber, id)
 		if err != nil {
 			return err
