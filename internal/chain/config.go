@@ -202,6 +202,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		vs := strings.Split(v, "|")
 		for _, s := range vs {
 			config.Events = append(config.Events, constant.EventSig(s))
+			fmt.Println(s, " ----- ", constant.EventSig(s).GetTopic())
 		}
 	}
 

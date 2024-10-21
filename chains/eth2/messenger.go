@@ -227,7 +227,7 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 }
 
 func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
-	orderId := log.Data[:32]
+	orderId := log.Topics[1]
 	method := m.GetMethod(log.Topics[0])
 	blockNumber := big.NewInt(0).SetUint64(log.BlockNumber)
 	header, err := m.Conn.Client().EthLatestHeaderByNumber(m.Cfg.Endpoint, blockNumber)
@@ -244,7 +244,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
 
-	proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), big.NewInt(0).SetUint64(log.BlockNumber), orderId)
+	proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), big.NewInt(0).SetUint64(log.BlockNumber), orderId.Bytes())
 	if errors.Is(err, chain.OrderExist) {
 		m.Log.Info("This txHash order exist", "txHash", log.TxHash)
 		return 0, nil
@@ -267,7 +267,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		}
 		sign = ret.Signatures
 	}
-	m.Log.Info("Event found", "txHash", log.TxHash, "orderId", common.Bytes2Hex(orderId), "method", method, "proofType", proofType)
+	m.Log.Info("Event found", "txHash", log.TxHash, "orderId", orderId, "method", method, "proofType", proofType)
 
 	var orderId32 [32]byte
 	for i, v := range orderId {
