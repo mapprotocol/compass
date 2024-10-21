@@ -234,7 +234,6 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*Propos
 	if err != nil {
 		return nil, err
 	}
-	// m.Log.Info("MulSignInfo success", "ret", ret)
 	header, err := cli.HeaderByNumber(context.Background(), big.NewInt(int64(log.BlockNumber)))
 	if err != nil {
 		return nil, err
