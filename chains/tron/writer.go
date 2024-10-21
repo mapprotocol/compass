@@ -355,7 +355,7 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	if (acc.EnergyLimit - acc.EnergyUsed) > int64(mul) {
 		w.log.Info("Rent energy, account have enough energy", "account", w.cfg.From,
 			"have", acc.EnergyLimit-acc.EnergyUsed, "estimate", mul)
-		return nil
+		//return nil
 	}
 
 	if balance < 711 {
