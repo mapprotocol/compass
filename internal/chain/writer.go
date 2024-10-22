@@ -93,10 +93,10 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 				w.cfg.Endpoint, from.Hex(), toAddress.Hex(), "0x"+common.Bytes2Hex(input))
 			w.log.Error("EstimateGas failed sendTx", "error:", serr)
 			if serr != nil {
-				//return nil, serr
+				return nil, serr
 			}
 		}
-		//return nil, err
+		return nil, err
 	}
 
 	gasLimit = 2000000
