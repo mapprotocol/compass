@@ -120,7 +120,7 @@ func (m *Oracle) filterOracle() error {
 		}
 		if len(back.List) == 0 {
 			time.Sleep(constant.QueryRetryInterval)
-			return nil
+			continue
 		}
 
 		for _, ele := range back.List {

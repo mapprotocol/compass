@@ -158,10 +158,10 @@ func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 
 func getToChainId(topics []common.Hash) uint64 {
 	var ret uint64
-	if topics[0] == mapprotocol.TopicOfClientNotify || topics[0] == mapprotocol.TopicOfManagerNotifySend {
+	if topics[0] == mapprotocol.TopicOfManagerNotifySend {
 		ret = binary.BigEndian.Uint64(topics[1][len(topics[1])-8:])
 	} else {
-		ret = binary.BigEndian.Uint64(topics[2][len(topics[2])-8:])
+		ret = big.NewInt(0).SetBytes(topics[2].Bytes()[8:16]).Uint64()
 	}
 	return ret
 }
@@ -176,7 +176,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	for _, log := range logs {
 		toChainID := uint64(m.Cfg.MapChainID)
 		if m.Cfg.Id == m.Cfg.MapChainID {
-			toChainID = big.NewInt(0).SetBytes(log.Topics[2].Bytes()[8:16]).Uint64()
+			toChainID = getToChainId(log.Topics)
 			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
 				m.Log.Info("Map Oracle Found a log that is not the current task", "blockNumber", log.BlockNumber, "toChainID", toChainID)
 				continue
