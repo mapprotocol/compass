@@ -204,6 +204,8 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		if toChainID == constant.MerlinChainId {
 			message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
+		} else if toChainID == constant.TonChainId { // todo ton
+
 		}
 	} else if m.Cfg.SyncToMap {
 		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, method, m.Cfg.Id, proofType, sign, orderId32)

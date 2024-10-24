@@ -114,6 +114,7 @@ const (
 	DodoChainId       = 53457
 	TronChainId       = 728126428
 	NearChainId       = 1360100178526209
+	TonChainId        = 1360104473493505
 )
 
 const (

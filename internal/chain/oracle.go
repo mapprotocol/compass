@@ -253,6 +253,9 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 }
 
 func genLogReceipt(log *types.Log) (*common.Hash, error) {
+	if log.Topics[0] == mapprotocol.TopicOfClientNotify { // todo ton
+		return common.HexToHash("0x00000"), nil
+	}
 	recePack := make([]byte, 0)
 	recePack = append(recePack, log.Address.Bytes()...)
 	recePack = append(recePack, []byte{0, 0, 0, 0}...)
@@ -303,6 +306,9 @@ func exist(target int64, dst []int64) bool {
 }
 
 func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
+	if toChainID == constant.TonChainId { // todo ton
+		return big.NewInt(5), nil
+	}
 	call, ok := mapprotocol.LightNodeMapping[msg.ChainId(toChainID)]
 	if !ok {
 		return nil, ContractNotExist

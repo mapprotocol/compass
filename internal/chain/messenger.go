@@ -186,6 +186,8 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		proofType = 1
 	} else if strings.ToLower(chainName) == "tron" {
 		proofType = constant.ProofTypeOfNewOracle
+	} else if strings.ToLower(chainName) == "ton" {
+		proofType = constant.ProofTypeOfLogOracle
 	} else {
 		proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId.Bytes())
 		if errors.Is(err, OrderExist) {

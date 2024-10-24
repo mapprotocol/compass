@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -144,7 +143,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := util.Key2Hex(key, len(prf))
-	fmt.Println("proofType ------------------- ", proofType, "method ----- ", method, "uToChainID", uToChainID)
+
 	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
 		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 		nr := mapprotocol.MapTxReceipt{
