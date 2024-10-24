@@ -94,6 +94,14 @@ func (m *Oracle) filterOracle() error {
 	}
 
 	tmp := int64(0)
+	defer func() {
+		if tmp == 0 {
+			return
+		}
+		if tmp > m.Cfg.StartBlock.Int64() {
+			m.Cfg.StartBlock = big.NewInt(tmp)
+		}
+	}()
 	for _, pid := range []int64{constant.ProjectOfOracle, constant.ProjectOfMsger} {
 		data, err := Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
 			fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
@@ -141,12 +149,9 @@ func (m *Oracle) filterOracle() error {
 			if err != nil {
 				return err
 			}
-			if ele.Id > tmp {
-				tmp = ele.Id
-			}
+			tmp = ele.Id
 		}
 	}
-	m.Cfg.StartBlock = big.NewInt(tmp)
 	return nil
 }
 
