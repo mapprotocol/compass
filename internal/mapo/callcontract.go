@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -30,8 +31,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId,
-	proofType int64, sign [][]byte, orderId [32]byte) ([]byte, error) {
+func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.Receipt, header *maptypes.Header,
+	method string, fId msg.ChainId, proofType int64, sign [][]byte, orderId [32]byte) ([]byte, error) {
 	var (
 		pack []byte
 		err  error
@@ -50,6 +51,9 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	prf, receiptHash, err := ethProof(conn, fId, log.TxIndex, receipts)
 	if err != nil {
 		return nil, err
+	}
+	if receiptHash != header.ReceiptHash {
+		fmt.Println("Matic generate", receiptHash, "oracle", header.ReceiptHash, " not same")
 	}
 
 	var key []byte

@@ -355,7 +355,7 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	if (acc.EnergyLimit - acc.EnergyUsed) > int64(mul) {
 		w.log.Info("Rent energy, account have enough energy", "account", w.cfg.From,
 			"have", acc.EnergyLimit-acc.EnergyUsed, "estimate", mul)
-		return nil
+		//return nil
 	}
 
 	if balance < 711 {
@@ -363,12 +363,12 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	}
 
 	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,
-		big.NewInt(312156000000), big.NewInt(1))
+		big.NewInt(122205000000), big.NewInt(1))
 	if err != nil {
 		return errors.Wrap(err, "pack input failed")
 	}
 	w.log.Info("Rent energy will rent")
-	tx, err := w.sendTx(w.cfg.RentNode, "rent", input, 711000000, 1, 70000, false)
+	tx, err := w.sendTx(w.cfg.RentNode, "rent", input, 300000000, 1, 70000, false)
 	if err != nil {
 		return errors.Wrap(err, "sendTx failed")
 	}
@@ -411,10 +411,6 @@ func (w *Writer) feeRentEnergy(used int64, acc *api.AccountResourceMessage) erro
 }
 
 func (w *Writer) newReturn(method string) {
-	// if w.cfg.FeeType == constant.FeeRentType || (method != mapprotocol.MtdOfSwapInVerifiedWithIndex && method != mapprotocol.MethodOfSwapInVerified) {
-	// 	w.log.Info("Return energy, call method is not swapInVerified or withIndex, dont need return energy", "method", method)
-	// 	return
-	// }
 	if !w.isRent {
 		w.log.Info("Return energy, is not rent, dont return")
 		return
@@ -430,7 +426,7 @@ func (w *Writer) newReturn(method string) {
 		w.log.Info("Return energy, user not rent energy", "gas", acc.EnergyLimit)
 		return
 	}
-	input, err := mapprotocol.TronAbi.Pack("returnResource", w.cfg.EthFrom, big.NewInt(312156000000), big.NewInt(1))
+	input, err := mapprotocol.TronAbi.Pack("returnResource", w.cfg.EthFrom, big.NewInt(122205000000), big.NewInt(1))
 	if err != nil {
 		w.log.Error("Return energy, Pack failed", "err", err)
 		return

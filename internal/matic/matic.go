@@ -1,9 +1,12 @@
 package matic
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/internal/proof"
@@ -93,6 +96,13 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 		return nil, err
 	}
 
+	tr, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
+	tr = proof.DeriveTire(types.Receipts(receipts), tr)
+	ret := tr.Hash()
+	if ret != common.BytesToHash(headers[0].ReceiptsRoot) {
+		fmt.Println("Matic generate", ret, "oracle", common.BytesToHash(headers[0].ReceiptsRoot), " not same")
+	}
+
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := mapo.Key2Hex(key, len(prf))
@@ -118,7 +128,7 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 		}
 
 		//pack, err = proof.Pack(fId, method, mapprotocol.Matic, pd)
-		pack, err = proof.V3Pack(fId, method, mapprotocol.Bsc, idx, orderId, false, pd)
+		pack, err = proof.V3Pack(fId, method, mapprotocol.Matic, idx, orderId, false, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:
 		pd := proof.Data{

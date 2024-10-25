@@ -174,17 +174,16 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 	if err != nil {
 		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
+	header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), bigNumber)
+	if err != nil {
+		return nil, fmt.Errorf("unable to query header Logs: %w", err)
+	}
 
 	var orderId32 [32]byte
 	for idx, v := range orderId {
 		orderId32[idx] = v
 	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), bigNumber)
-		if err != nil {
-			return nil, fmt.Errorf("unable to query header Logs: %w", err)
-		}
-
 		remainder := big.NewInt(0).Mod(bigNumber, big.NewInt(mapprotocol.EpochOfMap))
 		if remainder.Cmp(mapprotocol.Big0) == 0 {
 			lr, err := mapprotocol.GetLastReceipt(m.Conn.Client(), bigNumber)
@@ -208,7 +207,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 
 		}
 	} else if m.Cfg.SyncToMap {
-		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, method, m.Cfg.Id, proofType, sign, orderId32)
+		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, header, method, m.Cfg.Id, proofType, sign, orderId32)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}
