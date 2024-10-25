@@ -178,6 +178,7 @@ func (w *Writer) proposal(m msg.Message) bool {
 			receiptHash := m.Payload[1].(*common.Hash)
 			blockNumber := m.Payload[2].(*big.Int)
 			hash := common.Bytes2Hex(crypto.Keccak256(pack))
+			fmt.Println("sign before hash", hash)
 			sign, err := personalSign(string(common.Hex2Bytes(hash)), w.conn.Keypair().PrivateKey)
 			if err != nil {
 				return false
@@ -187,6 +188,10 @@ func (w *Writer) proposal(m msg.Message) bool {
 				fixedHash[i] = v
 			}
 
+			fmt.Println("m.Source ", m.Source)
+			fmt.Println("m.blockNumber ", blockNumber)
+			fmt.Println("m.fixedHash ", receiptHash)
+			fmt.Println("m.sign ", common.Bytes2Hex(sign))
 			data, err := mapprotocol.SignerAbi.Pack(mapprotocol.MethodOfPropose, big.NewInt(int64(m.Source)), blockNumber, fixedHash, sign)
 			if err != nil {
 				return false

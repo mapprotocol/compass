@@ -232,6 +232,14 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 		if err != nil {
 			return err
 		}
+		version := make([]byte, 0)
+		for _, v := range ret.Version {
+			version = append(version, byte(v))
+		}
+		fmt.Println("receipt ", receipt)
+		fmt.Println("version ", common.BytesToHash(version).String())
+		fmt.Println("blockNumber ", blockNumber.String())
+		fmt.Println("id ", id)
 		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, blockNumber, id)
 		if err != nil {
 			return err
@@ -253,9 +261,6 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 }
 
 func genLogReceipt(log *types.Log) (*common.Hash, error) {
-	if log.Topics[0] == mapprotocol.TopicOfClientNotify { // todo ton
-		return common.HexToHash("0x00000"), nil
-	}
 	recePack := make([]byte, 0)
 	recePack = append(recePack, log.Address.Bytes()...)
 	recePack = append(recePack, []byte{0, 0, 0, 0}...)
