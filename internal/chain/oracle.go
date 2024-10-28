@@ -4,6 +4,13 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	eth "github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/trie"
+	"github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/internal/tx"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
 	"time"
 
@@ -11,13 +18,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -70,7 +72,7 @@ func (m *Oracle) sync() error {
 			}
 
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
-				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
+				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock, "sub", big.NewInt(0).Sub(latestBlock, currentBlock))
 				time.Sleep(constant.BalanceRetryInterval)
 				continue
 			}
@@ -102,13 +104,7 @@ func (m *Oracle) filter() error {
 		case <-m.Stop:
 			return errors.New("filter polling terminated")
 		default:
-			latestBlock, err := m.FilterLatestBlock()
-			if err != nil {
-				m.Log.Error("Unable to get latest block", "err", err)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-			err = m.filterOracle(latestBlock.Uint64())
+			err := m.filterOracle()
 			if err != nil {
 				m.Log.Error("Failed to get events for block", "err", err)
 				time.Sleep(constant.BlockRetryInterval)
@@ -126,14 +122,29 @@ func (m *Oracle) filter() error {
 	}
 }
 
+func BuildQuery(contract []common.Address, sig []constant.EventSig, startBlock *big.Int, endBlock *big.Int) eth.FilterQuery {
+	topics := make([]common.Hash, 0, len(sig))
+	for _, s := range sig {
+		topics = append(topics, s.GetTopic())
+	}
+	query := eth.FilterQuery{
+		FromBlock: startBlock,
+		ToBlock:   endBlock,
+		Addresses: contract,
+		Topics:    [][]common.Hash{topics},
+	}
+	return query
+}
+
 func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
-	m.Log.Debug("Querying block for events", "block", currentBlock)
-	query := m.BuildQuery(m.Cfg.LightNode, m.Cfg.Events, currentBlock, currentBlock)
+	//  区分
+	query := BuildQuery(append(m.Cfg.McsContract, m.Cfg.LightNode), m.Cfg.Events, currentBlock, currentBlock) // 过滤clientNotify和mos的所有事件
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
 		return fmt.Errorf("oracle unable to Filter Logs: %w", err)
 	}
+	m.Log.Debug("Querying block for events", "block", currentBlock, "logs", len(logs))
 	if len(logs) == 0 {
 		return nil
 	}
@@ -145,49 +156,94 @@ func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 	return nil
 }
 
+func getToChainId(topics []common.Hash) uint64 {
+	var ret uint64
+	if topics[0] == mapprotocol.TopicOfClientNotify || topics[0] == mapprotocol.TopicOfManagerNotifySend {
+		ret = binary.BigEndian.Uint64(topics[1][len(topics[1])-8:])
+	} else {
+		ret = binary.BigEndian.Uint64(topics[2][len(topics[2])-8:])
+	}
+	return ret
+}
+
 func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	count := 0
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
-	if err != nil {
-		return fmt.Errorf("oracle get header failed, err: %w", err)
-	}
-	receiptHash, err := generateReceipt(m.Conn.Client(), int64(m.Cfg.Id), blockNumber)
-	if err != nil {
-		return fmt.Errorf("oracle generate receipt failed, err is %w", err)
-	}
-	if receiptHash != nil {
-		header.ReceiptHash = *receiptHash
-	}
-
-	m.Log.Info("Find log", "block", blockNumber, "logs", len(logs), "receipt", header.ReceiptHash)
+	var (
+		err     error
+		receipt *common.Hash
+	)
 	id := big.NewInt(int64(m.Cfg.Id))
 	for _, log := range logs {
 		toChainID := uint64(m.Cfg.MapChainID)
 		if m.Cfg.Id == m.Cfg.MapChainID {
-			toChainID = binary.BigEndian.Uint64(log.Topics[1][len(logs[0].Topics[1])-8:])
+			toChainID = getToChainId(log.Topics)
 			if _, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]; !ok {
 				m.Log.Info("Map Oracle Found a log that is not the current task", "blockNumber", log.BlockNumber, "toChainID", toChainID)
 				continue
 			}
 		}
 
-		ret, err := MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.Id))
+		// 查询 nodeType
+		nodeType := new(big.Int)
+		if m.Cfg.Id == m.Cfg.MapChainID {
+			nodeType, err = GetMap2OtherNodeType(0, toChainID)
+			if err != nil {
+				return errors.Wrap(err, "Get2OtherNodeType failed")
+			}
+		} else {
+			nodeType, err = mapprotocol.GetNodeTypeByManager(mapprotocol.MethodOfNodeType, big.NewInt(int64(m.Cfg.Id)))
+			if err != nil {
+				return err
+			}
+		}
+
+		m.Log.Info("Oracle model get node type is", "blockNumber", blockNumber, "nodeType", nodeType, "topic", log.Topics[0])
+		tmp := log
+		switch nodeType.Int64() {
+		case constant.ProofTypeOfNewOracle: //mpt
+			if log.Topics[0] != mapprotocol.TopicOfClientNotify && log.Topics[0] != mapprotocol.TopicOfManagerNotifySend { // 忽略mos的交易topic
+				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
+				continue
+			}
+			header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
+			if err != nil {
+				return fmt.Errorf("oracle get header failed, err: %w", err)
+			}
+			receipt = &header.ReceiptHash
+			genRece, err := genMptReceipt(m.Conn.Client(), int64(m.Cfg.Id), blockNumber) //  hash修改
+			if genRece != nil {
+				receipt = genRece
+			}
+		case constant.ProofTypeOfLogOracle: // log
+			if log.Topics[0] == mapprotocol.TopicOfClientNotify || log.Topics[0] == mapprotocol.TopicOfManagerNotifySend {
+				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
+				continue
+			}
+			receipt, err = genLogReceipt(&tmp) //  hash修改
+		default:
+			panic("unhandled default case")
+		}
+		if err != nil {
+			return fmt.Errorf("oracle generate receipt failed, err is %w", err)
+		}
+		m.Log.Info("Find log", "block", blockNumber, "logs", len(logs), "receipt", receipt)
+
+		ret, err := MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
 		if err != nil {
 			return err
 		}
-		m.Log.Info("MulSignInfo success", "ret", ret)
-		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(header.ReceiptHash, ret.Version, blockNumber, id)
+		//m.Log.Info("MulSignInfo success", "ret", ret)
+		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, blockNumber, id)
 		if err != nil {
 			return err
 		}
 
-		err = m.Router.Send(msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{pack, header.ReceiptHash, blockNumber}, m.MsgCh))
+		err = m.Router.Send(msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{pack, receipt, blockNumber}, m.MsgCh))
 		if err != nil {
 			m.Log.Error("Proposal error: failed to route message", "err", err)
 			return err
 		}
 		count++
-
 	}
 
 	err = m.WaitUntilMsgHandled(count)
@@ -197,8 +253,31 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	return nil
 }
 
-func generateReceipt(cli *ethclient.Client, selfId int64, latestBlock *big.Int) (*common.Hash, error) {
-	if !exist(selfId, []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId}) {
+func genLogReceipt(log *types.Log) (*common.Hash, error) {
+	recePack := make([]byte, 0)
+	recePack = append(recePack, log.Address.Bytes()...)
+	recePack = append(recePack, []byte{0, 0, 0, 0}...)
+	recePack = append(recePack, Completion(big.NewInt(int64(len(log.Topics))).Bytes(), 4)...)
+	recePack = append(recePack, Completion(big.NewInt(int64(len(log.Data))).Bytes(), 4)...)
+	for _, tp := range log.Topics {
+		recePack = append(recePack, tp.Bytes()...)
+	}
+	recePack = append(recePack, log.Data...)
+	receipt := common.BytesToHash(crypto.Keccak256(recePack))
+	return &receipt, nil
+}
+
+func Completion(bytes []byte, number int) []byte {
+	ret := make([]byte, 0, number)
+	for i := 0; i < number-len(bytes); i++ {
+		ret = append(ret, byte(0))
+	}
+	ret = append(ret, bytes...)
+	return ret
+}
+
+func genMptReceipt(cli *ethclient.Client, selfId int64, latestBlock *big.Int) (*common.Hash, error) {
+	if !exist(selfId, []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId, constant.B2ChainId, constant.ZkLinkChainId}) {
 		return nil, nil
 	}
 	txsHash, err := mapprotocol.GetTxsByBn(cli, latestBlock)
@@ -222,4 +301,18 @@ func exist(target int64, dst []int64) bool {
 		}
 	}
 	return false
+}
+
+func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
+	call, ok := mapprotocol.LightNodeMapping[msg.ChainId(toChainID)]
+	if !ok {
+		return nil, ContractNotExist
+	}
+
+	ret := new(big.Int)
+	err := call.Call(mapprotocol.MethodOfNodeType, &ret, idx)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }

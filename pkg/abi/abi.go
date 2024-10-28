@@ -2,6 +2,7 @@ package abi
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -34,11 +35,11 @@ func (a *Abi) UnpackOutput(method string, ret interface{}, output []byte) error 
 	outputs := a.bridgeAbi.Methods[method].Outputs
 	unpack, err := outputs.Unpack(output)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unpack output")
 	}
 
 	if err = outputs.Copy(ret, unpack); err != nil {
-		return err
+		return errors.Wrap(err, "copy output")
 	}
 	return nil
 }

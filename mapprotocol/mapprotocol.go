@@ -27,15 +27,17 @@ type GetHeight func() (*big.Int, error)
 type GetVerifyRange func() (*big.Int, *big.Int, error)
 
 var (
-	MapId             string
-	GlobalMapConn     *ethclient.Client
-	SyncOtherMap      = make(map[msg.ChainId]*big.Int)  // map to other chain init height
-	Map2OtherHeight   = make(map[msg.ChainId]GetHeight) // get map to other height function collect
-	ContractMapping   = make(map[msg.ChainId]*contract.Call)
-	SingMapping       = make(map[msg.ChainId]*contract.Call)
-	Get2MapHeight     = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }                // get other chain to map height
-	GetEth22MapNumber = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // can reform, return data is []byte
-	GetDataByManager  = func(string, ...interface{}) ([]byte, error) { return nil, nil }
+	MapId                string
+	GlobalMapConn        *ethclient.Client
+	SyncOtherMap         = make(map[msg.ChainId]*big.Int)  // map to other chain init height
+	Map2OtherHeight      = make(map[msg.ChainId]GetHeight) // get map to other height function collect
+	ContractMapping      = make(map[msg.ChainId]*contract.Call)
+	LightNodeMapping     = make(map[msg.ChainId]*contract.Call)
+	SingMapping          = make(map[msg.ChainId]*contract.Call)
+	Get2MapHeight        = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }                // get other chain to map height
+	GetEth22MapNumber    = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // can reform, return data is []byte
+	GetDataByManager     = func(string, ...interface{}) ([]byte, error) { return nil, nil }
+	GetNodeTypeByManager = func(string, ...interface{}) (*big.Int, error) { return nil, nil }
 )
 
 func InitLightManager(lightNode common.Address) {
@@ -199,4 +201,32 @@ func HeaderHeight(to common.Address, input []byte) (*big.Int, error) {
 		return nil, err
 	}
 	return height, nil
+}
+
+func LightManagerNodeType(lightNode common.Address) {
+	GetNodeTypeByManager = func(method string, params ...interface{}) (*big.Int, error) {
+		input, err := PackInput(LightManger, method, params...)
+		if err != nil {
+			return nil, errors.Wrap(err, "get other2map packInput failed")
+		}
+		output, err := GlobalMapConn.CallContract(
+			context.Background(),
+			goeth.CallMsg{From: constant.ZeroAddress, To: &lightNode, Data: input},
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		outputs := LightManger.Methods[method].Outputs
+		unpack, err := outputs.Unpack(output)
+		if err != nil {
+			return nil, err
+		}
+		ret := new(big.Int)
+		if err = outputs.Copy(&ret, unpack); err != nil {
+			return nil, err
+		}
+
+		return ret, nil
+	}
 }

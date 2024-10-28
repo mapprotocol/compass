@@ -33,6 +33,7 @@ func (c *Call) Call(method string, ret interface{}, idx int, params ...interface
 		return err
 	}
 
+	//fmt.Println(" c.toC[idx] -------- ", c.toC[idx], "method ", method)
 	outPut, err := c.conn.Client().CallContract(context.Background(),
 		ethereum.CallMsg{
 			From: constant.ZeroAddress,

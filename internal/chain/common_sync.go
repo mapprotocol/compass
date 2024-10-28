@@ -126,16 +126,7 @@ func (c *CommonSync) BuildQuery(contract ethcommon.Address, sig []constant.Event
 }
 
 func (c *CommonSync) GetMethod(topic ethcommon.Hash) string {
-	method := mapprotocol.MethodOfTransferIn
-	if topic == mapprotocol.HashOfDepositIn {
-		method = mapprotocol.MethodOfDepositIn
-	} else if topic == mapprotocol.HashOfSwapIn {
-		method = mapprotocol.MethodOfSwapIn
-	} else if topic == mapprotocol.HashOfMessageIn {
-		method = mapprotocol.MethodOfTransferInWithIndex
-	}
-
-	return method
+	return mapprotocol.MethodOfMessageIn
 }
 
 func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {
@@ -159,7 +150,7 @@ func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {
 }
 
 func (c *CommonSync) Match(target string) int {
-	for idx, ele := range c.Cfg.McsContract {
+	for idx, ele := range append(c.Cfg.McsContract, c.Cfg.LightNode) {
 		if ele.Hex() == target {
 			return idx
 		}

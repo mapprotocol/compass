@@ -7,14 +7,10 @@ import (
 
 	"github.com/mapprotocol/compass/chains/tron"
 
-	"github.com/mapprotocol/compass/chains/bttc"
-
 	"github.com/mapprotocol/compass/pkg/util"
 
-	"github.com/mapprotocol/compass/chains/conflux"
-	"github.com/mapprotocol/compass/chains/platon"
-
 	"github.com/mapprotocol/compass/chains/bsc"
+	"github.com/mapprotocol/compass/chains/conflux"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
@@ -227,6 +223,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 				mapprotocol.Init2GetEth22MapNumber(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 				mapprotocol.InitLightManager(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
+				mapprotocol.LightManagerNodeType(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 			}
 		case chains.Near:
 			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, role)
@@ -238,12 +235,8 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			newChain, err = klaytn.InitializeChain(chainConfig, logger, sysErr, role)
 		case chains.Eth2:
 			newChain, err = eth2.InitializeChain(chainConfig, logger, sysErr, role)
-		case chains.Platon:
-			newChain, err = platon.InitializeChain(chainConfig, logger, sysErr, role)
 		case chains.Conflux:
 			newChain, err = conflux.InitializeChain(chainConfig, logger, sysErr, role)
-		case chains.Bttc:
-			newChain, err = bttc.NewChain(chainConfig, logger, sysErr, role)
 		case chains.Tron:
 			newChain, err = tron.NewChain(chainConfig, logger, sysErr, role)
 		default:

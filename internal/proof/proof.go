@@ -2,6 +2,8 @@ package proof
 
 import (
 	"bytes"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"sync"
 
@@ -53,6 +55,14 @@ type SignData struct {
 	ReceiptRoot  [32]byte
 	Signatures   [][]byte
 	ReceiptProof NewReceiptProof
+}
+
+type SignLogData struct {
+	ProofType   uint8
+	BlockNum    *big.Int
+	ReceiptRoot [32]byte
+	Signatures  [][]byte
+	Proof       []byte
 }
 
 type NewReceiptProof struct {
@@ -184,34 +194,81 @@ func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf 
 	return ret, nil
 }
 
+func Completion(bytes []byte, number int) []byte {
+	ret := make([]byte, 0, number)
+	for i := 0; i < number-len(bytes); i++ {
+		ret = append(ret, byte(0))
+	}
+	ret = append(ret, bytes...)
+	return ret
+}
+
+func log2Proof(log *types.Log) []byte {
+	ret := make([]byte, 0)
+	ret = append(ret, log.Address.Bytes()...)
+	ret = append(ret, []byte{0, 0, 0, 0}...)
+	ret = append(ret, Completion(big.NewInt(int64(len(log.Topics))).Bytes(), 4)...)
+	ret = append(ret, Completion(big.NewInt(int64(len(log.Data))).Bytes(), 4)...)
+	for _, tp := range log.Topics {
+		ret = append(ret, tp.Bytes()...)
+	}
+	ret = append(ret, log.Data...)
+	return ret
+}
+
 func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId,
-	idx int, method string, sign [][]byte, orderId [32]byte, map2other bool) ([]byte, error) {
-	nr := mapprotocol.MapTxReceipt{
-		PostStateOrStatus: receipt.PostStateOrStatus,
-		CumulativeGasUsed: receipt.CumulativeGasUsed,
-		Bloom:             receipt.Bloom,
-		Logs:              receipt.Logs,
-	}
-	nrRlp, err := rlp.EncodeToBytes(nr)
-	if err != nil {
-		return nil, err
-	}
-
+	idx int, method string, sign [][]byte, orderId [32]byte, log *types.Log, proofType int64) ([]byte, error) {
+	pt := uint8(0)
 	var fixedHash [32]byte
-	for i, v := range header.ReceiptHash {
-		fixedHash[i] = v
-	}
+	newPrf := make([]byte, 0)
+	switch proofType {
+	case constant.ProofTypeOfNewOracle:
+		nr := mapprotocol.MapTxReceipt{
+			PostStateOrStatus: receipt.PostStateOrStatus,
+			CumulativeGasUsed: receipt.CumulativeGasUsed,
+			Bloom:             receipt.Bloom,
+			Logs:              receipt.Logs,
+		}
+		nrRlp, err := rlp.EncodeToBytes(nr)
+		if err != nil {
+			return nil, err
+		}
 
-	pd := SignData{
-		BlockNum:    header.Number,
-		ReceiptRoot: fixedHash,
-		Signatures:  sign,
-		ReceiptProof: NewReceiptProof{
+		for i, v := range header.ReceiptHash {
+			fixedHash[i] = v
+		}
+		if receipt.ReceiptType.Int64() != 0 {
+			n := make([]byte, 0)
+			n = append(n, receipt.ReceiptType.Bytes()...)
+			n = append(n, nrRlp...)
+			nrRlp = n
+		}
+
+		rpf := NewReceiptProof{
 			TxReceipt:   nrRlp,
 			ReceiptType: receipt.ReceiptType,
 			KeyIndex:    util.Key2Hex(key, len(prf)),
 			Proof:       prf,
-		},
+		}
+
+		newPrf, err = mapprotocol.PackAbi.Methods[mapprotocol.MethodOfMptPack].Inputs.Pack(rpf)
+		if err != nil {
+			return nil, err
+		}
+	case constant.ProofTypeOfLogOracle:
+		pt = 1
+		newPrf = log2Proof(log)
+		fixedHash = common.BytesToHash(crypto.Keccak256(newPrf))
+	default:
+		return nil, errors.New("invalid proof type")
+	}
+
+	pd := SignLogData{
+		ProofType:   pt,
+		BlockNum:    big.NewInt(0).SetUint64(log.BlockNumber),
+		ReceiptRoot: fixedHash,
+		Signatures:  sign,
+		Proof:       newPrf,
 	}
 
 	input, err := mapprotocol.GetAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
@@ -219,17 +276,8 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 		return nil, errors.Wrap(err, "pack getBytes failed")
 	}
 
-	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
-		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(int64(fId)), big.NewInt(int64(idx)), input)
-	}
-	var ret []byte
-	if map2other {
-		ret, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
-			big.NewInt(int64(idx)), orderId, input)
-	} else {
-		ret, err = mapprotocol.PackInput(mapprotocol.OldMcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
-	}
-
+	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
+		big.NewInt(int64(idx)), orderId, input)
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")
 	}

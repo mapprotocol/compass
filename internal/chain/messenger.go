@@ -6,6 +6,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
 	"math/big"
 	"strconv"
 	"strings"
@@ -13,11 +16,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
 )
@@ -172,11 +172,12 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		err       error
 	)
 
+	proofType = 4
 	if log.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
 		proofType = 3
 	} else {
 		orderId := log.Data[:32]
-		toChainID, _ = strconv.ParseUint(mapprotocol.MapId, 10, 64)
+		toChainID, _ = strconv.ParseUint(strconv.FormatUint(uint64(m.Cfg.MapChainID), 10), 10, 64)
 		if m.Cfg.Id == m.Cfg.MapChainID {
 			toChainID = binary.BigEndian.Uint64(log.Topics[2][len(log.Topics[2])-8:])
 		}
@@ -205,9 +206,10 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 			}
 		}
 	}
+	fmt.Println("proofType ", proofType)
 	var sign [][]byte
-	if proofType == constant.ProofTypeOfNewOracle {
-		ret, err := Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log)
+	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
+		ret, err := Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log, proofType)
 		if err != nil {
 			return 0, err
 		}
@@ -228,29 +230,40 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	return 1, nil
 }
 
-func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log) (*ProposalInfoResp, error) {
+func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofType int64) (*ProposalInfoResp, error) {
 	bn := big.NewInt(int64(log.BlockNumber))
 	ret, err := MulSignInfo(0, selfId, toId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("MulSignInfo failed: %w", err)
 	}
 	header, err := cli.HeaderByNumber(context.Background(), big.NewInt(int64(log.BlockNumber)))
 	if err != nil {
 		return nil, err
 	}
-	hash, _ := generateReceipt(cli, int64(selfId), big.NewInt(int64(log.BlockNumber)))
-	if hash != nil {
-		header.ReceiptHash = *hash
+	switch proofType {
+	case constant.ProofTypeOfNewOracle:
+		genRece, err := genMptReceipt(cli, int64(selfId), bn) //  hash修改
+		if err != nil {
+			return nil, err
+		}
+		if genRece != nil {
+			header.ReceiptHash = *genRece
+		}
+	case constant.ProofTypeOfLogOracle:
+		hash, _ := genLogReceipt(log)
+		if hash != nil {
+			header.ReceiptHash = *hash
+		}
 	}
 
 	piRet, err := ProposalInfo(0, selfId, toId, bn, header.ReceiptHash, ret.Version)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ProposalInfo failed: %w", err)
 	}
+	//fmt.Println("piRet ------------------- ", piRet)
 	if !piRet.CanVerify {
 		return nil, NotVerifyAble
 	}
-	// m.Log.Info("ProposalInfo success", "piRet", piRet)
 	return piRet, nil
 }
 
