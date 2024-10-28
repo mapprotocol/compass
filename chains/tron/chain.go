@@ -74,6 +74,9 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		oracleCall := contract.New(ethConn, []common.Address{config.OracleNode}, oAbi)
 		mapprotocol.SingMapping[config.Id] = oracleCall
 
+		otherAbi, _ := abi.New(mapprotocol.OtherAbi)
+		call := contract.New(conn, []common.Address{common.HexToAddress(config.LightNode)}, otherAbi)
+		mapprotocol.LightNodeMapping[config.Id] = call
 		listen = newSync(cs, oracleHandler, conn)
 	}
 

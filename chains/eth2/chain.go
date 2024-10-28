@@ -83,6 +83,10 @@ func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr cha
 		oAbi, _ := abi.New(mapprotocol.SignerJson)
 		oracleCall := contract.New(conn, []common.Address{cfg.OracleNode}, oAbi)
 		mapprotocol.SingMapping[cfg.Id] = oracleCall
+
+		otherAbi, _ := abi.New(mapprotocol.OtherAbi)
+		call := contract.New(conn, []common.Address{cfg.LightNode}, otherAbi)
+		mapprotocol.LightNodeMapping[cfg.Id] = call
 		listen = chain.NewOracle(cs)
 	}
 	wri := chain.NewWriter(conn, cfg, logger, stop, sysErr)

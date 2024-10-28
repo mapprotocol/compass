@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -69,7 +70,7 @@ func MulSignInfo(idx int, selfChainId, toChainID uint64) (*MulSignInfoResp, erro
 	ret := MulSignInfoResp{}
 	err := call.Call(mapprotocol.MethodOfMulSignInfo, &ret, idx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("call failed:err:%v", err)
 	}
 	return &ret, nil
 }
@@ -86,6 +87,7 @@ func ProposalInfo(idx int, selfChainId, toChainID uint64, blockNumber *big.Int, 
 		return nil, ContractNotExist
 	}
 	ret := ProposalInfoResp{}
+	fmt.Println(big.NewInt(int64(selfChainId)), blockNumber, receipt, version)
 	err := call.Call(mapprotocol.MethodOfProposalInfo, &ret, idx, big.NewInt(int64(selfChainId)), blockNumber, receipt, version)
 	if err != nil {
 		return nil, err

@@ -76,6 +76,9 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 		mapprotocol.ContractMapping[cfg.Id] = call
 		listen = NewMessenger(cs)
 	case mapprotocol.RoleOfOracle:
+		otherAbi, _ := abi.New(mapprotocol.OtherAbi)
+		call := contract.New(conn, []common.Address{cfg.LightNode}, otherAbi)
+		mapprotocol.LightNodeMapping[cfg.Id] = call
 		listen = NewOracle(cs)
 	}
 	oAbi, _ := abi.New(mapprotocol.SignerJson)

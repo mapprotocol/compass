@@ -78,6 +78,7 @@ const (
 	ProofTypeOfZk
 	ProofTypeOfOracle
 	ProofTypeOfNewOracle
+	ProofTypeOfLogOracle
 )
 
 const (

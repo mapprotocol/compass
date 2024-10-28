@@ -111,10 +111,12 @@ func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt
 		pack, err = proof.Oracle(header.Number.Uint64(), receipt, key, prf, fId, method, idx,
 			mapprotocol.ProofAbi, orderId, false)
 	case constant.ProofTypeOfNewOracle:
+		fallthrough
+	case constant.ProofTypeOfLogOracle:
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: header.ReceiptsRoot,
 			Number:      big.NewInt(int64(log.BlockNumber)),
-		}, receipt, key, prf, fId, idx, method, sign, orderId, false)
+		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
 	}
 
 	if err != nil {
