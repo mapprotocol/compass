@@ -3,10 +3,8 @@ package chain
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"math/big"
@@ -173,39 +171,36 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	)
 
 	proofType = 4
-	if log.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
-		proofType = 3
+	orderId := log.Topics[1]
+	toChainID, _ = strconv.ParseUint(strconv.FormatUint(uint64(m.Cfg.MapChainID), 10), 10, 64)
+	if m.Cfg.Id == m.Cfg.MapChainID {
+		toChainID = big.NewInt(0).SetBytes(log.Topics[2].Bytes()[8:16]).Uint64()
+	}
+	chainName, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]
+	if !ok {
+		m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
+		return 0, nil
+	}
+	m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", orderId)
+	if strings.ToLower(chainName) == "near" {
+		proofType = 1
+	} else if strings.ToLower(chainName) == "tron" {
+		proofType = constant.ProofTypeOfNewOracle
 	} else {
-		orderId := log.Data[:32]
-		toChainID, _ = strconv.ParseUint(strconv.FormatUint(uint64(m.Cfg.MapChainID), 10), 10, 64)
-		if m.Cfg.Id == m.Cfg.MapChainID {
-			toChainID = binary.BigEndian.Uint64(log.Topics[2][len(log.Topics[2])-8:])
-		}
-		chainName, ok := mapprotocol.OnlineChaId[msg.ChainId(toChainID)]
-		if !ok {
-			m.Log.Info("Map Found a log that is not the current task ", "blockNumber", log.BlockNumber, "toChainID", toChainID)
+		proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId.Bytes())
+		if errors.Is(err, OrderExist) {
+			m.Log.Info("This txHash order exist", "txHash", log.TxHash, "toChainID", toChainID)
 			return 0, nil
 		}
-		m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", common.Bytes2Hex(orderId))
-		if strings.ToLower(chainName) == "near" {
-			proofType = 1
-		} else if strings.ToLower(chainName) == "tron" {
-			proofType = constant.ProofTypeOfNewOracle
-		} else {
-			proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId)
-			if errors.Is(err, OrderExist) {
-				m.Log.Info("This txHash order exist", "txHash", log.TxHash, "toChainID", toChainID)
-				return 0, nil
-			}
-			if errors.Is(err, NotVerifyAble) {
-				m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash, "toChainID", toChainID)
-				return 0, err
-			}
-			if err != nil {
-				return 0, err
-			}
+		if errors.Is(err, NotVerifyAble) {
+			m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash, "toChainID", toChainID)
+			return 0, err
+		}
+		if err != nil {
+			return 0, err
 		}
 	}
+
 	fmt.Println("proofType ", proofType)
 	var sign [][]byte
 	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {

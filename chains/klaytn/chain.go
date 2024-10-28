@@ -160,7 +160,7 @@ func assembleHeader(client *ethclient.Client, latestBlock *big.Int, count int) (
 func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
 		message   msg.Message
-		orderId   = log.Data[:32]
+		orderId   = log.Topics[1]
 		method    = m.GetMethod(log.Topics[0])
 		bigNumber = big.NewInt(int64(log.BlockNumber))
 	)

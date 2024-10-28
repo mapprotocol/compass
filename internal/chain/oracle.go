@@ -144,10 +144,10 @@ func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 	if err != nil {
 		return fmt.Errorf("oracle unable to Filter Logs: %w", err)
 	}
-	m.Log.Debug("Querying block for events", "block", currentBlock, "logs", len(logs))
 	if len(logs) == 0 {
 		return nil
 	}
+	m.Log.Info("Querying block for events", "block", currentBlock, "logs", len(logs))
 	err = log2Oracle(m, logs, currentBlock)
 	if err != nil {
 		return err
@@ -158,10 +158,10 @@ func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 
 func getToChainId(topics []common.Hash) uint64 {
 	var ret uint64
-	if topics[0] == mapprotocol.TopicOfClientNotify || topics[0] == mapprotocol.TopicOfManagerNotifySend {
+	if topics[0] == mapprotocol.TopicOfManagerNotifySend {
 		ret = binary.BigEndian.Uint64(topics[1][len(topics[1])-8:])
 	} else {
-		ret = binary.BigEndian.Uint64(topics[2][len(topics[2])-8:])
+		ret = big.NewInt(0).SetBytes(topics[2].Bytes()[8:16]).Uint64()
 	}
 	return ret
 }
@@ -232,7 +232,6 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 		if err != nil {
 			return err
 		}
-		//m.Log.Info("MulSignInfo success", "ret", ret)
 		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, blockNumber, id)
 		if err != nil {
 			return err

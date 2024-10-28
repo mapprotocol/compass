@@ -59,7 +59,6 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
 
-	fmt.Println("proofType ------------------- ", proofType)
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
 	case constant.ProofTypeOfZk:
@@ -132,8 +131,7 @@ func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*t
 
 func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.Receipt,
 	header *maptypes.Header, fId msg.ChainId, method, zkUrl string, proofType int64, sign [][]byte, orderId [32]byte) (uint64, []byte, error) {
-	toChainID := log.Topics[2]
-	uToChainID := binary.BigEndian.Uint64(toChainID[len(toChainID)-8:])
+	uToChainID := big.NewInt(0).SetBytes(log.Topics[2].Bytes()[8:16]).Uint64()
 	txIndex := log.TxIndex
 	aggPK, ist, aggPKBytes, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
@@ -149,6 +147,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
 	ek := util.Key2Hex(key, len(prf))
+	fmt.Println("proofType ------------------- ", proofType, "method ----- ", method, "uToChainID", uToChainID)
 	if name, ok := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]; ok && strings.ToLower(name) != "near" {
 		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 		nr := mapprotocol.MapTxReceipt{
@@ -184,7 +183,6 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 
 		constant.MapLogIdx[log.TxHash.Hex()] = int64(idx)
 		constant.MapOrderId[log.TxHash.Hex()] = orderId
-
 		var payloads []byte
 		switch proofType {
 		case constant.ProofTypeOfZk:

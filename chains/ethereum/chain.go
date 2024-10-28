@@ -8,11 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/internal/mapo"
-	"github.com/mapprotocol/compass/internal/tx"
-	"github.com/pkg/errors"
-
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -20,6 +15,9 @@ import (
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/mapo"
+	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 )
@@ -164,29 +162,10 @@ func headerToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
 		message   msg.Message
-		orderId   = log.Data[:32]
+		orderId   = log.Topics[1]
 		method    = m.GetMethod(log.Topics[0])
 		bigNumber = big.NewInt(int64(log.BlockNumber))
 	)
-	if log.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
-		logIdx, ok := constant.MapLogIdx[log.TxHash.Hex()]
-		if !ok {
-			m.Log.Info("Event found SwapInVerified, but dont this msger handler",
-				"block", bigNumber, "txHash", log.TxHash)
-			emptyMsg := msg.NewEmpty(m.Cfg.MapChainID, m.Cfg.Id, m.MsgCh)
-			return &emptyMsg, nil
-		}
-		saveOrderId, _ := constant.MapOrderId[log.TxHash.Hex()]
-		data, err := mapprotocol.Mcs.Events[mapprotocol.EventOfSwapInVerified].Inputs.UnpackValues(log.Data)
-		if err != nil {
-			return nil, errors.Wrap(err, "swapIn unpackData failed")
-		}
-
-		input, _ := mapprotocol.Mcs.Pack(mapprotocol.MethodOfSwapInVerified, data[0].([]byte), big.NewInt(logIdx), saveOrderId)
-		msgPayload := []interface{}{input, orderId, log.BlockNumber, log.TxHash, mapprotocol.MethodOfSwapInVerified}
-		message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
-		return &message, nil
-	}
 	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), bigNumber)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)

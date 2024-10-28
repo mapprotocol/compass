@@ -134,7 +134,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		err     error
 		pivot   = big.NewInt(0)
 		message msg.Message
-		orderId = log.Data[:32]
+		orderId = log.Topics[1]
 		method  = m.GetMethod(log.Topics[0])
 	)
 
