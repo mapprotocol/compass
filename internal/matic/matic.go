@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
@@ -74,13 +73,7 @@ func hashToByte(h common.Hash) []byte {
 
 type ProofData struct {
 	Headers      []BlockHeader
-	ReceiptProof ReceiptProof
-}
-
-type ReceiptProof struct {
-	TxReceipt mapprotocol.TxReceipt
-	KeyIndex  []byte
-	Proof     [][]byte
+	ReceiptProof proof.NewReceiptProof
 }
 
 func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, receipts []*types.Receipt,
@@ -105,7 +98,7 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := mapo.Key2Hex(key, len(prf))
+	//ek := mapo.Key2Hex(key, len(prf))
 
 	idx := 0
 	for i, ele := range receipts[txIndex].Logs {
@@ -115,19 +108,37 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 		idx = i
 	}
 
+	nr := mapprotocol.MapTxReceipt{
+		PostStateOrStatus: receipt.PostStateOrStatus,
+		CumulativeGasUsed: receipt.CumulativeGasUsed,
+		Bloom:             receipt.Bloom,
+		Logs:              receipt.Logs,
+	}
+	nrRlp, err := rlp.EncodeToBytes(nr)
+	if err != nil {
+		return nil, err
+	}
+
+	if receipt.ReceiptType.Int64() != 0 {
+		n := make([]byte, 0)
+		n = append(n, receipt.ReceiptType.Bytes()...)
+		n = append(n, nrRlp...)
+		nrRlp = n
+	}
+
 	var pack []byte
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
 		pd := ProofData{
 			Headers: headers,
-			ReceiptProof: ReceiptProof{
-				TxReceipt: *receipt,
-				KeyIndex:  ek,
-				Proof:     prf,
+			ReceiptProof: proof.NewReceiptProof{
+				TxReceipt:   nrRlp,
+				ReceiptType: receipt.ReceiptType,
+				KeyIndex:    util.Key2Hex(key, len(prf)),
+				Proof:       prf,
 			},
 		}
 
-		//pack, err = proof.Pack(fId, method, mapprotocol.Matic, pd)
 		pack, err = proof.V3Pack(fId, method, mapprotocol.Matic, idx, orderId, false, pd)
 	case constant.ProofTypeOfZk:
 	case constant.ProofTypeOfOracle:

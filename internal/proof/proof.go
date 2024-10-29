@@ -176,16 +176,9 @@ func Oracle(blockNumber uint64, receipt *mapprotocol.TxReceipt, key []byte, prf 
 		return nil, errors.Wrap(err, "pack getBytes failed")
 	}
 
-	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
-		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(int64(fId)), big.NewInt(int64(idx)), input)
-	}
 	var ret []byte
-	if map2other {
-		ret, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)),
-			orderId, input)
-	} else {
-		ret, err = mapprotocol.PackInput(mapprotocol.OldMcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
-	}
+	ret, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)),
+		orderId, input)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")
@@ -291,16 +284,9 @@ func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, orderId [32]by
 		return nil, errors.Wrap(err, "pack getBytes failed")
 	}
 
-	if method == mapprotocol.MethodOfTransferInWithIndex || method == mapprotocol.MethodOfSwapInWithIndex {
-		return mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)), big.NewInt(int64(idx)), input)
-	}
 	var ret []byte
-	if map2other {
-		ret, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
-			big.NewInt(int64(idx)), orderId, input)
-	} else {
-		ret, err = mapprotocol.PackInput(mapprotocol.OldMcs, method, big.NewInt(0).SetUint64(uint64(fId)), input)
-	}
+	ret, err = mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
+		big.NewInt(int64(idx)), orderId, input)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")

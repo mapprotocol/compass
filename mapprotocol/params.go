@@ -70,7 +70,6 @@ var (
 
 var (
 	Mcs, _         = abi.JSON(strings.NewReader(McsAbi))
-	OldMcs, _      = abi.JSON(strings.NewReader(OldMcsJson))
 	Bsc, _         = abi.JSON(strings.NewReader(BscAbiJson))
 	Conflux, _     = abi.JSON(strings.NewReader(ConfluxAbiJson))
 	Klaytn, _      = abi.JSON(strings.NewReader(KlaytnAbiJson))
