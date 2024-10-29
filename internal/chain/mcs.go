@@ -263,10 +263,10 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	}
 
 	ret := struct {
-		Success  bool
-		Message  string
-		LogsHash []byte
+		Success bool
+		Message string
 	}{}
+
 	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
 	if err != nil {
 		return errors.Wrap(err, "resp copy failed")
@@ -277,7 +277,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	}
 	if ret.Success == true {
 		w.log.Info("Mcs verify log success", "success", ret.Success)
-		w.log.Info("Mcs verify log success", "logs", "0x"+common.Bytes2Hex(ret.LogsHash))
+		w.log.Info("Mcs verify log success", "data", resp)
 	}
 
 	return nil
