@@ -37,7 +37,7 @@ func connectKClient(endpoint string) error {
 	return nil
 }
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	err := connectKClient(chainCfg.Endpoint)
 	if err != nil {
 		return nil, err

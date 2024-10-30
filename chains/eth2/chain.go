@@ -28,7 +28,7 @@ type Chain struct {
 	stop   chan<- int
 }
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (*Chain, error) {
+func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (*Chain, error) {
 	cfg, err := chain.ParseConfig(chainCfg)
 	if err != nil {
 		return nil, err

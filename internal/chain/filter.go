@@ -127,6 +127,7 @@ func (m *Oracle) filterOracle() error {
 			idx := m.Match(ele.ContractAddress) // 新版 oracle
 			if idx == -1 {
 				m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
+				tmp = ele.Id
 				continue
 			}
 

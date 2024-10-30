@@ -214,7 +214,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		logger := log.Root().New("chain", chainConfig.Name)
 		switch chain.Type {
 		case chains.Ethereum:
-			newChain, err = ethereum.InitializeChain(chainConfig, logger, sysErr, role)
+			newChain, err = ethereum.New(chainConfig, logger, sysErr, role)
 			if err != nil {
 				return err
 			}
@@ -226,19 +226,19 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 				mapprotocol.LightManagerNodeType(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 			}
 		case chains.Near:
-			newChain, err = near.InitializeChain(chainConfig, logger, sysErr, role)
+			newChain, err = near.New(chainConfig, logger, sysErr, role)
 		case chains.Bsc:
-			newChain, err = bsc.InitializeChain(chainConfig, logger, sysErr, role)
+			newChain, err = bsc.New(chainConfig, logger, sysErr, role)
 		case chains.Matic:
-			newChain, err = matic.InitializeChain(chainConfig, logger, sysErr, role)
+			newChain, err = matic.New(chainConfig, logger, sysErr, role)
 		case chains.Klaytn:
-			newChain, err = klaytn.InitializeChain(chainConfig, logger, sysErr, role)
+			newChain, err = klaytn.New(chainConfig, logger, sysErr, role)
 		case chains.Eth2:
-			newChain, err = eth2.InitializeChain(chainConfig, logger, sysErr, role)
+			newChain, err = eth2.New(chainConfig, logger, sysErr, role)
 		case chains.Conflux:
-			newChain, err = conflux.InitializeChain(chainConfig, logger, sysErr, role)
+			newChain, err = conflux.New(chainConfig, logger, sysErr, role)
 		case chains.Tron:
-			newChain, err = tron.NewChain(chainConfig, logger, sysErr, role)
+			newChain, err = tron.New(chainConfig, logger, sysErr, role)
 		default:
 			return errors.New("unrecognized Chain Type")
 		}
