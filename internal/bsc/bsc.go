@@ -100,6 +100,13 @@ func hashToByte(h common.Hash) []byte {
 
 type ProofData struct {
 	Headers      []Header
+	ReceiptProof ReceiptProof
+}
+
+type ReceiptProof struct {
+	TxReceipt    mapprotocol.TxReceipt
+	KeyIndex     []byte
+	Proof        [][]byte
 	ReceiptProof proof.NewReceiptProof
 }
 
@@ -136,31 +143,12 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
-		nr := mapprotocol.MapTxReceipt{
-			PostStateOrStatus: receipt.PostStateOrStatus,
-			CumulativeGasUsed: receipt.CumulativeGasUsed,
-			Bloom:             receipt.Bloom,
-			Logs:              receipt.Logs,
-		}
-		nrRlp, err := rlp.EncodeToBytes(nr)
-		if err != nil {
-			return nil, err
-		}
-
-		if receipt.ReceiptType.Int64() != 0 {
-			n := make([]byte, 0)
-			n = append(n, receipt.ReceiptType.Bytes()...)
-			n = append(n, nrRlp...)
-			nrRlp = n
-		}
-
 		pd := ProofData{
 			Headers: header,
-			ReceiptProof: proof.NewReceiptProof{
-				TxReceipt:   nrRlp,
-				ReceiptType: receipt.ReceiptType,
-				KeyIndex:    ek,
-				Proof:       prf,
+			ReceiptProof: ReceiptProof{
+				TxReceipt: *receipt,
+				KeyIndex:  ek,
+				Proof:     prf,
 			},
 		}
 
