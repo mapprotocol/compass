@@ -170,7 +170,6 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		err       error
 	)
 
-	proofType = 4
 	orderId := log.Topics[1]
 	toChainID, _ = strconv.ParseUint(strconv.FormatUint(uint64(m.Cfg.MapChainID), 10), 10, 64)
 	if m.Cfg.Id == m.Cfg.MapChainID {
@@ -203,7 +202,6 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		}
 	}
 
-	fmt.Println("proofType ", proofType)
 	var sign [][]byte
 	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
 		ret, err := Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log, proofType)
@@ -257,7 +255,6 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 	if err != nil {
 		return nil, fmt.Errorf("ProposalInfo failed: %w", err)
 	}
-	//fmt.Println("piRet ------------------- ", piRet)
 	if !piRet.CanVerify {
 		return nil, NotVerifyAble
 	}

@@ -104,9 +104,10 @@ type ProofData struct {
 }
 
 type ReceiptProof struct {
-	TxReceipt mapprotocol.TxReceipt
-	KeyIndex  []byte
-	Proof     [][]byte
+	TxReceipt    mapprotocol.TxReceipt
+	KeyIndex     []byte
+	Proof        [][]byte
+	ReceiptProof proof.NewReceiptProof
 }
 
 func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, method string,
