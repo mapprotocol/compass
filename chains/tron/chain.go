@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func NewChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	return createChain(chainCfg, logger, sysErr, role)
 }
 

@@ -22,7 +22,7 @@ import (
 	"github.com/mapprotocol/compass/msg"
 )
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
+func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
 	role mapprotocol.Role) (core.Chain, error) {
 	opts := make([]chain.SyncOpt, 0)
 

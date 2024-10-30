@@ -26,7 +26,7 @@ var (
 	cli                       = &conflux.Client{}
 )
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	client, err := conflux.NewClient(chainCfg.Opts[chain.Eth2Url])
 	if err != nil {
 		panic("conflux init client failed" + err.Error())

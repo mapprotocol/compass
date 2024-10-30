@@ -61,7 +61,7 @@ func setupBlockstore(cfg *Config, kp *key.KeyPair, role mapprotocol.Role) (*bloc
 	return bs, nil
 }
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
+func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
 	role mapprotocol.Role) (*Chain, error) {
 	cfg, err := parseChainConfig(chainCfg)
 	if err != nil {

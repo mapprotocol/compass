@@ -17,7 +17,7 @@ import (
 	"strconv"
 )
 
-func InitializeChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,
 		chain.OptOfSync2Map(syncHeaderToMap),
 		chain.OptOfInitHeight(12),
