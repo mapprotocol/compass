@@ -137,8 +137,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		orderId = log.Topics[1]
 		method  = m.GetMethod(log.Topics[0])
 	)
-
-	if proofType != constant.ProofTypeOfOracle {
+	if proofType == constant.ProofTypeOfOrigin {
 		pivot, err = nearestPivot(m, new(big.Int).SetUint64(log.BlockNumber+conflux.DeferredExecutionEpochs))
 		if err != nil {
 			return nil, err
@@ -158,7 +157,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
 	m.Log.Info("getPivot", "pivot", pivot)
-	payload, err := conflux.AssembleProof(cli, pivot.Uint64(), uint64(proofType), method, m.Cfg.Id, log, receipts, orderId32)
+	payload, err := conflux.AssembleProof(cli, pivot.Uint64(), uint64(proofType), method, m.Cfg.Id, log, receipts, orderId32, sign)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
@@ -187,11 +186,11 @@ func getState(m *chain.Maintainer) (*conflux.ILightNodeState, error) {
 func nearestPivot(m *chain.Messenger, height *big.Int) (*big.Int, error) {
 	pack, err := mapprotocol.Conflux.Methods[mapprotocol.MethodOfNearestPivot].Inputs.Pack(height)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "nearestPivot pack failed")
 	}
 	data, err := mapprotocol.GetDataByManager(mapprotocol.MethodOFinalizedState, big.NewInt(int64(m.Cfg.Id)), pack)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "finalizedState unpack failed")
 	}
 	analysis, err := mapprotocol.Conflux.Methods[mapprotocol.MethodOfNearestPivot].Outputs.Unpack(data)
 	if err != nil {

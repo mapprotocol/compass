@@ -120,7 +120,7 @@ func (m *Messenger) filter() error {
 			count, err := m.filterMosHandler(latestBlock.Uint64())
 			if err != nil {
 				if errors.Is(err, NotVerifyAble) {
-					time.Sleep(constant.BalanceRetryInterval)
+					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
 				m.Log.Error("Filter Failed to get events for block", "err", err)
