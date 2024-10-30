@@ -193,7 +193,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 			receipts = append(receipts, lr)
 		}
 
-		_, payload, err := mapo.AssembleMapProof(m.Conn.Client(), log, receipts, header,
+		_, payload, err := mapo.AssembleMapProof(m.Conn.Client(), log, receipts, header, // todo ton 看这里方法
 			m.Cfg.MapChainID, method, m.Cfg.ApiUrl, proofType, sign, orderId32)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)

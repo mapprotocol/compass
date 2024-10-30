@@ -27,4 +27,5 @@ const (
 	Conflux  = "conflux"
 	Bttc     = "bttc"
 	Tron     = "tron"
+	Ton      = "ton"
 )
