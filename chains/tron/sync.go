@@ -246,7 +246,7 @@ func oracleHandler(m *sync, latestBlock *big.Int) (int, error) {
 		return 0, err
 	}
 
-	message := msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, receiptHash, latestBlock}, m.MsgCh)
+	message := msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, &receiptHash, latestBlock}, m.MsgCh)
 	err = m.Router.Send(message)
 	if err != nil {
 		m.Log.Error("subscription error: failed to route message", "err", err)
