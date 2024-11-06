@@ -49,7 +49,7 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 		idx := m.Match(ele.ContractAddress)
 		if idx == -1 {
 			m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
-			//m.Cfg.StartBlock = big.NewInt(ele.Id)
+			m.Cfg.StartBlock = big.NewInt(ele.Id)
 			continue
 		}
 		if latestBlock-ele.BlockNumber < m.BlockConfirmations.Uint64() {
