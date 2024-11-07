@@ -3,6 +3,8 @@ package klaytn
 import (
 	"bytes"
 	"context"
+	maptypes "github.com/mapprotocol/atlas/core/types"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
@@ -185,8 +187,16 @@ type TxLog struct {
 	Data   []byte
 }
 
-func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, receipts []*types.Receipt, method string, proofType int64) ([]byte, error) {
+func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, receipts []*types.Receipt,
+	method string, proofType int64, orderId [32]byte, sign [][]byte) ([]byte, error) {
 	GetReceiptsByTxsHash(cli, receipts)
+
+	var (
+		err  error
+		pack []byte
+	)
+
+	//fmt.Println(" proof type ------------------ ", proofType)
 	receiptRlps := make(ReceiptRlps, 0, len(receipts))
 	for _, receipt := range receipts {
 		logs := make([]TxLog, 0, len(receipt.Logs))
@@ -208,6 +218,7 @@ func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, 
 			Logs:    receipt.Logs,
 		})
 	}
+
 	prf, err := proof.Get(receiptRlps, log.TxIndex)
 	if err != nil {
 		return nil, err
@@ -215,37 +226,55 @@ func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
 	ek := util.Key2Hex(key, len(prf))
-	receipt, err := GetTxReceipt(receipts[log.TxIndex])
+	receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := rlp.EncodeToBytes(receipt)
-	if err != nil {
-		return nil, err
+	idx := 0
+	for i, ele := range receipts[log.TxIndex].Logs {
+		if ele.Index != log.Index {
+			continue
+		}
+		idx = i
 	}
 
-	pd := ReceiptProofOriginal{
-		Header:    header,
-		Proof:     prf,
-		TxReceipt: data,
-		KeyIndex:  ek,
-	}
+	switch proofType {
+	case constant.ProofTypeOfNewOracle:
+		fallthrough
+	case constant.ProofTypeOfLogOracle:
+		pack, err = proof.SignOracle(&maptypes.Header{
+			ReceiptHash: common.BytesToHash(header.ReceiptsRoot),
+			Number:      big.NewInt(int64(log.BlockNumber)),
+		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
+	default:
+		data, err := rlp.EncodeToBytes(receipt)
+		if err != nil {
+			return nil, err
+		}
 
-	input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
-	if err != nil {
-		return nil, errors.Wrap(err, "getBytes pack")
-	}
-	finpd := ReceiptProof{
-		Proof:     input,
-		DeriveSha: DeriveShaOrigin,
-	}
-	input, err = mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetFinalBytes].Inputs.Pack(finpd)
-	if err != nil {
-		return nil, errors.Wrap(err, "getFinalBytes pack")
-	}
+		pd := ReceiptProofOriginal{
+			Header:    header,
+			Proof:     prf,
+			TxReceipt: data,
+			KeyIndex:  ek,
+		}
 
-	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+		input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+		if err != nil {
+			return nil, errors.Wrap(err, "getBytes pack")
+		}
+		finpd := ReceiptProof{
+			Proof:     input,
+			DeriveSha: DeriveShaOrigin,
+		}
+		input, err = mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetFinalBytes].Inputs.Pack(finpd)
+		if err != nil {
+			return nil, errors.Wrap(err, "getFinalBytes pack")
+		}
+
+		pack, err = mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -265,33 +294,4 @@ func GetReceiptsByTxsHash(cli *Client, receipts []*types.Receipt) {
 		txError, _ := big.NewInt(0).SetString(strings.TrimPrefix(kr["txError"].(string), "0x"), 16)
 		receipts[idx].Status = txError.Uint64()
 	}
-}
-
-type TxReceipt struct {
-	PostStateOrStatus []byte
-	CumulativeGasUsed *big.Int
-	Bloom             []byte
-	Logs              []mapprotocol.TxLog
-}
-
-func GetTxReceipt(receipt *types.Receipt) (*TxReceipt, error) {
-	logs := make([]mapprotocol.TxLog, 0, len(receipt.Logs))
-	for _, lg := range receipt.Logs {
-		topics := make([][]byte, len(lg.Topics))
-		for i := range lg.Topics {
-			topics[i] = lg.Topics[i][:]
-		}
-		logs = append(logs, mapprotocol.TxLog{
-			Addr:   lg.Address,
-			Topics: topics,
-			Data:   lg.Data,
-		})
-	}
-
-	return &TxReceipt{
-		PostStateOrStatus: mapprotocol.StatusEncoding(receipt),
-		CumulativeGasUsed: new(big.Int).SetUint64(receipt.GasUsed),
-		Bloom:             receipt.Bloom[:],
-		Logs:              logs,
-	}, nil
 }

@@ -97,6 +97,7 @@ func Get(receipts DerivableList, txIndex uint) ([][]byte, error) {
 		proof = append(proof, v)
 	}
 
+	//fmt.Println("ns ---------------", tr.Hash())
 	return proof, nil
 }
 
@@ -271,6 +272,8 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 
 	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
 		big.NewInt(int64(idx)), orderId, input)
+
+	//ret, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, big.NewInt(int64(idx)), input)
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")
 	}

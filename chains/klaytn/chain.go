@@ -183,12 +183,18 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		return nil, err
 	}
 
-	payload, err := klaytn.AssembleProof(kClient, klaytn.ConvertContractHeader(header, kHeader), log, m.Cfg.Id, receipts, method, proofType)
+	var orderId32 [32]byte
+	for idx, v := range orderId {
+		orderId32[idx] = v
+	}
+
+	payload, err := klaytn.AssembleProof(kClient, klaytn.ConvertContractHeader(header, kHeader),
+		log, m.Cfg.Id, receipts, method, proofType, orderId32, sign)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
-	msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
+	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
 	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	return &message, nil
 }
