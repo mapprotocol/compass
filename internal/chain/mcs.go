@@ -265,6 +265,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	ret := struct {
 		Success bool
 		Message string
+		Log     interface{}
 	}{}
 
 	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)

@@ -276,7 +276,7 @@ func Completion(bytes []byte, number int) []byte {
 }
 
 func genMptReceipt(cli *ethclient.Client, selfId int64, latestBlock *big.Int) (*common.Hash, error) {
-	if !exist(selfId, []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId, constant.B2ChainId, constant.ZkLinkChainId}) {
+	if !exist(selfId, []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId}) {
 		return nil, nil
 	}
 	txsHash, err := mapprotocol.GetTxsByBn(cli, latestBlock)
