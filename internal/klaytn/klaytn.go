@@ -196,7 +196,6 @@ func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, 
 		pack []byte
 	)
 
-	//fmt.Println(" proof type ------------------ ", proofType)
 	receiptRlps := make(ReceiptRlps, 0, len(receipts))
 	for _, receipt := range receipts {
 		logs := make([]TxLog, 0, len(receipt.Logs))
@@ -243,10 +242,10 @@ func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, 
 	case constant.ProofTypeOfNewOracle:
 		fallthrough
 	case constant.ProofTypeOfLogOracle:
-		pack, err = proof.SignOracle(&maptypes.Header{
+		pack, err = KlaytnSignOracle(&maptypes.Header{
 			ReceiptHash: common.BytesToHash(header.ReceiptsRoot),
 			Number:      big.NewInt(int64(log.BlockNumber)),
-		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
+		}, receiptRlps[log.TxIndex], big.NewInt(0), key, prf, fId, idx, method, sign, orderId, log, proofType)
 	default:
 		data, err := rlp.EncodeToBytes(receipt)
 		if err != nil {
@@ -294,4 +293,61 @@ func GetReceiptsByTxsHash(cli *Client, receipts []*types.Receipt) {
 		txError, _ := big.NewInt(0).SetString(strings.TrimPrefix(kr["txError"].(string), "0x"), 16)
 		receipts[idx].Status = txError.Uint64()
 	}
+}
+
+func KlaytnSignOracle(header *maptypes.Header, rr *ReceiptRLP, receiptType *big.Int, key []byte, prf [][]byte, fId msg.ChainId,
+	idx int, method string, sign [][]byte, orderId [32]byte, log *types.Log, proofType int64) ([]byte, error) {
+	pt := uint8(0)
+	var fixedHash [32]byte
+	newPrf := make([]byte, 0)
+	switch proofType {
+	case constant.ProofTypeOfNewOracle:
+		nrRlp, err := rlp.EncodeToBytes(rr)
+		if err != nil {
+			return nil, err
+		}
+
+		for i, v := range header.ReceiptHash {
+			fixedHash[i] = v
+		}
+
+		rpf := proof.NewReceiptProof{
+			TxReceipt:   nrRlp,
+			ReceiptType: receiptType,
+			KeyIndex:    util.Key2Hex(key, len(prf)),
+			Proof:       prf,
+		}
+
+		newPrf, err = mapprotocol.PackAbi.Methods[mapprotocol.MethodOfMptPack].Inputs.Pack(rpf)
+		if err != nil {
+			return nil, err
+		}
+	case constant.ProofTypeOfLogOracle:
+		pt = 1
+		//newPrf = log2Proof(log)
+		//fixedHash = common.BytesToHash(crypto.Keccak256(newPrf))
+	default:
+		return nil, errors.New("invalid proof type")
+	}
+
+	pd := proof.SignLogData{
+		ProofType:   pt,
+		BlockNum:    big.NewInt(0).SetUint64(log.BlockNumber),
+		ReceiptRoot: fixedHash,
+		Signatures:  sign,
+		Proof:       newPrf,
+	}
+
+	input, err := mapprotocol.GetAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack getBytes failed")
+	}
+
+	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
+		big.NewInt(int64(idx)), orderId, input)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack mcs input failed")
+	}
+
+	return ret, nil
 }
