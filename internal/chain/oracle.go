@@ -303,6 +303,12 @@ func exist(target int64, dst []int64) bool {
 }
 
 func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
+	switch toChainID {
+	case constant.TronChainId:
+		return big.NewInt(4), nil
+	default:
+
+	}
 	call, ok := mapprotocol.LightNodeMapping[msg.ChainId(toChainID)]
 	if !ok {
 		return nil, ContractNotExist
