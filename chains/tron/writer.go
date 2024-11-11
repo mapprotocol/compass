@@ -358,8 +358,8 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 		//return nil
 	}
 
-	if balance < 711 {
-		return errors.New("account not have enough balance(711 trx)")
+	if balance < 330 {
+		return errors.New("account not have enough balance(330 trx)")
 	}
 
 	input, err := mapprotocol.TronAbi.Pack("rentResource", w.cfg.EthFrom,
