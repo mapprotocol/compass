@@ -1,15 +1,9 @@
-package tron
+package sol
 
 import (
 	"fmt"
+	"github.com/gagliardetto/solana-go"
 	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/pkg/abi"
-	"github.com/mapprotocol/compass/pkg/contract"
-
-	connection "github.com/mapprotocol/compass/connections/ethereum"
-	"github.com/mapprotocol/compass/keystore"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
@@ -21,11 +15,19 @@ import (
 	"github.com/mapprotocol/compass/msg"
 )
 
+type Chain struct {
+	cfg    *core.ChainConfig
+	conn   core.Connection
+	writer *Writer
+	stop   chan<- int
+	listen chains.Listener
+}
+
 func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	return createChain(chainCfg, logger, sysErr, role)
 }
 
-func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role, opts ...chain.SyncOpt) (core.Chain, error) {
+func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	config, err := parseCfg(chainCfg)
 	if err != nil {
 		return nil, err
@@ -37,13 +39,10 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		return nil, err
 	}
 
-	ethConn := connection.NewConnection(config.Eth2Endpoint, true, nil, logger, config.GasLimit, config.MaxGasPrice, 0)
-	err = ethConn.Connect()
+	_, err = solana.PrivateKeyFromBase58(config.Pri)
 	if err != nil {
 		return nil, err
 	}
-
-	pswd := keystore.GetPassword(fmt.Sprintf("Enter password for key %s:", chainCfg.From))
 
 	var (
 		stop   = make(chan int)
@@ -53,19 +52,12 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 	if err != nil {
 		return nil, err
 	}
-	cs := chain.NewCommonSync(ethConn, &config.Config, logger, stop, sysErr, bs)
+	cs := chain.NewCommonSync(nil, &config.Config, logger, stop, sysErr, bs)
 
 	switch role {
 	case mapprotocol.RoleOfMessenger:
 		listen = newSync(cs, messengerHandler, conn)
 	case mapprotocol.RoleOfOracle:
-		oAbi, _ := abi.New(mapprotocol.SignerJson)
-		oracleCall := contract.New(ethConn, []common.Address{config.OracleNode}, oAbi)
-		mapprotocol.SingMapping[config.Id] = oracleCall
-
-		otherAbi, _ := abi.New(mapprotocol.OtherAbi)
-		call := contract.New(conn, []common.Address{common.HexToAddress(config.LightNode)}, otherAbi)
-		mapprotocol.LightNodeMapping[config.Id] = call
 		listen = newSync(cs, oracleHandler, conn)
 	}
 
@@ -74,16 +66,8 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		stop:   stop,
 		listen: listen,
 		cfg:    chainCfg,
-		writer: newWriter(conn, config, logger, stop, sysErr, pswd),
+		writer: newWriter(conn, config, logger, stop, sysErr),
 	}, nil
-}
-
-type Chain struct {
-	cfg    *core.ChainConfig
-	conn   core.Connection
-	writer *Writer
-	stop   chan<- int
-	listen chains.Listener
 }
 
 func (c *Chain) SetRouter(r *core.Router) {

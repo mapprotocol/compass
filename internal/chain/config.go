@@ -31,7 +31,6 @@ var (
 	GasLimitOpt           = "gasLimit"
 	GasMultiplier         = "gasMultiplier"
 	LimitMultiplier       = "limitMultiplier"
-	HttpOpt               = "http"
 	StartBlockOpt         = "startBlock"
 	BlockConfirmationsOpt = "blockConfirmations"
 	SyncToMap             = "syncToMap"
@@ -46,6 +45,7 @@ var (
 	EthFrom               = "ethFrom"
 	FeeKey                = "feeKey"
 	FeeType               = "feeType"
+	Private               = "private"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms

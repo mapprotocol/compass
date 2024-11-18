@@ -1,0 +1,165 @@
+package sol
+
+import (
+	"context"
+	"fmt"
+	"math/big"
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/trie"
+	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/internal/tx"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/mapprotocol/compass/pkg/util"
+	"github.com/pkg/errors"
+)
+
+type Handler func(*sync, *big.Int) (int, error)
+
+type sync struct {
+	*chain.CommonSync
+	handler Handler
+	conn    core.Connection
+}
+
+func newSync(cs *chain.CommonSync, handler Handler, conn core.Connection) *sync {
+	return &sync{CommonSync: cs, handler: handler, conn: conn}
+}
+
+func (m *sync) Sync() error {
+	m.Log.Info("Starting listener...")
+	if !m.Cfg.SyncToMap {
+		time.Sleep(time.Hour * 2400)
+		return nil
+	}
+	var currentBlock = m.Cfg.StartBlock
+
+	select {
+	case <-m.Stop:
+		return errors.New("polling terminated")
+	default:
+		for {
+			latestBlock, err := m.conn.LatestBlock()
+			if err != nil {
+				m.Log.Error("Unable to get latest block", "err", err)
+				time.Sleep(constant.QueryRetryInterval)
+				continue
+			}
+
+			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
+				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
+				time.Sleep(constant.BalanceRetryInterval)
+				continue
+			}
+
+			count, err := m.handler(m, currentBlock)
+			if err != nil {
+				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
+				continue
+			}
+
+			_ = m.WaitUntilMsgHandled(count)
+
+			err = m.BlockStore.StoreBlock(currentBlock)
+			if err != nil {
+				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
+			}
+
+			currentBlock.Add(currentBlock, big.NewInt(1))
+			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
+				time.Sleep(constant.MessengerInterval)
+			}
+		}
+	}
+}
+
+func messengerHandler(m *sync, current *big.Int) (int, error) {
+	count := 0
+
+	return count, nil
+}
+
+func oracleHandler(m *sync, latestBlock *big.Int) (int, error) {
+	query := m.BuildQuery(m.Cfg.OracleNode, m.Cfg.Events[:1], latestBlock, latestBlock)
+	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
+	if err != nil {
+		return 0, fmt.Errorf("sync unable to Filter Logs: %w", err)
+	}
+	if len(logs) == 0 {
+		return 0, nil
+	}
+	m.Log.Info("Find log", "block", latestBlock, "log", len(logs))
+	txsHash, err := getTxsByBN(m.Conn.Client(), latestBlock)
+	if err != nil {
+		return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+	if err != nil {
+		return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+	tr, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
+	tr = proof.DeriveTire(types.Receipts(receipts), tr)
+	m.Log.Info("oracle tron receipt", "blockNumber", latestBlock, "hash", tr.Hash())
+	receiptHash := tr.Hash()
+	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
+	if err != nil {
+		return 0, err
+	}
+
+	input, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receiptHash, ret.Version, latestBlock, big.NewInt(int64(m.Cfg.Id)))
+	if err != nil {
+		return 0, err
+	}
+
+	message := msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, &receiptHash, latestBlock}, m.MsgCh)
+	err = m.Router.Send(message)
+	if err != nil {
+		m.Log.Error("subscription error: failed to route message", "err", err)
+		return 0, nil
+	}
+
+	return 1, nil
+}
+
+func getTxsByBN(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
+	block, err := conn.TronBlockByNumber(context.Background(), number)
+	if err != nil {
+		return nil, err
+	}
+
+	txs := make([]common.Hash, 0, len(block.Transactions))
+	for _, tmp := range block.Transactions {
+		ele := common.HexToHash(tmp.Hash)
+		txs = append(txs, ele)
+	}
+	return txs, nil
+}
+
+func getSigner(log *types.Log, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
+	bn := big.NewInt(int64(log.BlockNumber))
+	ret, err := chain.MulSignInfo(0, selfId, toChainID)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Get Version ret", ret)
+
+	piRet, err := chain.ProposalInfo(0, selfId, toChainID, bn, receiptHash, ret.Version)
+	if err != nil {
+		return nil, err
+	}
+	if !piRet.CanVerify {
+		return nil, chain.NotVerifyAble
+	}
+	fmt.Println("ProposalInfo success", "piRet", piRet)
+	return piRet, nil
+}

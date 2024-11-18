@@ -207,8 +207,6 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				w.log.Warn("Execution failed, will retry", "srcHash", inputHash, "err", err)
 			}
 			w.newReturn(method)
-			m.DoneCh <- struct{}{}
-			return true
 			errorCount++
 			if errorCount >= 10 {
 				w.mosAlarm(inputHash, err)
@@ -347,10 +345,7 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed,
 		"trx", balance)
-	// if method == mapprotocol.MethodOfSwapIn || method == mapprotocol.MethodOfSwapInVerified {
-	// 	w.log.Info("Rent energy, call method is swapInVerified or withIndex, dont need rent energy", "method", method)
-	// 	return nil
-	// }
+
 	mul := float64(used) * 1.1
 	if (acc.EnergyLimit - acc.EnergyUsed) > int64(mul) {
 		w.log.Info("Rent energy, account have enough energy", "account", w.cfg.From,
