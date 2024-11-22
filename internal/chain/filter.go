@@ -41,7 +41,6 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 		return 0, err
 	}
 	if len(back.List) == 0 {
-		time.Sleep(constant.QueryRetryInterval)
 		return 0, nil
 	}
 
@@ -119,7 +118,6 @@ func (m *Oracle) filterOracle() error {
 			return err
 		}
 		if len(back.List) == 0 {
-			time.Sleep(constant.QueryRetryInterval)
 			continue
 		}
 
