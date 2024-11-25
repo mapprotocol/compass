@@ -366,10 +366,5 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 }
 
 func (w *Writer) queryInterval() time.Duration {
-	switch w.cfg.Id {
-	case 22776:
-		return time.Second * 3
-	default:
-		return constant.QueryRetryInterval
-	}
+	return time.Second * 3
 }

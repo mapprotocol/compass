@@ -18,8 +18,8 @@ var (
 )
 
 var (
-	BlockRetryInterval = time.Second * 5
-	QueryRetryInterval = time.Second * 10
+	BlockRetryInterval = time.Second * 3
+	QueryRetryInterval = time.Second * 5
 )
 
 var (
