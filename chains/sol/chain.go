@@ -1,13 +1,9 @@
 package sol
 
 import (
-	"fmt"
-	"github.com/gagliardetto/solana-go"
-	"math/big"
-
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/lbtsm/gotron-sdk/pkg/client"
+	"github.com/gagliardetto/solana-go"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
@@ -56,7 +52,7 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 
 	switch role {
 	case mapprotocol.RoleOfMessenger:
-		listen = newSync(cs, messengerHandler, conn)
+		listen = newSync(cs, messagerHandler, conn)
 	case mapprotocol.RoleOfOracle:
 		listen = newSync(cs, oracleHandler, conn)
 	}
@@ -104,14 +100,4 @@ func (c *Chain) Stop() {
 // Conn return Connection interface for relayer register
 func (c *Chain) Conn() core.Connection {
 	return c.conn
-}
-
-func Map2Tron(fromUser, lightNode string, client *client.GrpcClient) mapprotocol.GetHeight {
-	return func() (*big.Int, error) {
-		call, err := client.TriggerConstantContract(fromUser, lightNode, "headerHeight()", "")
-		if err != nil {
-			return nil, fmt.Errorf("map2tron call headerHeight failed, err is %v", err.Error())
-		}
-		return mapprotocol.UnpackHeaderHeightOutput(call.ConstantResult[0])
-	}
 }

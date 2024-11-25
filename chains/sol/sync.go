@@ -2,22 +2,22 @@ package sol
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/gagliardetto/solana-go"
+	"github.com/mapprotocol/compass/internal/stream"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -47,70 +47,135 @@ func (m *sync) Sync() error {
 		return errors.New("polling terminated")
 	default:
 		for {
-			latestBlock, err := m.conn.LatestBlock()
-			if err != nil {
-				m.Log.Error("Unable to get latest block", "err", err)
-				time.Sleep(constant.QueryRetryInterval)
-				continue
-			}
-
-			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
-				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
-				time.Sleep(constant.BalanceRetryInterval)
-				continue
-			}
-
 			count, err := m.handler(m, currentBlock)
 			if err != nil {
-				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
+				if errors.Is(err, chain.NotVerifyAble) {
+					time.Sleep(constant.BlockRetryInterval)
+					continue
+				}
+				m.Log.Error("Filter Failed to get events for block", "err", err)
+				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
-				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				continue
 			}
 
 			_ = m.WaitUntilMsgHandled(count)
-
 			err = m.BlockStore.StoreBlock(currentBlock)
 			if err != nil {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
 
-			currentBlock.Add(currentBlock, big.NewInt(1))
-			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
-				time.Sleep(constant.MessengerInterval)
-			}
+			time.Sleep(constant.MessengerInterval)
 		}
 	}
 }
 
-func messengerHandler(m *sync, current *big.Int) (int, error) {
-	count := 0
+type Log struct {
+	Id     int64  `json:"id"`
+	Addr   string `json:"addr"`
+	Topic  string `json:"topic"`
+	Data   string `json:"data"`
+	TxHash string `json:"txHash"`
+}
 
-	return count, nil
+func filter(m *sync) (*Log, error) {
+	topic := ""
+	for idx, ele := range m.Cfg.Events {
+		topic += ele.GetTopic().Hex()
+		if idx != len(m.Cfg.Events)-1 {
+			topic += ","
+		}
+	}
+	data, err := chain.Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
+		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
+			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)))
+	if err != nil {
+		return nil, err
+	}
+	listData, err := json.Marshal(data)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal resp.Data failed")
+	}
+	back := stream.MosListResp{}
+	err = json.Unmarshal(listData, &back)
+	if err != nil {
+		return nil, err
+	}
+	if len(back.List) == 0 {
+		return nil, nil
+	}
+
+	ret := &Log{}
+	for _, ele := range back.List {
+		idx := m.Match(ele.ContractAddress)
+		if idx == -1 {
+			m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
+			m.Cfg.StartBlock = big.NewInt(ele.Id)
+			continue
+		}
+
+		split := strings.Split(ele.Topic, ",")
+		topics := make([]common.Hash, 0, len(split))
+		for _, sp := range split {
+			topics = append(topics, common.HexToHash(sp))
+		}
+		ret = &Log{
+			Id:     ele.Id,
+			Addr:   ele.ContractAddress,
+			Topic:  ele.Topic,
+			Data:   ele.LogData,
+			TxHash: ele.TxHash,
+		}
+
+		m.Log.Info("Filter Log h", "id", ele.Id, "txHash", ele.TxHash)
+	}
+
+	return ret, nil
+}
+
+func messagerHandler(m *sync, latestBlock *big.Int) (int, error) {
+	// 通过 filter 过滤
+	log, err := filter(m)
+	if err != nil {
+		return 0, errors.Wrap(err, "filter failed")
+	}
+	// 解析
+	tmp := make(map[string]string)
+	err = json.Unmarshal([]byte(log.Data), &tmp)
+	if err != nil {
+		return 0, errors.Wrap(err, "unmarshal resp.Data failed")
+	}
+	m.Log.Info("Sol2Evm msger parse success", "data", tmp)
+	//routeOrder, err := DecodeRouteOrder(common.Hex2Bytes(tmp["payload"]))
+	//if err != nil {
+	//	return 0, errors.Wrap(err, "decode route order failed")
+	//}
+
+	return 0, nil
 }
 
 func oracleHandler(m *sync, latestBlock *big.Int) (int, error) {
-	query := m.BuildQuery(m.Cfg.OracleNode, m.Cfg.Events[:1], latestBlock, latestBlock)
-	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
+	// 通过 filter 过滤
+	log, err := filter(m)
 	if err != nil {
-		return 0, fmt.Errorf("sync unable to Filter Logs: %w", err)
+		return 0, errors.Wrap(err, "filter failed")
 	}
-	if len(logs) == 0 {
-		return 0, nil
-	}
-	m.Log.Info("Find log", "block", latestBlock, "log", len(logs))
-	txsHash, err := getTxsByBN(m.Conn.Client(), latestBlock)
+	// 解析
+	data := make(map[string]string)
+	err = json.Unmarshal([]byte(log.Data), &data)
 	if err != nil {
-		return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+		return 0, errors.Wrap(err, "unmarshal resp.Data failed")
 	}
-	receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+	m.Log.Info("Sol2Evm msger parse success", "data", data)
+	routeOrder, err := DecodeRouteOrder(common.Hex2Bytes(data["payload"]))
 	if err != nil {
-		return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+		return 0, errors.Wrap(err, "decode route order failed")
 	}
-	tr, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-	tr = proof.DeriveTire(types.Receipts(receipts), tr)
-	m.Log.Info("oracle tron receipt", "blockNumber", latestBlock, "hash", tr.Hash())
-	receiptHash := tr.Hash()
+	receiptHash, err := genReceipt(log, routeOrder, data)
+	if err != nil {
+		return 0, errors.Wrap(err, "gen receipt failed")
+	}
+
 	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
 	if err != nil {
 		return 0, err
@@ -131,18 +196,71 @@ func oracleHandler(m *sync, latestBlock *big.Int) (int, error) {
 	return 1, nil
 }
 
-func getTxsByBN(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
-	block, err := conn.TronBlockByNumber(context.Background(), number)
+func genReceipt(log *Log, routerOrder *RouteOrder, logData map[string]string) (*common.Hash, error) {
+	orderId := common.HexToHash(logData["orderId"])
+	chainAndGasLimit := common.HexToHash(logData["chainAndGasLimit"])
+	gasLimit := big.NewInt(0).SetBytes(chainAndGasLimit.Bytes()[24:])
+	token := make([]byte, 0)
+	for _, ele := range routerOrder.FromToken {
+		token = append(token, ele)
+	}
+
+	form := make([]byte, 0)
+	for _, ele := range routerOrder.Payer {
+		form = append(form, ele)
+	}
+
+	swapStruct, err := parseSwapData(routerOrder.SwapData)
 	if err != nil {
 		return nil, err
 	}
 
-	txs := make([]common.Hash, 0, len(block.Transactions))
-	for _, tmp := range block.Transactions {
-		ele := common.HexToHash(tmp.Hash)
-		txs = append(txs, ele)
+	eo := MessageOutEvent{
+		FromChain:   big.NewInt(int64(routerOrder.FromChainID)),
+		ToChain:     big.NewInt(int64(routerOrder.ToChainID)),
+		OrderId:     orderId,
+		Amount:      big.NewInt(int64(routerOrder.AmountOut)),
+		Token:       token,
+		From:        form,
+		SwapData:    routerOrder.SwapData,
+		GasLimit:    gasLimit,
+		Mos:         nil,
+		Initiator:   swapStruct.Initiator,
+		Relay:       swapStruct.Relay,
+		MessageType: swapStruct.MessageType,
+		To:          swapStruct.Receiver,
 	}
-	return txs, nil
+	data, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolEventEncode].Inputs.Pack(&eo)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal resp.Data failed")
+	}
+	addr := make([]byte, 0, 64)
+	for _, ele := range solana.MustSignatureFromBase58(log.Addr) {
+		addr = append(addr, ele)
+	}
+	// abi
+	recePack, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolPackReceipt].Inputs.Pack(addr, []byte(log.Topic), data)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal resp.Data failed")
+	}
+	receipt := common.BytesToHash(crypto.Keccak256(recePack))
+	return &receipt, nil
+}
+
+type MessageOutEvent struct {
+	Relay       bool
+	MessageType *big.Int
+	FromChain   *big.Int
+	ToChain     *big.Int
+	OrderId     [32]byte
+	Mos         []byte
+	Token       []byte
+	Initiator   []byte
+	From        []byte
+	To          []byte
+	Amount      *big.Int
+	GasLimit    *big.Int
+	SwapData    []byte
 }
 
 func getSigner(log *types.Log, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
