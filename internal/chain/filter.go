@@ -3,17 +3,15 @@ package chain
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"math/big"
-	"net/http"
-	"strings"
-	"time"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/pkg/errors"
+	"io"
+	"math/big"
+	"net/http"
+	"strings"
 )
 
 func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
@@ -53,7 +51,6 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 		}
 		if latestBlock-ele.BlockNumber < m.BlockConfirmations.Uint64() {
 			m.Log.Debug("Block not ready, will retry", "currentBlock", ele.BlockNumber, "latest", latestBlock)
-			time.Sleep(constant.BalanceRetryInterval)
 			continue
 		}
 
