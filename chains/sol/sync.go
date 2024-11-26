@@ -206,10 +206,10 @@ func oracleHandler(m *sync) (int, error) {
 	for _, v := range ret.Version {
 		version = append(version, byte(v))
 	}
-	fmt.Println("version ---- ", "0x"+common.Bytes2Hex(version))
+
 	bn := big.NewInt(log.BlockNumber)
 	input, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receiptHash,
-		ret.Version, big.NewInt(int64(m.Cfg.Id)), bn)
+		ret.Version, bn, big.NewInt(int64(m.Cfg.Id)))
 	if err != nil {
 		return 0, errors.Wrap(err, "oracle pack input failed")
 	}
