@@ -199,9 +199,10 @@ func messagerHandler(m *sync) (int64, error) {
 	finalInput, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfMessageIn,
 		big.NewInt(0).SetUint64(uint64(m.Cfg.Id)),
 		big.NewInt(int64(0)), orderId, input)
-	if err != nil {
-		return 0, errors.Wrap(err, "pack mcs input failed")
-	}
+	//finalInput, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, input)
+	//if err != nil {
+	//	return 0, errors.Wrap(err, "pack mcs input failed")
+	//}
 
 	var orderId32 [32]byte
 	for i, v := range orderId {
