@@ -172,7 +172,7 @@ func parseSwapData(data []byte) (*SwapData, error) {
 	messageType := data[offset]
 
 	// 返回解析结果
-	relayBool, err := strconv.ParseBool(string(relay))
+	relayBool, err := strconv.ParseBool(fmt.Sprintf("%x", relay))
 	if err != nil {
 		return nil, err
 	}

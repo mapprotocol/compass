@@ -52,10 +52,11 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 
 	switch role {
 	case mapprotocol.RoleOfMessenger:
-		listen = newSync(cs, messagerHandler, conn)
+		listen = newSync(cs, messagerHandler, conn, config)
 	case mapprotocol.RoleOfOracle:
-		listen = newSync(cs, oracleHandler, conn)
+		listen = newSync(cs, oracleHandler, conn, config)
 	}
+	mapprotocol.MosMapping[config.Id] = config.McsContract[0]
 
 	return &Chain{
 		conn:   conn,

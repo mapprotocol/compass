@@ -39,7 +39,7 @@ const (
 	MethodOfNodeType             = "nodeType"
 	MethodOfMptPack              = "mptPack"
 	MethodOfSolEventEncode       = "solEventEncode"
-	MethodOfSolPackReceipt       = "packReceipt"
+	MethodOfSolPackReceipt       = "solPackReceipt"
 )
 
 const (

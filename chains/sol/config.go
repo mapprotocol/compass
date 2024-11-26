@@ -11,6 +11,7 @@ type Config struct {
 	Pri         string
 	LightNode   string
 	McsContract []string
+	SolEvent    []string
 }
 
 func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
@@ -34,6 +35,10 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 		for _, addr := range strings.Split(ele, ",") {
 			ret.McsContract = append(ret.McsContract, addr)
 		}
+	}
+
+	if v, ok := chainCfg.Opts[chain.Event]; ok && v != "" {
+		ret.SolEvent = append(ret.SolEvent, strings.Split(v, "|")...)
 	}
 
 	return &ret, nil
