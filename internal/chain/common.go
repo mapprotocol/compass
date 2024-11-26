@@ -87,7 +87,7 @@ func ProposalInfo(idx int, selfChainId, toChainID uint64, blockNumber *big.Int, 
 		return nil, ContractNotExist
 	}
 	ret := ProposalInfoResp{}
-	fmt.Println(big.NewInt(int64(selfChainId)), blockNumber, receipt, version)
+	fmt.Println("MethodOfProposalInfo request ", big.NewInt(int64(selfChainId)), blockNumber, receipt, version)
 	err := call.Call(mapprotocol.MethodOfProposalInfo, &ret, idx, big.NewInt(int64(selfChainId)), blockNumber, receipt, version)
 	if err != nil {
 		return nil, err

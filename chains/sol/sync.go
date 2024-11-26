@@ -172,12 +172,11 @@ func messagerHandler(m *sync) (int64, error) {
 	if err != nil {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
-	m.Log.Info("Sol2Evm oracle generate", "receiptHash", receiptHash)
+	m.Log.Info("Sol2Evm msger generate", "receiptHash", receiptHash, "1111", "111")
 	proposalInfo, err := getSigner(log.BlockNumber, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
 		return 0, err
 	}
-	fmt.Println("proposalInfo ---------- ", proposalInfo)
 	var fixedHash [32]byte
 	for i, v := range receiptHash {
 		fixedHash[i] = v
@@ -196,13 +195,14 @@ func messagerHandler(m *sync) (int64, error) {
 	}
 
 	orderId := common.HexToHash(tmp["orderId"])
-	finalInput, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfMessageIn,
-		big.NewInt(0).SetUint64(uint64(m.Cfg.Id)),
-		big.NewInt(int64(0)), orderId, input)
-	//finalInput, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, input)
-	//if err != nil {
-	//	return 0, errors.Wrap(err, "pack mcs input failed")
-	//}
+	fmt.Println("orderId ---- ", orderId)
+	//finalInput, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfMessageIn,
+	//	big.NewInt(0).SetUint64(uint64(m.Cfg.Id)),
+	//	big.NewInt(int64(0)), orderId, input)
+	finalInput, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, input)
+	if err != nil {
+		return 0, errors.Wrap(err, "pack mcs input failed")
+	}
 
 	var orderId32 [32]byte
 	for i, v := range orderId {
@@ -301,7 +301,7 @@ func genReceipt(toChainId msg.ChainId, log *Log, routerOrder *RouteOrder,
 		From:        form,
 		SwapData:    routerOrder.SwapData,
 		GasLimit:    gasLimit,
-		Mos:         []byte(mapprotocol.MosMapping[toChainId]),
+		Mos:         common.HexToAddress(mapprotocol.MosMapping[toChainId]).Bytes(),
 		Initiator:   swapStruct.Initiator,
 		Relay:       swapStruct.Relay,
 		MessageType: uint8(swapStruct.MessageType.Int64()),
@@ -352,6 +352,7 @@ func getSigner(blockNumber int64, receiptHash common.Hash, selfId, toChainID uin
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("ProposalInfo --------- ", piRet)
 	if !piRet.CanVerify {
 		return nil, chain.NotVerifyAble
 	}
