@@ -219,7 +219,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
 				continue
 			}
-			receipt, err = genLogReceipt(&tmp) //  hash修改
+			receipt, err = GenLogReceipt(&tmp) //  hash修改
 		default:
 			panic("unhandled default case")
 		}
@@ -228,18 +228,10 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 		}
 		m.Log.Info("Find log", "block", blockNumber, "logs", len(logs), "receipt", receipt)
 
-		ret, err := MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
+		ret, err := MulSignInfo(0, uint64(m.Cfg.MapChainID))
 		if err != nil {
 			return err
 		}
-		version := make([]byte, 0)
-		for _, v := range ret.Version {
-			version = append(version, byte(v))
-		}
-		fmt.Println("receipt ", receipt)
-		fmt.Println("version ", common.BytesToHash(version).String())
-		fmt.Println("blockNumber ", blockNumber.String())
-		fmt.Println("id ", id)
 		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, blockNumber, id)
 		if err != nil {
 			return err
@@ -260,7 +252,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	return nil
 }
 
-func genLogReceipt(log *types.Log) (*common.Hash, error) {
+func GenLogReceipt(log *types.Log) (*common.Hash, error) {
 	recePack := make([]byte, 0)
 	recePack = append(recePack, log.Address.Bytes()...)
 	recePack = append(recePack, []byte{0, 0, 0, 0}...)
@@ -284,7 +276,7 @@ func Completion(bytes []byte, number int) []byte {
 }
 
 func genMptReceipt(cli *ethclient.Client, selfId int64, latestBlock *big.Int) (*common.Hash, error) {
-	if !exist(selfId, []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId, constant.B2ChainId, constant.ZkLinkChainId}) {
+	if !exist(selfId, []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId}) {
 		return nil, nil
 	}
 	txsHash, err := mapprotocol.GetTxsByBn(cli, latestBlock)
@@ -311,6 +303,12 @@ func exist(target int64, dst []int64) bool {
 }
 
 func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
+	switch toChainID {
+	case constant.TronChainId:
+		return big.NewInt(5), nil
+	default:
+
+	}
 	if toChainID == constant.TonChainId { // todo ton
 		return big.NewInt(5), nil
 	}

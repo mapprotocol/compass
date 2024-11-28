@@ -120,7 +120,7 @@ func (m *Messenger) filter() error {
 			count, err := m.filterMosHandler(latestBlock.Uint64())
 			if err != nil {
 				if errors.Is(err, NotVerifyAble) {
-					time.Sleep(constant.BalanceRetryInterval)
+					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
 				m.Log.Error("Filter Failed to get events for block", "err", err)
@@ -183,8 +183,8 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", orderId)
 	if strings.ToLower(chainName) == "near" {
 		proofType = 1
-	} else if strings.ToLower(chainName) == "tron" {
-		proofType = constant.ProofTypeOfNewOracle
+	} else if strings.ToLower(chainName) == "tron" || strings.ToLower(chainName) == "sol" {
+		proofType = constant.ProofTypeOfLogOracle
 	} else if strings.ToLower(chainName) == "ton" {
 		proofType = constant.ProofTypeOfLogOracle
 	} else {
@@ -227,7 +227,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 
 func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofType int64) (*ProposalInfoResp, error) {
 	bn := big.NewInt(int64(log.BlockNumber))
-	ret, err := MulSignInfo(0, selfId, toId)
+	ret, err := MulSignInfo(0, toId)
 	if err != nil {
 		return nil, fmt.Errorf("MulSignInfo failed: %w", err)
 	}
@@ -245,10 +245,12 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 			header.ReceiptHash = *genRece
 		}
 	case constant.ProofTypeOfLogOracle:
-		hash, _ := genLogReceipt(log)
+		hash, _ := GenLogReceipt(log)
 		if hash != nil {
 			header.ReceiptHash = *hash
 		}
+	default:
+		return nil, fmt.Errorf("unknown proof type %d", proofType)
 	}
 
 	piRet, err := ProposalInfo(0, selfId, toId, bn, header.ReceiptHash, ret.Version)

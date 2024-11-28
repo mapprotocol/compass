@@ -132,7 +132,7 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				m.Log.Debug("ignore log, because topics not match", "blockNumber", l.BlockNumber, "logTopic", l.Topics[0])
 				continue
 			}
-			orderId := l.Data[:32]
+			orderId := l.Topics[1]
 			var (
 				message  msg.Message
 				receipts []*types.Receipt
@@ -155,44 +155,26 @@ func messengerHandler(m *sync, current *big.Int) (int, error) {
 				}
 				proof.CacheReceipt[key] = receipts
 			}
-			if l.Topics[0].Hex() == constant.TopicsOfSwapInVerified {
-				logIdx, ok := constant.MapLogIdx[l.TxHash.Hex()]
-				if !ok {
-					m.Log.Info("Event found SwapInVerified, but dont this msger handler",
-						"block", current, "txHash", l.TxHash, "logIdx", logIdx)
-					continue
-				}
-				saveOrderId, _ := constant.MapOrderId[l.TxHash.Hex()]
-				m.Log.Info("Event found SwapInVerified", "block", current, "txHash", l.TxHash, "idx", l.Index,
-					"logIdx", logIdx, "txIdx", l.TxIndex, "all", len(receipts[l.TxIndex].Logs))
-				data, err := mapprotocol.Mcs.Events[mapprotocol.EventOfSwapInVerified].Inputs.UnpackValues(l.Data)
-				if err != nil {
-					return 0, errors.Wrap(err, "swapIn unpackData failed")
-				}
 
-				input, _ := mapprotocol.Mcs.Pack(mapprotocol.MethodOfSwapInVerified, data[0].([]byte), big.NewInt(logIdx), saveOrderId)
-				msgPayload := []interface{}{input, orderId32, l.BlockNumber, l.TxHash, mapprotocol.MethodOfSwapInVerified}
-				message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, m.Cfg.Id, msgPayload, m.MsgCh)
-			} else {
-				method := m.GetMethod(l.Topics[0])
-				m.Log.Info("Event found", "block", current, "txHash", l.TxHash, "logIdx", l.Index, "orderId", common.Bytes2Hex(orderId))
-				proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), current, orderId)
-				if errors.Is(err, chain.OrderExist) {
-					m.Log.Info("This orderId exist", "block", current, "txHash", l.TxHash, "orderId", common.Bytes2Hex(orderId))
-					continue
-				}
-				if err != nil {
-					return 0, err
-				}
-
-				tmp := l
-				input, err := assembleProof(&tmp, receipts, method, m.Cfg.Id, m.Cfg.MapChainID, proofType, orderId32)
-				if err != nil {
-					return 0, err
-				}
-
-				message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, orderId32, l.BlockNumber, l.TxHash}, m.MsgCh)
+			method := m.GetMethod(l.Topics[0])
+			m.Log.Info("Event found", "block", current, "txHash", l.TxHash, "logIdx", l.Index, "orderId", orderId)
+			proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), current, orderId.Bytes())
+			if errors.Is(err, chain.OrderExist) {
+				m.Log.Info("This orderId exist", "block", current, "txHash", l.TxHash, "orderId", orderId)
+				continue
 			}
+			if err != nil {
+				return 0, err
+			}
+
+			tmp := l
+			input, err := assembleProof(&tmp, receipts, method, m.Cfg.Id, m.Cfg.MapChainID, proofType, orderId32)
+			if err != nil {
+				return 0, err
+			}
+
+			message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, orderId32, l.BlockNumber, l.TxHash}, m.MsgCh)
+
 			err = m.Router.Send(message)
 			if err != nil {
 				m.Log.Error("subscription error: failed to route message", "err", err)
@@ -236,7 +218,7 @@ func oracleHandler(m *sync, latestBlock *big.Int) (int, error) {
 	tr = proof.DeriveTire(types.Receipts(receipts), tr)
 	m.Log.Info("oracle tron receipt", "blockNumber", latestBlock, "hash", tr.Hash())
 	receiptHash := tr.Hash()
-	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
+	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.MapChainID))
 	if err != nil {
 		return 0, err
 	}
@@ -246,7 +228,7 @@ func oracleHandler(m *sync, latestBlock *big.Int) (int, error) {
 		return 0, err
 	}
 
-	message := msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, receiptHash, latestBlock}, m.MsgCh)
+	message := msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, &receiptHash, latestBlock}, m.MsgCh)
 	err = m.Router.Send(message)
 	if err != nil {
 		m.Log.Error("subscription error: failed to route message", "err", err)
@@ -272,7 +254,7 @@ func getTxsByBN(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) 
 
 func getSigner(log *types.Log, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
 	bn := big.NewInt(int64(log.BlockNumber))
-	ret, err := chain.MulSignInfo(0, selfId, toChainID)
+	ret, err := chain.MulSignInfo(0, toChainID)
 	if err != nil {
 		return nil, err
 	}

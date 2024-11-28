@@ -85,6 +85,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 	oracleCall := contract.New(conn, []common.Address{cfg.OracleNode}, oAbi)
 	mapprotocol.SingMapping[cfg.Id] = oracleCall
 	wri := NewWriter(conn, cfg, logger, stop, sysErr)
+	mapprotocol.MosMapping[cfg.Id] = cfg.McsContract[0].String()
 
 	return &Chain{
 		cfg:    chainCfg,

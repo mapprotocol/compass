@@ -2,6 +2,9 @@ package conflux
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/trie"
+	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/proof"
 	"io"
@@ -178,22 +181,37 @@ func (header BlockRlp) EncodeRLP(w io.Writer) error {
 }
 
 func AssembleProof(client *Client, pivot, proofType uint64, method string, fId msg.ChainId, log *ethtypes.Log,
-	receipts []*ethtypes.Receipt, orderId [32]byte) ([]byte, error) {
+	receipts []*ethtypes.Receipt, orderId [32]byte, sign [][]byte) ([]byte, error) {
 	var (
+		err        error
 		ret, input []byte
+		key        []byte
 	)
+	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
+	prf, err := proof.Get(ethtypes.Receipts(receipts), log.TxIndex)
+	if err != nil {
+		return nil, err
+	}
+	//ek := util.Key2Hex(key, len(prf))
+	receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
 	switch proofType {
 	case constant.ProofTypeOfOracle:
-		var key []byte
-		key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
-		prf, err := proof.Get(ethtypes.Receipts(receipts), log.TxIndex)
-		if err != nil {
-			return nil, err
-		}
-		//ek := util.Key2Hex(key, len(prf))
-		receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
+
 		ret, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, 0,
 			mapprotocol.ProofAbi, orderId, false)
+	case constant.ProofTypeOfNewOracle:
+		idx := 0
+		for i, ele := range receipts[log.TxIndex].Logs {
+			if ele.Index != log.Index {
+				continue
+			}
+			idx = i
+		}
+		tr, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
+		tr = proof.DeriveTire(ethtypes.Receipts(receipts), tr)
+		ret, err = proof.SignOracle(&maptypes.Header{
+			ReceiptHash: tr.Hash(),
+		}, receipt, key, prf, fId, idx, method, sign, orderId, log, int64(proofType))
 	default:
 		if log.BlockNumber+DeferredExecutionEpochs > pivot {
 			return nil, errors.New("Pivot less than current block")
@@ -254,9 +272,9 @@ func AssembleProof(client *Client, pivot, proofType uint64, method string, fId m
 			return nil, err
 		}
 		ret, err = mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
-		if err != nil {
-			return nil, err
-		}
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	return ret, nil

@@ -3,6 +3,8 @@ package klaytn
 import (
 	"bytes"
 	"context"
+	maptypes "github.com/mapprotocol/atlas/core/types"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
@@ -185,8 +187,15 @@ type TxLog struct {
 	Data   []byte
 }
 
-func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, receipts []*types.Receipt, method string, proofType int64) ([]byte, error) {
+func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, receipts []*types.Receipt,
+	method string, proofType int64, orderId [32]byte, sign [][]byte) ([]byte, error) {
 	GetReceiptsByTxsHash(cli, receipts)
+
+	var (
+		err  error
+		pack []byte
+	)
+
 	receiptRlps := make(ReceiptRlps, 0, len(receipts))
 	for _, receipt := range receipts {
 		logs := make([]TxLog, 0, len(receipt.Logs))
@@ -208,6 +217,7 @@ func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, 
 			Logs:    receipt.Logs,
 		})
 	}
+
 	prf, err := proof.Get(receiptRlps, log.TxIndex)
 	if err != nil {
 		return nil, err
@@ -215,37 +225,55 @@ func AssembleProof(cli *Client, header Header, log *types.Log, fId msg.ChainId, 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
 	ek := util.Key2Hex(key, len(prf))
-	receipt, err := GetTxReceipt(receipts[log.TxIndex])
+	receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := rlp.EncodeToBytes(receipt)
-	if err != nil {
-		return nil, err
+	idx := 0
+	for i, ele := range receipts[log.TxIndex].Logs {
+		if ele.Index != log.Index {
+			continue
+		}
+		idx = i
 	}
 
-	pd := ReceiptProofOriginal{
-		Header:    header,
-		Proof:     prf,
-		TxReceipt: data,
-		KeyIndex:  ek,
-	}
+	switch proofType {
+	case constant.ProofTypeOfNewOracle:
+		fallthrough
+	case constant.ProofTypeOfLogOracle:
+		pack, err = KlaytnSignOracle(&maptypes.Header{
+			ReceiptHash: common.BytesToHash(header.ReceiptsRoot),
+			Number:      big.NewInt(int64(log.BlockNumber)),
+		}, receiptRlps[log.TxIndex], big.NewInt(0), key, prf, fId, idx, method, sign, orderId, log, proofType)
+	default:
+		data, err := rlp.EncodeToBytes(receipt)
+		if err != nil {
+			return nil, err
+		}
 
-	input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
-	if err != nil {
-		return nil, errors.Wrap(err, "getBytes pack")
-	}
-	finpd := ReceiptProof{
-		Proof:     input,
-		DeriveSha: DeriveShaOrigin,
-	}
-	input, err = mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetFinalBytes].Inputs.Pack(finpd)
-	if err != nil {
-		return nil, errors.Wrap(err, "getFinalBytes pack")
-	}
+		pd := ReceiptProofOriginal{
+			Header:    header,
+			Proof:     prf,
+			TxReceipt: data,
+			KeyIndex:  ek,
+		}
 
-	pack, err := mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+		input, err := mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+		if err != nil {
+			return nil, errors.Wrap(err, "getBytes pack")
+		}
+		finpd := ReceiptProof{
+			Proof:     input,
+			DeriveSha: DeriveShaOrigin,
+		}
+		input, err = mapprotocol.Klaytn.Methods[mapprotocol.MethodOfGetFinalBytes].Inputs.Pack(finpd)
+		if err != nil {
+			return nil, errors.Wrap(err, "getFinalBytes pack")
+		}
+
+		pack, err = mapprotocol.PackInput(mapprotocol.Mcs, method, new(big.Int).SetUint64(uint64(fId)), input)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -267,31 +295,59 @@ func GetReceiptsByTxsHash(cli *Client, receipts []*types.Receipt) {
 	}
 }
 
-type TxReceipt struct {
-	PostStateOrStatus []byte
-	CumulativeGasUsed *big.Int
-	Bloom             []byte
-	Logs              []mapprotocol.TxLog
-}
-
-func GetTxReceipt(receipt *types.Receipt) (*TxReceipt, error) {
-	logs := make([]mapprotocol.TxLog, 0, len(receipt.Logs))
-	for _, lg := range receipt.Logs {
-		topics := make([][]byte, len(lg.Topics))
-		for i := range lg.Topics {
-			topics[i] = lg.Topics[i][:]
+func KlaytnSignOracle(header *maptypes.Header, rr *ReceiptRLP, receiptType *big.Int, key []byte, prf [][]byte, fId msg.ChainId,
+	idx int, method string, sign [][]byte, orderId [32]byte, log *types.Log, proofType int64) ([]byte, error) {
+	pt := uint8(0)
+	var fixedHash [32]byte
+	newPrf := make([]byte, 0)
+	switch proofType {
+	case constant.ProofTypeOfNewOracle:
+		nrRlp, err := rlp.EncodeToBytes(rr)
+		if err != nil {
+			return nil, err
 		}
-		logs = append(logs, mapprotocol.TxLog{
-			Addr:   lg.Address,
-			Topics: topics,
-			Data:   lg.Data,
-		})
+
+		for i, v := range header.ReceiptHash {
+			fixedHash[i] = v
+		}
+
+		rpf := proof.NewReceiptProof{
+			TxReceipt:   nrRlp,
+			ReceiptType: receiptType,
+			KeyIndex:    util.Key2Hex(key, len(prf)),
+			Proof:       prf,
+		}
+
+		newPrf, err = mapprotocol.PackAbi.Methods[mapprotocol.MethodOfMptPack].Inputs.Pack(rpf)
+		if err != nil {
+			return nil, err
+		}
+	case constant.ProofTypeOfLogOracle:
+		pt = 1
+		//newPrf = log2Proof(log)
+		//fixedHash = common.BytesToHash(crypto.Keccak256(newPrf))
+	default:
+		return nil, errors.New("invalid proof type")
 	}
 
-	return &TxReceipt{
-		PostStateOrStatus: mapprotocol.StatusEncoding(receipt),
-		CumulativeGasUsed: new(big.Int).SetUint64(receipt.GasUsed),
-		Bloom:             receipt.Bloom[:],
-		Logs:              logs,
-	}, nil
+	pd := proof.SignLogData{
+		ProofType:   pt,
+		BlockNum:    big.NewInt(0).SetUint64(log.BlockNumber),
+		ReceiptRoot: fixedHash,
+		Signatures:  sign,
+		Proof:       newPrf,
+	}
+
+	input, err := mapprotocol.GetAbi.Methods[mapprotocol.MethodOfGetBytes].Inputs.Pack(pd)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack getBytes failed")
+	}
+
+	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
+		big.NewInt(int64(idx)), orderId, input)
+	if err != nil {
+		return nil, errors.Wrap(err, "pack mcs input failed")
+	}
+
+	return ret, nil
 }

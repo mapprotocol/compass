@@ -19,7 +19,6 @@ import (
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"github.com/pkg/errors"
 )
 
 func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
@@ -57,16 +56,6 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 	cs := chain.NewCommonSync(ethConn, &config.Config, logger, stop, sysErr, bs)
 
 	switch role {
-	case mapprotocol.RoleOfMaintainer:
-		fn := Map2Tron(config.From, config.LightNode, conn.cli)
-		height, err := fn()
-		if err != nil {
-			return nil, errors.Wrap(err, "Map2Tron get init headerHeight failed")
-		}
-		logger.Info("Map2other Current situation", "id", config.Id, "height", height, "lightNode", config.LightNode)
-		mapprotocol.SyncOtherMap[config.Id] = height
-		mapprotocol.Map2OtherHeight[config.Id] = fn
-		listen = NewMaintainer(logger)
 	case mapprotocol.RoleOfMessenger:
 		listen = newSync(cs, messengerHandler, conn)
 	case mapprotocol.RoleOfOracle:

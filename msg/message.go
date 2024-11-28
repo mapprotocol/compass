@@ -8,12 +8,12 @@ type TransferType string
 
 var (
 	SyncToMap        TransferType = "SyncToMap"
-	SwapWithProof    TransferType = "SwapWithProof"
 	SyncFromMap      TransferType = "SyncFromMap"
+	SwapWithProof    TransferType = "SwapWithProof"
 	SwapWithMapProof TransferType = "SwapWithMapProof"
 	SwapWithMerlin   TransferType = "SwapWithMerlin"
-	Proposal         TransferType = "proposal"
-	Empty            TransferType = "empty"
+	Proposal         TransferType = "Proposal"
+	SwapSolProof     TransferType = "SwapSolProof"
 )
 
 // Message is used as a generic format to communicate between chains
@@ -66,6 +66,16 @@ func NewSwapWithMapProof(fromChainID, toChainID ChainId, payloads []interface{},
 	}
 }
 
+func NewSolProof(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {
+	return Message{
+		Source:      fromChainID,
+		Destination: toChainID,
+		Type:        SwapSolProof,
+		Payload:     payloads,
+		DoneCh:      ch,
+	}
+}
+
 func NewSwapWithMerlin(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {
 	return Message{
 		Source:      fromChainID,
@@ -82,15 +92,6 @@ func NewProposal(fromChainID, toChainID ChainId, payloads []interface{}, ch chan
 		Destination: toChainID,
 		Type:        Proposal,
 		Payload:     payloads,
-		DoneCh:      ch,
-	}
-}
-
-func NewEmpty(fromChainID, toChainID ChainId, ch chan<- struct{}) Message {
-	return Message{
-		Source:      fromChainID,
-		Destination: toChainID,
-		Type:        Empty,
 		DoneCh:      ch,
 	}
 }

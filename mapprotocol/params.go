@@ -32,16 +32,14 @@ const (
 	MethodOfVerifyReceiptProof   = "verifyReceiptProof"
 	MethodOfOrderStatus          = "getOrderStatus"
 	MethodOfPropose              = "propose"
-	MethodOfSwapInVerified       = "swapInVerified"
-	EventOfSwapInVerified        = "mapSwapInVerified"
-	MethodOfTransferInWithIndex  = "transferInWithIndex"
 	MethodOfMessageIn            = "messageIn"
-	MethodOfSwapInWithIndex      = "swapInWithIndex"
 	MethodOfMulSignInfo          = "multisigInfo"
 	MethodOfProposalInfo         = "proposalInfo"
 	MethodOfSolidityPack         = "soliditypack"
 	MethodOfNodeType             = "nodeType"
 	MethodOfMptPack              = "mptPack"
+	MethodOfSolEventEncode       = "solEventEncode"
+	MethodOfSolPackReceipt       = "solPackReceipt"
 )
 
 const (
@@ -86,6 +84,7 @@ var (
 	SignerAbi, _   = abi.JSON(strings.NewReader(SignerJson))
 	PackAbi, _     = abi.JSON(strings.NewReader(PackJson))
 	GetAbi, _      = abi.JSON(strings.NewReader(GetJson))
+	SolAbi, _      = abi.JSON(strings.NewReader(SolJson))
 )
 
 type Role string

@@ -18,21 +18,15 @@ var (
 )
 
 var (
-	BlockRetryInterval = time.Second * 5
-	QueryRetryInterval = time.Second * 10
-)
-
-var (
-	MaintainerInterval = time.Second * 3
-	MessengerInterval  = time.Second * 1
+	BlockRetryInterval   = time.Second * 3
+	QueryRetryInterval   = time.Second * 5
+	MaintainerInterval   = time.Second * 3
+	MessengerInterval    = time.Second * 1
+	BalanceRetryInterval = time.Second * 60
 )
 
 var (
 	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-)
-
-var (
-	BalanceRetryInterval = time.Second * 60
 )
 
 var IgnoreError = map[string]struct{}{
@@ -100,9 +94,7 @@ const (
 const (
 	MerlinChainId     = 4200
 	CfxChainId        = 1030
-	EthChainId        = 5
 	ZkSyncChainId     = 324
-	B2ChainId         = 223
 	OpChainId         = 10
 	BaseChainId       = 8453
 	BlastChainId      = 81457
@@ -110,15 +102,11 @@ const (
 	ArbTestnetChainId = 42161
 	MantleChainId     = 5000
 	ScrollChainId     = 534352
-	ZkLinkChainId     = 810180
 	DodoChainId       = 53457
 	TronChainId       = 728126428
+	SolChainId        = 1360108768460811
 	NearChainId       = 1360100178526209
 	TonChainId        = 1360104473493506
-)
-
-const (
-	TopicsOfSwapInVerified = "0x71b6b465a3e1914ab78a5c4e72ed92c70071ccf1a1bdee55bc47174cbcd47605"
 )
 
 const (
