@@ -9,6 +9,7 @@ import (
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/stream"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -80,6 +81,22 @@ type Log struct {
 	TxHash      string `json:"txHash"`
 }
 
+type LogData struct {
+	OrderId     string `json:"orderId"`
+	Relay       int    `json:"relay"`
+	MessageType int    `json:"messageType"`
+	FromChain   string `json:"fromChain"`
+	ToChain     string `json:"toChain"`
+	Mos         string `json:"mos"`
+	Token       string `json:"token"`
+	Initiator   string `json:"initiator"`
+	From        string `json:"from"`
+	To          string `json:"to"`
+	Amount      string `json:"amount"`
+	GasLimit    string `json:"gasLimit"`
+	SwapData    string `json:"swapData"`
+}
+
 func filter(m *sync) (*Log, error) {
 	topic := ""
 	for idx, ele := range m.cfg.SolEvent {
@@ -88,9 +105,7 @@ func filter(m *sync) (*Log, error) {
 			topic += ","
 		}
 	}
-	fmt.Println("url --------- ", fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)))
+
 	data, err := chain.Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
 		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
 			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)))
@@ -110,11 +125,11 @@ func filter(m *sync) (*Log, error) {
 		return nil, nil
 	}
 
-	ret := &Log{}
+	var ret = Log{}
 	for _, ele := range back.List {
 		idx := match(ele.ContractAddress, m.cfg.McsContract)
 		if idx == -1 {
-			m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
+			m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress, "txHash", ele.TxHash)
 			m.Cfg.StartBlock = big.NewInt(ele.Id)
 			continue
 		}
@@ -124,7 +139,7 @@ func filter(m *sync) (*Log, error) {
 		for _, sp := range split {
 			topics = append(topics, common.HexToHash(sp))
 		}
-		ret = &Log{
+		ret = Log{
 			Id:          ele.Id,
 			BlockNumber: int64(ele.BlockNumber),
 			Addr:        ele.ContractAddress,
@@ -136,7 +151,7 @@ func filter(m *sync) (*Log, error) {
 		m.Log.Info("Filter find Log", "id", ele.Id, "txHash", ele.TxHash)
 	}
 
-	return ret, nil
+	return &ret, nil
 }
 
 func match(addr string, target []string) int {
@@ -157,18 +172,7 @@ func messagerHandler(m *sync) (int64, error) {
 	if log == nil {
 		return 0, nil
 	}
-	// 解析
-	tmp := make(map[string]string)
-	err = json.Unmarshal([]byte(log.Data), &tmp)
-	if err != nil {
-		return 0, errors.Wrap(err, "unmarshal resp.Data failed")
-	}
-	m.Log.Info("Sol2Evm msger parse success", "data", tmp)
-	routeOrder, err := DecodeRouteOrder(common.Hex2Bytes(tmp["payload"]))
-	if err != nil {
-		return 0, errors.Wrap(err, "decode route order failed")
-	}
-	receiptHash, receiptPack, err := genReceipt(m.Cfg.MapChainID, log, routeOrder, tmp)
+	receiptHash, receiptPack, err := genReceipt(log)
 	if err != nil {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
@@ -194,15 +198,19 @@ func messagerHandler(m *sync) (int64, error) {
 		return 0, errors.Wrap(err, "pack getBytes failed")
 	}
 
-	orderId := common.HexToHash(tmp["orderId"])
-	fmt.Println("orderId ---- ", orderId)
-	//finalInput, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfMessageIn,
-	//	big.NewInt(0).SetUint64(uint64(m.Cfg.Id)),
-	//	big.NewInt(int64(0)), orderId, input)
-	finalInput, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, input)
+	tmpData := LogData{}
+	err = json.Unmarshal([]byte(log.Data), &tmpData)
 	if err != nil {
-		return 0, errors.Wrap(err, "pack mcs input failed")
+		return 0, errors.Wrap(err, "unmarshal resp.Data failed")
 	}
+	orderId := common.HexToHash(tmpData.OrderId)
+	finalInput, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfMessageIn,
+		big.NewInt(0).SetUint64(uint64(m.Cfg.Id)),
+		big.NewInt(int64(0)), orderId, input)
+	//finalInput, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, input)
+	//if err != nil {
+	//	return 0, errors.Wrap(err, "pack mcs input failed")
+	//}
 
 	var orderId32 [32]byte
 	for i, v := range orderId {
@@ -225,21 +233,12 @@ func oracleHandler(m *sync) (int64, error) {
 	if err != nil {
 		return 0, errors.Wrap(err, "filter failed")
 	}
-	if log == nil {
+	if log == nil || log.Id == 0 {
 		return 0, nil
 	}
-	// 解析
-	tmp := make(map[string]string)
-	err = json.Unmarshal([]byte(log.Data), &tmp)
-	if err != nil {
-		return 0, errors.Wrap(err, "unmarshal resp.Data failed")
-	}
-	m.Log.Info("Sol2Evm oracle parse success", "data", tmp)
-	routeOrder, err := DecodeRouteOrder(common.Hex2Bytes(tmp["payload"]))
-	if err != nil {
-		return 0, errors.Wrap(err, "decode route order failed")
-	}
-	receiptHash, _, err := genReceipt(m.Cfg.MapChainID, log, routeOrder, tmp)
+
+	m.Log.Info("Filter find Log", "id", log.Id, "txHash", log.TxHash)
+	receiptHash, _, err := genReceipt(log)
 	if err != nil {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
@@ -272,40 +271,57 @@ func oracleHandler(m *sync) (int64, error) {
 	return log.Id, nil
 }
 
-func genReceipt(toChainId msg.ChainId, log *Log, routerOrder *RouteOrder,
-	logData map[string]string) (*common.Hash, []byte, error) {
-	orderId := common.HexToHash(logData["orderId"])
-	chainAndGasLimit := common.HexToHash(logData["chainAndGasLimit"])
-	gasLimit := big.NewInt(0).SetBytes(chainAndGasLimit.Bytes()[24:])
-	token := make([]byte, 0)
-	for _, ele := range routerOrder.FromToken {
-		token = append(token, ele)
-	}
-
-	form := make([]byte, 0)
-	for _, ele := range routerOrder.Payer {
-		form = append(form, ele)
-	}
-
-	swapStruct, err := parseSwapData(routerOrder.SwapData)
+func genReceipt(log *Log) (*common.Hash, []byte, error) {
+	// 解析
+	tmpData := LogData{}
+	err := json.Unmarshal([]byte(log.Data), &tmpData)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "unmarshal resp.Data failed")
 	}
+	fromChain, ok := big.NewInt(0).SetString(tmpData.FromChain, 16)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid fromChain (%s)", tmpData.FromChain)
+	}
+	toChain, ok := big.NewInt(0).SetString(tmpData.ToChain, 16)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid toChain (%s)", tmpData.ToChain)
+	}
+	amount, ok := big.NewInt(0).SetString(tmpData.Amount, 16)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid amount (%s)", tmpData.Amount)
+	}
+	gasLimit, ok := big.NewInt(0).SetString(tmpData.GasLimit, 16)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid gasLimit (%s)", tmpData.GasLimit)
+	}
+
+	orderId := common.HexToHash(tmpData.OrderId)
+	token := common.Hex2Bytes(tmpData.Token)
+	form := common.Hex2Bytes(tmpData.From)
+	to := common.Hex2Bytes(tmpData.To)
+	initiator := common.Hex2Bytes(tmpData.Initiator)
+	swapData := common.Hex2Bytes(tmpData.SwapData)
+	mos := common.Hex2Bytes(tmpData.Mos)
+	relayBool, err := strconv.ParseBool(fmt.Sprintf("%x", tmpData.Relay))
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "parse relay flag failed")
+	}
+	fmt.Println("relayBool ----------------- ", relayBool)
 
 	eo := MessageOutEvent{
-		FromChain:   big.NewInt(int64(routerOrder.FromChainID)),
-		ToChain:     big.NewInt(int64(routerOrder.ToChainID)),
+		FromChain:   fromChain,
+		ToChain:     toChain,
 		OrderId:     orderId,
-		Amount:      big.NewInt(int64(routerOrder.AmountOut)),
+		Amount:      amount,
 		Token:       token,
 		From:        form,
-		SwapData:    routerOrder.SwapData,
+		SwapData:    swapData,
 		GasLimit:    gasLimit,
-		Mos:         common.HexToAddress(mapprotocol.MosMapping[toChainId]).Bytes(),
-		Initiator:   swapStruct.Initiator,
-		Relay:       swapStruct.Relay,
-		MessageType: uint8(swapStruct.MessageType.Int64()),
-		To:          swapStruct.Receiver,
+		Mos:         mos,
+		Initiator:   initiator,
+		Relay:       relayBool,
+		MessageType: uint8(tmpData.MessageType),
+		To:          to,
 	}
 	data, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolEventEncode].Inputs.Pack(&eo)
 	if err != nil {
