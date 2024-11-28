@@ -61,7 +61,7 @@ type MulSignInfoResp struct {
 	Singers []common.Address
 }
 
-func MulSignInfo(idx int, selfChainId, toChainID uint64) (*MulSignInfoResp, error) {
+func MulSignInfo(idx int, toChainID uint64) (*MulSignInfoResp, error) {
 	call, ok := mapprotocol.SingMapping[msg.ChainId(toChainID)]
 	if !ok {
 		return nil, ContractNotExist

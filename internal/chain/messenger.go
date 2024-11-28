@@ -225,7 +225,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 
 func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofType int64) (*ProposalInfoResp, error) {
 	bn := big.NewInt(int64(log.BlockNumber))
-	ret, err := MulSignInfo(0, selfId, toId)
+	ret, err := MulSignInfo(0, toId)
 	if err != nil {
 		return nil, fmt.Errorf("MulSignInfo failed: %w", err)
 	}
@@ -243,10 +243,12 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 			header.ReceiptHash = *genRece
 		}
 	case constant.ProofTypeOfLogOracle:
-		hash, _ := genLogReceipt(log)
+		hash, _ := GenLogReceipt(log)
 		if hash != nil {
 			header.ReceiptHash = *hash
 		}
+	default:
+		return nil, fmt.Errorf("unknown proof type %d", proofType)
 	}
 
 	piRet, err := ProposalInfo(0, selfId, toId, bn, header.ReceiptHash, ret.Version)

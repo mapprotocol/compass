@@ -143,7 +143,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, m.Payload[0].([]byte), 0)
 			if err != nil {
 				w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
-				time.Sleep(time.Minute)
+				time.Sleep(time.Second * 10)
 				continue
 			}
 			for _, v := range contract.ConstantResult {
@@ -163,7 +163,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			}
 			if err != nil {
 				w.mosAlarm(inputHash, fmt.Errorf("contract result failed, err is %v", err))
-				time.Sleep(time.Minute)
+				time.Sleep(time.Second * 10)
 				continue
 			}
 			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed, "method", method)
@@ -172,7 +172,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			if err != nil {
 				w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
 				w.mosAlarm(inputHash, errors.Wrap(err, "please admin handler"))
-				time.Sleep(time.Minute * 5)
+				time.Sleep(time.Second * 10)
 				continue
 			}
 

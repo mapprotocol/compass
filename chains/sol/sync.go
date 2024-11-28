@@ -244,7 +244,7 @@ func oracleHandler(m *sync) (int64, error) {
 	}
 	m.Log.Info("Sol2Evm oracle generate", "receiptHash", receiptHash)
 
-	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
+	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.MapChainID))
 	if err != nil {
 		return 0, errors.Wrap(err, "mul sign failed")
 	}
@@ -359,7 +359,7 @@ type MessageOutEvent struct {
 
 func getSigner(blockNumber int64, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
 	bn := big.NewInt(blockNumber)
-	ret, err := chain.MulSignInfo(0, selfId, toChainID)
+	ret, err := chain.MulSignInfo(0, toChainID)
 	if err != nil {
 		return nil, err
 	}
@@ -368,7 +368,7 @@ func getSigner(blockNumber int64, receiptHash common.Hash, selfId, toChainID uin
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("ProposalInfo --------- ", piRet)
+
 	if !piRet.CanVerify {
 		return nil, chain.NotVerifyAble
 	}

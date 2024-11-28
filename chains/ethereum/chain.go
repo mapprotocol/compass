@@ -201,8 +201,12 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 
 		msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash, method}
 		message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
-		if toChainID == constant.MerlinChainId {
+		switch toChainID {
+		case constant.MerlinChainId:
 			message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
+		case constant.SolChainId:
+			msgPayload = []interface{}{log, sign, method}
+			message = msg.NewSolProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		}
 	} else if m.Cfg.SyncToMap {
 		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, header, method, m.Cfg.Id, proofType, sign, orderId32)

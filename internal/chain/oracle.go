@@ -219,7 +219,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
 				continue
 			}
-			receipt, err = genLogReceipt(&tmp) //  hash修改
+			receipt, err = GenLogReceipt(&tmp) //  hash修改
 		default:
 			panic("unhandled default case")
 		}
@@ -228,7 +228,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 		}
 		m.Log.Info("Find log", "block", blockNumber, "logs", len(logs), "receipt", receipt)
 
-		ret, err := MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
+		ret, err := MulSignInfo(0, uint64(m.Cfg.MapChainID))
 		if err != nil {
 			return err
 		}
@@ -252,7 +252,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	return nil
 }
 
-func genLogReceipt(log *types.Log) (*common.Hash, error) {
+func GenLogReceipt(log *types.Log) (*common.Hash, error) {
 	recePack := make([]byte, 0)
 	recePack = append(recePack, log.Address.Bytes()...)
 	recePack = append(recePack, []byte{0, 0, 0, 0}...)
