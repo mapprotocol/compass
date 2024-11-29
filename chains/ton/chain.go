@@ -3,71 +3,65 @@ package ton
 import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/mapprotocol/compass/chains"
-	"github.com/mapprotocol/compass/connections/eth2"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
-	"github.com/mapprotocol/compass/pkg/abi"
-	"github.com/mapprotocol/compass/pkg/contract"
 )
 
 var _ core.Chain = new(Chain)
 
 type Chain struct {
-	cfg    *core.ChainConfig   // The config of the chain
-	conn   core.Eth2Connection // The chains connection
-	writer *Writer             // The writer of the chain
-	listen chains.Listener     // The listener of this chain
+	cfg    *core.ChainConfig // The config of the chain
+	conn   core.Connection   // The chains connection
+	writer *Writer           // The writer of the chain
+	listen chains.Listener   // The listener of this chain
 	stop   chan<- int
 }
 
 func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (*Chain, error) {
-	cfg, err := chain.ParseConfig(chainCfg)
+	cfg, err := parseConfig(chainCfg)
 	if err != nil {
 		return nil, err
 	}
-	// todo ton 自己解析配置，密钥，ton链接
 
 	kpI, err := keystore.KeypairFromEth(cfg.KeystorePath)
 	if err != nil {
 		return nil, err
 	}
-	//kp, _ := kpI.(*secp256k1.Keypair)
-	bs, err := chain.SetupBlockStore(cfg, role)
-	if err != nil {
-		return nil, err
-	}
 
-	stop := make(chan int)
-	conn := eth2.NewConnection(cfg.Endpoint, cfg.Eth2Endpoint, cfg.Http, kpI, logger, cfg.GasLimit, cfg.MaxGasPrice,
-		cfg.GasMultiplier)
+	password := keystore.GetPassword("Enter password for TON words:")
+	conn := NewConnection(cfg.Endpoint, cfg.Words, string(password), kpI, logger)
 	err = conn.Connect()
 	if err != nil {
 		return nil, err
 	}
 
-	// simplified a little bit
-	var listen chains.Listener
-	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, bs, chain.OptOfOracleHandler(chain.DefaultOracleHandler))
-	switch role {
-
-	case mapprotocol.RoleOfMessenger:
-		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
-		call := contract.New(conn, cfg.McsContract, oracleAbi)
-		mapprotocol.ContractMapping[cfg.Id] = call
-		listen = NewMessenger(cs) // todo ton
-	case mapprotocol.RoleOfOracle:
-		listen = chain.NewOracle(cs)
+	var (
+		stop   = make(chan int)
+		listen chains.Listener
+	)
+	bs, err := chain.SetupBlockStore(&cfg.Config, role)
+	if err != nil {
+		return nil, err
 	}
-	wri := newWriter(conn, config, logger, stop, sysErr) // todo ton
+	cs := chain.NewCommonSync(nil, &cfg.Config, logger, stop, sysErr, bs)
+
+	switch role {
+	case mapprotocol.RoleOfMessenger:
+		listen = newSync(cs, messengerHandler, conn, cfg)
+	case mapprotocol.RoleOfOracle:
+		listen = newSync(cs, oracleHandler, conn, cfg)
+	}
+	mapprotocol.MosMapping[cfg.Id] = cfg.McsContract[0]
 
 	return &Chain{
 		cfg:    chainCfg,
 		conn:   conn,
-		writer: wri,
+		writer: newWriter(conn, cfg, logger, stop, sysErr),
 		stop:   stop,
 		listen: listen,
 	}, nil

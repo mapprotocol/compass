@@ -263,6 +263,10 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 	return piRet, nil
 }
 
+func PersonalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) {
+	return personalSign(message, privateKey)
+}
+
 func personalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) {
 	fullMessage := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message)
 	hash := crypto.Keccak256Hash([]byte(fullMessage))

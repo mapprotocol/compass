@@ -46,6 +46,7 @@ var (
 	FeeKey                = "feeKey"
 	FeeType               = "feeType"
 	Private               = "private"
+	Words                 = "words"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
