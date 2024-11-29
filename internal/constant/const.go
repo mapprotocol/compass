@@ -104,7 +104,8 @@ const (
 	ScrollChainId     = 534352
 	DodoChainId       = 53457
 	TronChainId       = 728126428
-	SolChainId        = 1360108768460811
+	SolTestChainId    = 1360108768460811
+	SolMainChainId    = 1360108768460801
 	NearChainId       = 1360100178526209
 )
 

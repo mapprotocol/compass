@@ -1,6 +1,7 @@
 package sol
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -11,6 +12,8 @@ import (
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/pkg/errors"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
@@ -107,17 +110,30 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				LogData:      "0x" + common.Bytes2Hex(log.Data),
 				Signatures:   signs,
 				OraclePacked: "0x" + common.Bytes2Hex(pack),
-				Relayer:      "",
+				Relayer:      "G4UPgaqx8ZWm5NZWee5PEX3RYx6kTUHiHphpWjJhARB5",
 			}
 			reqData, _ := json.Marshal(&request)
-			http.Post()
+			resp, err := http.Post("http://localhost:3000/message_in", "application/json", bytes.NewBuffer(reqData))
+			if err != nil {
+				w.log.Error("Failed to send message", "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
 			w.log.Info("Send transaction", "addr", addr, "srcHash", log.TxHash, "method", method)
-			mcsTx, err := w.sendTx(addr, method, "")
+			defer resp.Body.Close()
+			all, err := io.ReadAll(resp.Body)
+			if err != nil {
+				w.log.Error("Failed to read response body", "err", err)
+				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+			w.log.Info("Request back data", "body", string(all))
+
 			if err == nil {
-				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", log.TxHash, "mcsTx", mcsTx)
-				err = w.txStatus(*mcsTx)
+				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", log.TxHash, "mcsTx", "")
+				err = w.txStatus(solana.Signature{})
 				if err != nil {
-					w.log.Warn("TxHash status is not successful, will retry", "err", err)
+					w.log.Warn("Store TxHash Status is not successful, will retry", "err", err)
 				} else {
 					m.DoneCh <- struct{}{}
 					return true
@@ -134,12 +150,12 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 						return true
 					}
 				}
-				w.log.Warn("Execution failed, will retry", "srcHash", log.TxHash, "err", err)
+				w.log.Warn("Execution SwapInVerify failed, will retry", "srcHash", log.TxHash, "err", err)
 			}
 
 			errorCount++
 			if errorCount >= 10 {
-				w.mosAlarm(log.TxHash, err)
+				w.mosAlarm(log.TxHash.String(), err)
 				errorCount = 0
 			}
 			time.Sleep(constant.TxRetryInterval)
@@ -190,20 +206,22 @@ func (w *Writer) txStatus(txHash solana.Signature) error {
 	var count int64
 	time.Sleep(time.Second * 2)
 	for {
-		result, err := w.conn.cli.GetTransaction(context.Background(), txHash, nil)
+		txResult, err := w.conn.cli.GetSignatureStatuses(context.Background(), true, txHash)
 		if err != nil {
-			w.log.Error("Failed to GetTransactionByID", "err", err)
-			time.Sleep(constant.QueryRetryInterval)
+			w.log.Error("Failed to GetSignatureStatuses", "err", err)
 			count++
-			if count == 60 {
-				return err
+			if count >= 10 {
+				return errors.New("The Tx maybe not found")
 			}
+			time.Sleep(5 * time.Second)
 			continue
 		}
-		if result.BlockTime.String() != "" {
-			w.log.Info("Tx receipt status is success", "hash", txHash, "blockTIme", result.BlockTime.String())
-			return nil
+		if txResult.Value == nil || len(txResult.Value) == 0 || txResult.Value[0].Err != nil {
+			count++
+			continue
 		}
+
+		w.log.Info("Tx receipt status is success", "hash", txHash)
 		return nil
 	}
 }

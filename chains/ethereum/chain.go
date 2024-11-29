@@ -204,7 +204,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 		switch toChainID {
 		case constant.MerlinChainId:
 			message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
-		case constant.SolChainId:
+		case constant.SolTestChainId:
 			msgPayload = []interface{}{log, sign, method}
 			message = msg.NewSolProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		}

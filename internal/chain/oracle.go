@@ -304,7 +304,7 @@ func exist(target int64, dst []int64) bool {
 
 func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
 	switch toChainID {
-	case constant.TronChainId:
+	case constant.TronChainId, constant.SolTestChainId, constant.SolMainChainId:
 		return big.NewInt(5), nil
 	default:
 
