@@ -69,71 +69,25 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 	log := m.Payload[0].(*types.Log)
 	sign := m.Payload[1].([][]byte)
 	method := m.Payload[2].(string)
-
 	for {
 		select {
 		case <-w.stop:
 			return false
 		default:
-			// 构建http request
-			mulInfo, err := chain.MulSignInfo(0, uint64(w.cfg.MapChainID))
+			data, err := w.generateData(log, sign)
 			if err != nil {
-				w.log.Error("Failed to mul sign info", "err", err)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-			receipt, err := chain.GenLogReceipt(log)
-			if err != nil {
-				w.log.Error("Failed to generate receipt", "err", err)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-			pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt,
-				mulInfo.Version, big.NewInt(0).SetUint64(log.BlockNumber), big.NewInt(int64(w.cfg.MapChainID)))
-			if err != nil {
-				w.log.Error("Failed to pack abi", "err", err)
+				w.log.Error("Error generating data", "error", err)
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
 
-			topic := make([]string, 0)
-			for _, ele := range log.Topics {
-				topic = append(topic, ele.String())
-			}
-			signs := make([]string, 0)
-			for _, ele := range sign {
-				signs = append(signs, "0x"+common.Bytes2Hex(ele))
-			}
-			request := GenerateRequest{
-				LogAddr:      log.Address.String(),
-				LogTopics:    topic,
-				LogData:      "0x" + common.Bytes2Hex(log.Data),
-				Signatures:   signs,
-				OraclePacked: "0x" + common.Bytes2Hex(pack),
-				Relayer:      "G4UPgaqx8ZWm5NZWee5PEX3RYx6kTUHiHphpWjJhARB5",
-			}
-			reqData, _ := json.Marshal(&request)
-			resp, err := http.Post("http://localhost:3000/message_in", "application/json", bytes.NewBuffer(reqData))
-			if err != nil {
-				w.log.Error("Failed to send message", "err", err)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
 			w.log.Info("Send transaction", "addr", addr, "srcHash", log.TxHash, "method", method)
-			defer resp.Body.Close()
-			all, err := io.ReadAll(resp.Body)
-			if err != nil {
-				w.log.Error("Failed to read response body", "err", err)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-			w.log.Info("Request back data", "body", string(all))
-
+			mcsTx, err := w.sendTx(data)
 			if err == nil {
-				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", log.TxHash, "mcsTx", "")
-				err = w.txStatus(solana.Signature{})
+				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", log.TxHash, "mcsTx", mcsTx)
+				err = w.txStatus(*mcsTx)
 				if err != nil {
-					w.log.Warn("Store TxHash Status is not successful, will retry", "err", err)
+					w.log.Warn("TxHash status is not successful, will retry", "err", err)
 				} else {
 					m.DoneCh <- struct{}{}
 					return true
@@ -150,12 +104,12 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 						return true
 					}
 				}
-				w.log.Warn("Execution SwapInVerify failed, will retry", "srcHash", log.TxHash, "err", err)
+				w.log.Warn("Execution failed, will retry", "srcHash", log.TxHash, "err", err)
 			}
 
 			errorCount++
 			if errorCount >= 10 {
-				w.mosAlarm(log.TxHash.String(), err)
+				w.mosAlarm(log.TxHash, err)
 				errorCount = 0
 			}
 			time.Sleep(constant.TxRetryInterval)
@@ -163,7 +117,68 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 	}
 }
 
-func (w *Writer) sendTx(addr, method string, data string) (*solana.Signature, error) {
+func (w *Writer) generateData(log *types.Log, sign [][]byte) (string, error) {
+	// 构建http request
+	mulInfo, err := chain.MulSignInfo(0, uint64(w.cfg.MapChainID))
+	if err != nil {
+		return "", errors.Wrap(err, "failed to mul sign info")
+	}
+	receipt, err := chain.GenLogReceipt(log)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to generate receipt")
+	}
+	pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt,
+		mulInfo.Version, big.NewInt(0).SetUint64(log.BlockNumber), big.NewInt(int64(w.cfg.MapChainID)))
+	if err != nil {
+		return "", errors.Wrap(err, "failed to pack abi")
+	}
+
+	topic := make([]string, 0)
+	for _, ele := range log.Topics {
+		topic = append(topic, ele.String())
+	}
+	signs := make([]string, 0)
+	for _, ele := range sign {
+		signs = append(signs, "0x"+common.Bytes2Hex(ele))
+	}
+
+	base58, err := solana.PrivateKeyFromBase58(w.cfg.Pri)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to privateKeyFromBase58")
+	}
+
+	request := GenerateRequest{
+		LogAddr:      log.Address.String(),
+		LogTopics:    topic,
+		LogData:      "0x" + common.Bytes2Hex(log.Data),
+		Signatures:   signs,
+		OraclePacked: "0x" + common.Bytes2Hex(pack),
+		Relayer:      base58.PublicKey().String(),
+	}
+	reqData, _ := json.Marshal(&request)
+	resp, err := http.Post("http://localhost:3000/message_in", "application/json", bytes.NewBuffer(reqData))
+	if err != nil {
+		return "", errors.Wrap(err, "Error Post data")
+	}
+	defer resp.Body.Close()
+	readAll, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to read response body")
+	}
+	w.log.Info("")
+	respBody := Resp{}
+	err = json.Unmarshal(readAll, &respBody)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal response body")
+	}
+	if respBody.Code != 0 {
+		return "", fmt.Errorf("resp code is %v", respBody.Code)
+	}
+	return respBody.Data, nil
+}
+
+func (w *Writer) sendTx(data string) (*solana.Signature, error) {
+	w.log.Info("Sending transaction", "data", data)
 	bbs, err := hex.DecodeString(data)
 	if err != nil {
 		return nil, err
@@ -208,17 +223,18 @@ func (w *Writer) txStatus(txHash solana.Signature) error {
 	for {
 		txResult, err := w.conn.cli.GetSignatureStatuses(context.Background(), true, txHash)
 		if err != nil {
-			w.log.Error("Failed to GetSignatureStatuses", "err", err)
 			count++
-			if count >= 10 {
-				return errors.New("The Tx maybe not found")
-			}
+			w.log.Error("Failed to GetSignatureStatuses", "err", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
 		if txResult.Value == nil || len(txResult.Value) == 0 || txResult.Value[0].Err != nil {
 			count++
 			continue
+		}
+		count++
+		if count == 30 {
+			return errors.New("The Tx pending state is too long")
 		}
 
 		w.log.Info("Tx receipt status is success", "hash", txHash)
@@ -228,4 +244,10 @@ func (w *Writer) txStatus(txHash solana.Signature) error {
 
 func (w *Writer) mosAlarm(tx interface{}, err error) {
 	util.Alarm(context.Background(), fmt.Sprintf("mos map2tron failed, srcHash=%v err is %s", tx, err.Error()))
+}
+
+type Resp struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    string `json:"data"`
 }
