@@ -81,7 +81,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				continue
 			}
 
-			for _, ele := range data {
+			for idx, ele := range data {
 				//if idx == 0 {
 				//	continue
 				//}
@@ -92,6 +92,10 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 					err = w.txStatus(*mcsTx)
 					if err == nil {
 						w.log.Info("TxHash status is successful, will next tx")
+						if idx == len(data)-1 {
+							m.DoneCh <- struct{}{}
+							return true
+						}
 						continue
 					}
 					w.log.Error("TxHash status is successful, will next tx")
