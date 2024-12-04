@@ -216,6 +216,7 @@ func (w *Writer) sendTx(data string) (*solana.Signature, error) {
 		SkipPreflight:  false,
 		MaxRetries:     &maxRetries,
 		MinContextSlot: &minContextSlot,
+		// PreflightCommitment: rpc.CommitmentProcessed, 第二笔交易
 	})
 	if err != nil {
 		return nil, err
