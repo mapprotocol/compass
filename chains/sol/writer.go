@@ -91,7 +91,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 					w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", log.TxHash, "mcsTx", mcsTx)
 					err = w.txStatus(*mcsTx)
 					if err == nil {
-						w.log.Info("TxHash status is successful, will next tx")
+						w.log.Info("TxHash status is successful, will next tx", "idx", idx)
 						if idx == len(data)-1 {
 							m.DoneCh <- struct{}{}
 							return true
