@@ -77,6 +77,10 @@ func (m *Messenger) sync() error {
 				continue
 			}
 			count, err := m.mosHandler(m, currentBlock)
+			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
+				m.Log.Info("Block not verify", "latestBlock", latestBlock)
+				err = nil
+			}
 			if err != nil {
 				if errors.Is(err, NotVerifyAble) {
 					time.Sleep(constant.BalanceRetryInterval)
@@ -118,6 +122,10 @@ func (m *Messenger) filter() error {
 				continue
 			}
 			count, err := m.filterMosHandler(latestBlock.Uint64())
+			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
+				m.Log.Info("Block not verify", "latestBlock", latestBlock)
+				err = nil
+			}
 			if err != nil {
 				if errors.Is(err, NotVerifyAble) {
 					time.Sleep(constant.BlockRetryInterval)
