@@ -65,7 +65,6 @@ type GenerateRequest struct {
 
 func (w *Writer) exeMcs(m msg.Message) bool {
 	var errorCount int64
-	addr := w.cfg.McsContract[m.Idx]
 	log := m.Payload[0].(*types.Log)
 	sign := m.Payload[1].([][]byte)
 	method := m.Payload[2].(string)
@@ -86,7 +85,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				//if idx == 0 {
 				//	continue
 				//}
-				w.log.Info("Send transaction", "addr", addr, "srcHash", log.TxHash, "method", method)
+				w.log.Info("Send transaction", "srcHash", log.TxHash, "method", method)
 				mcsTx, err := w.sendTx(ele)
 				if err == nil {
 					w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", log.TxHash, "mcsTx", mcsTx)
@@ -162,7 +161,7 @@ func (w *Writer) generateData(log *types.Log, sign [][]byte) ([]string, error) {
 		Relayer:      base58.PublicKey().String(),
 	}
 	reqData, _ := json.Marshal(&request)
-	resp, err := http.Post("http://localhost:3000/message_in", "application/json", bytes.NewBuffer(reqData))
+	resp, err := http.Post(w.cfg.MessageIn, "application/json", bytes.NewBuffer(reqData))
 	if err != nil {
 		return nil, errors.Wrap(err, "Error Post data")
 	}
@@ -198,6 +197,7 @@ func (w *Writer) sendTx(data string) (*solana.Signature, error) {
 		return nil, err
 	}
 	trx.Message.RecentBlockhash = resp.Value.Blockhash
+	w.log.Info("Sending transaction", "blockHash", resp.Value.Blockhash)
 	signPri, _ := solana.PrivateKeyFromBase58(w.cfg.Pri)
 	// sign
 	_, err = trx.Sign(func(key solana.PublicKey) *solana.PrivateKey {
@@ -210,6 +210,8 @@ func (w *Writer) sendTx(data string) (*solana.Signature, error) {
 		return nil, err
 	}
 
+	w.log.Info("Sending will transaction")
+
 	maxRetries := uint(5)
 	minContextSlot := uint64(1)
 	sig, err := w.conn.cli.SendTransactionWithOpts(context.TODO(), trx, rpc.TransactionOpts{
@@ -220,6 +222,7 @@ func (w *Writer) sendTx(data string) (*solana.Signature, error) {
 	})
 	if err != nil {
 		return nil, err
+
 	}
 	return &sig, nil
 }
