@@ -90,12 +90,11 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				if err == nil {
 					w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", log.TxHash, "mcsTx", mcsTx)
 					err = w.txStatus(*mcsTx)
-					if err != nil {
-						w.log.Warn("TxHash status is not successful, will retry", "err", err)
-					} else {
-						m.DoneCh <- struct{}{}
-						return true
+					if err == nil {
+						w.log.Info("TxHash status is successful, will next tx")
+						continue
 					}
+					w.log.Error("TxHash status is successful, will next tx")
 				} else if w.cfg.SkipError && errorCount >= 9 {
 					w.log.Warn("Execution failed, ignore this error, Continue to the next ", "srcHash", log.TxHash, "err", err)
 					m.DoneCh <- struct{}{}
