@@ -59,6 +59,7 @@ var IgnoreError = map[string]struct{}{
 	"already verified":          {},
 	"0x6838b56d":                {}, //already_meet()
 	"0x8bc9d07c":                {}, //already_proposal()
+	"0x98087555":                {}, // order exist
 }
 
 type BlockIdOfEth2 string
