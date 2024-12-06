@@ -79,13 +79,10 @@ func (m *Messenger) sync() error {
 			count, err := m.mosHandler(m, currentBlock)
 			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
 				m.Log.Info("Block not verify, will ignore", "latestBlock", latestBlock)
-				err = nil
+				err = m.BlockStore.StoreBlock(currentBlock)
+				continue
 			}
 			if err != nil {
-				if errors.Is(err, NotVerifyAble) {
-					time.Sleep(constant.BalanceRetryInterval)
-					continue
-				}
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
@@ -123,14 +120,11 @@ func (m *Messenger) filter() error {
 			}
 			count, err := m.filterMosHandler(latestBlock.Uint64())
 			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
-				m.Log.Info("Block not verify, will ignore", "latestBlock", latestBlock)
-				err = nil
+				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
+				err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
+				continue
 			}
 			if err != nil {
-				if errors.Is(err, NotVerifyAble) {
-					time.Sleep(constant.BlockRetryInterval)
-					continue
-				}
 				m.Log.Error("Filter Failed to get events for block", "err", err)
 				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
