@@ -78,8 +78,9 @@ func (m *Messenger) sync() error {
 			}
 			count, err := m.mosHandler(m, currentBlock)
 			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
-				m.Log.Info("Block not verify, will ignore", "latestBlock", latestBlock)
-				err = m.BlockStore.StoreBlock(currentBlock)
+				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
+				m.Cfg.StartBlock = m.Cfg.StartBlock.Add(m.Cfg.StartBlock, big.NewInt(1))
+				err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
 				continue
 			}
 			if err != nil {
@@ -121,6 +122,7 @@ func (m *Messenger) filter() error {
 			count, err := m.filterMosHandler(latestBlock.Uint64())
 			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
 				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
+				m.Cfg.StartBlock = m.Cfg.StartBlock.Add(m.Cfg.StartBlock, big.NewInt(1))
 				err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
 				continue
 			}
