@@ -82,9 +82,6 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			}
 
 			for idx, ele := range data {
-				//if idx == 0 {
-				//	continue
-				//}
 				w.log.Info("Send transaction", "srcHash", log.TxHash, "method", method)
 				mcsTx, err := w.sendTx(ele)
 				if err == nil {
