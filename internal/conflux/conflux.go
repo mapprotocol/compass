@@ -200,6 +200,7 @@ func AssembleProof(client *Client, pivot, proofType uint64, method string, fId m
 		ret, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, 0,
 			mapprotocol.ProofAbi, orderId, false)
 	case constant.ProofTypeOfNewOracle:
+	case constant.ProofTypeOfLogOracle:
 		idx := 0
 		for i, ele := range receipts[log.TxIndex].Logs {
 			if ele.Index != log.Index {
