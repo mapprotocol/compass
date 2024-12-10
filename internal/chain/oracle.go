@@ -253,6 +253,9 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 }
 
 func genLogReceipt(log *types.Log) (*common.Hash, error) {
+	fmt.Println("log address", log.Address)
+	fmt.Println("log Topics", log.Topics)
+	fmt.Println("log Data", log.Data)
 	recePack := make([]byte, 0)
 	recePack = append(recePack, log.Address.Bytes()...)
 	recePack = append(recePack, []byte{0, 0, 0, 0}...)

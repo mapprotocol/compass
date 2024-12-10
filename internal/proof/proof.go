@@ -2,6 +2,7 @@ package proof
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
@@ -197,6 +198,9 @@ func Completion(bytes []byte, number int) []byte {
 }
 
 func log2Proof(log *types.Log) []byte {
+	fmt.Println("log address", log.Address)
+	fmt.Println("log Topics", log.Topics)
+	fmt.Println("log Data", log.Data)
 	ret := make([]byte, 0)
 	ret = append(ret, log.Address.Bytes()...)
 	ret = append(ret, []byte{0, 0, 0, 0}...)
