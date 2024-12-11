@@ -251,6 +251,7 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 		if hash != nil {
 			header.ReceiptHash = *hash
 		}
+		bn = GenLogBlockNumber(bn, log.Index)
 	}
 
 	piRet, err := ProposalInfo(0, selfId, toId, bn, header.ReceiptHash, ret.Version)
