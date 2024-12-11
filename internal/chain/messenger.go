@@ -84,6 +84,10 @@ func (m *Messenger) sync() error {
 				continue
 			}
 			if err != nil {
+				if errors.Is(err, NotVerifyAble) {
+					time.Sleep(constant.BlockRetryInterval)
+					continue
+				}
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
@@ -127,6 +131,10 @@ func (m *Messenger) filter() error {
 				continue
 			}
 			if err != nil {
+				if errors.Is(err, NotVerifyAble) {
+					time.Sleep(constant.BlockRetryInterval)
+					continue
+				}
 				m.Log.Error("Filter Failed to get events for block", "err", err)
 				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
