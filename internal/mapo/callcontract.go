@@ -52,7 +52,7 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	if err != nil {
 		return nil, err
 	}
-	if receiptHash != header.ReceiptHash && fId != constant.ZkSyncChainId {
+	if receiptHash != header.ReceiptHash && fId != constant.ZkSyncChainId && fId != constant.MerlinChainId {
 		fmt.Println("Matic generate", receiptHash, "oracle", header.ReceiptHash, " not same")
 		return nil, errors.New("receipt not same")
 	}
