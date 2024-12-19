@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
 
@@ -56,67 +59,100 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 
 func (w *Writer) exeMcs(m msg.Message) bool {
 
-	time.Sleep(24 * time.Hour)
-	// todo ton 发交易
-
-	packed := m.Payload[0].([]byte)
-	receiptHash := m.Payload[1].(common.Hash)
-	versionHash := m.Payload[2].(common.Hash)
-	blockNumber := m.Payload[3].(int64)
-	addr := m.Payload[4].(common.Address)
-	topics := m.Payload[5].([]common.Hash)
-	messages := m.Payload[6].([]byte)
-
-	hash := crypto.Keccak256(packed)
-	sign, err := chain.PersonalSign(string(hash), w.conn.Keypair().PrivateKey)
-	if err != nil {
-		w.log.Error("failed to sign", "error", err.Error())
-		return false
-	}
-	sign[64] -= 27 // todo ton 签名需要减去27, 等合约中支持后删除
-	signs := []*Signature{
-		{
-			V: new(big.Int).SetBytes([]byte{sign[64]}).Uint64(),
-			R: new(big.Int).SetBytes(sign[0:32]),
-			S: new(big.Int).SetBytes(sign[32:64]),
-		},
-	}
-
-	marshal, _ := json.Marshal(signs)
-	if err != nil {
-		return false
-	}
-	fmt.Println("============================== to ton message in params: ", common.Bytes2Hex(hash), common.Bytes2Hex(sign), receiptHash, versionHash, blockNumber, int64(m.Source), addr, topics, common.Bytes2Hex(messages))
-	fmt.Println("============================== hash: ", common.Bytes2Hex(hash))
-	fmt.Println("============================== signs: ", string(marshal))
-	fmt.Println("============================== receiptRoot: ", receiptHash)
-	fmt.Println("============================== version: ", versionHash)
-	fmt.Println("============================== blockNum: ", blockNumber)
-	fmt.Println("============================== chainId: ", int64(m.Source))
-	fmt.Println("============================== addr: ", addr)
-	fmt.Println("============================== topics: ", topics)
-	fmt.Println("============================== messages: ", common.Bytes2Hex(messages))
-	fmt.Println("============================== mcs address: ", w.cfg.McsContract)
-
-	dstAddr, err := address.ParseAddr(w.cfg.McsContract[m.Idx])
-	if err != nil {
-		w.log.Error("failed to parse ton address", "address", w.cfg.McsContract[m.Idx], "error", err.Error())
-		return false
-	}
-
-	var errorCount int64
+	var (
+		externalError error
+		errorCount    int64
+	)
 	for {
 		select {
 		case <-w.stop:
 			return false
 		default:
-			cell, err := GenerateMessageInCell(common.BytesToHash(hash), signs, receiptHash, versionHash, blockNumber, int64(m.Source), addr, topics, messages)
+			log := m.Payload[0].(*types.Log)
+
+			if errorCount >= 10 {
+				w.mosAlarm(log.TxHash, externalError)
+				errorCount = 0
+			}
+
+			ret, err := chain.MulSignInfo(0, uint64(w.cfg.MapChainID))
 			if err != nil {
-				w.log.Error("failed to generate message in cell", "error", err.Error())
+				errorCount++
+				externalError = err
+				w.log.Error("failed to get mul sign info", "error", err)
+				time.Sleep(constant.TxRetryInterval)
 				continue
 			}
+
+			receiptHash, err := chain.GenLogReceipt(log)
+			if err != nil {
+				errorCount++
+				externalError = err
+				w.log.Error("failed to gen log receipt", "error", err)
+				time.Sleep(constant.TxRetryInterval)
+				continue
+			}
+
+			packed, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receiptHash, ret.Version, new(big.Int).SetUint64(log.BlockNumber), big.NewInt(int64(w.cfg.MapChainID)))
+			if err != nil {
+				errorCount++
+				externalError = err
+				w.log.Error("failed to pack soliditypack input", "error", err)
+				time.Sleep(constant.TxRetryInterval)
+				continue
+			}
+
+			hash := crypto.Keccak256(packed)
+			sign, err := chain.PersonalSign(string(hash), w.conn.Keypair().PrivateKey)
+			if err != nil {
+				errorCount++
+				externalError = err
+				w.log.Error("failed to personal sign", "error", err.Error())
+				time.Sleep(constant.TxRetryInterval)
+				continue
+			}
+			signs := []*Signature{
+				{
+					V: new(big.Int).SetBytes([]byte{sign[64]}).Uint64(),
+					R: new(big.Int).SetBytes(sign[0:32]),
+					S: new(big.Int).SetBytes(sign[32:64]),
+				},
+			}
+
+			dstAddr, err := address.ParseAddr(w.cfg.McsContract[m.Idx])
+			if err != nil {
+				errorCount++
+				externalError = err
+				w.log.Error("failed to parse ton address", "address", w.cfg.McsContract[m.Idx], "error", err.Error())
+				time.Sleep(constant.TxRetryInterval)
+				continue
+			}
+			// todo remove debug log
+			marshal, _ := json.Marshal(signs)
+			fmt.Println("hash: ", common.Bytes2Hex(hash))
+			fmt.Println("expectedAddress: ", w.conn.Keypair().Address)
+			fmt.Println("signs: ", string(marshal))
+			fmt.Println("receiptRoot: ", *receiptHash)
+			fmt.Println("version: ", common.BytesToHash(ret.Version[:]))
+			fmt.Println("blockNum: ", log.BlockNumber)
+			fmt.Println("chainId: ", int64(m.Source))
+			fmt.Println("addr: ", log.Address)
+			fmt.Println("topics: ", log.Topics)
+			fmt.Println("message: ", common.Bytes2Hex(log.Data))
+			fmt.Println("mcs address: ", w.cfg.McsContract)
+
+			cell, err := GenerateMessageInCell(common.BytesToHash(hash), w.conn.Keypair().Address, signs, *receiptHash, common.BytesToHash(ret.Version[:]), int64(log.BlockNumber), int64(m.Source), log.Address, log.Topics, log.Data)
+			if err != nil {
+				errorCount++
+				externalError = err
+				w.log.Error("failed to generate message in cell", "error", err.Error())
+				time.Sleep(constant.TxRetryInterval)
+				continue
+			}
+
+			// todo remove debug log
 			data, _ := cell.MarshalJSON()
-			fmt.Println("============================== cell: ", common.Bytes2Hex(data))
+			fmt.Println("generated message in cell: ", string(data))
 
 			message := &wallet.Message{
 				Mode: wallet.PayGasSeparately, // pay fees separately (from balance, not from amount)
@@ -129,21 +165,27 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			}
 			//err = w.conn.wallet.Send(context.Background(), message, false)
 			tx, _, err := w.conn.wallet.SendWaitTransaction(context.Background(), message)
-			fmt.Println("============================== sent transaction to ton, error: ", err)
 			if err == nil {
-				w.log.Info("successful send transaction to ton", "src", m.Source, "dst", m.Destination, "txHash", hex.EncodeToString(tx.Hash))
+				w.log.Info("successful send transaction to ton", "src", m.Source, "srcHash", log.TxHash, "dst", m.Destination, "txHash", hex.EncodeToString(tx.Hash))
+				m.DoneCh <- struct{}{}
 				return true
 			} else {
+				errorCount++
+				externalError = err
 				data, _ := cell.MarshalJSON()
-				w.log.Error("failed to send transaction to ton", "dstAddr", dstAddr, "body", string(data), "error", err)
+				w.log.Error("failed to send transaction to ton", "src", m.Source, "srcHash", log.TxHash, "dst", m.Destination, "dstAddr", dstAddr, "body", string(data), "error", err)
 			}
 
-			errorCount++
-			if errorCount >= 10 {
-				// todo alarm
-				errorCount = 0
-			}
+			//errorCount++
+			//if errorCount >= 10 {
+			//	w.mosAlarm(log.TxHash, err)
+			//	errorCount = 0
+			//}
 			time.Sleep(constant.TxRetryInterval)
 		}
 	}
+}
+
+func (w *Writer) mosAlarm(tx interface{}, err error) {
+	util.Alarm(context.Background(), fmt.Sprintf("mos map2ton failed, srcHash=%v err is %s", tx, err.Error()))
 }

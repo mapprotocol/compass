@@ -2,13 +2,12 @@ package ton
 
 import (
 	"fmt"
-	"log"
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/tvm/cell"
+	"log"
+	"math/big"
 )
 
 var (
@@ -84,12 +83,6 @@ var (
 	}
 )
 
-type Signature struct {
-	V uint64
-	R *big.Int
-	S *big.Int
-}
-
 type Log struct {
 	Id          int64  `json:"id"`
 	BlockNumber int64  `json:"blockNumber"`
@@ -113,51 +106,6 @@ type MessageOutEvent struct {
 	Amount      *big.Int
 	GasLimit    *big.Int
 	SwapData    []byte
-}
-
-func GenerateMessageInCell(
-	hash common.Hash,
-	signs []*Signature,
-	receiptRoot common.Hash,
-	version common.Hash,
-	blockNum int64,
-	chainId int64,
-	addr common.Address,
-	topics []common.Hash,
-	message []byte,
-) (*cell.Cell, error) {
-
-	signsCell := cell.BeginCell()
-	for i := 0; i < len(signs); i++ {
-		signsCell = signsCell.MustStoreRef(cell.BeginCell().MustStoreUInt(signs[i].V, 8).MustStoreBigUInt(signs[i].R, 256).EndCell())
-	}
-
-	return cell.BeginCell().
-		MustStoreUInt(0xd5f86120, 32).
-		MustStoreUInt(0, 64).
-		MustStoreBigUInt(hash.Big(), 256).
-		MustStoreUInt(uint64(len(signs)), 8).
-		MustStoreRef(signsCell.EndCell()).
-		MustStoreRef(
-			cell.BeginCell().
-				MustStoreBigUInt(receiptRoot.Big(), 256).
-				MustStoreBigUInt(version.Big(), 256).
-				MustStoreBigUInt(big.NewInt(blockNum), 256).
-				MustStoreInt(chainId, 64).
-				EndCell()).
-		MustStoreRef(
-			cell.BeginCell().
-				MustStoreBigUInt(new(big.Int).SetBytes(addr[:]), 256).
-				MustStoreRef(
-					cell.BeginCell().
-						MustStoreBigUInt(topics[0].Big(), 256).
-						MustStoreBigUInt(topics[1].Big(), 256).
-						MustStoreBigUInt(topics[2].Big(), 256).
-						EndCell()).
-				MustStoreSlice(message, uint(len(message))).
-				EndCell(),
-		).EndCell(), nil
-
 }
 
 func parseMessageOutEvent(slice *cell.Slice) (*MessageOutEvent, error) {
@@ -220,7 +168,7 @@ func parseMessageOutEvent(slice *cell.Slice) (*MessageOutEvent, error) {
 	if err != nil {
 		return nil, err
 	}
-	mos, err := data4.LoadAddr()
+	mos, err := data4.LoadBigUInt(256)
 	if err != nil {
 		return nil, err
 	}
@@ -233,20 +181,6 @@ func parseMessageOutEvent(slice *cell.Slice) (*MessageOutEvent, error) {
 		return nil, err
 	}
 
-	fmt.Println("relay: ", relay)
-	fmt.Println("msgType: ", msgType)
-	fmt.Println("fromChain: ", fromChain)
-	fmt.Println("toChain: ", toChain)
-	fmt.Println("gasLimit: ", gasLimit)
-	fmt.Println("initiator: ", initiator)
-	fmt.Println("sender: ", sender)
-	fmt.Println("target: ", "0x"+common.Bytes2Hex(target))
-	fmt.Println("payload: ", payload)
-	fmt.Println("orderID: ", orderID)
-	fmt.Println("mos: ", mos.Bounce(false))
-	fmt.Println("token: ", token)
-	fmt.Println("amount: ", amount)
-
 	isRelay := false
 	if relay.Uint64() == 1 {
 		isRelay = true
@@ -255,23 +189,41 @@ func parseMessageOutEvent(slice *cell.Slice) (*MessageOutEvent, error) {
 	oid := [32]byte{}
 	copy(oid[:], common.Hex2Bytes(orderID.Text(16)))
 
+	var tokenBytes []byte
+	if !token.IsAddrNone() {
+		tokenBytes = common.Hex2Bytes(convertToHex(token))
+	}
+
 	messageOutEvent := &MessageOutEvent{
-		Relay: isRelay,
-		//MessageType: uint8(msgType.Uint64()),
-		MessageType: 1, // todo
+		Relay:       isRelay,
+		MessageType: uint8(msgType.Uint64()),
 		FromChain:   fromChain,
 		ToChain:     toChain,
 		OrderId:     oid,
-		Mos:         common.Hex2Bytes(convertToHex(mos)),
-		//Token:       common.Hex2Bytes(convertToHex(token)),
-		Token:     []byte{}, // todo
-		Initiator: common.Hex2Bytes(convertToHex(initiator)),
-		From:      common.Hex2Bytes(convertToHex(sender)),
-		To:        target,
-		Amount:    big.NewInt(0),
-		GasLimit:  big.NewInt(200000000),
-		SwapData:  payload, // todo payload
+		Mos:         common.Hex2Bytes(mos.Text(16)),
+		Token:       tokenBytes,
+		Initiator:   common.Hex2Bytes(convertToHex(initiator)),
+		From:        common.Hex2Bytes(convertToHex(sender)),
+		To:          target,
+		Amount:      amount,
+		GasLimit:    gasLimit,
+		SwapData:    payload,
 	}
+
+	// todo remove debug log
+	fmt.Println("relay: ", messageOutEvent.Relay)
+	fmt.Println("msgType: ", messageOutEvent.MessageType)
+	fmt.Println("fromChain: ", messageOutEvent.FromChain)
+	fmt.Println("toChain: ", messageOutEvent.ToChain)
+	fmt.Println("orderID: ", common.Bytes2Hex(messageOutEvent.OrderId[:]))
+	fmt.Println("mos: ", common.Bytes2Hex(messageOutEvent.Mos))
+	fmt.Println("token: ", common.Bytes2Hex(messageOutEvent.Token))
+	fmt.Println("initiator: ", common.Bytes2Hex(messageOutEvent.Initiator))
+	fmt.Println("from: ", common.Bytes2Hex(messageOutEvent.From))
+	fmt.Println("to: ", common.Bytes2Hex(messageOutEvent.To))
+	fmt.Println("amount: ", messageOutEvent.Amount)
+	fmt.Println("gasLimit: ", messageOutEvent.GasLimit)
+	fmt.Println("payload: ", common.Bytes2Hex(messageOutEvent.SwapData))
 
 	return messageOutEvent, nil
 }
@@ -282,19 +234,20 @@ func encodeMessageOutEvent(messageOut *MessageOutEvent) ([]byte, error) {
 }
 
 func encodeProof(addr, topic, data []byte) ([]byte, error) {
-	fmt.Println("============================== addr: ", common.Bytes2Hex(addr))
-	fmt.Println("============================== topic: ", common.Bytes2Hex(topic))
-	fmt.Println("============================== data: ", common.Bytes2Hex(data))
+	// todo remove debug log
+	fmt.Println("addr: ", common.Bytes2Hex(addr))
+	fmt.Println("topic: ", common.Bytes2Hex(topic))
+	fmt.Println("data: ", common.Bytes2Hex(data))
 
 	return proofArgs.Pack(addr, topic, data)
 }
 
 func convertToBytes(addr *address.Address) []byte {
-	return append(common.LeftPadBytes(big.NewInt(1).Bytes(), 1), addr.Data()...)
+	return append(common.LeftPadBytes(big.NewInt(int64(addr.Workchain())).Bytes(), 1), addr.Data()...)
 }
 
 func convertToHex(addr *address.Address) string {
-	return fmt.Sprintf("%x", append(common.LeftPadBytes(big.NewInt(1).Bytes(), 1), addr.Data()...))
+	return fmt.Sprintf("%x", append(common.LeftPadBytes(big.NewInt(int64(addr.Workchain())).Bytes(), 1), addr.Data()...))
 }
 
 func loadPayload(slice *cell.Slice) ([]byte, error) {

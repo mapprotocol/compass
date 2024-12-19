@@ -42,7 +42,8 @@ func newSync(cs *chain.CommonSync, handler Handler, conn core.Connection, cfg *C
 func (m *sync) Sync() error {
 	m.Log.Info("Starting listener...")
 	if !m.Cfg.SyncToMap {
-		fmt.Println("============================== sync to mpa sleeping......")
+		// todo remove
+		fmt.Println("sync to mpa sleeping......")
 		time.Sleep(time.Hour * 2400)
 		return nil
 	}
@@ -61,6 +62,10 @@ func (m *sync) Sync() error {
 				m.Log.Error("Filter Failed to get events for block", "err", err)
 				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
+				continue
+			}
+			if id == 0 {
+				time.Sleep(constant.MessengerInterval)
 				continue
 			}
 
@@ -120,7 +125,7 @@ func filter(m *sync) (*Log, error) {
 			Data:        ele.LogData,
 			TxHash:      ele.TxHash,
 		}
-		m.Log.Info("Filter find Log", "id", ele.Id, "txHash", ele.TxHash)
+		m.Log.Info("filter find log", "id", ele.Id, "topic", topic, "txHash", ele.TxHash)
 	}
 
 	return &ret, nil
@@ -158,7 +163,6 @@ func messengerHandler(m *sync) (int64, error) {
 	m.Log.Info("Ton2Evm messenger generate receipt hash", "receiptHash", receiptHash)
 	proposalInfo, err := getSigner(log.BlockNumber, receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
-		fmt.Println("============================== failed to get signer: ", err.Error())
 		return 0, err
 	}
 
@@ -175,8 +179,6 @@ func messengerHandler(m *sync) (int64, error) {
 		return 0, errors.Wrap(err, "pack getBytes failed")
 	}
 
-	fmt.Println("============================== proof data: ", common.Bytes2Hex(input))
-
 	orderId := common.BytesToHash(messageOut.OrderId[:]) // todo order id 如何处理？
 	finalInput, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfMessageIn, new(big.Int).SetUint64(uint64(m.Cfg.Id)), big.NewInt(int64(0)), orderId, input)
 	if err != nil {
@@ -187,7 +189,6 @@ func messengerHandler(m *sync) (int64, error) {
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to convert txHash to hex")
 	}
-	fmt.Println("============================== swap with proof payload: ", "txHash: ", txHash, "orderId: ", messageOut.OrderId, "blockNumber: ", log.BlockNumber, "input: ", common.Bytes2Hex(finalInput))
 	message := msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{finalInput, messageOut.OrderId, log.BlockNumber, "0x" + txHash}, m.MsgCh)
 	err = m.Router.Send(message)
 	if err != nil {
@@ -228,7 +229,7 @@ func oracleHandler(m *sync) (int64, error) {
 	if err != nil {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
-	m.Log.Info("Ton2Evm oracle generate receipt hash", "receiptHash", receiptHash)
+	m.Log.Info("Ton2Evm oracle generate receipt hash", "receiptHash", receiptHash, "srcHash", log.TxHash)
 
 	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.MapChainID))
 	if err != nil {

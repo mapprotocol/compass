@@ -50,7 +50,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				}
 			}
 			if exits {
-				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", orderId)
+				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId[:]))
 				m.DoneCh <- struct{}{}
 				return true
 			}
@@ -204,7 +204,7 @@ func (w *Writer) proposal(m msg.Message) bool {
 				continue
 			}
 
-			w.log.Info("Send tronProposal transaction", "addr", addr, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
+			w.log.Info("Send tronProposal transaction", "addr", addr, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce, "receiptHash", receiptHash)
 			mcsTx, err := w.sendTx(&addr, nil, data)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "mcsTx", mcsTx.Hash())

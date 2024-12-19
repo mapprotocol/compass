@@ -150,7 +150,7 @@ func defaultMosHandler(m *Messenger, blockNumber *big.Int) (int, error) {
 			return 0, fmt.Errorf("unable to Filter Logs: %w", err)
 		}
 
-		m.Log.Debug("event", "blockNumber ", blockNumber, " logs ", len(logs))
+		m.Log.Debug("event", "blockNumber ", blockNumber, " logs ", len(logs), "mcs", addr, "events", m.Cfg.Events)
 		for _, log := range logs {
 			ele := log
 			send, err := log2Msg(m, &ele, idx)
