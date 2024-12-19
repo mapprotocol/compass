@@ -256,6 +256,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 		return err
 	}
 
+	fmt.Println("0x", len(outPut))
 	resp, err := useAbi.Methods[method].Outputs.Unpack(outPut)
 	if err != nil {
 		w.log.Error("Writer Unpack failed ", "method", method, "err", err.Error())
@@ -265,7 +266,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	ret := struct {
 		Success bool
 		Message string
-		Log     interface{}
+		Logs    []byte
 	}{}
 
 	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
@@ -278,7 +279,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	}
 	if ret.Success == true {
 		w.log.Info("Mcs verify log success", "success", ret.Success)
-		w.log.Info("Mcs verify log success", "data", resp)
+		w.log.Info("Mcs verify log success", "data", common.Bytes2Hex(ret.Logs))
 	}
 
 	return nil

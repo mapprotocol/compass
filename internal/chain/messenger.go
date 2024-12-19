@@ -195,7 +195,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", orderId)
 	if strings.ToLower(chainName) == "near" {
 		proofType = 1
-	} else if strings.ToLower(chainName) == "tron" {
+	} else if strings.ToLower(chainName) == "tron" || strings.ToLower(chainName) == "sol" {
 		proofType = constant.ProofTypeOfLogOracle
 	} else {
 		proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId.Bytes())
@@ -237,7 +237,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 
 func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofType int64) (*ProposalInfoResp, error) {
 	bn := big.NewInt(int64(log.BlockNumber))
-	ret, err := MulSignInfo(0, selfId, toId)
+	ret, err := MulSignInfo(0, toId)
 	if err != nil {
 		return nil, fmt.Errorf("MulSignInfo failed: %w", err)
 	}
@@ -255,11 +255,13 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 			header.ReceiptHash = *genRece
 		}
 	case constant.ProofTypeOfLogOracle:
-		hash, _ := genLogReceipt(log)
+		hash, _ := GenLogReceipt(log)
 		if hash != nil {
 			header.ReceiptHash = *hash
 		}
 		bn = GenLogBlockNumber(bn, log.Index)
+	default:
+		return nil, fmt.Errorf("unknown proof type %d", proofType)
 	}
 
 	piRet, err := ProposalInfo(0, selfId, toId, bn, header.ReceiptHash, ret.Version)

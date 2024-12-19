@@ -34,6 +34,7 @@ var (
 	ContractMapping      = make(map[msg.ChainId]*contract.Call)
 	LightNodeMapping     = make(map[msg.ChainId]*contract.Call)
 	SingMapping          = make(map[msg.ChainId]*contract.Call)
+	MosMapping           = make(map[msg.ChainId]string)
 	Get2MapHeight        = func(chainId msg.ChainId) (*big.Int, error) { return nil, nil }                // get other chain to map height
 	GetEth22MapNumber    = func(chainId msg.ChainId) (*big.Int, *big.Int, error) { return nil, nil, nil } // can reform, return data is []byte
 	GetDataByManager     = func(string, ...interface{}) ([]byte, error) { return nil, nil }

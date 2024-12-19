@@ -18,21 +18,15 @@ var (
 )
 
 var (
-	BlockRetryInterval = time.Second * 3
-	QueryRetryInterval = time.Second * 5
-)
-
-var (
-	MaintainerInterval = time.Second * 3
-	MessengerInterval  = time.Second * 1
+	BlockRetryInterval   = time.Second * 3
+	QueryRetryInterval   = time.Second * 5
+	MaintainerInterval   = time.Second * 3
+	MessengerInterval    = time.Second * 1
+	BalanceRetryInterval = time.Second * 60
 )
 
 var (
 	ZeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-)
-
-var (
-	BalanceRetryInterval = time.Second * 60
 )
 
 var IgnoreError = map[string]struct{}{
@@ -60,6 +54,7 @@ var IgnoreError = map[string]struct{}{
 	"0x6838b56d":                {}, //already_meet()
 	"0x8bc9d07c":                {}, //already_proposal()
 	"0x98087555":                {}, // order exist
+	"already in use":            {}, // solana order exist
 }
 
 type BlockIdOfEth2 string
@@ -101,9 +96,7 @@ const (
 const (
 	MerlinChainId     = 4200
 	CfxChainId        = 1030
-	EthChainId        = 5
 	ZkSyncChainId     = 324
-	B2ChainId         = 223
 	OpChainId         = 10
 	BaseChainId       = 8453
 	BlastChainId      = 81457
@@ -111,14 +104,11 @@ const (
 	ArbTestnetChainId = 42161
 	MantleChainId     = 5000
 	ScrollChainId     = 534352
-	ZkLinkChainId     = 810180
 	DodoChainId       = 53457
 	TronChainId       = 728126428
+	SolTestChainId    = 1360108768460811
+	SolMainChainId    = 1360108768460801
 	NearChainId       = 1360100178526209
-)
-
-const (
-	TopicsOfSwapInVerified = "0x71b6b465a3e1914ab78a5c4e72ed92c70071ccf1a1bdee55bc47174cbcd47605"
 )
 
 const (

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"github.com/mapprotocol/compass/chains/sol"
 	"os"
 	"strconv"
 
@@ -239,6 +240,8 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			newChain, err = conflux.New(chainConfig, logger, sysErr, role)
 		case chains.Tron:
 			newChain, err = tron.New(chainConfig, logger, sysErr, role)
+		case chains.Solana:
+			newChain, err = sol.New(chainConfig, logger, sysErr, role)
 		default:
 			return errors.New("unrecognized Chain Type")
 		}
