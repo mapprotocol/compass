@@ -335,21 +335,6 @@ func genReceipt(log *Log) (*common.Hash, []byte, error) {
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal sol pack failed")
 	}
-	fmt.Println("topic ", "0x"+common.Bytes2Hex([]byte(log.Topic)))
-	fmt.Println("addr ", "0x"+common.Bytes2Hex(addr))
-	fmt.Println("MessageOutEvent FromChain ", eo.FromChain)
-	fmt.Println("MessageOutEvent ToChain ", eo.ToChain)
-	fmt.Println("MessageOutEvent OrderId ", eo.OrderId)
-	fmt.Println("MessageOutEvent Amount ", eo.Amount)
-	fmt.Println("MessageOutEvent Token ", "0x"+common.Bytes2Hex(eo.Token))
-	fmt.Println("MessageOutEvent From ", "0x"+common.Bytes2Hex(eo.From))
-	fmt.Println("MessageOutEvent SwapData ", "0x"+common.Bytes2Hex(eo.SwapData))
-	fmt.Println("MessageOutEvent GasLimit ", eo.GasLimit)
-	fmt.Println("MessageOutEvent Mos ", "0x"+common.Bytes2Hex(eo.Mos))
-	fmt.Println("MessageOutEvent Initiator ", "0x"+common.Bytes2Hex(eo.Initiator))
-	fmt.Println("MessageOutEvent Relay ", eo.Relay)
-	fmt.Println("MessageOutEvent MessageType ", eo.MessageType)
-	fmt.Println("MessageOutEvent To ", "0x"+common.Bytes2Hex(eo.To))
 	receipt := common.BytesToHash(crypto.Keccak256(receiptPack))
 	return &receipt, receiptPack, nil
 }
