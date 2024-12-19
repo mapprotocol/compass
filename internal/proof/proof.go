@@ -2,25 +2,23 @@ package proof
 
 import (
 	"bytes"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/mapprotocol/compass/internal/constant"
 	"math/big"
 	"sync"
 
-	maptypes "github.com/mapprotocol/atlas/core/types"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
-	"github.com/mapprotocol/compass/pkg/util"
-	"github.com/pkg/errors"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	maptypes "github.com/mapprotocol/atlas/core/types"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/util"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -211,9 +209,12 @@ func log2Proof(log *types.Log) []byte {
 
 func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId,
 	idx int, method string, sign [][]byte, orderId [32]byte, log *types.Log, proofType int64) ([]byte, error) {
-	pt := uint8(0)
-	var fixedHash [32]byte
-	newPrf := make([]byte, 0)
+	var (
+		fixedHash   [32]byte
+		pt          = uint8(0)
+		newPrf      = make([]byte, 0)
+		blockNumber = big.NewInt(0).SetUint64(log.BlockNumber)
+	)
 	switch proofType {
 	case constant.ProofTypeOfNewOracle:
 		nr := mapprotocol.MapTxReceipt{
@@ -251,6 +252,7 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 	case constant.ProofTypeOfLogOracle:
 		pt = 1
 		newPrf = log2Proof(log)
+		blockNumber = genLogBlockNumber(blockNumber, log.Index)
 		fixedHash = common.BytesToHash(crypto.Keccak256(newPrf))
 	default:
 		return nil, errors.New("invalid proof type")
@@ -258,7 +260,7 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 
 	pd := SignLogData{
 		ProofType:   pt,
-		BlockNum:    big.NewInt(0).SetUint64(log.BlockNumber),
+		BlockNum:    blockNumber,
 		ReceiptRoot: fixedHash,
 		Signatures:  sign,
 		Proof:       newPrf,
@@ -293,4 +295,10 @@ func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, orderId [32]by
 	}
 
 	return ret, nil
+}
+func genLogBlockNumber(bn *big.Int, idx uint) *big.Int {
+	ret := make([]byte, 0, 28)
+	ret = append(ret, Completion(big.NewInt(int64(idx)).Bytes(), 4)...)
+	ret = append(ret, Completion(bn.Bytes(), 8)...)
+	return big.NewInt(0).SetBytes(ret)
 }

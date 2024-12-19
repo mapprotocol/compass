@@ -53,6 +53,8 @@ var IgnoreError = map[string]struct{}{
 	"already verified":          {},
 	"0x6838b56d":                {}, //already_meet()
 	"0x8bc9d07c":                {}, //already_proposal()
+	"0x98087555":                {}, // order exist
+	"already in use":            {}, // solana order exist
 }
 
 type BlockIdOfEth2 string
@@ -104,7 +106,8 @@ const (
 	ScrollChainId     = 534352
 	DodoChainId       = 53457
 	TronChainId       = 728126428
-	SolChainId        = 1360108768460811
+	SolTestChainId    = 1360108768460811
+	SolMainChainId    = 1360108768460801
 	NearChainId       = 1360100178526209
 	TonChainId        = 1360104473493506
 )

@@ -214,6 +214,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			if genRece != nil {
 				receipt = genRece
 			}
+			log.Index = 0
 		case constant.ProofTypeOfLogOracle: // log
 			if log.Topics[0] == mapprotocol.TopicOfClientNotify || log.Topics[0] == mapprotocol.TopicOfManagerNotifySend {
 				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
@@ -226,18 +227,19 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 		if err != nil {
 			return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 		}
-		m.Log.Info("Find log", "block", blockNumber, "logs", len(logs), "receipt", receipt)
+		targetBn := GenLogBlockNumber(blockNumber, log.Index) // block更新
+		m.Log.Info("Find log", "block", blockNumber, "logIndex", log.Index, "receipt", receipt, "targetBn", targetBn)
 
 		ret, err := MulSignInfo(0, uint64(m.Cfg.MapChainID))
 		if err != nil {
 			return err
 		}
-		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, blockNumber, id)
+		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, targetBn, id)
 		if err != nil {
 			return err
 		}
 
-		err = m.Router.Send(msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{pack, receipt, blockNumber}, m.MsgCh))
+		err = m.Router.Send(msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{pack, receipt, targetBn}, m.MsgCh))
 		if err != nil {
 			m.Log.Error("Proposal error: failed to route message", "err", err)
 			return err
@@ -252,6 +254,14 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	return nil
 }
 
+func GenLogBlockNumber(bn *big.Int, idx uint) *big.Int {
+	ret := make([]byte, 0, 28)
+	ret = append(ret, Completion(big.NewInt(int64(idx)).Bytes(), 4)...)
+	ret = append(ret, Completion(bn.Bytes(), 8)...)
+	return big.NewInt(0).SetBytes(ret)
+}
+
+//func genLogReceipt(log *types.Log) (*common.Hash, error) {
 func GenLogReceipt(log *types.Log) (*common.Hash, error) {
 	recePack := make([]byte, 0)
 	recePack = append(recePack, log.Address.Bytes()...)
@@ -304,7 +314,7 @@ func exist(target int64, dst []int64) bool {
 
 func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
 	switch toChainID {
-	case constant.TronChainId:
+	case constant.TronChainId, constant.SolTestChainId, constant.SolMainChainId:
 		return big.NewInt(5), nil
 	default:
 

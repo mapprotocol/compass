@@ -237,7 +237,6 @@ func oracleHandler(m *sync) (int64, error) {
 		return 0, nil
 	}
 
-	m.Log.Info("Filter find Log", "id", log.Id, "txHash", log.TxHash)
 	receiptHash, _, err := genReceipt(log)
 	if err != nil {
 		return 0, errors.Wrap(err, "gen receipt failed")
@@ -306,7 +305,6 @@ func genReceipt(log *Log) (*common.Hash, []byte, error) {
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "parse relay flag failed")
 	}
-	fmt.Println("relayBool ----------------- ", relayBool)
 
 	eo := MessageOutEvent{
 		FromChain:   fromChain,

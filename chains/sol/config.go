@@ -9,6 +9,7 @@ import (
 type Config struct {
 	chain.Config
 	Pri         string
+	MessageIn   string
 	LightNode   string
 	McsContract []string
 	SolEvent    []string
@@ -30,6 +31,9 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 	}
 	if ele, ok := chainCfg.Opts[chain.Private]; ok && ele != "" {
 		ret.Pri = ele
+	}
+	if ele, ok := chainCfg.Opts["messageIn"]; ok && ele != "" {
+		ret.MessageIn = ele
 	}
 	if ele, ok := chainCfg.Opts[chain.McsOpt]; ok && ele != "" {
 		for _, addr := range strings.Split(ele, ",") {

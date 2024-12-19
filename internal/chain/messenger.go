@@ -77,9 +77,15 @@ func (m *Messenger) sync() error {
 				continue
 			}
 			count, err := m.mosHandler(m, currentBlock)
+			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
+				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
+				m.Cfg.StartBlock = m.Cfg.StartBlock.Add(m.Cfg.StartBlock, big.NewInt(1))
+				err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
+				continue
+			}
 			if err != nil {
 				if errors.Is(err, NotVerifyAble) {
-					time.Sleep(constant.BalanceRetryInterval)
+					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
@@ -118,6 +124,12 @@ func (m *Messenger) filter() error {
 				continue
 			}
 			count, err := m.filterMosHandler(latestBlock.Uint64())
+			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
+				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
+				m.Cfg.StartBlock = m.Cfg.StartBlock.Add(m.Cfg.StartBlock, big.NewInt(1))
+				err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
+				continue
+			}
 			if err != nil {
 				if errors.Is(err, NotVerifyAble) {
 					time.Sleep(constant.BlockRetryInterval)
@@ -249,6 +261,7 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 		if hash != nil {
 			header.ReceiptHash = *hash
 		}
+		bn = GenLogBlockNumber(bn, log.Index)
 	default:
 		return nil, fmt.Errorf("unknown proof type %d", proofType)
 	}

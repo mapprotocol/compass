@@ -119,7 +119,11 @@ func (w *writer) exeSwapMsg(m msg.Message) bool {
 
 	for {
 		// First request whether the orderId already exists
-		orderId := m.Payload[1].([]byte)
+		orderId32 := m.Payload[1].([32]byte)
+		orderId := make([]byte, 0)
+		for _, ele := range orderId32 {
+			orderId = append(orderId, ele)
+		}
 		exits, err := w.checkOrderId(addr, orderId)
 		if err != nil {
 			w.log.Error("check orderId exist failed ", "err", err, "orderId", common.Bytes2Hex(orderId))
