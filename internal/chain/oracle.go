@@ -228,7 +228,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 		}
 		idx := log.Index
-		if m.Cfg.Id != 1030 {
+		if m.Cfg.Id != constant.CfxChainId {
 			idx = 0
 		}
 		targetBn := GenLogBlockNumber(blockNumber, idx) // block更新

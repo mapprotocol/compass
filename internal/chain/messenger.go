@@ -263,7 +263,7 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 		}
 
 		idx := log.Index
-		if selfId != 1030 {
+		if selfId != constant.CfxChainId {
 			idx = 0
 		}
 		bn = GenLogBlockNumber(bn, idx)
