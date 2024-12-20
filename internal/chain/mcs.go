@@ -50,7 +50,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 				}
 			}
 			if exits {
-				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", orderId)
+				w.log.Info("Mcs orderId has been processed, Skip this request", "orderId", common.Bytes2Hex(orderId[:]))
 				m.DoneCh <- struct{}{}
 				return true
 			}
@@ -178,6 +178,7 @@ func (w *Writer) proposal(m msg.Message) bool {
 			receiptHash := m.Payload[1].(*common.Hash)
 			blockNumber := m.Payload[2].(*big.Int)
 			hash := common.Bytes2Hex(crypto.Keccak256(pack))
+			fmt.Println("sign before hash", hash)
 			sign, err := personalSign(string(common.Hex2Bytes(hash)), w.conn.Keypair().PrivateKey)
 			if err != nil {
 				return false
@@ -187,6 +188,10 @@ func (w *Writer) proposal(m msg.Message) bool {
 				fixedHash[i] = v
 			}
 
+			fmt.Println("m.Source ", m.Source)
+			fmt.Println("m.blockNumber ", blockNumber)
+			fmt.Println("m.fixedHash ", receiptHash)
+			fmt.Println("m.sign ", common.Bytes2Hex(sign))
 			data, err := mapprotocol.SignerAbi.Pack(mapprotocol.MethodOfPropose, big.NewInt(int64(m.Source)), blockNumber, fixedHash, sign)
 			if err != nil {
 				return false
@@ -199,7 +204,7 @@ func (w *Writer) proposal(m msg.Message) bool {
 				continue
 			}
 
-			w.log.Info("Send tronProposal transaction", "addr", addr, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
+			w.log.Info("Send tronProposal transaction", "addr", addr, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce, "receiptHash", receiptHash)
 			mcsTx, err := w.sendTx(&addr, nil, data)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "mcsTx", mcsTx.Hash())
@@ -256,6 +261,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 		return err
 	}
 
+	fmt.Println("0x", len(outPut))
 	resp, err := useAbi.Methods[method].Outputs.Unpack(outPut)
 	if err != nil {
 		w.log.Error("Writer Unpack failed ", "method", method, "err", err.Error())
@@ -265,7 +271,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	ret := struct {
 		Success bool
 		Message string
-		Log     interface{}
+		Logs    []byte
 	}{}
 
 	err = useAbi.Methods[method].Outputs.Copy(&ret, resp)
@@ -278,7 +284,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	}
 	if ret.Success == true {
 		w.log.Info("Mcs verify log success", "success", ret.Success)
-		w.log.Info("Mcs verify log success", "data", resp)
+		w.log.Info("Mcs verify log success", "data", common.Bytes2Hex(ret.Logs))
 	}
 
 	return nil

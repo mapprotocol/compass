@@ -61,7 +61,7 @@ type MulSignInfoResp struct {
 	Singers []common.Address
 }
 
-func MulSignInfo(idx int, selfChainId, toChainID uint64) (*MulSignInfoResp, error) {
+func MulSignInfo(idx int, toChainID uint64) (*MulSignInfoResp, error) {
 	call, ok := mapprotocol.SingMapping[msg.ChainId(toChainID)]
 	if !ok {
 		return nil, ContractNotExist
@@ -87,7 +87,7 @@ func ProposalInfo(idx int, selfChainId, toChainID uint64, blockNumber *big.Int, 
 		return nil, ContractNotExist
 	}
 	ret := ProposalInfoResp{}
-	fmt.Println(big.NewInt(int64(selfChainId)), blockNumber, receipt, version)
+	fmt.Println("MethodOfProposalInfo request ", big.NewInt(int64(selfChainId)), blockNumber, receipt, version)
 	err := call.Call(mapprotocol.MethodOfProposalInfo, &ret, idx, big.NewInt(int64(selfChainId)), blockNumber, receipt, version)
 	if err != nil {
 		return nil, err

@@ -38,6 +38,8 @@ const (
 	MethodOfSolidityPack         = "soliditypack"
 	MethodOfNodeType             = "nodeType"
 	MethodOfMptPack              = "mptPack"
+	MethodOfSolEventEncode       = "solEventEncode"
+	MethodOfSolPackReceipt       = "solPackReceipt"
 )
 
 const (
@@ -82,6 +84,7 @@ var (
 	SignerAbi, _   = abi.JSON(strings.NewReader(SignerJson))
 	PackAbi, _     = abi.JSON(strings.NewReader(PackJson))
 	GetAbi, _      = abi.JSON(strings.NewReader(GetJson))
+	SolAbi, _      = abi.JSON(strings.NewReader(SolJson))
 )
 
 type Role string

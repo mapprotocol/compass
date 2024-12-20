@@ -218,7 +218,7 @@ func oracleHandler(m *sync, latestBlock *big.Int) (int, error) {
 	tr = proof.DeriveTire(types.Receipts(receipts), tr)
 	m.Log.Info("oracle tron receipt", "blockNumber", latestBlock, "hash", tr.Hash())
 	receiptHash := tr.Hash()
-	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
+	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.MapChainID))
 	if err != nil {
 		return 0, err
 	}
@@ -254,7 +254,7 @@ func getTxsByBN(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) 
 
 func getSigner(log *types.Log, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
 	bn := big.NewInt(int64(log.BlockNumber))
-	ret, err := chain.MulSignInfo(0, selfId, toChainID)
+	ret, err := chain.MulSignInfo(0, toChainID)
 	if err != nil {
 		return nil, err
 	}

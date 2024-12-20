@@ -58,17 +58,10 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 		return w.merlinWithMsg(m)
 	case msg.Proposal:
 		return w.proposal(m)
-	case msg.Empty:
-		return w.emptyMsg(m)
 	default:
 		w.log.Error("Unknown message type received", "type", m.Type)
 		return false
 	}
-}
-
-func (w *Writer) emptyMsg(m msg.Message) bool {
-	m.DoneCh <- struct{}{}
-	return true
 }
 
 // sendTx send tx to an address with value and input data

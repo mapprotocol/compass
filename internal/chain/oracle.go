@@ -220,17 +220,21 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
 				continue
 			}
-			receipt, err = genLogReceipt(&tmp) //  hash修改
+			receipt, err = GenLogReceipt(&tmp) //  hash修改
 		default:
 			panic("unhandled default case")
 		}
 		if err != nil {
 			return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 		}
-		targetBn := GenLogBlockNumber(blockNumber, log.Index) // block更新
+		idx := log.Index
+		if m.Cfg.Id != constant.CfxChainId {
+			idx = 0
+		}
+		targetBn := GenLogBlockNumber(blockNumber, idx) // block更新
 		m.Log.Info("Find log", "block", blockNumber, "logIndex", log.Index, "receipt", receipt, "targetBn", targetBn)
 
-		ret, err := MulSignInfo(0, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID))
+		ret, err := MulSignInfo(0, uint64(m.Cfg.MapChainID))
 		if err != nil {
 			return err
 		}
@@ -261,7 +265,8 @@ func GenLogBlockNumber(bn *big.Int, idx uint) *big.Int {
 	return big.NewInt(0).SetBytes(ret)
 }
 
-func genLogReceipt(log *types.Log) (*common.Hash, error) {
+// func genLogReceipt(log *types.Log) (*common.Hash, error) {
+func GenLogReceipt(log *types.Log) (*common.Hash, error) {
 	recePack := make([]byte, 0)
 	recePack = append(recePack, log.Address.Bytes()...)
 	recePack = append(recePack, []byte{0, 0, 0, 0}...)
@@ -313,10 +318,13 @@ func exist(target int64, dst []int64) bool {
 
 func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
 	switch toChainID {
-	case constant.TronChainId:
+	case constant.TronChainId, constant.SolTestChainId, constant.SolMainChainId:
 		return big.NewInt(5), nil
 	default:
 
+	}
+	if toChainID == constant.TonChainId { // todo ton
+		return big.NewInt(5), nil
 	}
 	call, ok := mapprotocol.LightNodeMapping[msg.ChainId(toChainID)]
 	if !ok {

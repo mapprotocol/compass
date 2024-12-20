@@ -143,7 +143,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			contract, err := w.conn.cli.TriggerConstantContractByEstimate(w.cfg.From, addr, m.Payload[0].([]byte), 0)
 			if err != nil {
 				w.log.Error("Failed to TriggerConstantContract EstimateEnergy", "err", err)
-				time.Sleep(time.Minute)
+				time.Sleep(time.Second * 10)
 				continue
 			}
 			for _, v := range contract.ConstantResult {
@@ -163,7 +163,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			}
 			if err != nil {
 				w.mosAlarm(inputHash, fmt.Errorf("contract result failed, err is %v", err))
-				time.Sleep(time.Minute)
+				time.Sleep(time.Second * 10)
 				continue
 			}
 			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed, "method", method)
@@ -172,7 +172,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			if err != nil {
 				w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
 				w.mosAlarm(inputHash, errors.Wrap(err, "please admin handler"))
-				time.Sleep(time.Minute * 5)
+				time.Sleep(time.Second * 10)
 				continue
 			}
 
@@ -207,8 +207,6 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				w.log.Warn("Execution failed, will retry", "srcHash", inputHash, "err", err)
 			}
 			w.newReturn(method)
-			m.DoneCh <- struct{}{}
-			return true
 			errorCount++
 			if errorCount >= 10 {
 				w.mosAlarm(inputHash, err)
@@ -347,10 +345,7 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	balance, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt64(account.Balance), wei).Float64()
 	w.log.Info("Rent energy, account energy detail", "account", w.cfg.From, "all", acc.EnergyLimit, "used", acc.EnergyUsed,
 		"trx", balance)
-	// if method == mapprotocol.MethodOfSwapIn || method == mapprotocol.MethodOfSwapInVerified {
-	// 	w.log.Info("Rent energy, call method is swapInVerified or withIndex, dont need rent energy", "method", method)
-	// 	return nil
-	// }
+
 	mul := float64(used) * 1.1
 	if (acc.EnergyLimit - acc.EnergyUsed) > int64(mul) {
 		w.log.Info("Rent energy, account have enough energy", "account", w.cfg.From,
