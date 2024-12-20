@@ -261,7 +261,12 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 		if hash != nil {
 			header.ReceiptHash = *hash
 		}
-		bn = GenLogBlockNumber(bn, log.Index)
+
+		idx := log.Index
+		if selfId != 1030 {
+			idx = 0
+		}
+		bn = GenLogBlockNumber(bn, idx)
 	default:
 		return nil, fmt.Errorf("unknown proof type %d", proofType)
 	}
