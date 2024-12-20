@@ -169,7 +169,7 @@ func messagerHandler(m *sync) (int64, error) {
 	if err != nil {
 		return 0, errors.Wrap(err, "filter failed")
 	}
-	if log == nil {
+	if log == nil || log.Id == 0 {
 		return 0, nil
 	}
 	receiptHash, receiptPack, err := genReceipt(log)
