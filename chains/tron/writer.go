@@ -147,9 +147,9 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				continue
 			}
 			for _, v := range contract.ConstantResult {
-				w.log.Info("Contract result", "err", string(v))
+				w.log.Info("Contract result", "err", string(v), "v", v)
 				ele := strings.TrimSpace(string(v))
-				if ele == "" {
+				if ele == "" || len(ele) <= 4 {
 					continue
 				}
 				for e := range constant.IgnoreError {
