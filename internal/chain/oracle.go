@@ -231,7 +231,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 		if m.Cfg.Id != constant.CfxChainId {
 			idx = 0
 		}
-		targetBn := GenLogBlockNumber(blockNumber, idx) // block更新
+		targetBn := proof.GenLogBlockNumber(blockNumber, idx) // block更新
 		m.Log.Info("Find log", "block", blockNumber, "logIndex", log.Index, "receipt", receipt, "targetBn", targetBn)
 
 		ret, err := MulSignInfo(0, uint64(m.Cfg.MapChainID))
@@ -258,14 +258,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 	return nil
 }
 
-func GenLogBlockNumber(bn *big.Int, idx uint) *big.Int {
-	ret := make([]byte, 0, 28)
-	ret = append(ret, Completion(big.NewInt(int64(idx)).Bytes(), 4)...)
-	ret = append(ret, Completion(bn.Bytes(), 8)...)
-	return big.NewInt(0).SetBytes(ret)
-}
-
-// func genLogReceipt(log *types.Log) (*common.Hash, error) {
+// GenLogReceipt generate log receipt
 func GenLogReceipt(log *types.Log) (*common.Hash, error) {
 	recePack := make([]byte, 0)
 	recePack = append(recePack, log.Address.Bytes()...)
