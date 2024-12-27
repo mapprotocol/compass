@@ -16,16 +16,16 @@ type Writer interface {
 	ResolveMessage(message msg.Message) bool
 }
 
-// Router forwards messages from their source to their destination
-type Router struct {
+// Route forwards messages from their source to their destination
+type Route struct {
 	registry map[msg.ChainId]Writer
 	lock     *sync.RWMutex
 	log      log.Logger
 	mapcid   msg.ChainId
 }
 
-func NewRouter(log log.Logger, mapcid msg.ChainId) *Router {
-	return &Router{
+func NewRouter(log log.Logger, mapcid msg.ChainId) *Route {
+	return &Route{
 		registry: make(map[msg.ChainId]Writer),
 		lock:     &sync.RWMutex{},
 		log:      log,
@@ -34,7 +34,7 @@ func NewRouter(log log.Logger, mapcid msg.ChainId) *Router {
 }
 
 // Send passes a message to the destination Writer if it exists
-func (r *Router) Send(msg msg.Message) error {
+func (r *Route) Send(msg msg.Message) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -51,7 +51,7 @@ func (r *Router) Send(msg msg.Message) error {
 }
 
 // Listen registers a Writer with a ChainId which Router.Send can then use to propagate messages
-func (r *Router) Listen(id msg.ChainId, w Writer) {
+func (r *Route) Listen(id msg.ChainId, w Writer) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	r.log.Debug("Registering new chain in router", "id", id)

@@ -16,7 +16,7 @@ import (
 
 type Chain interface {
 	Start() error // Start chain
-	SetRouter(*Router)
+	SetRouter(Router)
 	Id() msg.ChainId
 	Name() string
 	Stop()
@@ -66,3 +66,13 @@ type Eth2Connection interface {
 }
 
 type CreateConn func(string, bool, *keystore.Key, log15.Logger, *big.Int, *big.Int, float64) Connection
+
+type Router interface {
+	Send(message msg.Message) error
+	Listen(id msg.ChainId, w Writer)
+}
+
+type Listener interface {
+	Sync() error
+	SetRouter(r Router)
+}

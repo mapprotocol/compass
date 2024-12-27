@@ -22,23 +22,30 @@ import (
 	"github.com/mapprotocol/compass/msg"
 )
 
-func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
+type Chain struct {
+}
+
+func New() *Chain {
+	return &Chain{}
+}
+
+func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
 	role mapprotocol.Role) (core.Chain, error) {
 	opts := make([]chain.SyncOpt, 0)
 
 	opts = append(opts, chain.OptOfInitHeight(mapprotocol.HeaderOneCount))
 	if strconv.FormatUint(uint64(chainCfg.Id), 10) == mapprotocol.MapId {
-		opts = append(opts, chain.OptOfSync2Map(mapToOther))
+		opts = append(opts, chain.OptOfSync2Map(c.mapToOther))
 		opts = append(opts, chain.OptOfInitHeight(mapprotocol.EpochOfMap))
 	} else {
-		opts = append(opts, chain.OptOfSync2Map(headerToMap))
+		opts = append(opts, chain.OptOfSync2Map(c.headerToMap))
 	}
-	opts = append(opts, chain.OptOfAssembleProof(assembleProof))
+	opts = append(opts, chain.OptOfAssembleProof(c.assembleProof))
 	opts = append(opts, chain.OptOfOracleHandler(chain.DefaultOracleHandler))
 	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection, opts...)
 }
 
-func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
+func (c *Chain) mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 	if latestBlock.Cmp(big.NewInt(0)) == 0 {
 		return nil
 	}
@@ -115,7 +122,7 @@ func mapToOther(m *chain.Maintainer, latestBlock *big.Int) error {
 	return nil
 }
 
-func headerToMap(m *chain.Maintainer, latestBlock *big.Int) error {
+func (c *Chain) headerToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	syncedHeight, err := mapprotocol.Get2MapHeight(m.Cfg.Id)
 	if err != nil {
 		m.Log.Error("Get synced Height failed", "err", err)
@@ -132,7 +139,7 @@ func headerToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	if err != nil {
 		return err
 	}
-	enc, err := rlpEthereumHeaders(m.Cfg.Id, m.Cfg.MapChainID, []types.Header{*header})
+	enc, err := c.rlpEthereumHeaders(m.Cfg.Id, m.Cfg.MapChainID, []types.Header{*header})
 	if err != nil {
 		m.Log.Error("failed to rlp ethereum headers", "err", err)
 		return err
@@ -159,7 +166,7 @@ func headerToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	return nil
 }
 
-func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
+func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
 		message   msg.Message
 		orderId   = log.Topics[1]
@@ -224,7 +231,7 @@ func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainI
 	return &message, nil
 }
 
-func rlpEthereumHeaders(source, destination msg.ChainId, headers []types.Header) ([]byte, error) {
+func (c *Chain) rlpEthereumHeaders(source, destination msg.ChainId, headers []types.Header) ([]byte, error) {
 	h, err := rlp.EncodeToBytes(&headers)
 	if err != nil {
 		return nil, fmt.Errorf("rpl encode ethereum headers error: %v", err)

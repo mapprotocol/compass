@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/atlas/accounts/abi/bind"
-	"github.com/mapprotocol/compass/chains"
 	connection "github.com/mapprotocol/compass/connections/near"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/keystore"
@@ -38,7 +37,11 @@ type Chain struct {
 	conn   Connection        // The chains connection
 	writer *writer           // The writer of the chain
 	stop   chan<- int
-	listen chains.Listener // The listener of this chain
+	listen core.Listener // The listener of this chain
+}
+
+func New() *Chain {
+	return &Chain{}
 }
 
 func setupBlockstore(cfg *Config, kp *key.KeyPair, role mapprotocol.Role) (*blockstore.Blockstore, error) {
@@ -61,8 +64,8 @@ func setupBlockstore(cfg *Config, kp *key.KeyPair, role mapprotocol.Role) (*bloc
 	return bs, nil
 }
 
-func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
-	role mapprotocol.Role) (*Chain, error) {
+func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
+	role mapprotocol.Role) (core.Chain, error) {
 	cfg, err := parseChainConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -94,7 +97,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
 	}
 
 	// simplified a little bit
-	var listen chains.Listener
+	var listen core.Listener
 	cs := NewCommonListen(conn, cfg, logger, stop, sysErr, bs)
 	if role == mapprotocol.RoleOfMessenger {
 		redis.Init(cfg.redisUrl)
@@ -121,7 +124,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error,
 	}, nil
 }
 
-func (c *Chain) SetRouter(r *core.Router) {
+func (c *Chain) SetRouter(r core.Router) {
 	r.Listen(c.cfg.Id, c.writer)
 	c.listen.SetRouter(r)
 }

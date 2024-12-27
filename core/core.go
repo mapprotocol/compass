@@ -18,7 +18,7 @@ import (
 
 type Core struct {
 	Registry []Chain
-	route    *Router
+	route    *Route
 	log      log15.Logger
 	sysErr   <-chan error
 	role     mapprotocol.Role

@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ChainSafe/log15"
-	"github.com/mapprotocol/compass/chains"
 )
 
 type Maintainer struct {
@@ -44,7 +43,7 @@ func (m *Maintainer) Sync() error {
 	return nil
 }
 
-func (m *Maintainer) SetRouter(r chains.Router) {
+func (m *Maintainer) SetRouter(r core.Router) {
 
 }
 
