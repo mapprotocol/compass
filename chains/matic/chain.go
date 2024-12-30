@@ -17,16 +17,23 @@ import (
 	"strconv"
 )
 
-func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+type Chain struct {
+}
+
+func New() *Chain {
+	return &Chain{}
+}
+
+func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,
-		chain.OptOfSync2Map(syncHeaderToMap),
+		chain.OptOfSync2Map(c.syncHeaderToMap),
 		chain.OptOfInitHeight(12),
 		chain.OptOfOracleHandler(chain.DefaultOracleHandler),
-		chain.OptOfAssembleProof(assembleProof),
+		chain.OptOfAssembleProof(c.assembleProof),
 	)
 }
 
-func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
+func (c *Chain) syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	remainder := big.NewInt(0).Mod(new(big.Int).Sub(latestBlock, mapprotocol.ConfirmsOfMatic), big.NewInt(mapprotocol.HeaderCountOfMatic))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
@@ -82,7 +89,7 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	return nil
 }
 
-func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
+func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
 		message   msg.Message
 		orderId   = log.Topics[1]

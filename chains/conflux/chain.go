@@ -26,21 +26,28 @@ var (
 	cli                       = &conflux.Client{}
 )
 
-func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+type Chain struct {
+}
+
+func New() *Chain {
+	return &Chain{}
+}
+
+func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	client, err := conflux.NewClient(chainCfg.Opts[chain.Eth2Url])
 	if err != nil {
 		panic("conflux init client failed" + err.Error())
 	}
 	cli = client
 	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,
-		chain.OptOfSync2Map(syncHeaderToMap),
+		chain.OptOfSync2Map(c.syncHeaderToMap),
 		chain.OptOfInitHeight(mapprotocol.HeaderOneCount),
-		chain.OptOfAssembleProof(assembleProof),
+		chain.OptOfAssembleProof(c.assembleProof),
 		chain.OptOfOracleHandler(chain.DefaultOracleHandler),
 	)
 }
 
-func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
+func (c *Chain) syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	state, err := getState(m)
 	if err != nil {
 		m.Log.Error("Conflux GetConfluxState Failed", "err", err)
@@ -65,7 +72,7 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 		startNumber = state.FinalizedBlockNumber.Uint64()
 	}
 
-	committed, err := isCommitted(epoch, round)
+	committed, err := c.isCommitted(epoch, round)
 	if err != nil {
 		m.Log.Error("Conflux isCommitted Failed", "err", err)
 		return err
@@ -129,7 +136,7 @@ func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 	return nil
 }
 
-func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
+func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
 		err     error
 		pivot   = big.NewInt(0)
@@ -251,7 +258,7 @@ func updateHeaders(m *chain.Maintainer, startNumber, endNumber uint64) error {
 	return nil
 }
 
-func isCommitted(epoch, round uint64) (bool, error) {
+func (c *Chain) isCommitted(epoch, round uint64) (bool, error) {
 	status, err := cli.GetStatus(context.Background())
 	if err != nil {
 		return false, errors.WithMessage(err, "Failed to get pos status")

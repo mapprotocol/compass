@@ -5,7 +5,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/connections/eth2"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
@@ -24,11 +23,15 @@ type Chain struct {
 	cfg    *core.ChainConfig   // The config of the chain
 	conn   core.Eth2Connection // The chains connection
 	writer *chain.Writer       // The writer of the chain
-	listen chains.Listener     // The listener of this chain
+	listen core.Listener       // The listener of this chain
 	stop   chan<- int
 }
 
-func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (*Chain, error) {
+func New() *Chain {
+	return &Chain{}
+}
+
+func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	cfg, err := chain.ParseConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -61,7 +64,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 	}
 
 	// simplified a little bit
-	var listen chains.Listener
+	var listen core.Listener
 	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, bs, chain.OptOfOracleHandler(chain.DefaultOracleHandler))
 	switch role {
 	case mapprotocol.RoleOfMaintainer:
@@ -100,7 +103,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 	}, nil
 }
 
-func (c *Chain) SetRouter(r *core.Router) {
+func (c *Chain) SetRouter(r core.Router) {
 	r.Listen(c.cfg.Id, c.writer)
 	c.listen.SetRouter(r)
 }

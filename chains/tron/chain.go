@@ -14,18 +14,29 @@ import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/lbtsm/gotron-sdk/pkg/client"
-	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 )
 
-func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
-	return createChain(chainCfg, logger, sysErr, role)
+type Chain struct {
+	cfg    *core.ChainConfig
+	conn   core.Connection
+	writer *Writer
+	stop   chan<- int
+	listen core.Listener
 }
 
-func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role, opts ...chain.SyncOpt) (core.Chain, error) {
+func New() *Chain {
+	return &Chain{}
+}
+
+func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+	return c.createChain(chainCfg, logger, sysErr, role)
+}
+
+func (c *Chain) createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role, opts ...chain.SyncOpt) (core.Chain, error) {
 	config, err := parseCfg(chainCfg)
 	if err != nil {
 		return nil, err
@@ -47,7 +58,7 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 
 	var (
 		stop   = make(chan int)
-		listen chains.Listener
+		listen core.Listener
 	)
 	bs, err := chain.SetupBlockStore(&config.Config, role)
 	if err != nil {
@@ -78,15 +89,7 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 	}, nil
 }
 
-type Chain struct {
-	cfg    *core.ChainConfig
-	conn   core.Connection
-	writer *Writer
-	stop   chan<- int
-	listen chains.Listener
-}
-
-func (c *Chain) SetRouter(r *core.Router) {
+func (c *Chain) SetRouter(r core.Router) {
 	r.Listen(c.cfg.Id, c.writer)
 	c.listen.SetRouter(r)
 }

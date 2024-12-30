@@ -28,7 +28,14 @@ var (
 	kClient = &klaytn.Client{}
 )
 
-func connectKClient(endpoint string) error {
+type Chain struct {
+}
+
+func New() *Chain {
+	return &Chain{}
+}
+
+func (c *Chain) connectKClient(endpoint string) error {
 	kc, err := klaytn.DialHttp(endpoint, true)
 	if err != nil {
 		return err
@@ -37,31 +44,31 @@ func connectKClient(endpoint string) error {
 	return nil
 }
 
-func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
-	err := connectKClient(chainCfg.Endpoint)
+func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
+	err := c.connectKClient(chainCfg.Endpoint)
 	if err != nil {
 		return nil, err
 	}
 
 	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,
-		chain.OptOfSync2Map(syncHeaderToMap),
-		chain.OptOfAssembleProof(assembleProof),
+		chain.OptOfSync2Map(c.syncHeaderToMap),
+		chain.OptOfAssembleProof(c.assembleProof),
 		chain.OptOfOracleHandler(chain.DefaultOracleHandler))
 }
 
-func syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
-	if err := syncValidatorHeader(m, latestBlock); err != nil {
+func (c *Chain) syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error {
+	if err := c.syncValidatorHeader(m, latestBlock); err != nil {
 		return err
 	}
 
-	if err := syncHeader(m, latestBlock); err != nil {
+	if err := c.syncHeader(m, latestBlock); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
+func (c *Chain) syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 	kHeader, err := kClient.BlockByNumber(context.Background(), latestBlock)
 	if err != nil {
 		return err
@@ -85,10 +92,10 @@ func syncValidatorHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 
 	time.Sleep(time.Second)
 	m.Log.Info("Send Validator Header", "blockHeight", latestBlock)
-	return sendSyncHeader(m, latestBlock, 2)
+	return c.sendSyncHeader(m, latestBlock, 2)
 }
 
-func syncHeader(m *chain.Maintainer, latestBlock *big.Int) error {
+func (c *Chain) syncHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 	remainder := big.NewInt(0).Mod(latestBlock, big.NewInt(mapprotocol.EpochOfKlaytn))
 	if remainder.Cmp(mapprotocol.Big0) != 0 {
 		return nil
@@ -106,11 +113,11 @@ func syncHeader(m *chain.Maintainer, latestBlock *big.Int) error {
 		return nil
 	}
 
-	return sendSyncHeader(m, latestBlock, mapprotocol.HeaderOneCount)
+	return c.sendSyncHeader(m, latestBlock, mapprotocol.HeaderOneCount)
 }
 
-func sendSyncHeader(m *chain.Maintainer, latestBlock *big.Int, count int) error {
-	headers, err := assembleHeader(m.Conn.Client(), latestBlock, count)
+func (c *Chain) sendSyncHeader(m *chain.Maintainer, latestBlock *big.Int, count int) error {
+	headers, err := c.assembleHeader(m.Conn.Client(), latestBlock, count)
 	if err != nil {
 		return err
 	}
@@ -138,7 +145,7 @@ func sendSyncHeader(m *chain.Maintainer, latestBlock *big.Int, count int) error 
 	return nil
 }
 
-func assembleHeader(client *ethclient.Client, latestBlock *big.Int, count int) ([]klaytn.Header, error) {
+func (c *Chain) assembleHeader(client *ethclient.Client, latestBlock *big.Int, count int) ([]klaytn.Header, error) {
 	headers := make([]klaytn.Header, count)
 	for i := 0; i < count; i++ {
 		headerHeight := new(big.Int).Add(latestBlock, new(big.Int).SetInt64(int64(i)))
@@ -157,7 +164,7 @@ func assembleHeader(client *ethclient.Client, latestBlock *big.Int, count int) (
 	return headers, nil
 }
 
-func assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
+func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
 		message   msg.Message
 		orderId   = log.Topics[1]

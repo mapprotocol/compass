@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/log15"
 	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/blockstore"
 )
@@ -60,7 +59,7 @@ type CommonSync struct {
 	Cfg                       Config
 	Conn                      core.Connection
 	Log                       log15.Logger
-	Router                    chains.Router
+	Router                    core.Router
 	Stop                      <-chan int
 	MsgCh                     chan struct{}
 	SysErr                    chan<- error // Reports fatal error to core
@@ -96,7 +95,7 @@ func NewCommonSync(conn core.Connection, cfg *Config, log log15.Logger, stop <-c
 	return cs
 }
 
-func (c *CommonSync) SetRouter(r chains.Router) {
+func (c *CommonSync) SetRouter(r core.Router) {
 	c.Router = r
 }
 

@@ -4,7 +4,6 @@ import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
@@ -20,7 +19,7 @@ type Chain struct {
 	conn   core.Connection   // The chains connection
 	writer *Writer           // The writer of the Chain
 	stop   chan<- int
-	listen chains.Listener // The listener of this Chain
+	listen core.Listener // The listener of this Chain
 }
 
 func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role,
@@ -55,7 +54,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 		cfg.StartBlock = curr
 	}
 
-	var listen chains.Listener
+	var listen core.Listener
 	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, bs, opts...)
 	switch role {
 	case mapprotocol.RoleOfMaintainer:
@@ -96,7 +95,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 	}, nil
 }
 
-func (c *Chain) SetRouter(r *core.Router) {
+func (c *Chain) SetRouter(r core.Router) {
 	r.Listen(c.cfg.Id, c.writer)
 	c.listen.SetRouter(r)
 }

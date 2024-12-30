@@ -256,7 +256,7 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 		if fId != constant.CfxChainId {
 			logIdx = 0
 		}
-		blockNumber = genLogBlockNumber(blockNumber, logIdx)
+		blockNumber = GenLogBlockNumber(blockNumber, logIdx)
 		fixedHash = common.BytesToHash(crypto.Keccak256(newPrf))
 	default:
 		return nil, errors.New("invalid proof type")
@@ -300,8 +300,9 @@ func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, orderId [32]by
 
 	return ret, nil
 }
-func genLogBlockNumber(bn *big.Int, idx uint) *big.Int {
-	ret := make([]byte, 0, 12)
+
+func GenLogBlockNumber(bn *big.Int, idx uint) *big.Int {
+	ret := make([]byte, 0, 28)
 	ret = append(ret, Completion(big.NewInt(int64(idx)).Bytes(), 4)...)
 	ret = append(ret, Completion(bn.Bytes(), 8)...)
 	return big.NewInt(0).SetBytes(ret)

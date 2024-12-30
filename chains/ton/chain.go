@@ -4,7 +4,6 @@ import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/keystore"
@@ -18,11 +17,15 @@ type Chain struct {
 	cfg    *core.ChainConfig // The config of the chain
 	conn   core.Connection   // The chains connection
 	writer *Writer           // The writer of the chain
-	listen chains.Listener   // The listener of this chain
+	listen core.Listener     // The listener of this chain
 	stop   chan<- int
 }
 
-func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (*Chain, error) {
+func New() *Chain {
+	return &Chain{}
+}
+
+func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	cfg, err := parseConfig(chainCfg)
 	if err != nil {
 		return nil, err
@@ -42,7 +45,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 
 	var (
 		stop   = make(chan int)
-		listen chains.Listener
+		listen core.Listener
 	)
 	bs, err := chain.SetupBlockStore(&cfg.Config, role)
 	if err != nil {
@@ -67,7 +70,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 	}, nil
 }
 
-func (c *Chain) SetRouter(r *core.Router) {
+func (c *Chain) SetRouter(r core.Router) {
 	r.Listen(c.cfg.Id, c.writer)
 	c.listen.SetRouter(r)
 }

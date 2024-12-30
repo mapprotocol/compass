@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
 	"math/big"
@@ -266,7 +267,7 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 		if selfId != constant.CfxChainId {
 			idx = 0
 		}
-		bn = GenLogBlockNumber(bn, idx)
+		bn = proof.GenLogBlockNumber(bn, idx)
 	default:
 		return nil, fmt.Errorf("unknown proof type %d", proofType)
 	}

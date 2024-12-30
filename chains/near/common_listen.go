@@ -1,12 +1,12 @@
 package near
 
 import (
+	"github.com/mapprotocol/compass/core"
 	"math/big"
 	"time"
 
 	metrics "github.com/ChainSafe/chainbridge-utils/metrics/types"
 	"github.com/ChainSafe/log15"
-	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/pkg/blockstore"
 )
 
@@ -19,7 +19,7 @@ type CommonListen struct {
 	cfg                Config
 	conn               Connection
 	log                log15.Logger
-	router             chains.Router
+	router             core.Router
 	stop               <-chan int
 	msgCh              chan struct{}
 	sysErr             chan<- error // Reports fatal error to core
@@ -44,7 +44,7 @@ func NewCommonListen(conn Connection, cfg *Config, log log15.Logger, stop <-chan
 	}
 }
 
-func (c *CommonListen) SetRouter(r chains.Router) {
+func (c *CommonListen) SetRouter(r core.Router) {
 	c.router = r
 }
 
