@@ -17,6 +17,22 @@ var exposeCommand = cli.Command{
 	Flags:       append(app.Flags, cliFlags...),
 }
 
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func api(ctx *cli.Context) error {
 	// logger
 	err := startLogger(ctx)
@@ -33,6 +49,7 @@ func api(ctx *cli.Context) error {
 	//
 	e := expose.New(cfg)
 	g := gin.New()
+	g.Use(CORSMiddleware())
 	g.POST("/failed/proof", e.FailedExec)
 	g.POST("/new/proof", e.SuccessProof)
 	err = g.Run(cfg.Other.Port)

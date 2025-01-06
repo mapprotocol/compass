@@ -59,6 +59,10 @@ func (m *sync) Sync() error {
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
+			if id == 0 {
+				time.Sleep(constant.MessengerInterval)
+				continue
+			}
 
 			m.Cfg.StartBlock = big.NewInt(id)
 			_ = m.WaitUntilMsgHandled(1)
