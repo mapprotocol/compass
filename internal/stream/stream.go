@@ -28,7 +28,7 @@ type GetMosResp struct {
 }
 
 type FailedTxOfRequest struct {
-	ToChain int    `json:"to_chain"`
+	ToChain string `json:"to_chain"`
 	Hash    string `json:"hash"`
 }
 

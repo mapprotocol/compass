@@ -24,7 +24,7 @@ func (e *Expose) FailedExec(c *gin.Context) {
 		return
 	}
 
-	data, err := butter.ExecSwap(e.cfg.Other.Butter, fmt.Sprintf("toChainId=%d&txHash=%s", req.ToChain, req.Hash))
+	data, err := butter.ExecSwap(e.cfg.Other.Butter, fmt.Sprintf("toChainId=%s&txHash=%s", req.ToChain, req.Hash))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, Error2Response(err))
 		return
