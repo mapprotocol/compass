@@ -2,6 +2,7 @@ package tron
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -149,12 +150,13 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			for _, v := range contract.ConstantResult {
 				w.log.Info("Contract result", "err", string(v), "v", v)
 				ele := strings.TrimSpace(string(v))
-				if ele == "" || len(ele) <= 4 {
+				internalErr := "0x" + hex.EncodeToString(v)
+				if ele == "" {
 					continue
 				}
 				for e := range constant.IgnoreError {
-					if strings.Index(ele, e) != -1 {
-						w.log.Info("Ignore This Error, Continue to the next", "inputHash", inputHash, "err", ele)
+					if strings.Index(internalErr, e) != -1 {
+						w.log.Info("Ignore This Error, Continue to the next", "inputHash", inputHash, "err", internalErr)
 						m.DoneCh <- struct{}{}
 						return true
 					}
@@ -253,6 +255,7 @@ func (w *Writer) sendTx(addr, method string, input []byte, txAmount, mul, used i
 	final := float64(used) * 1.1
 	// 22000 > (40000 - 10000) = false, 继续执行
 	if int64(final) >= (acco.EnergyLimit-acco.EnergyUsed) && method != "rent" {
+		w.log.Info("SendTx EstimateEnergy", "err", "txUsed(%d) energy more than acount have(%d)", int64(final), acco.EnergyLimit)
 		//if estimate.EnergyRequired >= account.EnergyLimit {
 		return "", fmt.Errorf("txUsed(%d) energy more than acount have(%d)", int64(final), acco.EnergyLimit)
 	}

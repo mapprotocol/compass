@@ -26,3 +26,15 @@ type GetMosResp struct {
 	TxIndex         uint   `json:"tx_index"`
 	TxTimestamp     uint64 `json:"tx_timestamp"`
 }
+
+type FailedTxOfRequest struct {
+	ToChain int    `json:"to_chain"`
+	Hash    string `json:"hash"`
+}
+
+type ProofOfRequest struct {
+	SrcChain    int    `json:"src_chain"`
+	SrcTxHash   string `json:"src_tx_hash"`
+	SrcLogIndex int    `json:"src_log_index"`
+	DesChain    int    `json:"des_chain"`
+}
