@@ -1,6 +1,7 @@
 package expose
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/mapprotocol/compass/internal/butter"
@@ -29,7 +30,14 @@ func (e *Expose) FailedExec(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, data)
+	ret := make(map[string]interface{})
+	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		c.JSON(http.StatusOK, Error2Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, ret)
 }
 
 func (e *Expose) SuccessProof(c *gin.Context) {
