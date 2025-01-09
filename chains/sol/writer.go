@@ -212,12 +212,12 @@ func (w *Writer) sendTx(data string) (*solana.Signature, error) {
 
 	w.log.Info("Sending will transaction")
 
-	maxRetries := uint(5)
-	minContextSlot := uint64(1)
+	//maxRetries := uint(5)
+	//minContextSlot := uint64(1)
 	sig, err := w.conn.cli.SendTransactionWithOpts(context.TODO(), trx, rpc.TransactionOpts{
-		SkipPreflight:  false,
-		MaxRetries:     &maxRetries,
-		MinContextSlot: &minContextSlot,
+		SkipPreflight: false,
+		//MaxRetries:     &maxRetries,
+		//MinContextSlot: &minContextSlot,
 		// PreflightCommitment: rpc.CommitmentProcessed, 第二笔交易
 	})
 	if err != nil {
@@ -241,23 +241,29 @@ func (w *Writer) txStatus(txHash solana.Signature) error {
 			count++
 			w.log.Error("Failed to GetTransaction", "err", err)
 			time.Sleep(5 * time.Second)
-			return err
+			if count >= 30 {
+				return errors.New("The Tx pending state is too long")
+			}
+			continue
 		}
 
 		txResult, err := w.conn.cli.GetSignatureStatuses(context.Background(), true, txHash)
 		if err != nil {
 			count++
 			w.log.Error("Failed to GetSignatureStatuses", "err", err)
+			if count >= 30 {
+				return errors.New("The Tx pending state is too long")
+			}
 			time.Sleep(5 * time.Second)
 			continue
 		}
 		fmt.Println("txResult ------------------ ", txResult)
 		if txResult.Value == nil || len(txResult.Value) == 0 || txResult.Value[0].Err != nil {
 			count++
+			if count >= 30 {
+				return errors.New("The Tx pending state is too long")
+			}
 			continue
-		}
-		if count >= 30 {
-			return errors.New("The Tx pending state is too long")
 		}
 
 		w.log.Info("Tx receipt status is success", "hash", txHash)
