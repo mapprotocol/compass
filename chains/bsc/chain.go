@@ -140,3 +140,14 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	return &message, nil
 }
+
+func (c *Chain) NodeType() int {
+	return 0
+}
+
+func (c *Chain) Proof(nodeType, logIndex int, txHash string) ([]byte, error) {
+	// step1: get hash
+
+	//
+	return nil, nil
+}

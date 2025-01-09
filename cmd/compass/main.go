@@ -36,33 +36,6 @@ var devFlags = []cli.Flag{
 	config.TestKeyFlag,
 }
 
-var importFlags = []cli.Flag{
-	config.EthereumImportFlag,
-	config.PrivateKeyFlag,
-	config.PasswordFlag,
-	config.KeystorePathFlag,
-	config.TronFlag,
-	config.TronKeyNameFlag,
-}
-
-var accountCommand = cli.Command{
-	Name:  "accounts",
-	Usage: "manage bridge keystore",
-	Description: "The accounts command is used to manage the bridge keystore.\n" +
-		"\tTo import a tron private key file: compass accounts import --privateKey private_key",
-	Subcommands: []*cli.Command{
-		{
-			Action: wrapHandler(handleImportCmd),
-			Name:   "import",
-			Usage:  "import bridge keystore",
-			Flags:  importFlags,
-			Description: "The import subcommand is used to import a keystore for the bridge.\n" +
-				"\tA path to the keystore must be provided\n" +
-				"\tUse --privateKey to create a keystore from a provided private key.",
-		},
-	},
-}
-
 var maintainerCommand = cli.Command{
 	Name:  "maintainer",
 	Usage: "manage maintainer operations",
@@ -103,10 +76,10 @@ func init() {
 	app.Version = Version
 	app.EnableBashCompletion = true
 	app.Commands = []*cli.Command{
-		&accountCommand,
 		&maintainerCommand,
 		&messengerCommand,
 		&oracleCommand,
+		&exposeCommand,
 	}
 
 	app.Flags = append(app.Flags, cliFlags...)

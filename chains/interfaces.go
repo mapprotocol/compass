@@ -1,6 +1,3 @@
-// Copyright 2021 Compass Systems
-// SPDX-License-Identifier: LGPL-3.0-only
-
 package chains
 
 import (
@@ -16,34 +13,22 @@ import (
 	"github.com/mapprotocol/compass/chains/ton"
 	"github.com/mapprotocol/compass/chains/tron"
 	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/mapprotocol"
-)
-
-const (
-	Bsc      = "bsc"
-	Conflux  = "conflux"
-	Eth2     = "eth2"
-	Ethereum = "ethereum"
-	Klaytn   = "klaytn"
-	Matic    = "matic"
-	Near     = "near"
-	Solana   = "sol"
-	Ton      = "ton"
-	Tron     = "tron"
 )
 
 var (
 	chainMap = map[string]Chainer{
-		Bsc:      bsc.New(),
-		Matic:    matic.New(),
-		Conflux:  conflux.New(),
-		Eth2:     eth2.New(),
-		Ethereum: ethereum.New(),
-		Klaytn:   klaytn.New(),
-		Near:     near.New(),
-		Solana:   sol.New(),
-		Ton:      ton.New(),
-		Tron:     tron.New(),
+		constant.Bsc:      bsc.New(),
+		constant.Matic:    matic.New(),
+		constant.Conflux:  conflux.New(),
+		constant.Eth2:     eth2.New(),
+		constant.Ethereum: ethereum.New(),
+		constant.Klaytn:   klaytn.New(),
+		constant.Near:     near.New(),
+		constant.Solana:   sol.New(),
+		constant.Ton:      ton.New(),
+		constant.Tron:     tron.New(),
 	}
 )
 

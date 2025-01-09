@@ -132,3 +132,16 @@ var (
 const (
 	FeeRentType = "fee.io"
 )
+
+const (
+	Bsc      = "bsc"
+	Conflux  = "conflux"
+	Eth2     = "eth2"
+	Ethereum = "ethereum"
+	Klaytn   = "klaytn"
+	Matic    = "matic"
+	Near     = "near"
+	Solana   = "sol"
+	Ton      = "ton"
+	Tron     = "tron"
+)

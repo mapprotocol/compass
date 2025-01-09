@@ -231,6 +231,19 @@ func (w *Writer) txStatus(txHash solana.Signature) error {
 	var count int64
 	time.Sleep(time.Second * 2)
 	for {
+		version := uint64(0)
+		_, err := w.conn.cli.GetTransaction(context.Background(), txHash, &rpc.GetTransactionOpts{
+			Encoding:                       solana.EncodingBase58,
+			Commitment:                     rpc.CommitmentFinalized,
+			MaxSupportedTransactionVersion: &version,
+		})
+		if err != nil {
+			count++
+			w.log.Error("Failed to GetTransaction", "err", err)
+			time.Sleep(5 * time.Second)
+			return err
+		}
+
 		txResult, err := w.conn.cli.GetSignatureStatuses(context.Background(), true, txHash)
 		if err != nil {
 			count++
@@ -239,7 +252,7 @@ func (w *Writer) txStatus(txHash solana.Signature) error {
 			continue
 		}
 		fmt.Println("txResult ------------------ ", txResult)
-		if txResult == nil || txResult.Value == nil || len(txResult.Value) == 0 {
+		if txResult.Value == nil || len(txResult.Value) == 0 || txResult.Value[0].Err != nil {
 			count++
 			continue
 		}
