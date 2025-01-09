@@ -146,5 +146,8 @@ func (c *Chain) NodeType() int {
 }
 
 func (c *Chain) Proof(nodeType, logIndex int, txHash string) ([]byte, error) {
+	// step1: get hash
+
+	//
 	return nil, nil
 }
