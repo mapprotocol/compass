@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
@@ -13,8 +14,12 @@ import (
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
 	"strconv"
+	"sync"
 )
 
 type Chain struct {
@@ -91,22 +96,63 @@ func (c *Chain) syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error
 
 func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
-		message   msg.Message
+		message msg.Message
+		orderId = log.Topics[1]
+	)
+	var orderId32 [32]byte
+	for idx, v := range orderId {
+		orderId32[idx] = v
+	}
+	payload, err := c.Proof(m.Conn.Client(), log, "", proofType, uint64(m.Cfg.Id), toChainID, sign)
+	if err != nil {
+		return nil, fmt.Errorf("unable to Parse Log: %w", err)
+	}
+
+	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
+	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+	return &message, nil
+}
+
+func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
+		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
+	err := conn.Connect()
+	if err != nil {
+		return nil, err
+	}
+
+	fn := sync.OnceFunc(func() {
+		idInt, _ := strconv.ParseUint(id, 10, 64)
+		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
+		call := contract.New(conn, []common.Address{common.HexToAddress(mcs)}, oracleAbi)
+		mapprotocol.ContractMapping[msg.ChainId(idInt)] = call
+
+		oAbi, _ := abi.New(mapprotocol.SignerJson)
+		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
+		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+	})
+	fn()
+
+	return conn.Client(), nil
+}
+
+func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
+	toChainID uint64, sign [][]byte) ([]byte, error) {
+	var (
 		orderId   = log.Topics[1]
-		method    = m.GetMethod(log.Topics[0])
+		method    = chain.GetMethod(log.Topics[0])
 		bigNumber = big.NewInt(int64(log.BlockNumber))
 	)
-	txsHash, err := tx.GetTxsHashByBlockNumber(m.Conn.Client(), bigNumber)
+	txsHash, err := tx.GetTxsHashByBlockNumber(client, bigNumber)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 	}
 	var receipts []*types.Receipt
-	key := strconv.FormatUint(uint64(m.Cfg.Id), 10) + "_" + bigNumber.String()
+	key := strconv.FormatUint(selfId, 10) + "_" + bigNumber.String()
 	if v, ok := proof.CacheReceipt[key]; ok {
 		receipts = v
-		m.Log.Info("use cache receipt", "bigNumber ", bigNumber, "txHash", log.TxHash)
 	} else {
-		tmp, err := tx.GetMaticReceiptsByTxsHash(m.Conn.Client(), txsHash)
+		tmp, err := tx.GetMaticReceiptsByTxsHash(client, txsHash)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 		}
@@ -126,7 +172,7 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 	headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
 	for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
 		headerHeight := new(big.Int).Add(bigNumber, new(big.Int).SetInt64(int64(i)))
-		tmp, err := m.Conn.Client().HeaderByNumber(context.Background(), headerHeight)
+		tmp, err := client.HeaderByNumber(context.Background(), headerHeight)
 		if err != nil {
 			return nil, fmt.Errorf("getHeader failed, err is %v", err)
 		}
@@ -138,12 +184,10 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 		mHeaders = append(mHeaders, matic.ConvertHeader(h))
 	}
 
-	payload, err := matic.AssembleProof(mHeaders, log, m.Cfg.Id, receipts, method, proofType, orderId32)
+	payload, err := matic.AssembleProof(mHeaders, log, msg.ChainId(selfId), receipts, method, proofType, orderId32)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
-	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
-	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
-	return &message, nil
+	return payload, nil
 }

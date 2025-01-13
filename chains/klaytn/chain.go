@@ -3,24 +3,26 @@ package klaytn
 import (
 	"context"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/mapprotocol/compass/internal/tx"
-
-	"github.com/ethereum/go-ethereum/rlp"
-
-	"github.com/klaytn/klaytn/common"
-
 	"github.com/ChainSafe/log15"
+	ecommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/klaytn/klaytn/common"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/klaytn"
+	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
@@ -204,4 +206,72 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
 	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	return &message, nil
+}
+
+func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
+		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
+	err := conn.Connect()
+	if err != nil {
+		return nil, err
+	}
+
+	fn := sync.OnceFunc(func() {
+		err = c.connectKClient(endpoint)
+
+		idInt, _ := strconv.ParseUint(id, 10, 64)
+		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
+		call := contract.New(conn, []ecommon.Address{ecommon.HexToAddress(mcs)}, oracleAbi)
+		mapprotocol.ContractMapping[msg.ChainId(idInt)] = call
+
+		oAbi, _ := abi.New(mapprotocol.SignerJson)
+		oracleCall := contract.New(conn, []ecommon.Address{ecommon.HexToAddress(oracleNode)}, oAbi)
+		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+	})
+	fn()
+	if err != nil {
+		return nil, err
+	}
+
+	return conn.Client(), nil
+}
+
+func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
+	toChainID uint64, sign [][]byte) ([]byte, error) {
+	var (
+		orderId   = log.Topics[1]
+		method    = chain.GetMethod(log.Topics[0])
+		bigNumber = big.NewInt(int64(log.BlockNumber))
+	)
+
+	txsHash, err := klaytn.GetTxsHashByBlockNumber(kClient, bigNumber)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+	// get block
+	header, err := client.HeaderByNumber(context.Background(), bigNumber)
+	if err != nil {
+		return nil, err
+	}
+	kHeader, err := kClient.BlockByNumber(context.Background(), bigNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	var orderId32 [32]byte
+	for idx, v := range orderId {
+		orderId32[idx] = v
+	}
+
+	ret, err := klaytn.AssembleProof(kClient, klaytn.ConvertContractHeader(header, kHeader),
+		log, msg.ChainId(selfId), receipts, method, proofType, orderId32, sign)
+	if err != nil {
+		return nil, fmt.Errorf("unable to Parse Log: %w", err)
+	}
+
+	return ret, nil
 }

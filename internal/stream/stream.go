@@ -33,8 +33,9 @@ type FailedTxOfRequest struct {
 }
 
 type ProofOfRequest struct {
-	SrcChain    int    `json:"src_chain"`
+	SrcChain    string `json:"src_chain"`
 	SrcTxHash   string `json:"src_tx_hash"`
-	SrcLogIndex int    `json:"src_log_index"`
-	DesChain    int    `json:"des_chain"`
+	SrcLogIndex uint   `json:"src_log_index"`
+	BlockNumber int64  `json:"block_number"`
+	DesChain    string `json:"des_chain"`
 }

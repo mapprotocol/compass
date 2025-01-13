@@ -1,12 +1,23 @@
 package expose
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/gin-gonic/gin"
+	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/internal/butter"
+	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/stream"
+	"github.com/pkg/errors"
+	"math/big"
 	"net/http"
+	"strconv"
 )
 
 type Expose struct {
@@ -46,13 +57,98 @@ func (e *Expose) SuccessProof(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, Error2Response(err))
 		return
 	}
-	//
-	//c.JSON(http.StatusOK, data)
+	// init chain
+	var (
+		proofType                          = int64(0)
+		src, des                           chains.Proffer
+		srcEndpoint, srcOracleNode, srcMcs string
+		selfChainId, _                     = strconv.ParseUint(req.SrcChain, 10, 64)
+		desChainId, _                      = strconv.ParseUint(req.DesChain, 10, 64)
+	)
+	for _, ele := range e.cfg.Chains {
+		if ele.Id == req.SrcChain {
+			creator, _ := chains.CreateProffer(ele.Type)
+			src = creator
+			srcEndpoint = ele.Endpoint
+			srcOracleNode = ele.OracleNode
+			srcMcs = ele.Mcs
+		}
+		if ele.Id == req.DesChain {
+			creator, _ := chains.CreateProffer(ele.Type)
+			des = creator
+			if ele.Name == constant.Tron || ele.Name == constant.Ton || ele.Name == constant.Solana {
+				proofType = constant.ProofTypeOfLogOracle
+			}
+		}
+	}
+	if src == nil || des == nil {
+		fmt.Println("src or des is nil", "src", src, "des", des)
+		log.Info("no proof of chain exists", "src", src, "des", des)
+		c.JSON(http.StatusBadRequest, Error2Response(errors.New("srcChain or desChain unrecognized Chain Type")))
+		return
+	}
+	srcClient, err := src.Connect(req.SrcChain, srcEndpoint, srcMcs, srcOracleNode)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Error2Response(err))
+		return
+	}
+	// get log
+	logs, err := srcClient.FilterLogs(context.Background(), ethereum.FilterQuery{
+		FromBlock: big.NewInt(req.BlockNumber),
+		ToBlock:   big.NewInt(req.BlockNumber),
+		Addresses: nil,
+		Topics:    nil,
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Error2Response(err))
+		return
+	}
+	targetLog := types.Log{}
+	for _, ele := range logs {
+		if ele.Index != req.SrcLogIndex {
+			continue
+		}
+		tmp := ele
+		targetLog = tmp
+	}
+	if proofType == 0 {
+		orderId := targetLog.Topics[1]
+		proofType, err = chain.PreSendTx(0, selfChainId, desChainId, big.NewInt(req.BlockNumber), orderId.Bytes())
+		if err != nil {
+			c.JSON(http.StatusBadRequest, Error2Response(err))
+			return
+		}
+	}
+	var sign [][]byte
+	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
+		ret, err := chain.Signer(srcClient, selfChainId, 22776, &targetLog, proofType)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, Error2Response(err))
+			return
+		}
+		sign = ret.Signatures
+	}
+	// proof
+	ret, err := src.Proof(srcClient, &targetLog, srcEndpoint, proofType, selfChainId, desChainId, sign)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Error2Response(err))
+		return
+	}
+	// back
+	c.JSON(http.StatusOK, Success("0x"+common.Bytes2Hex(ret)))
 }
 
 func Error2Response(err error) interface{} {
 	return map[string]interface{}{
 		"code": 500,
 		"msg":  err.Error(),
+	}
+}
+
+func Success(data interface{}) interface{} {
+	return map[string]interface{}{
+		"code": 0,
+		"msg":  "success",
+		"data": data,
 	}
 }

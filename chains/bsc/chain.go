@@ -2,8 +2,12 @@ package bsc
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
 	"math/big"
 	"strconv"
+	"sync"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -90,36 +94,78 @@ func (c *Chain) syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error
 
 func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
-		message   msg.Message
+		message msg.Message
+		orderId = log.Topics[1]
+	)
+	var orderId32 [32]byte
+	for idx, v := range orderId {
+		orderId32[idx] = v
+	}
+
+	payload, err := c.Proof(m.Conn.Client(), log, m.Cfg.Endpoint, proofType, uint64(m.Cfg.Id), toChainID, sign)
+	if err != nil {
+		return nil, fmt.Errorf("unable to Parse Log: %w", err)
+	}
+
+	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
+	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
+	return &message, nil
+}
+
+func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
+		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
+	err := conn.Connect()
+	if err != nil {
+		return nil, err
+	}
+
+	fn := sync.OnceFunc(func() {
+		idInt, _ := strconv.ParseUint(id, 10, 64)
+		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
+		call := contract.New(conn, []common.Address{common.HexToAddress(mcs)}, oracleAbi)
+		mapprotocol.ContractMapping[msg.ChainId(idInt)] = call
+
+		oAbi, _ := abi.New(mapprotocol.SignerJson)
+		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
+		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+	})
+	fn()
+
+	return conn.Client(), nil
+}
+
+func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
+	toChainID uint64, sign [][]byte) ([]byte, error) {
+	var (
 		orderId   = log.Topics[1]
-		method    = m.GetMethod(log.Topics[0])
+		method    = chain.GetMethod(log.Topics[0])
 		bigNumber = big.NewInt(int64(log.BlockNumber))
 	)
-	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), bigNumber)
+	txsHash, err := mapprotocol.GetTxsByBn(client, bigNumber)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 	}
 	var receipts []*types.Receipt
-	key := strconv.FormatUint(uint64(m.Cfg.Id), 10) + "_" + bigNumber.String()
+	key := strconv.FormatUint(selfId, 10) + "_" + bigNumber.String()
 	if v, ok := proof.CacheReceipt[key]; ok {
 		receipts = v
-		m.Log.Info("use cache receipt", "latestBlock ", bigNumber, "txHash", log.TxHash)
 	} else {
-		receipts, err = tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
+		receipts, err = tx.GetReceiptsByTxsHash(client, txsHash)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 		}
 		proof.CacheReceipt[key] = receipts
 	}
-
 	var orderId32 [32]byte
 	for idx, v := range orderId {
 		orderId32[idx] = v
 	}
+
 	headers := make([]*ethclient.BscHeader, mapprotocol.HeaderCountOfBsc)
 	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
 		headerHeight := new(big.Int).Add(bigNumber, new(big.Int).SetInt64(int64(i)))
-		header, err := m.Conn.Client().BscHeaderByNumber(m.Cfg.Endpoint, headerHeight)
+		header, err := client.BscHeaderByNumber(endpoint, headerHeight)
 		if err != nil {
 			return nil, err
 		}
@@ -131,23 +177,10 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 		params = append(params, bsc.ConvertHeader(h))
 	}
 
-	payload, err := bsc.AssembleProof(params, log, receipts, method, m.Cfg.Id, proofType, sign, orderId32)
+	ret, err := bsc.AssembleProof(params, log, receipts, method, msg.ChainId(selfId), proofType, sign, orderId32)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
-	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
-	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
-	return &message, nil
-}
-
-func (c *Chain) NodeType() int {
-	return 0
-}
-
-func (c *Chain) Proof(nodeType, logIndex int, txHash string) ([]byte, error) {
-	// step1: get hash
-
-	//
-	return nil, nil
+	return ret, nil
 }

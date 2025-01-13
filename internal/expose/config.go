@@ -20,11 +20,12 @@ type Config struct {
 }
 
 type RawChainConfig struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Id       string `json:"id"`       // ChainID
-	Endpoint string `json:"endpoint"` // url for rpc endpoint
-	Mcs      string `json:"mcs,omitempty"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Id         string `json:"id"`       // ChainID
+	Endpoint   string `json:"endpoint"` // url for rpc endpoint
+	Mcs        string `json:"mcs,omitempty"`
+	OracleNode string `json:"oracleNode,omitempty"`
 }
 
 type Construction struct {
