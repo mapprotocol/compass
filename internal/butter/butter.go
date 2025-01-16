@@ -25,6 +25,7 @@ func (b *Butter) ExecSwap(domain, query string) ([]byte, error) {
 }
 
 func (b *Butter) SolCrossIn(domain, query string) (*SolCrossInResp, error) {
+	fmt.Println("url ------------ ", fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
 	body, err := client.JsonGet(fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
 	if err != nil {
 		return nil, err
@@ -36,6 +37,9 @@ func (b *Butter) SolCrossIn(domain, query string) (*SolCrossInResp, error) {
 	}
 	if data.Errno != 0 {
 		return nil, fmt.Errorf("code %d, mess:%s", data.Errno, data.Message)
+	}
+	if data.StatusCode != 0 {
+		return nil, fmt.Errorf("code %d, mess:%s", data.StatusCode, data.Message)
 	}
 
 	if len(data.Data) <= 0 {

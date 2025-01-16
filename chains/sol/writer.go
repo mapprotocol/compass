@@ -14,6 +14,7 @@ import (
 	"github.com/mapprotocol/compass/internal/butter"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
 	"io"
 	"math/big"
@@ -67,11 +68,10 @@ type GenerateRequest struct {
 
 func (w *Writer) exeMcs(m msg.Message) bool {
 	var (
-		errorCount  int64
-		firstFinish bool
-		log         = m.Payload[0].(*types.Log)
-		sign        = m.Payload[1].([][]byte)
-		method      = m.Payload[2].(string)
+		errorCount int64
+		log        = m.Payload[0].(*types.Log)
+		sign       = m.Payload[1].([][]byte)
+		method     = m.Payload[2].(string)
 	)
 
 	data, err := w.generateData(log, sign)
@@ -80,27 +80,31 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 		return false
 	}
 
-	time.Sleep(time.Minute)
+	//time.Sleep(time.Minute)
 	for {
 		select {
 		case <-w.stop:
 			return false
 		default:
 			txData := data.Data.Tx[0]
-			if data.Data.SwapData.ToToken != "" || data.Data.SwapData.ToAddress != "" || data.Data.SwapData.MinAmountOutBN != "" || firstFinish {
+			if data.Data.SwapData.ToToken != "" || data.Data.SwapData.ToAddress != "" || data.Data.SwapData.MinAmountOutBN != "" {
 				relayData, err := DecodeRelayData(common.Bytes2Hex(log.Data))
 				if err != nil {
 					w.log.Error("Error decoding relay data", "error", err)
 					time.Sleep(constant.TxRetryInterval)
 					continue
 				}
-				resp, err := w.solCrossIn(data.Data.SwapData.ToToken, data.Data.SwapData.ToAddress, "", log, relayData)
+				w.log.Info("Relay data", "data", relayData)
+				resp, err := w.solCrossIn(data.Data.SwapData.ToToken, data.Data.SwapData.ToAddress, data.Data.SwapData.MinAmountOutBN, log, relayData)
 				if err != nil {
 					w.log.Error("Error in solCross in", "error", err)
 					time.Sleep(constant.TxRetryInterval)
 					continue
 				}
 				txData = resp.Data[0].TxParam[0].Data
+				//fmt.Println("txData -------------- ", txData)
+				//fmt.Println("resp.Data[0].TxParam[0].Data -------------- ", resp.Data[0].TxParam[0].Data)
+				//time.Sleep(time.Minute)
 			}
 
 			w.log.Info("Send transaction", "srcHash", log.TxHash, "method", method)
@@ -110,9 +114,9 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				err = w.txStatus(*mcsTx)
 				if err == nil {
 					w.log.Info("TxHash status is successful, will next tx")
-					firstFinish = true
+					m.DoneCh <- struct{}{}
+					return true
 				}
-				w.log.Error("TxHash status is successful, will next tx")
 			} else if w.cfg.SkipError && errorCount >= 9 {
 				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "srcHash", log.TxHash, "err", err)
 				m.DoneCh <- struct{}{}
@@ -128,14 +132,11 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				w.log.Warn("Execution failed, will retry", "srcHash", log.TxHash, "err", err)
 			}
 			errorCount++
-			if errorCount >= 10 && !firstFinish {
+			if errorCount >= 10 {
 				w.mosAlarm(log.TxHash, err)
 				errorCount = 0
 			}
 			time.Sleep(constant.TxRetryInterval)
-
-			// have swap
-
 		}
 	}
 }
@@ -297,15 +298,12 @@ func (w *Writer) solCrossIn(toToken, receiver, minAmount string, l *types.Log, r
 	signPri, _ := solana.PrivateKeyFromBase58(w.cfg.Pri)
 	router := signPri.PublicKey().String()
 	orderId := l.Topics[1]
-
-	query := fmt.Sprintf("fromChainId=%s&chainPoolChain=%s&"+
-		"chainPoolTokenAddress=%s&chainPoolTokenAmount=%s&"+
-		"tokenOutAddress=%s&slippage=%d&"+
-		"router=%s&minAmountOut=%s&from=%s&orderIdHex=%s&receiver=%s&feeRatio=%s",
-		"22776", "22776",
-		"0x"+common.Bytes2Hex(relayData.TokenAddress), relayData.TokenAmount.String(),
-		toToken, 100,
-		router, minAmount, "0x"+common.Bytes2Hex(relayData.From), orderId.Hex(), receiver, "110",
+	query := fmt.Sprintf("tokenInAddress=%s&tokenAmount=%s&"+
+		"tokenOutAddress=%s&"+
+		"router=%s&minAmountOut=%s&orderIdHex=%s&receiver=%s&feeRatio=%s",
+		base58.Encode(relayData.TokenAddress), relayData.TokenAmount.String(),
+		toToken,
+		router, minAmount, orderId.Hex(), receiver, "110",
 	)
 	data, err := butter.SolCrossIn(w.cfg.ButterHost, query)
 	if err != nil {
@@ -377,27 +375,33 @@ func DecodeRelayData(data string) (*MessageData, error) {
 
 	tokenAmount := parseBigInt(16, 16)
 	ret.TokenAmount = tokenAmount
+	fmt.Println("tokenAmount, ", ret.TokenAmount)
 
 	// Calculate dynamic offsets
 	start := 32
 	end := start + int(tokenLen.Int64())
 	//tokenAddress := hex.EncodeToString(bytesData[start:end])
 	ret.TokenAddress = bytesData[start:end]
+	fmt.Println("tokenAddress, ", common.Bytes2Hex(ret.TokenAddress))
 
 	start = end
 	end = start + int(mosLen.Int64())
 	ret.Mos = bytesData[start:end]
+	fmt.Println("Mos, ", common.Bytes2Hex(ret.Mos))
 
 	start = end
 	end = start + int(fromLen.Int64())
 	ret.From = bytesData[start:end]
+	fmt.Println("From, ", common.Bytes2Hex(ret.From))
 
 	start = end
 	end = start + int(toLen.Int64())
 	ret.To = bytesData[start:end]
+	fmt.Println("To, ", common.Bytes2Hex(ret.To))
 
 	start = end
 	ret.Payload = bytesData[start:end]
+	fmt.Println("Payload, ", common.Bytes2Hex(ret.Payload))
 	return ret, nil
 }
 

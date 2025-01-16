@@ -1,9 +1,10 @@
 package butter
 
 type SolCrossInResp struct {
-	Errno   int    `json:"errno"`
-	Message string `json:"message"`
-	Data    []struct {
+	Errno      int    `json:"errno"`
+	StatusCode int    `json:"statusCode"`
+	Message    string `json:"message"`
+	Data       []struct {
 		Route struct {
 			Diff      string `json:"diff"`
 			BridgeFee struct {
