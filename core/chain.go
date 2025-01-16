@@ -39,6 +39,7 @@ type ChainConfig struct {
 	SkipError        bool              // Flag of Skip Error
 	Filter           bool
 	FilterHost       string
+	ButterHost       string
 }
 
 type Connection interface {

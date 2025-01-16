@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gin-gonic/gin"
+	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/internal/expose"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/urfave/cli/v2"
@@ -46,7 +47,15 @@ func api(ctx *cli.Context) error {
 		return err
 	}
 	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
-	//
+	// pre init
+	for _, ele := range cfg.Chains {
+		creator, _ := chains.CreateProffer(ele.Type)
+		_, err = creator.Connect(ele.Id, ele.Endpoint, ele.Mcs, ele.OracleNode)
+		if err != nil {
+			return err
+		}
+	}
+
 	e := expose.New(cfg)
 	g := gin.New()
 	g.Use(CORSMiddleware())

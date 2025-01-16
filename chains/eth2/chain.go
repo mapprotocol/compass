@@ -1,13 +1,16 @@
 package eth2
 
 import (
+	"fmt"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/mapprotocol/compass/connections/eth2"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
+	ieth "github.com/mapprotocol/compass/internal/eth2"
+	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
@@ -15,6 +18,9 @@ import (
 	"github.com/mapprotocol/compass/pkg/contract"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/pkg/errors"
+	"math/big"
+	"strconv"
+	"sync"
 )
 
 var _ core.Chain = new(Chain)
@@ -142,4 +148,62 @@ func (c *Chain) EthClient() *ethclient.Client {
 // Conn return Connection interface for relayer register
 func (c *Chain) Conn() core.Connection {
 	return c.conn
+}
+
+func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+	conn := eth2.NewConnection(endpoint, "", true, nil, nil, big.NewInt(chain.DefaultGasLimit),
+		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
+	err := conn.Connect()
+	if err != nil {
+		return nil, err
+	}
+
+	fn := sync.OnceFunc(func() {
+		idInt, _ := strconv.ParseUint(id, 10, 64)
+		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
+		call := contract.New(conn, []common.Address{common.HexToAddress(mcs)}, oracleAbi)
+		mapprotocol.ContractMapping[msg.ChainId(idInt)] = call
+
+		oAbi, _ := abi.New(mapprotocol.SignerJson)
+		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
+		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+	})
+	fn()
+
+	return conn.Client(), nil
+}
+
+func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
+	toChainID uint64, sign [][]byte) ([]byte, error) {
+	var (
+		orderId     = log.Topics[1]
+		method      = chain.GetMethod(log.Topics[0])
+		blockNumber = big.NewInt(0).SetUint64(log.BlockNumber)
+	)
+
+	header, err := client.EthLatestHeaderByNumber(endpoint, blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	// when syncToMap we need to assemble a tx proof
+	txsHash, err := mapprotocol.GetTxsByBn(client, blockNumber)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+
+	var orderId32 [32]byte
+	for i, v := range orderId {
+		orderId32[i] = v
+	}
+
+	ret, err := ieth.AssembleProof(*ieth.ConvertHeader(header), log, receipts, method, msg.ChainId(selfId), proofType, sign, orderId32)
+	if err != nil {
+		return nil, fmt.Errorf("unable to Parse Log: %w", err)
+	}
+
+	return ret, nil
 }

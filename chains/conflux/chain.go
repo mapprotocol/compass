@@ -3,10 +3,16 @@ package conflux
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/tx"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/log15"
@@ -139,32 +145,16 @@ func (c *Chain) syncHeaderToMap(m *chain.Maintainer, latestBlock *big.Int) error
 func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
 		err     error
-		pivot   = big.NewInt(0)
 		message msg.Message
 		orderId = log.Topics[1]
-		method  = m.GetMethod(log.Topics[0])
 	)
-	if proofType == constant.ProofTypeOfOrigin {
-		pivot, err = nearestPivot(m, new(big.Int).SetUint64(log.BlockNumber+conflux.DeferredExecutionEpochs))
-		if err != nil {
-			return nil, err
-		}
-	}
+
 	var orderId32 [32]byte
 	for idx, v := range orderId {
 		orderId32[idx] = v
 	}
 
-	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), big.NewInt(int64(log.BlockNumber)))
-	if err != nil {
-		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-	}
-	receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-	}
-	m.Log.Info("getPivot", "pivot", pivot)
-	payload, err := conflux.AssembleProof(cli, pivot.Uint64(), uint64(proofType), method, m.Cfg.Id, log, receipts, orderId32, sign)
+	payload, err := c.Proof(m.Conn.Client(), log, "", proofType, uint64(m.Cfg.Id), toChainID, sign)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
@@ -190,12 +180,12 @@ func getState(m *chain.Maintainer) (*conflux.ILightNodeState, error) {
 	return ret, nil
 }
 
-func nearestPivot(m *chain.Messenger, height *big.Int) (*big.Int, error) {
+func nearestPivot(selfId uint64, height *big.Int) (*big.Int, error) {
 	pack, err := mapprotocol.Conflux.Methods[mapprotocol.MethodOfNearestPivot].Inputs.Pack(height)
 	if err != nil {
 		return nil, errors.Wrap(err, "nearestPivot pack failed")
 	}
-	data, err := mapprotocol.GetDataByManager(mapprotocol.MethodOFinalizedState, big.NewInt(int64(m.Cfg.Id)), pack)
+	data, err := mapprotocol.GetDataByManager(mapprotocol.MethodOFinalizedState, big.NewInt(int64(selfId)), pack)
 	if err != nil {
 		return nil, errors.Wrap(err, "finalizedState unpack failed")
 	}
@@ -287,4 +277,62 @@ func (c *Chain) isCommitted(epoch, round uint64) (bool, error) {
 	}
 
 	return round <= uint64(block.Round), nil
+}
+
+func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
+		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
+	err := conn.Connect()
+	if err != nil {
+		return nil, err
+	}
+
+	fn := sync.OnceFunc(func() {
+		idInt, _ := strconv.ParseUint(id, 10, 64)
+		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
+		call := contract.New(conn, []common.Address{common.HexToAddress(mcs)}, oracleAbi)
+		mapprotocol.ContractMapping[msg.ChainId(idInt)] = call
+
+		oAbi, _ := abi.New(mapprotocol.SignerJson)
+		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
+		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+	})
+	fn()
+
+	return conn.Client(), nil
+}
+
+func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
+	toChainID uint64, sign [][]byte) ([]byte, error) {
+	var (
+		err     error
+		pivot   = big.NewInt(0)
+		orderId = log.Topics[1]
+		method  = chain.GetMethod(log.Topics[0])
+	)
+	if proofType == constant.ProofTypeOfOrigin {
+		pivot, err = nearestPivot(selfId, new(big.Int).SetUint64(log.BlockNumber+conflux.DeferredExecutionEpochs))
+		if err != nil {
+			return nil, err
+		}
+	}
+	var orderId32 [32]byte
+	for idx, v := range orderId {
+		orderId32[idx] = v
+	}
+
+	txsHash, err := mapprotocol.GetTxsByBn(client, big.NewInt(int64(log.BlockNumber)))
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+	ret, err := conflux.AssembleProof(cli, pivot.Uint64(), uint64(proofType), method, msg.ChainId(selfId), log, receipts, orderId32, sign)
+	if err != nil {
+		return nil, fmt.Errorf("unable to Parse Log: %w", err)
+	}
+
+	return ret, nil
 }

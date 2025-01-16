@@ -169,6 +169,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			SkipError:        ctx.Bool(config.SkipErrorFlag.Name),
 			Filter:           ctx.Bool(config.FilterFlag.Name),
 			FilterHost:       cfg.Other.Filter,
+			ButterHost:       cfg.Other.Butter,
 		}
 		var (
 			newChain core.Chain

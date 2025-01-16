@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
@@ -168,43 +172,19 @@ func (c *Chain) headerToMap(m *chain.Maintainer, latestBlock *big.Int) error {
 
 func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
-		message   msg.Message
-		orderId   = log.Topics[1]
-		method    = m.GetMethod(log.Topics[0])
-		bigNumber = big.NewInt(int64(log.BlockNumber))
+		message msg.Message
+		orderId = log.Topics[1]
+		method  = m.GetMethod(log.Topics[0])
 	)
-	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), bigNumber)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-	}
-	receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-	}
-	header, err := m.Conn.Client().MAPHeaderByNumber(context.Background(), bigNumber)
-	if err != nil {
-		return nil, fmt.Errorf("unable to query header Logs: %w", err)
-	}
-
 	var orderId32 [32]byte
 	for idx, v := range orderId {
 		orderId32[idx] = v
 	}
+	payload, err := c.Proof(m.Conn.Client(), log, "", proofType, uint64(m.Cfg.Id), toChainID, sign)
+	if err != nil {
+		return nil, fmt.Errorf("build Proof failed, err: %w", err)
+	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		remainder := big.NewInt(0).Mod(bigNumber, big.NewInt(mapprotocol.EpochOfMap))
-		if remainder.Cmp(mapprotocol.Big0) == 0 {
-			lr, err := mapprotocol.GetLastReceipt(m.Conn.Client(), bigNumber)
-			if err != nil {
-				return nil, fmt.Errorf("unable to get last receipts in epoch last %w", err)
-			}
-			receipts = append(receipts, lr)
-		}
-
-		_, payload, err := mapo.AssembleMapProof(m.Conn.Client(), log, receipts, header,
-			m.Cfg.MapChainID, method, m.Cfg.ApiUrl, proofType, sign, orderId32)
-		if err != nil {
-			return nil, fmt.Errorf("unable to Parse Log: %w", err)
-		}
 
 		msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash, method}
 		message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
@@ -220,11 +200,6 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 			message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), payloads, m.MsgCh)
 		}
 	} else if m.Cfg.SyncToMap {
-		payload, err := mapo.AssembleEthProof(m.Conn.Client(), log, receipts, header, method, m.Cfg.Id, proofType, sign, orderId32)
-		if err != nil {
-			return nil, fmt.Errorf("unable to Parse Log: %w", err)
-		}
-
 		msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
 		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	}
@@ -252,4 +227,78 @@ func (c *Chain) rlpEthereumHeaders(source, destination msg.ChainId, headers []ty
 		return nil, fmt.Errorf("rpl encode params error: %v", err)
 	}
 	return enc, nil
+}
+
+func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
+		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
+	err := conn.Connect()
+	if err != nil {
+		return nil, err
+	}
+
+	fn := sync.OnceFunc(func() {
+		idInt, _ := strconv.ParseUint(id, 10, 64)
+		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
+		call := contract.New(conn, []common.Address{common.HexToAddress(mcs)}, oracleAbi)
+		mapprotocol.ContractMapping[msg.ChainId(idInt)] = call
+
+		oAbi, _ := abi.New(mapprotocol.SignerJson)
+		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
+		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+	})
+	fn()
+
+	return conn.Client(), nil
+}
+
+func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
+	toChainID uint64, sign [][]byte) ([]byte, error) {
+	var (
+		orderId   = log.Topics[1]
+		method    = chain.GetMethod(log.Topics[0])
+		bigNumber = big.NewInt(int64(log.BlockNumber))
+	)
+	txsHash, err := mapprotocol.GetTxsByBn(client, bigNumber)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+	}
+	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	}
+	header, err := client.MAPHeaderByNumber(context.Background(), bigNumber)
+	if err != nil {
+		return nil, fmt.Errorf("unable to query header Logs: %w", err)
+	}
+
+	var orderId32 [32]byte
+	for idx, v := range orderId {
+		orderId32[idx] = v
+	}
+	var ret []byte
+	if selfId == 22776 {
+		remainder := big.NewInt(0).Mod(bigNumber, big.NewInt(mapprotocol.EpochOfMap))
+		if remainder.Cmp(mapprotocol.Big0) == 0 {
+			lr, err := mapprotocol.GetLastReceipt(client, bigNumber)
+			if err != nil {
+				return nil, fmt.Errorf("unable to get last receipts in epoch last %w", err)
+			}
+			receipts = append(receipts, lr)
+		}
+
+		_, ret, err = mapo.AssembleMapProof(client, log, receipts, header, 22776, method, "", proofType, sign, orderId32)
+		if err != nil {
+			return nil, fmt.Errorf("unable to Parse Log: %w", err)
+		}
+
+	} else {
+		ret, err = mapo.AssembleEthProof(client, log, receipts, header, method, msg.ChainId(selfId), proofType, sign, orderId32)
+		if err != nil {
+			return nil, fmt.Errorf("unable to Parse Log: %w", err)
+		}
+
+	}
+
+	return ret, nil
 }

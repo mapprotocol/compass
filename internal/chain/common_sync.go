@@ -156,3 +156,8 @@ func (c *CommonSync) Match(target string) int {
 	}
 	return -1
 }
+
+func GetMethod(topic ethcommon.Hash) string {
+	def := &CommonSync{}
+	return def.GetMethod(topic)
+}
