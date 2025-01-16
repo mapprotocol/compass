@@ -59,11 +59,11 @@ func (e *Expose) SuccessProof(c *gin.Context) {
 	}
 	// init chain
 	var (
-		proofType                          = int64(0)
-		src, des                           chains.Proffer
-		srcEndpoint, srcOracleNode, srcMcs string
-		selfChainId, _                     = strconv.ParseUint(req.SrcChain, 10, 64)
-		desChainId, _                      = strconv.ParseUint(req.DesChain, 10, 64)
+		proofType                                 = int64(0)
+		src, des                                  chains.Proffer
+		srcEndpoint, srcOracleNode, srcMcs, desTo string
+		selfChainId, _                            = strconv.ParseUint(req.SrcChain, 10, 64)
+		desChainId, _                             = strconv.ParseUint(req.DesChain, 10, 64)
 	)
 	for _, ele := range e.cfg.Chains {
 		if ele.Id == req.SrcChain {
@@ -76,6 +76,7 @@ func (e *Expose) SuccessProof(c *gin.Context) {
 		if ele.Id == req.DesChain {
 			creator, _ := chains.CreateProffer(ele.Type)
 			des = creator
+			desTo = ele.Mcs
 			if ele.Name == constant.Tron || ele.Name == constant.Ton || ele.Name == constant.Solana {
 				proofType = constant.ProofTypeOfLogOracle
 			}
@@ -135,7 +136,10 @@ func (e *Expose) SuccessProof(c *gin.Context) {
 		return
 	}
 	// back
-	c.JSON(http.StatusOK, Success("0x"+common.Bytes2Hex(ret)))
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"tx": "0x" + common.Bytes2Hex(ret),
+		"to": desTo,
+	})
 }
 
 func Error2Response(err error) interface{} {

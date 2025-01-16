@@ -74,7 +74,6 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 		method      = m.Payload[2].(string)
 	)
 
-	fmt.Println("log ------------ ", common.Bytes2Hex(log.Data))
 	data, err := w.generateData(log, sign)
 	if err != nil {
 		w.log.Error("Error generating data", "error", err)
@@ -87,8 +86,25 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 		case <-w.stop:
 			return false
 		default:
+			txData := data.Data.Tx[0]
+			if data.Data.SwapData.ToToken != "" || data.Data.SwapData.ToAddress != "" || data.Data.SwapData.MinAmountOutBN != "" || firstFinish {
+				relayData, err := DecodeRelayData(common.Bytes2Hex(log.Data))
+				if err != nil {
+					w.log.Error("Error decoding relay data", "error", err)
+					time.Sleep(constant.TxRetryInterval)
+					continue
+				}
+				resp, err := w.solCrossIn(data.Data.SwapData.ToToken, data.Data.SwapData.ToAddress, "", log, relayData)
+				if err != nil {
+					w.log.Error("Error in solCross in", "error", err)
+					time.Sleep(constant.TxRetryInterval)
+					continue
+				}
+				txData = resp.Data[0].TxParam[0].Data
+			}
+
 			w.log.Info("Send transaction", "srcHash", log.TxHash, "method", method)
-			mcsTx, err := w.sendTx(data.Data.Tx[0])
+			mcsTx, err := w.sendTx(txData)
 			if err == nil {
 				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", log.TxHash, "mcsTx", mcsTx)
 				err = w.txStatus(*mcsTx)
@@ -117,20 +133,8 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				errorCount = 0
 			}
 			time.Sleep(constant.TxRetryInterval)
-			if data.Data.SwapData.ToToken == "" && data.Data.SwapData.ToAddress == "" && data.Data.SwapData.MinAmountOutBN == "" && firstFinish {
-				m.DoneCh <- struct{}{}
-				return true
-			}
+
 			// have swap
-			for {
-				select {
-				case <-w.stop:
-					return false
-				default:
-					// 请求solana
-					//w.solCrossIn(data.Data.SwapData.ToToken, data.Data.SwapData.ToAddress)
-				}
-			}
 
 		}
 	}
@@ -289,7 +293,7 @@ func (w *Writer) mosAlarm(tx interface{}, err error) {
 	util.Alarm(context.Background(), fmt.Sprintf("mos map2tron failed, srcHash=%v err is %s", tx, err.Error()))
 }
 
-func (w *Writer) solCrossIn(toToken, receiver, minAmount string, l *types.Log) (*butter.SolCrossInResp, error) {
+func (w *Writer) solCrossIn(toToken, receiver, minAmount string, l *types.Log, relayData *MessageData) (*butter.SolCrossInResp, error) {
 	signPri, _ := solana.PrivateKeyFromBase58(w.cfg.Pri)
 	router := signPri.PublicKey().String()
 	orderId := l.Topics[1]
@@ -299,9 +303,9 @@ func (w *Writer) solCrossIn(toToken, receiver, minAmount string, l *types.Log) (
 		"tokenOutAddress=%s&slippage=%d&"+
 		"router=%s&minAmountOut=%s&from=%s&orderIdHex=%s&receiver=%s&feeRatio=%s",
 		"22776", "22776",
-		"param.RelayToken", "param.RelayAmount",
+		"0x"+common.Bytes2Hex(relayData.TokenAddress), relayData.TokenAmount.String(),
 		toToken, 100,
-		router, minAmount, "param.Sender", orderId.Hex(), receiver, "200",
+		router, minAmount, "0x"+common.Bytes2Hex(relayData.From), orderId.Hex(), receiver, "110",
 	)
 	data, err := butter.SolCrossIn(w.cfg.ButterHost, query)
 	if err != nil {
