@@ -13,6 +13,7 @@ type Config struct {
 	LightNode   string
 	McsContract []string
 	SolEvent    []string
+	ButterHost  string
 }
 
 func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
@@ -24,6 +25,7 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 		Config:      *cfg,
 		LightNode:   "",
 		McsContract: nil,
+		ButterHost:  chainCfg.ButterHost,
 	}
 
 	if ele, ok := chainCfg.Opts[chain.LightNode]; ok && ele != "" {

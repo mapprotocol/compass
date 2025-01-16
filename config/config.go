@@ -37,6 +37,7 @@ type Construction struct {
 	MonitorUrl string `json:"monitor_url,omitempty"`
 	Env        string `json:"env,omitempty"`
 	Filter     string `json:"filter"`
+	Butter     string `json:"butter"`
 }
 
 func (c *Config) ToJSON(file string) *os.File {
