@@ -315,6 +315,10 @@ func (w *Writer) checkOrderId(toAddress string, input []byte) (bool, error) {
 		return false, fmt.Errorf("call orderList failed, %v", err.Error())
 	}
 
+	if len(call.ConstantResult) == 0 {
+		return false, fmt.Errorf("call orderList result empty")
+	}
+
 	resp, err := mapprotocol.Mcs.Methods[mapprotocol.MethodOfOrderList].Outputs.Unpack(call.ConstantResult[0])
 	if err != nil {
 		return false, errors.Wrap(err, "output Unpack failed")
