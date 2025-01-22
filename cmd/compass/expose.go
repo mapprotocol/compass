@@ -63,7 +63,7 @@ func api(ctx *cli.Context) error {
 		return err
 	}
 
-	e := handler.New(cfg, kpI)
+	e := handler.New(cfg, kpI.PrivateKey)
 	g := gin.New()
 	g.Use(CORSMiddleware())
 	g.POST("/failed/proof", e.FailedExec)
