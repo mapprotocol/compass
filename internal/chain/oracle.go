@@ -374,12 +374,14 @@ func DefaultOracle(selfId, nodeType int64, log *types.Log, client *ethclient.Cli
 	if err != nil {
 		return nil, err
 	}
+	//fmt.Println("Find log", "block", blockNumber, "ret.Version", ret.Version, "receipt", receipt, "targetBn", targetBn, "selfId", selfId)
 	pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, targetBn, big.NewInt(selfId))
 	if err != nil {
 		return nil, err
 	}
 
 	hash := common.Bytes2Hex(crypto.Keccak256(pack))
+	//fmt.Println("Find log", "hash", hash)
 	sign, err := personalSign(string(common.Hex2Bytes(hash)), pri)
 	if err != nil {
 		return nil, err
@@ -388,8 +390,9 @@ func DefaultOracle(selfId, nodeType int64, log *types.Log, client *ethclient.Cli
 	for i, v := range receipt {
 		fixedHash[i] = v
 	}
+	//fmt.Println("Find log", "sign", common.Bytes2Hex(sign))
 
-	data, err := mapprotocol.SignerAbi.Pack(mapprotocol.MethodOfPropose, big.NewInt(selfId), blockNumber, fixedHash, sign)
+	data, err := mapprotocol.SignerAbi.Pack(mapprotocol.MethodOfPropose, big.NewInt(selfId), targetBn, fixedHash, sign)
 	if err != nil {
 		return nil, err
 	}
