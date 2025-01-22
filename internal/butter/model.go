@@ -127,7 +127,7 @@ type ExecSwapResp struct {
 						AmountIn  string        `json:"amountIn"`
 						AmountOut string        `json:"amountOut"`
 						DexName   string        `json:"dexName"`
-						Extra     string        `json:"extra"`
+						Extra     interface{}   `json:"extra"`
 						Path      []interface{} `json:"path"`
 					} `json:"route"`
 					TokenIn struct {
