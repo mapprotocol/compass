@@ -95,6 +95,7 @@ const (
 
 const (
 	MerlinChainId     = 4200
+	MapChainId        = 22776
 	CfxChainId        = 1030
 	ZkSyncChainId     = 324
 	OpChainId         = 10

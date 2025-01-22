@@ -6,6 +6,7 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/internal/expose"
 	"github.com/mapprotocol/compass/internal/expose/handler"
+	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/urfave/cli/v2"
 )
@@ -57,7 +58,12 @@ func api(ctx *cli.Context) error {
 		}
 	}
 
-	e := handler.New(cfg)
+	kpI, err := keystore.KeypairFromEth(cfg.Other.Key)
+	if err != nil {
+		return err
+	}
+
+	e := handler.New(cfg, kpI)
 	g := gin.New()
 	g.Use(CORSMiddleware())
 	g.POST("/failed/proof", e.FailedExec)
