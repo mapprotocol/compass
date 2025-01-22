@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/internal/expose"
+	"github.com/mapprotocol/compass/internal/expose/handler"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/urfave/cli/v2"
 )
@@ -56,11 +57,12 @@ func api(ctx *cli.Context) error {
 		}
 	}
 
-	e := expose.New(cfg)
+	e := handler.New(cfg)
 	g := gin.New()
 	g.Use(CORSMiddleware())
 	g.POST("/failed/proof", e.FailedExec)
 	g.POST("/new/proof", e.SuccessProof)
+	g.POST("/tx/exec", e.TxExec)
 	err = g.Run(cfg.Other.Port)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-package expose
+package handler
 
 import (
 	"context"
@@ -13,6 +13,8 @@ import (
 	"github.com/mapprotocol/compass/internal/butter"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/expose"
+	"github.com/mapprotocol/compass/internal/expose/service"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/pkg/errors"
 	"math/big"
@@ -21,11 +23,30 @@ import (
 )
 
 type Expose struct {
-	cfg *Config
+	cfg      *expose.Config
+	proofSrv *service.ProofSrv
 }
 
-func New(cfg *Config) *Expose {
-	return &Expose{cfg: cfg}
+func New(cfg *expose.Config) *Expose {
+	return &Expose{proofSrv: service.NewProof(cfg), cfg: cfg}
+}
+
+func (e *Expose) TxExec(c *gin.Context) {
+	var req stream.TxExecOfRequest
+	if err := c.Bind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, Error2Response(err))
+		return
+	}
+
+	ret, err := e.proofSrv.TxExec(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Error2Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, Success(map[string]interface{}{
+		"data": ret,
+	}))
 }
 
 func (e *Expose) FailedExec(c *gin.Context) {
@@ -83,7 +104,6 @@ func (e *Expose) SuccessProof(c *gin.Context) {
 		}
 	}
 	if src == nil || des == nil {
-		fmt.Println("src or des is nil", "src", src, "des", des)
 		log.Info("no proof of chain exists", "src", src, "des", des)
 		c.JSON(http.StatusBadRequest, Error2Response(errors.New("srcChain or desChain unrecognized Chain Type")))
 		return
