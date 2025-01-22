@@ -1,7 +1,9 @@
 package tron
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"strconv"
 	"strings"
 
 	"github.com/mapprotocol/compass/core"
@@ -13,6 +15,7 @@ type Config struct {
 	LightNode, RentNode, FeeKey, FeeType string
 	EthFrom                              common.Address
 	McsContract                          []string
+	Rent                                 bool
 }
 
 func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
@@ -46,6 +49,13 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 	}
 	if ele, ok := chainCfg.Opts[chain.FeeType]; ok && ele != "" {
 		ret.FeeType = ele
+	}
+	if ele, ok := chainCfg.Opts[chain.Rent]; ok && ele != "" {
+		rent, err := strconv.ParseBool(ele)
+		if err != nil {
+			return nil, fmt.Errorf("invalid Rent option")
+		}
+		ret.Rent = rent
 	}
 	return &ret, nil
 }

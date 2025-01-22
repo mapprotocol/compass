@@ -79,3 +79,98 @@ type SolCrossInResp struct {
 		} `json:"error"`
 	} `json:"data"`
 }
+
+type ExecSwapResp struct {
+	Data struct {
+		MinReceivedInLog   string `json:"minReceivedInLog"`
+		RescueFundsTxParam struct {
+			Args []struct {
+				Type  string `json:"type"`
+				Value string `json:"value"`
+			} `json:"args"`
+			ChainID string `json:"chainId"`
+			Data    string `json:"data"`
+			Method  string `json:"method"`
+			To      string `json:"to"`
+			Value   string `json:"value"`
+		} `json:"rescueFundsTxParam"`
+		RouteWithTxParams []struct {
+			Route struct {
+				BridgeFee struct {
+					Amount string `json:"amount"`
+				} `json:"bridgeFee"`
+				Contract  string `json:"contract"`
+				Diff      string `json:"diff"`
+				Entrance  string `json:"entrance"`
+				FeeConfig struct {
+					FeeType         int    `json:"feeType"`
+					RateOrNativeFee int    `json:"rateOrNativeFee"`
+					Referrer        string `json:"referrer"`
+				} `json:"feeConfig"`
+				GasEstimated       string `json:"gasEstimated"`
+				GasEstimatedTarget string `json:"gasEstimatedTarget"`
+				GasFee             struct {
+					Amount string `json:"amount"`
+					InUSD  string `json:"inUSD"`
+					Symbol string `json:"symbol"`
+				} `json:"gasFee"`
+				HasLiquidity bool   `json:"hasLiquidity"`
+				Hash         string `json:"hash"`
+				MinAmountOut struct {
+					Amount string `json:"amount"`
+					Symbol string `json:"symbol"`
+				} `json:"minAmountOut"`
+				SrcChain struct {
+					Bridge  string `json:"bridge"`
+					ChainID string `json:"chainId"`
+					Route   []struct {
+						AmountIn  string        `json:"amountIn"`
+						AmountOut string        `json:"amountOut"`
+						DexName   string        `json:"dexName"`
+						Extra     string        `json:"extra"`
+						Path      []interface{} `json:"path"`
+					} `json:"route"`
+					TokenIn struct {
+						Address  string `json:"address"`
+						Decimals int    `json:"decimals"`
+						Icon     string `json:"icon"`
+						Name     string `json:"name"`
+						Symbol   string `json:"symbol"`
+					} `json:"tokenIn"`
+					TokenOut struct {
+						Address  string `json:"address"`
+						Decimals int    `json:"decimals"`
+						Icon     string `json:"icon"`
+						Name     string `json:"name"`
+						Symbol   string `json:"symbol"`
+					} `json:"tokenOut"`
+					TotalAmountIn     string `json:"totalAmountIn"`
+					TotalAmountOut    string `json:"totalAmountOut"`
+					TotalAmountOutUSD string `json:"totalAmountOutUSD"`
+				} `json:"srcChain"`
+				SwapFee struct {
+					NativeFee string `json:"nativeFee"`
+					TokenFee  string `json:"tokenFee"`
+				} `json:"swapFee"`
+				TimeEstimated     int    `json:"timeEstimated"`
+				Timestamp         int64  `json:"timestamp"`
+				TotalAmountInUSD  string `json:"totalAmountInUSD"`
+				TotalAmountOutUSD string `json:"totalAmountOutUSD"`
+				TradeType         int    `json:"tradeType"`
+			} `json:"route"`
+			TxParam []struct {
+				Args []struct {
+					Type  string `json:"type"`
+					Value string `json:"value"`
+				} `json:"args"`
+				ChainID string `json:"chainId"`
+				Data    string `json:"data"`
+				Method  string `json:"method"`
+				To      string `json:"to"`
+				Value   string `json:"value"`
+			} `json:"txParam"`
+		} `json:"routeWithTxParams"`
+	} `json:"data"`
+	Errno   int    `json:"errno"`
+	Message string `json:"message"`
+}

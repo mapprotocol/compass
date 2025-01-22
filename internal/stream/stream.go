@@ -39,3 +39,18 @@ type ProofOfRequest struct {
 	BlockNumber int64  `json:"block_number"`
 	DesChain    string `json:"des_chain"`
 }
+
+type TxExecOfRequest struct {
+	SrcChain         string `json:"src_chain"`
+	SrcTxHash        string `json:"src_tx_hash"`
+	SrcLogIndex      uint   `json:"src_log_index"`
+	SrcBlockNumber   int64  `json:"src_block_number"`
+	RelayChain       string `json:"relay_chain"`
+	RelayTxHash      string `json:"relay_tx_hash"`
+	RelayLogIndex    uint   `json:"relay_log_index"`
+	RelayBlockNumber int64  `json:"relay_block_number"`
+	Status           int64  `json:"status"`
+	DesChain         string `json:"des_chain"`
+	DesTxHash        string `json:"des_tx_hash"`
+	DesLogIndex      uint   `json:"des_log_index"`
+}

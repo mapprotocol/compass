@@ -145,3 +145,13 @@ const (
 	Ton      = "ton"
 	Tron     = "tron"
 )
+
+// 0: 源链发出，2: relay失败，3: relay完成， 4: swap 失败， 5: 目标链mos执行失败
+const (
+	StatusOfInit = iota
+	StatusOfUnKnow
+	StatusOfRelayFailed
+	StatusOfRelayFinish
+	StatusOfSwapFailed
+	StatusOfDesFailed
+)

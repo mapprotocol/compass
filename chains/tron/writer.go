@@ -253,8 +253,8 @@ func (w *Writer) sendTx(addr, method string, input []byte, txAmount, mul, used i
 		return "", errors.Wrap(err, "get account failed")
 	}
 	final := float64(used) * 1.1
-	// 22000 > (40000 - 10000) = false, 继续执行
-	if int64(final) >= (acco.EnergyLimit-acco.EnergyUsed) && method != "rent" {
+	// 22000 > (40000 - 10000) = false, continue exec
+	if int64(final) >= (acco.EnergyLimit-acco.EnergyUsed) && method != "rent" && w.cfg.Rent {
 		w.log.Info("SendTx EstimateEnergy", "err", "txUsed(%d) energy more than acount have(%d)", int64(final), acco.EnergyLimit)
 		//if estimate.EnergyRequired >= account.EnergyLimit {
 		return "", fmt.Errorf("txUsed(%d) energy more than acount have(%d)", int64(final), acco.EnergyLimit)
@@ -337,6 +337,10 @@ var (
 )
 
 func (w *Writer) rentEnergy(used int64, method string) error {
+	if !w.cfg.Rent {
+		w.log.Info("dont need rent energy, cfg is false")
+		return nil
+	}
 	acc, err := w.conn.cli.GetAccountResource(w.cfg.From)
 	if err != nil {
 		return err

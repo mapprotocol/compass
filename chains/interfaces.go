@@ -39,10 +39,6 @@ var (
 		constant.Eth2:     eth2.New(),
 		constant.Ethereum: ethereum.New(),
 		constant.Klaytn:   klaytn.New(),
-		//constant.Near:     near.New(),
-		//constant.Solana:   sol.New(),
-		//constant.Ton:      ton.New(),
-		//constant.Tron:     tron.New(),
 	}
 )
 
