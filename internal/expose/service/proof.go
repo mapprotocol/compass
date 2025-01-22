@@ -137,6 +137,13 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 	if proofType == 0 {
 		orderId := targetLog.Topics[1]
 		proofType, err = chain.PreSendTx(0, selfChainId, desChainId, big.NewInt(srcBlockNumber), orderId.Bytes())
+		if err != nil {
+			return nil, err
+		}
+	}
+	var sign [][]byte
+	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
+		ret, err := chain.Signer(srcClient, selfChainId, 22776, &targetLog, proofType)
 		if errors.Is(err, chain.NotVerifyAble) {
 			ret, err := chain.DefaultOracle(int64(selfChainId), proofType, &targetLog, srcClient, s.pri) // private
 			if err != nil {
@@ -151,13 +158,6 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 				"exec_route": nil,
 			}, nil
 		}
-		if err != nil {
-			return nil, err
-		}
-	}
-	var sign [][]byte
-	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
-		ret, err := chain.Signer(srcClient, selfChainId, 22776, &targetLog, proofType)
 		if err != nil {
 			return nil, err
 		}
