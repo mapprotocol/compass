@@ -70,7 +70,7 @@ func (s *ProofSrv) RouterExecSwap(butterHost, toChain, txHash string) (map[strin
 		return nil, err
 	}
 	if resp.Errno != 0 {
-		return nil, fmt.Errorf("swap failed with errno: %d", resp.Message)
+		return nil, fmt.Errorf("swap failed with errno: %s", resp.Message)
 	}
 
 	return map[string]interface{}{
