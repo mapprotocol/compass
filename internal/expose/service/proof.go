@@ -50,6 +50,14 @@ func (s *ProofSrv) RouterExecSwap(butterHost, toChain, txHash string) (map[strin
 		return nil, err
 	}
 
+	var desTo string
+	for _, ele := range s.cfg.Chains {
+		if ele.Id == toChain {
+			desTo = ele.Mcs
+			break
+		}
+	}
+
 	resp := butter.ExecSwapResp{}
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
@@ -62,7 +70,7 @@ func (s *ProofSrv) RouterExecSwap(butterHost, toChain, txHash string) (map[strin
 	return map[string]interface{}{
 		"userRouter": true,
 		"exec_chain": toChain,
-		"exec_to":    txHash,
+		"exec_to":    desTo,
 		"exec_data":  "0x",
 		"exec_descp": "failed tx retry exec",
 		"exec_route": resp,
