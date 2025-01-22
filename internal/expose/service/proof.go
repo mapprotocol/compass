@@ -37,7 +37,11 @@ func (s *ProofSrv) TxExec(req *stream.TxExecOfRequest) (map[string]interface{}, 
 	case constant.StatusOfSwapFailed, constant.StatusOfDesFailed:
 		return s.RouterExecSwap(s.cfg.Other.Butter, req.DesChain, req.DesTxHash)
 	case constant.StatusOfInit:
-		return s.SuccessProof(req.SrcChain, req.RelayChain, req.SrcBlockNumber, req.SrcLogIndex)
+		desChain := req.RelayChain
+		if desChain == "null" {
+			desChain = req.DesChain
+		}
+		return s.SuccessProof(req.SrcChain, desChain, req.SrcBlockNumber, req.SrcLogIndex)
 	case constant.StatusOfRelayFinish:
 		return s.SuccessProof(req.RelayChain, req.DesChain, req.RelayBlockNumber, req.RelayLogIndex)
 	default:
