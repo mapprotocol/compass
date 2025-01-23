@@ -33,7 +33,7 @@ func NewProof(cfg *expose.Config, pri *ecdsa.PrivateKey) *ProofSrv {
 func (s *ProofSrv) TxExec(req *stream.TxExecOfRequest) (map[string]interface{}, error) {
 	switch req.Status {
 	case constant.StatusOfRelayFailed:
-		return s.RouterExecSwap(s.cfg.Other.Butter, req.RelayChain, req.RelayTxHash)
+		return s.RouterRetryMessageIn(s.cfg.Other.Butter, req.RelayChain, req.RelayTxHash)
 	case constant.StatusOfSwapFailed, constant.StatusOfDesFailed:
 		return s.RouterExecSwap(s.cfg.Other.Butter, req.DesChain, req.DesTxHash)
 	case constant.StatusOfInit:
@@ -64,6 +64,40 @@ func (s *ProofSrv) RouterExecSwap(butterHost, toChain, txHash string) (map[strin
 		}
 	}
 
+	resp := butter.ExecSwapResp{}
+	err = json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Errno != 0 {
+		return nil, fmt.Errorf("swap failed with errno: %s", resp.Message)
+	}
+
+	return map[string]interface{}{
+		"userRouter": true,
+		"exec_chain": toChain,
+		"exec_to":    desTo,
+		"exec_data":  "0x",
+		"exec_desc":  "failed tx retry exec",
+		"exec_route": resp,
+	}, nil
+}
+
+func (s *ProofSrv) RouterRetryMessageIn(butterHost, toChain, txHash string) (map[string]interface{}, error) {
+	data, err := butter.RetryMessageIn(butterHost, fmt.Sprintf("txHash=%s", txHash))
+	if err != nil {
+		return nil, err
+	}
+
+	var desTo string
+	for _, ele := range s.cfg.Chains {
+		if ele.Id == toChain {
+			desTo = ele.Mcs
+			break
+		}
+	}
+
+	fmt.Println("data ------------ ", string(data))
 	resp := butter.ExecSwapResp{}
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
