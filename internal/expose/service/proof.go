@@ -97,8 +97,7 @@ func (s *ProofSrv) RouterRetryMessageIn(butterHost, toChain, txHash string) (map
 		}
 	}
 
-	fmt.Println("data ------------ ", string(data))
-	resp := butter.ExecSwapResp{}
+	resp := butter.RetryMessageInData{}
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return nil, err
@@ -113,7 +112,7 @@ func (s *ProofSrv) RouterRetryMessageIn(butterHost, toChain, txHash string) (map
 		"exec_chain": toChain,
 		"exec_to":    desTo,
 		"exec_data":  "0x",
-		"exec_desc":  "failed tx retry exec",
+		"exec_desc":  "exec failed relay tx retry",
 		"exec_route": resp,
 	}, nil
 }

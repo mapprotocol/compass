@@ -174,3 +174,19 @@ type ExecSwapResp struct {
 	Errno   int    `json:"errno"`
 	Message string `json:"message"`
 }
+
+type RetryMessageInData struct {
+	Errno   int    `json:"errno"`
+	Message string `json:"message"`
+	Data    struct {
+		To      string `json:"to"`
+		Data    string `json:"data"`
+		Value   string `json:"value"`
+		ChainID string `json:"chainId"`
+		Method  string `json:"method"`
+		Args    []struct {
+			Type  string `json:"type"`
+			Value string `json:"value"`
+		} `json:"args"`
+	} `json:"data"`
+}

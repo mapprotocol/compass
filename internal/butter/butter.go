@@ -67,7 +67,7 @@ func ExecSwap(domain, query string) ([]byte, error) {
 }
 
 func RetryMessageIn(domain, query string) ([]byte, error) {
-	return defaultButter.ExecSwap(domain, query)
+	return defaultButter.RetryMessageIn(domain, query)
 }
 
 func SolCrossIn(domain, query string) (*SolCrossInResp, error) {
