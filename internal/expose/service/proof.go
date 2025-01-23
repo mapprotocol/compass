@@ -109,6 +109,7 @@ func (s *ProofSrv) RouterRetryMessageIn(butterHost, toChain, txHash string) (map
 
 	return map[string]interface{}{
 		"userRouter": true,
+		"exec_relay": true,
 		"exec_chain": toChain,
 		"exec_to":    desTo,
 		"exec_data":  "0x",
