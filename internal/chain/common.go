@@ -45,13 +45,13 @@ func PreSendTx(idx int, selfChainId, toChainID uint64, blockNumber *big.Int, ord
 	if err != nil {
 		return 0, errors.Wrap(err, "OrderStatus failed")
 	}
-	// TODO
-	//if ret.Exists {
-	//	return 0, OrderExist
-	//}
-	//if !ret.Verifiable {
-	//	return 0, NotVerifyAble
-	//}
+
+	if ret.Exists {
+		return 0, OrderExist
+	}
+	if !ret.Verifiable {
+		return 0, NotVerifyAble
+	}
 
 	return ret.NodeType.Int64(), nil
 }

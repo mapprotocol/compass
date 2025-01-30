@@ -132,11 +132,15 @@ func (m *Messenger) filter() error {
 				continue
 			}
 			if err != nil {
+				m.Log.Error("Filter Failed to get events for block", "err", err)
 				if errors.Is(err, NotVerifyAble) {
 					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
-				m.Log.Error("Filter Failed to get events for block", "err", err)
+				if strings.Index(err.Error(), "missing required field") != -1 {
+					time.Sleep(constant.BlockRetryInterval)
+					continue
+				}
 				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
 				continue

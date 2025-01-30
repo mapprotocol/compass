@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	UrlOfExecSwap   = "/execSwap"
-	UrlOfSolCrossIn = "/solanaCrossIn"
+	UrlOfExecSwap       = "/execSwap"
+	UrlOfSolCrossIn     = "/solanaCrossIn"
+	UrlOfRetryMessageIn = "/retryMessageIn"
 )
 
 var defaultButter = New()
@@ -22,6 +23,10 @@ func New() *Butter {
 
 func (b *Butter) ExecSwap(domain, query string) ([]byte, error) {
 	return client.JsonGet(fmt.Sprintf("%s%s?%s", domain, UrlOfExecSwap, query))
+}
+
+func (b *Butter) RetryMessageIn(domain, query string) ([]byte, error) {
+	return client.JsonGet(fmt.Sprintf("%s%s?%s", domain, UrlOfRetryMessageIn, query))
 }
 
 func (b *Butter) SolCrossIn(domain, query string) (*SolCrossInResp, error) {
@@ -59,6 +64,10 @@ func (b *Butter) SolCrossIn(domain, query string) (*SolCrossInResp, error) {
 
 func ExecSwap(domain, query string) ([]byte, error) {
 	return defaultButter.ExecSwap(domain, query)
+}
+
+func RetryMessageIn(domain, query string) ([]byte, error) {
+	return defaultButter.RetryMessageIn(domain, query)
 }
 
 func SolCrossIn(domain, query string) (*SolCrossInResp, error) {

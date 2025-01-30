@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
 	eth "github.com/ethereum/go-ethereum"
@@ -330,4 +331,71 @@ func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
 		return nil, err
 	}
 	return ret, nil
+}
+
+func DefaultOracle(selfId, nodeType int64, log *types.Log, client *ethclient.Client, pri *ecdsa.PrivateKey) ([]byte, error) {
+	var (
+		err         error
+		blockNumber = big.NewInt(int64(log.BlockNumber))
+		receipt     *common.Hash
+	)
+	switch nodeType {
+	case constant.ProofTypeOfNewOracle: //mpt
+		if log.Topics[0] != mapprotocol.TopicOfClientNotify && log.Topics[0] != mapprotocol.TopicOfManagerNotifySend { // 忽略mos的交易topic
+			return nil, ContractNotExist
+		}
+		header, err := client.HeaderByNumber(context.Background(), blockNumber)
+		if err != nil {
+			return nil, fmt.Errorf("oracle get header failed, err: %w", err)
+		}
+		receipt = &header.ReceiptHash
+		genRece, err := genMptReceipt(client, selfId, blockNumber) //  hash修改
+		if genRece != nil {
+			receipt = genRece
+		}
+		log.Index = 0
+	case constant.ProofTypeOfLogOracle: // log
+		if log.Topics[0] == mapprotocol.TopicOfClientNotify || log.Topics[0] == mapprotocol.TopicOfManagerNotifySend {
+			return nil, ContractNotExist
+		}
+		receipt, err = GenLogReceipt(log) //  hash修改
+	default:
+		panic("unhandled default case")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("oracle generate receipt failed, err is %w", err)
+	}
+	idx := log.Index
+	if selfId != constant.CfxChainId {
+		idx = 0
+	}
+	targetBn := proof.GenLogBlockNumber(blockNumber, idx) // block更新
+	ret, err := MulSignInfo(0, uint64(constant.MapChainId))
+	if err != nil {
+		return nil, err
+	}
+	//fmt.Println("Find log", "block", blockNumber, "ret.Version", ret.Version, "receipt", receipt, "targetBn", targetBn, "selfId", selfId)
+	pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, targetBn, big.NewInt(selfId))
+	if err != nil {
+		return nil, err
+	}
+
+	hash := common.Bytes2Hex(crypto.Keccak256(pack))
+	//fmt.Println("Find log", "hash", hash)
+	sign, err := personalSign(string(common.Hex2Bytes(hash)), pri)
+	if err != nil {
+		return nil, err
+	}
+	var fixedHash [32]byte
+	for i, v := range receipt {
+		fixedHash[i] = v
+	}
+	//fmt.Println("Find log", "sign", common.Bytes2Hex(sign))
+
+	data, err := mapprotocol.SignerAbi.Pack(mapprotocol.MethodOfPropose, big.NewInt(selfId), targetBn, fixedHash, sign)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
@@ -27,8 +28,8 @@ type Expose struct {
 	proofSrv *service.ProofSrv
 }
 
-func New(cfg *expose.Config) *Expose {
-	return &Expose{proofSrv: service.NewProof(cfg), cfg: cfg}
+func New(cfg *expose.Config, pri *ecdsa.PrivateKey) *Expose {
+	return &Expose{proofSrv: service.NewProof(cfg, pri), cfg: cfg}
 }
 
 func (e *Expose) TxExec(c *gin.Context) {

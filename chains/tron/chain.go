@@ -2,7 +2,12 @@ package tron
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/internal/tx"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/pkg/abi"
@@ -133,4 +138,45 @@ func Map2Tron(fromUser, lightNode string, client *client.GrpcClient) mapprotocol
 		}
 		return mapprotocol.UnpackHeaderHeightOutput(call.ConstantResult[0])
 	}
+}
+
+func (c *Chain) Proof(client *ethclient.Client, l *types.Log, endpoint string, proofType int64, selfId,
+	toChainID uint64, sign [][]byte) ([]byte, error) {
+	orderId := l.Topics[1]
+	var (
+		bn       = big.NewInt(0).SetUint64(l.BlockNumber)
+		receipts []*types.Receipt
+		key      = strconv.FormatUint(selfId, 10) + "_" + strconv.FormatUint(l.BlockNumber, 10)
+	)
+	var orderId32 [32]byte
+	for i, v := range orderId {
+		orderId32[i] = v
+	}
+	if v, ok := proof.CacheReceipt[key]; ok {
+		receipts = v
+	} else {
+		txsHash, err := getTxsByBN(client, bn)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
+		}
+		receipts, err = tx.GetReceiptsByTxsHash(client, txsHash)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+		}
+		proof.CacheReceipt[key] = receipts
+	}
+
+	method := chain.GetMethod(l.Topics[0])
+	proofType, err := chain.PreSendTx(0, selfId, toChainID, bn, orderId.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	tmp := l
+	input, err := assembleProof(tmp, receipts, method, msg.ChainId(selfId), msg.ChainId(toChainID), proofType, orderId32)
+	if err != nil {
+		return nil, err
+	}
+
+	return input, nil
 }

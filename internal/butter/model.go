@@ -127,7 +127,7 @@ type ExecSwapResp struct {
 						AmountIn  string        `json:"amountIn"`
 						AmountOut string        `json:"amountOut"`
 						DexName   string        `json:"dexName"`
-						Extra     string        `json:"extra"`
+						Extra     interface{}   `json:"extra"`
 						Path      []interface{} `json:"path"`
 					} `json:"route"`
 					TokenIn struct {
@@ -173,4 +173,20 @@ type ExecSwapResp struct {
 	} `json:"data"`
 	Errno   int    `json:"errno"`
 	Message string `json:"message"`
+}
+
+type RetryMessageInData struct {
+	Errno   int    `json:"errno"`
+	Message string `json:"message"`
+	Data    struct {
+		To      string `json:"to"`
+		Data    string `json:"data"`
+		Value   string `json:"value"`
+		ChainID string `json:"chainId"`
+		Method  string `json:"method"`
+		Args    []struct {
+			Type  string `json:"type"`
+			Value string `json:"value"`
+		} `json:"args"`
+	} `json:"data"`
 }
