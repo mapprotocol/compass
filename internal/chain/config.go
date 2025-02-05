@@ -77,7 +77,6 @@ type Config struct {
 	Eth2Endpoint       string
 	ApiUrl             string
 	OracleNode         common.Address
-	TronContract       []common.Address
 	Filter             bool
 	FilterHost         string
 }
@@ -93,7 +92,6 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		BlockstorePath:     chainCfg.BlockstorePath,
 		FreshStart:         chainCfg.FreshStart,
 		McsContract:        []common.Address{},
-		TronContract:       []common.Address{},
 		GasLimit:           big.NewInt(DefaultGasLimit),
 		MaxGasPrice:        big.NewInt(DefaultGasPrice),
 		GasMultiplier:      DefaultGasMultiplier,
@@ -213,12 +211,6 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 
 	if v, ok := chainCfg.Opts[ApiUrl]; ok && v != "" {
 		config.ApiUrl = v
-	}
-
-	if contract, ok := chainCfg.Opts[TronMcsOpt]; ok && contract != "" {
-		for _, addr := range strings.Split(contract, ",") {
-			config.TronContract = append(config.TronContract, common.HexToAddress(addr))
-		}
 	}
 
 	if config.OracleNode == constant.ZeroAddress {

@@ -57,5 +57,12 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 		}
 		ret.Rent = rent
 	}
+
+	if contract, ok := chainCfg.Opts[chain.TronMcsOpt]; ok && contract != "" {
+		ret.Config.McsContract = make([]common.Address, 0)
+		for _, addr := range strings.Split(contract, ",") {
+			ret.Config.McsContract = append(ret.Config.McsContract, common.HexToAddress(addr))
+		}
+	}
 	return &ret, nil
 }

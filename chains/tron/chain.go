@@ -73,7 +73,11 @@ func (c *Chain) createChain(chainCfg *core.ChainConfig, logger log15.Logger, sys
 
 	switch role {
 	case mapprotocol.RoleOfMessenger:
-		listen = newSync(cs, messengerHandler, conn)
+		handler := messenger
+		if config.Filter {
+			handler = filterMos
+		}
+		listen = newSync(cs, handler, conn)
 	case mapprotocol.RoleOfOracle:
 		oAbi, _ := abi.New(mapprotocol.SignerJson)
 		oracleCall := contract.New(ethConn, []common.Address{config.OracleNode}, oAbi)
@@ -82,7 +86,11 @@ func (c *Chain) createChain(chainCfg *core.ChainConfig, logger log15.Logger, sys
 		otherAbi, _ := abi.New(mapprotocol.OtherAbi)
 		call := contract.New(conn, []common.Address{common.HexToAddress(config.LightNode)}, otherAbi)
 		mapprotocol.LightNodeMapping[config.Id] = call
-		listen = newSync(cs, oracleHandler, conn)
+		handler := oracle
+		if config.Filter {
+			handler = filterOracle
+		}
+		listen = newSync(cs, handler, conn)
 	}
 
 	return &Chain{
