@@ -26,11 +26,11 @@ func (b *Butter) ExecSwap(domain, query string) ([]byte, error) {
 }
 
 func (b *Butter) RetryMessageIn(domain, query string) ([]byte, error) {
+	fmt.Println("url ------------ ", fmt.Sprintf("%s%s?%s", domain, UrlOfRetryMessageIn, query))
 	return client.JsonGet(fmt.Sprintf("%s%s?%s", domain, UrlOfRetryMessageIn, query))
 }
 
 func (b *Butter) SolCrossIn(domain, query string) (*SolCrossInResp, error) {
-	fmt.Println("url ------------ ", fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
 	body, err := client.JsonGet(fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
 	if err != nil {
 		return nil, err
