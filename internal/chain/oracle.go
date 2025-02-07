@@ -229,7 +229,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 		}
 		idx := log.Index
-		if m.Cfg.Id != constant.CfxChainId {
+		if m.Cfg.Id != constant.CfxChainId && m.Cfg.Id != constant.MapChainId {
 			idx = 0
 		}
 		targetBn := proof.GenLogBlockNumber(blockNumber, idx) // block更新
@@ -366,7 +366,7 @@ func DefaultOracle(selfId, nodeType int64, log *types.Log, client *ethclient.Cli
 		return nil, fmt.Errorf("oracle generate receipt failed, err is %w", err)
 	}
 	idx := log.Index
-	if selfId != constant.CfxChainId {
+	if selfId != constant.CfxChainId && selfId != constant.TronChainId {
 		idx = 0
 	}
 	targetBn := proof.GenLogBlockNumber(blockNumber, idx) // block更新

@@ -175,18 +175,37 @@ type ExecSwapResp struct {
 	Message string `json:"message"`
 }
 
+//type OldRetryMessageInData struct {
+//	Errno   int    `json:"errno"`
+//	Message string `json:"message"`
+//	Data    struct {
+//		To      string `json:"to"`
+//		Data    string `json:"data"`
+//		Value   string `json:"value"`
+//		ChainID string `json:"chainId"`
+//		Method  string `json:"method"`
+//		Args    []struct {
+//			Type  string `json:"type"`
+//			Value string `json:"value"`
+//		} `json:"args"`
+//	} `json:"data"`
+//}
+
 type RetryMessageInData struct {
 	Errno   int    `json:"errno"`
 	Message string `json:"message"`
 	Data    struct {
-		To      string `json:"to"`
-		Data    string `json:"data"`
-		Value   string `json:"value"`
-		ChainID string `json:"chainId"`
-		Method  string `json:"method"`
-		Args    []struct {
-			Type  string `json:"type"`
-			Value string `json:"value"`
-		} `json:"args"`
+		TxParam struct {
+			To      string `json:"to"`
+			Data    string `json:"data"`
+			Value   string `json:"value"`
+			ChainID string `json:"chainId"`
+			Method  string `json:"method"`
+			Args    []struct {
+				Type  string `json:"type"`
+				Value string `json:"value"`
+			} `json:"args"`
+		} `json:"txParam"`
+		MinReceivedOrigin string `json:"minReceivedOrigin"`
 	} `json:"data"`
 }
