@@ -4,14 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mapprotocol/compass/pkg/abi"
-	"github.com/mapprotocol/compass/pkg/contract"
-	"github.com/mapprotocol/compass/pkg/ethclient"
-	"math/big"
-	"strconv"
-	"strings"
-	"sync"
-
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -24,6 +16,13 @@ import (
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
+	"github.com/mapprotocol/compass/pkg/ethclient"
+	"math/big"
+	"strconv"
+	"strings"
+	"sync"
 )
 
 type Chain struct {
@@ -277,7 +276,7 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 		orderId32[idx] = v
 	}
 	var ret []byte
-	if selfId == 22776 {
+	if selfId == constant.MapChainId {
 		remainder := big.NewInt(0).Mod(bigNumber, big.NewInt(mapprotocol.EpochOfMap))
 		if remainder.Cmp(mapprotocol.Big0) == 0 {
 			lr, err := mapprotocol.GetLastReceipt(client, bigNumber)
@@ -291,7 +290,6 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}
-
 	} else {
 		ret, err = mapo.AssembleEthProof(client, log, receipts, header, method, msg.ChainId(selfId), proofType, sign, orderId32)
 		if err != nil {

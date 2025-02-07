@@ -161,7 +161,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 						return true
 					}
 				}
-				err = errors.New(ele)
+				err = errors.New(internalErr)
 			}
 			if err != nil {
 				w.mosAlarm(inputHash, fmt.Errorf("contract result failed, err is %v", err))
