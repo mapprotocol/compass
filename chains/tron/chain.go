@@ -6,6 +6,7 @@ import (
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/pkg/errors"
 	"math/big"
 	"strconv"
 
@@ -187,4 +188,8 @@ func (c *Chain) Proof(client *ethclient.Client, l *types.Log, endpoint string, p
 	}
 
 	return input, nil
+}
+
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64) ([]byte, error) {
+	return nil, errors.New("tron not support maintainer")
 }

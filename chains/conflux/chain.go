@@ -279,7 +279,7 @@ func (c *Chain) isCommitted(epoch, round uint64) (bool, error) {
 	return round <= uint64(block.Round), nil
 }
 
-func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethclient.Client, error) {
 	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
 		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
 	err := conn.Connect()
@@ -296,6 +296,9 @@ func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client
 		oAbi, _ := abi.New(mapprotocol.SignerJson)
 		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
 		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+
+		fn := mapprotocol.Map2EthHeight(constant.ZeroAddress.Hex(), common.HexToAddress(lightNode), conn.Client())
+		mapprotocol.Map2OtherHeight[msg.ChainId(idInt)] = fn
 	})
 	fn()
 
@@ -335,4 +338,8 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	}
 
 	return ret, nil
+}
+
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64) ([]byte, error) {
+	return nil, errors.New("cfx temporary not support maintainer")
 }

@@ -61,7 +61,8 @@ func CreateProffer(_type string) (Proffer, bool) {
 }
 
 type Proffer interface {
-	Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error)
+	Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethclient.Client, error)
 	Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
 		toChainID uint64, sign [][]byte) ([]byte, error)
+	Maintainer(client *ethclient.Client, selfId, toChainId uint64) ([]byte, error)
 }
