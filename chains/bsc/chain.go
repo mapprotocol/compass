@@ -3,8 +3,10 @@ package bsc
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/abi"
 	"github.com/mapprotocol/compass/pkg/contract"
+	"github.com/pkg/errors"
 	"math/big"
 	"strconv"
 	"sync"
@@ -112,7 +114,7 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 	return &message, nil
 }
 
-func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethclient.Client, error) {
 	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
 		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
 	err := conn.Connect()
@@ -129,6 +131,9 @@ func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client
 		oAbi, _ := abi.New(mapprotocol.SignerJson)
 		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
 		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+
+		fn := mapprotocol.Map2EthHeight(constant.ZeroAddress.Hex(), common.HexToAddress(lightNode), conn.Client())
+		mapprotocol.Map2OtherHeight[msg.ChainId(idInt)] = fn
 	})
 	fn()
 
@@ -182,5 +187,37 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
+	return ret, nil
+}
+
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64, srcEndpoint string) ([]byte, error) {
+	syncedHeight, err := mapprotocol.Get2MapHeight(msg.ChainId(selfId))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get synced height")
+	}
+	syncStartHeight := big.NewInt(syncedHeight.Int64() - (mapprotocol.HeaderCountOfBsc - 1) + mapprotocol.EpochOfBsc)
+	headers := make([]*ethclient.BscHeader, mapprotocol.HeaderCountOfBsc)
+	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
+		headerHeight := new(big.Int).Sub(syncStartHeight, new(big.Int).SetInt64(int64(i)))
+		header, err := client.BscHeaderByNumber(srcEndpoint, headerHeight)
+		if err != nil {
+			return nil, err
+		}
+		headers[mapprotocol.HeaderCountOfBsc-i-1] = header
+	}
+
+	params := make([]bsc.Header, 0, len(headers))
+	for _, h := range headers {
+		params = append(params, bsc.ConvertHeader(h))
+	}
+	input, err := mapprotocol.Bsc.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(params)
+	if err != nil {
+		return nil, err
+	}
+
+	ret, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, big.NewInt(0).SetUint64(selfId), input)
+	if err != nil {
+		return nil, err
+	}
 	return ret, nil
 }

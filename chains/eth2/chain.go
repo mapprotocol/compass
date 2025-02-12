@@ -9,6 +9,7 @@ import (
 	"github.com/mapprotocol/compass/connections/eth2"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/constant"
 	ieth "github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/keystore"
@@ -150,7 +151,7 @@ func (c *Chain) Conn() core.Connection {
 	return c.conn
 }
 
-func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethclient.Client, error) {
 	conn := eth2.NewConnection(endpoint, "", true, nil, nil, big.NewInt(chain.DefaultGasLimit),
 		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
 	err := conn.Connect()
@@ -167,6 +168,9 @@ func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client
 		oAbi, _ := abi.New(mapprotocol.SignerJson)
 		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
 		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+
+		fn := mapprotocol.Map2EthHeight(constant.ZeroAddress.Hex(), common.HexToAddress(lightNode), conn.Client())
+		mapprotocol.Map2OtherHeight[msg.ChainId(idInt)] = fn
 	})
 	fn()
 
@@ -206,4 +210,8 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	}
 
 	return ret, nil
+}
+
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64, srcEndpoint string) ([]byte, error) {
+	return nil, errors.New("eth not support maintainer")
 }

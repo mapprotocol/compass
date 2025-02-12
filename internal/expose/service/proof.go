@@ -119,11 +119,11 @@ func (s *ProofSrv) RouterRetryMessageIn(butterHost, toChain, txHash string) (map
 
 func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64, logIndex uint) (map[string]interface{}, error) {
 	var (
-		proofType                                            = int64(0)
-		src, des                                             chains.Proffer
-		srcEndpoint, srcOracleNode, srcMcs, desTo, desOracle string
-		selfChainId, _                                       = strconv.ParseUint(srcChain, 10, 64)
-		desChainId, _                                        = strconv.ParseUint(desChain, 10, 64)
+		proofType                                                                    = int64(0)
+		src, des                                                                     chains.Proffer
+		srcEndpoint, srcOracleNode, srcMcs, srcLightNode, desTo, desLight, desOracle string
+		srcChainId, _                                                                = strconv.ParseUint(srcChain, 10, 64)
+		desChainId, _                                                                = strconv.ParseUint(desChain, 10, 64)
 	)
 	for _, ele := range s.cfg.Chains {
 		if ele.Id == srcChain {
@@ -132,12 +132,14 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 			srcEndpoint = ele.Endpoint
 			srcOracleNode = ele.OracleNode
 			srcMcs = ele.Mcs
+			srcLightNode = ele.LightNode
 		}
 		if ele.Id == desChain {
 			creator, _ := chains.CreateProffer(ele.Type)
 			des = creator
 			desTo = ele.Mcs
 			desOracle = ele.OracleNode
+			desLight = ele.LightNode
 			if ele.Name == constant.Tron || ele.Name == constant.Ton || ele.Name == constant.Solana {
 				proofType = constant.ProofTypeOfLogOracle
 			}
@@ -146,7 +148,7 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 	if src == nil || des == nil {
 		return nil, errors.New("srcChain or desChain unrecognized Chain Type")
 	}
-	srcClient, err := src.Connect(srcChain, srcEndpoint, srcMcs, srcOracleNode)
+	srcClient, err := src.Connect(srcChain, srcEndpoint, srcMcs, srcLightNode, srcOracleNode)
 	if err != nil {
 		return nil, err
 	}
@@ -170,16 +172,30 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 	}
 	if proofType == 0 {
 		orderId := targetLog.Topics[1]
-		proofType, err = chain.PreSendTx(0, selfChainId, desChainId, big.NewInt(srcBlockNumber), orderId.Bytes())
+		proofType, err = chain.PreSendTx(0, srcChainId, desChainId, big.NewInt(srcBlockNumber), orderId.Bytes())
+		if errors.Is(err, chain.NotVerifyAble) { // maintainer
+			updateHeader, err := src.Maintainer(srcClient, srcChainId, desChainId, srcEndpoint)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]interface{}{
+				"userRouter": false,
+				"exec_chain": desChain,
+				"exec_to":    desLight,
+				"exec_data":  "0x" + common.Bytes2Hex(updateHeader),
+				"exec_desc":  "Execute maintainer transaction",
+				"exec_route": struct{}{},
+			}, nil
+		}
 		if err != nil {
 			return nil, err
 		}
 	}
 	var sign [][]byte
 	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
-		ret, err := chain.Signer(srcClient, selfChainId, 22776, &targetLog, proofType)
+		ret, err := chain.Signer(srcClient, srcChainId, 22776, &targetLog, proofType)
 		if errors.Is(err, chain.NotVerifyAble) {
-			ret, err := chain.DefaultOracle(int64(selfChainId), proofType, &targetLog, srcClient, s.pri) // private
+			oracle, err := chain.DefaultOracle(int64(srcChainId), proofType, &targetLog, srcClient, s.pri) // private
 			if err != nil {
 				return nil, err
 			}
@@ -187,9 +203,9 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 				"userRouter": false,
 				"exec_chain": desChain,
 				"exec_to":    desOracle,
-				"exec_data":  "0x" + common.Bytes2Hex(ret),
-				"exec_desc":  "execute oracle transaction",
-				"exec_route": nil,
+				"exec_data":  "0x" + common.Bytes2Hex(oracle),
+				"exec_desc":  "Execute oracle transaction",
+				"exec_route": struct{}{},
 			}, nil
 		}
 		if err != nil {
@@ -198,7 +214,7 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 		sign = ret.Signatures
 	}
 	// proof
-	ret, err := src.Proof(srcClient, &targetLog, srcEndpoint, proofType, selfChainId, desChainId, sign)
+	ret, err := src.Proof(srcClient, &targetLog, srcEndpoint, proofType, srcChainId, desChainId, sign)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +223,7 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 		"exec_chain": desChain,
 		"exec_to":    desTo,
 		"exec_data":  "0x" + common.Bytes2Hex(ret),
-		"exec_desc":  "execute mos transaction",
-		"exec_route": nil,
+		"exec_desc":  "Execute mos transaction",
+		"exec_route": struct{}{},
 	}, nil
 }

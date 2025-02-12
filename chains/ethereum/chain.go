@@ -228,7 +228,7 @@ func (c *Chain) rlpEthereumHeaders(source, destination msg.ChainId, headers []ty
 	return enc, nil
 }
 
-func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethclient.Client, error) {
 	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
 		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
 	err := conn.Connect()
@@ -245,6 +245,13 @@ func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client
 		oAbi, _ := abi.New(mapprotocol.SignerJson)
 		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
 		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+
+		if idInt == constant.MapChainId {
+			mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(lightNode))
+		} else {
+			fn := mapprotocol.Map2EthHeight(constant.ZeroAddress.Hex(), common.HexToAddress(lightNode), conn.Client())
+			mapprotocol.Map2OtherHeight[msg.ChainId(idInt)] = fn
+		}
 	})
 	fn()
 
@@ -298,5 +305,34 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 
 	}
 
+	return ret, nil
+}
+
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64, srcEndpoint string) ([]byte, error) {
+	ret := make([]byte, 0)
+	if selfId == constant.MapChainId {
+		syncedHeight, err := mapprotocol.Map2OtherHeight[msg.ChainId(toChainId)]()
+		if err != nil {
+			return nil, err
+		}
+		syncHeight := syncedHeight.Int64() + mapprotocol.EpochOfMap
+		header, err := client.MAPHeaderByNumber(context.Background(), big.NewInt(syncHeight))
+		if err != nil {
+			return nil, err
+		}
+
+		h := mapprotocol.ConvertHeader(header)
+		aggPK, ist, _, err := mapprotocol.GetAggPK(client, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
+		if err != nil {
+			return nil, err
+		}
+		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
+		ret, err = mapprotocol.PackInput(mapprotocol.Map2Other, mapprotocol.MethodUpdateBlockHeader, h, istanbulExtra, aggPK)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+
+	}
 	return ret, nil
 }

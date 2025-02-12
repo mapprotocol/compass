@@ -5,22 +5,21 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
-	eth "github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/internal/tx"
-	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
 	"time"
 
-	"github.com/mapprotocol/compass/msg"
-
+	eth "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -139,7 +138,7 @@ func BuildQuery(contract []common.Address, sig []constant.EventSig, startBlock *
 
 func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 	//  区分
-	query := BuildQuery(append(m.Cfg.McsContract, m.Cfg.LightNode), m.Cfg.Events, currentBlock, currentBlock) // 过滤clientNotify和mos的所有事件
+	query := BuildQuery(append(m.Cfg.McsContract, m.Cfg.LightNode), m.Cfg.Events, currentBlock, currentBlock)
 	// querying for logs
 	logs, err := m.Conn.Client().FilterLogs(context.Background(), query)
 	if err != nil {
@@ -184,7 +183,6 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			}
 		}
 
-		// 查询 nodeType
 		nodeType := new(big.Int)
 		if m.Cfg.Id == m.Cfg.MapChainID {
 			nodeType, err = GetMap2OtherNodeType(0, toChainID)
@@ -200,9 +198,10 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 
 		m.Log.Info("Oracle model get node type is", "blockNumber", blockNumber, "nodeType", nodeType, "topic", log.Topics[0])
 		tmp := log
+		targetBn := blockNumber
 		switch nodeType.Int64() {
-		case constant.ProofTypeOfNewOracle: //mpt
-			if log.Topics[0] != mapprotocol.TopicOfClientNotify && log.Topics[0] != mapprotocol.TopicOfManagerNotifySend { // 忽略mos的交易topic
+		case constant.ProofTypeOfNewOracle: // mpt
+			if log.Topics[0] != mapprotocol.TopicOfClientNotify && log.Topics[0] != mapprotocol.TopicOfManagerNotifySend {
 				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
 				continue
 			}
@@ -211,7 +210,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 				return fmt.Errorf("oracle get header failed, err: %w", err)
 			}
 			receipt = &header.ReceiptHash
-			genRece, err := genMptReceipt(m.Conn.Client(), int64(m.Cfg.Id), blockNumber) //  hash修改
+			genRece, err := genMptReceipt(m.Conn.Client(), int64(m.Cfg.Id), blockNumber)
 			if genRece != nil {
 				receipt = genRece
 			}
@@ -221,20 +220,20 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
 				continue
 			}
-			receipt, err = GenLogReceipt(&tmp) //  hash修改
+			receipt, err = GenLogReceipt(&tmp)
+			idx := log.Index
+			if m.Cfg.Id != constant.CfxChainId && m.Cfg.Id != constant.MapChainId {
+				idx = 0
+			}
+			targetBn = proof.GenLogBlockNumber(blockNumber, idx) // update block number
 		default:
 			panic("unhandled default case")
 		}
 		if err != nil {
 			return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 		}
-		idx := log.Index
-		if m.Cfg.Id != constant.CfxChainId && m.Cfg.Id != constant.MapChainId {
-			idx = 0
-		}
-		targetBn := proof.GenLogBlockNumber(blockNumber, idx) // block更新
-		m.Log.Info("Find log", "block", blockNumber, "logIndex", log.Index, "receipt", receipt, "targetBn", targetBn)
 
+		m.Log.Info("Find log", "block", blockNumber, "logIndex", log.Index, "receipt", receipt, "targetBn", targetBn)
 		ret, err := MulSignInfo(0, uint64(m.Cfg.MapChainID))
 		if err != nil {
 			return err
@@ -317,7 +316,7 @@ func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
 	default:
 
 	}
-	if toChainID == constant.TonChainId { // todo ton
+	if toChainID == constant.TonChainId {
 		return big.NewInt(5), nil
 	}
 	call, ok := mapprotocol.LightNodeMapping[msg.ChainId(toChainID)]
@@ -338,10 +337,11 @@ func DefaultOracle(selfId, nodeType int64, log *types.Log, client *ethclient.Cli
 		err         error
 		blockNumber = big.NewInt(int64(log.BlockNumber))
 		receipt     *common.Hash
+		targetBn    = blockNumber
 	)
 	switch nodeType {
 	case constant.ProofTypeOfNewOracle: //mpt
-		if log.Topics[0] != mapprotocol.TopicOfClientNotify && log.Topics[0] != mapprotocol.TopicOfManagerNotifySend { // 忽略mos的交易topic
+		if log.Topics[0] != mapprotocol.TopicOfClientNotify && log.Topics[0] != mapprotocol.TopicOfManagerNotifySend {
 			return nil, ContractNotExist
 		}
 		header, err := client.HeaderByNumber(context.Background(), blockNumber)
@@ -349,39 +349,38 @@ func DefaultOracle(selfId, nodeType int64, log *types.Log, client *ethclient.Cli
 			return nil, fmt.Errorf("oracle get header failed, err: %w", err)
 		}
 		receipt = &header.ReceiptHash
-		genRece, err := genMptReceipt(client, selfId, blockNumber) //  hash修改
+		genRece, err := genMptReceipt(client, selfId, blockNumber)
 		if genRece != nil {
 			receipt = genRece
 		}
 		log.Index = 0
-	case constant.ProofTypeOfLogOracle: // log
+	case constant.ProofTypeOfLogOracle:
 		if log.Topics[0] == mapprotocol.TopicOfClientNotify || log.Topics[0] == mapprotocol.TopicOfManagerNotifySend {
 			return nil, ContractNotExist
 		}
-		receipt, err = GenLogReceipt(log) //  hash修改
+		receipt, err = GenLogReceipt(log)
+		idx := log.Index
+		if selfId != constant.CfxChainId && selfId != constant.MapChainId {
+			idx = 0
+		}
+		targetBn = proof.GenLogBlockNumber(blockNumber, idx)
 	default:
 		panic("unhandled default case")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("oracle generate receipt failed, err is %w", err)
 	}
-	idx := log.Index
-	if selfId != constant.CfxChainId && selfId != constant.TronChainId {
-		idx = 0
-	}
-	targetBn := proof.GenLogBlockNumber(blockNumber, idx) // block更新
 	ret, err := MulSignInfo(0, uint64(constant.MapChainId))
 	if err != nil {
 		return nil, err
 	}
-	//fmt.Println("Find log", "block", blockNumber, "ret.Version", ret.Version, "receipt", receipt, "targetBn", targetBn, "selfId", selfId)
-	pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, targetBn, big.NewInt(selfId))
+	pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version,
+		targetBn, big.NewInt(selfId))
 	if err != nil {
 		return nil, err
 	}
 
 	hash := common.Bytes2Hex(crypto.Keccak256(pack))
-	//fmt.Println("Find log", "hash", hash)
 	sign, err := personalSign(string(common.Hex2Bytes(hash)), pri)
 	if err != nil {
 		return nil, err
@@ -390,7 +389,6 @@ func DefaultOracle(selfId, nodeType int64, log *types.Log, client *ethclient.Cli
 	for i, v := range receipt {
 		fixedHash[i] = v
 	}
-	//fmt.Println("Find log", "sign", common.Bytes2Hex(sign))
 
 	data, err := mapprotocol.SignerAbi.Pack(mapprotocol.MethodOfPropose, big.NewInt(selfId), targetBn, fixedHash, sign)
 	if err != nil {

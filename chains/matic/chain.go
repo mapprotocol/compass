@@ -9,6 +9,7 @@ import (
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/matic"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/tx"
@@ -17,6 +18,7 @@ import (
 	"github.com/mapprotocol/compass/pkg/abi"
 	"github.com/mapprotocol/compass/pkg/contract"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/pkg/errors"
 	"math/big"
 	"strconv"
 	"sync"
@@ -113,7 +115,7 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 	return &message, nil
 }
 
-func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethclient.Client, error) {
 	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
 		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
 	err := conn.Connect()
@@ -130,6 +132,9 @@ func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client
 		oAbi, _ := abi.New(mapprotocol.SignerJson)
 		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
 		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+
+		fn := mapprotocol.Map2EthHeight(constant.ZeroAddress.Hex(), common.HexToAddress(lightNode), conn.Client())
+		mapprotocol.Map2OtherHeight[msg.ChainId(idInt)] = fn
 	})
 	fn()
 
@@ -190,4 +195,37 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	}
 
 	return payload, nil
+}
+
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64, srcEndpoint string) ([]byte, error) {
+	syncedHeight, err := mapprotocol.Get2MapHeight(msg.ChainId(selfId))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get synced height")
+	}
+	startBlock := big.NewInt(syncedHeight.Int64() + mapprotocol.HeaderCountOfMatic)
+	headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
+	for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
+		headerHeight := new(big.Int).Add(startBlock, new(big.Int).SetInt64(int64(i)))
+		header, err := client.HeaderByNumber(context.Background(), headerHeight)
+		if err != nil {
+			return nil, err
+		}
+		headers[i] = header
+	}
+
+	mHeaders := make([]matic.BlockHeader, 0, len(headers))
+	for _, h := range headers {
+		mHeaders = append(mHeaders, matic.ConvertHeader(h))
+	}
+
+	input, err := mapprotocol.Matic.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(mHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	ret, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, big.NewInt(0).SetUint64(selfId), input)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }

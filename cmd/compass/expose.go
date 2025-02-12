@@ -52,7 +52,7 @@ func api(ctx *cli.Context) error {
 	// pre init
 	for _, ele := range cfg.Chains {
 		creator, _ := chains.CreateProffer(ele.Type)
-		_, err = creator.Connect(ele.Id, ele.Endpoint, ele.Mcs, ele.OracleNode)
+		_, err = creator.Connect(ele.Id, ele.Endpoint, ele.Mcs, ele.LightNode, ele.OracleNode)
 		if err != nil {
 			return err
 		}
@@ -66,8 +66,6 @@ func api(ctx *cli.Context) error {
 	e := handler.New(cfg, kpI.PrivateKey)
 	g := gin.New()
 	g.Use(CORSMiddleware())
-	g.POST("/failed/proof", e.FailedExec)
-	g.POST("/new/proof", e.SuccessProof)
 	g.POST("/tx/exec", e.TxExec)
 	err = g.Run(cfg.Other.Port)
 	if err != nil {

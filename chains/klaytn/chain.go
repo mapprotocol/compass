@@ -3,6 +3,8 @@ package klaytn
 import (
 	"context"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/pkg/errors"
 	"math/big"
 	"strconv"
 	"strings"
@@ -208,7 +210,7 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 	return &message, nil
 }
 
-func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client, error) {
+func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethclient.Client, error) {
 	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
 		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
 	err := conn.Connect()
@@ -227,6 +229,9 @@ func (c *Chain) Connect(id, endpoint, mcs, oracleNode string) (*ethclient.Client
 		oAbi, _ := abi.New(mapprotocol.SignerJson)
 		oracleCall := contract.New(conn, []ecommon.Address{ecommon.HexToAddress(oracleNode)}, oAbi)
 		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+
+		fn := mapprotocol.Map2EthHeight(constant.ZeroAddress.Hex(), ecommon.HexToAddress(lightNode), conn.Client())
+		mapprotocol.Map2OtherHeight[msg.ChainId(idInt)] = fn
 	})
 	fn()
 	if err != nil {
@@ -274,4 +279,8 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	}
 
 	return ret, nil
+}
+
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64, srcEndpoint string) ([]byte, error) {
+	return nil, errors.New("klaytn not support maintainer")
 }
