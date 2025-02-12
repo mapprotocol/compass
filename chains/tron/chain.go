@@ -2,28 +2,27 @@ package tron
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/internal/tx"
-	"github.com/mapprotocol/compass/pkg/ethclient"
-	"github.com/pkg/errors"
 	"math/big"
 	"strconv"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/pkg/abi"
-	"github.com/mapprotocol/compass/pkg/contract"
-
-	connection "github.com/mapprotocol/compass/connections/ethereum"
-	"github.com/mapprotocol/compass/keystore"
+	gosync "sync"
 
 	"github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/lbtsm/gotron-sdk/pkg/client"
+	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/internal/tx"
+	"github.com/mapprotocol/compass/keystore"
 	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
+	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/pkg/errors"
 )
 
 type Chain struct {
@@ -139,14 +138,30 @@ func (c *Chain) Conn() core.Connection {
 	return c.conn
 }
 
-func Map2Tron(fromUser, lightNode string, client *client.GrpcClient) mapprotocol.GetHeight {
-	return func() (*big.Int, error) {
-		call, err := client.TriggerConstantContract(fromUser, lightNode, "headerHeight()", "")
-		if err != nil {
-			return nil, fmt.Errorf("map2tron call headerHeight failed, err is %v", err.Error())
-		}
-		return mapprotocol.UnpackHeaderHeightOutput(call.ConstantResult[0])
+func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethclient.Client, error) {
+	conn := connection.NewConnection(endpoint, true, nil, nil, big.NewInt(chain.DefaultGasLimit),
+		big.NewInt(chain.DefaultGasPrice), chain.DefaultGasMultiplier)
+	err := conn.Connect()
+	if err != nil {
+		return nil, err
 	}
+
+	fn := gosync.OnceFunc(func() {
+		idInt, _ := strconv.ParseUint(id, 10, 64)
+		oracleAbi, _ := abi.New(mapprotocol.OracleAbiJson)
+		call := contract.New(conn, []common.Address{common.HexToAddress(mcs)}, oracleAbi)
+		mapprotocol.ContractMapping[msg.ChainId(idInt)] = call
+
+		oAbi, _ := abi.New(mapprotocol.SignerJson)
+		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
+		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
+
+		fn := mapprotocol.Map2EthHeight(constant.ZeroAddress.Hex(), common.HexToAddress(lightNode), conn.Client())
+		mapprotocol.Map2OtherHeight[msg.ChainId(idInt)] = fn
+	})
+	fn()
+
+	return conn.Client(), nil
 }
 
 func (c *Chain) Proof(client *ethclient.Client, l *types.Log, endpoint string, proofType int64, selfId,
@@ -190,6 +205,6 @@ func (c *Chain) Proof(client *ethclient.Client, l *types.Log, endpoint string, p
 	return input, nil
 }
 
-func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64) ([]byte, error) {
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64, srcEndpoint string) ([]byte, error) {
 	return nil, errors.New("tron not support maintainer")
 }

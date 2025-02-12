@@ -174,7 +174,7 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 		orderId := targetLog.Topics[1]
 		proofType, err = chain.PreSendTx(0, srcChainId, desChainId, big.NewInt(srcBlockNumber), orderId.Bytes())
 		if errors.Is(err, chain.NotVerifyAble) { // maintainer
-			updateHeader, err := src.Maintainer(srcClient, srcChainId, desChainId)
+			updateHeader, err := src.Maintainer(srcClient, srcChainId, desChainId, srcEndpoint)
 			if err != nil {
 				return nil, err
 			}

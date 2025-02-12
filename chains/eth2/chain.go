@@ -212,6 +212,6 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	return ret, nil
 }
 
-func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64) ([]byte, error) {
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64, srcEndpoint string) ([]byte, error) {
 	return nil, errors.New("eth not support maintainer")
 }

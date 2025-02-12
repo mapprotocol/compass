@@ -246,7 +246,9 @@ func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethcl
 		oracleCall := contract.New(conn, []common.Address{common.HexToAddress(oracleNode)}, oAbi)
 		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
 
-		if idInt != constant.MapChainId {
+		if idInt == constant.MapChainId {
+			mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(lightNode))
+		} else {
 			fn := mapprotocol.Map2EthHeight(constant.ZeroAddress.Hex(), common.HexToAddress(lightNode), conn.Client())
 			mapprotocol.Map2OtherHeight[msg.ChainId(idInt)] = fn
 		}
@@ -306,7 +308,7 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	return ret, nil
 }
 
-func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64) ([]byte, error) {
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64, srcEndpoint string) ([]byte, error) {
 	ret := make([]byte, 0)
 	if selfId == constant.MapChainId {
 		syncedHeight, err := mapprotocol.Map2OtherHeight[msg.ChainId(toChainId)]()

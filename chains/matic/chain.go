@@ -18,6 +18,7 @@ import (
 	"github.com/mapprotocol/compass/pkg/abi"
 	"github.com/mapprotocol/compass/pkg/contract"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/pkg/errors"
 	"math/big"
 	"strconv"
 	"sync"
@@ -196,6 +197,35 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	return payload, nil
 }
 
-func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64) ([]byte, error) {
-	return nil, nil
+func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64, srcEndpoint string) ([]byte, error) {
+	syncedHeight, err := mapprotocol.Get2MapHeight(msg.ChainId(selfId))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get synced height")
+	}
+	startBlock := big.NewInt(syncedHeight.Int64() + mapprotocol.HeaderCountOfMatic)
+	headers := make([]*types.Header, mapprotocol.ConfirmsOfMatic.Int64())
+	for i := 0; i < int(mapprotocol.ConfirmsOfMatic.Int64()); i++ {
+		headerHeight := new(big.Int).Add(startBlock, new(big.Int).SetInt64(int64(i)))
+		header, err := client.HeaderByNumber(context.Background(), headerHeight)
+		if err != nil {
+			return nil, err
+		}
+		headers[i] = header
+	}
+
+	mHeaders := make([]matic.BlockHeader, 0, len(headers))
+	for _, h := range headers {
+		mHeaders = append(mHeaders, matic.ConvertHeader(h))
+	}
+
+	input, err := mapprotocol.Matic.Methods[mapprotocol.MethodOfGetHeadersBytes].Inputs.Pack(mHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	ret, err := mapprotocol.PackInput(mapprotocol.LightManger, mapprotocol.MethodUpdateBlockHeader, big.NewInt(0).SetUint64(selfId), input)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }

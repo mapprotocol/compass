@@ -39,6 +39,7 @@ var (
 		constant.Eth2:     eth2.New(),
 		constant.Ethereum: ethereum.New(),
 		constant.Klaytn:   klaytn.New(),
+		constant.Tron:     tron.New(),
 	}
 )
 
@@ -64,5 +65,5 @@ type Proffer interface {
 	Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethclient.Client, error)
 	Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
 		toChainID uint64, sign [][]byte) ([]byte, error)
-	Maintainer(client *ethclient.Client, selfId, toChainId uint64) ([]byte, error)
+	Maintainer(client *ethclient.Client, selfId, toChainId uint64, srcEndpoint string) ([]byte, error)
 }
