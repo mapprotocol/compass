@@ -247,6 +247,7 @@ func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethcl
 		mapprotocol.SingMapping[msg.ChainId(idInt)] = oracleCall
 
 		if idInt == constant.MapChainId {
+			mapprotocol.GlobalMapConn = conn.Client()
 			mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(lightNode))
 		} else {
 			fn := mapprotocol.Map2EthHeight(constant.ZeroAddress.Hex(), common.HexToAddress(lightNode), conn.Client())

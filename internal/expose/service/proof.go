@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
 	"strconv"
 
@@ -119,8 +120,10 @@ func (s *ProofSrv) RouterRetryMessageIn(butterHost, toChain, txHash string) (map
 
 func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64, logIndex uint) (map[string]interface{}, error) {
 	var (
+		err                                                                          error
 		proofType                                                                    = int64(0)
 		src, des                                                                     chains.Proffer
+		srcClient                                                                    *ethclient.Client
 		srcEndpoint, srcOracleNode, srcMcs, srcLightNode, desTo, desLight, desOracle string
 		srcChainId, _                                                                = strconv.ParseUint(srcChain, 10, 64)
 		desChainId, _                                                                = strconv.ParseUint(desChain, 10, 64)
@@ -133,6 +136,10 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 			srcOracleNode = ele.OracleNode
 			srcMcs = ele.Mcs
 			srcLightNode = ele.LightNode
+			srcClient, err = src.Connect(srcChain, srcEndpoint, srcMcs, srcLightNode, srcOracleNode)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if ele.Id == desChain {
 			creator, _ := chains.CreateProffer(ele.Type)
@@ -140,18 +147,23 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 			desTo = ele.Mcs
 			desOracle = ele.OracleNode
 			desLight = ele.LightNode
+			_, err = des.Connect(desChain, ele.Endpoint, ele.Mcs, ele.LightNode, ele.OracleNode)
+			if err != nil {
+				return nil, err
+			}
 			if ele.Name == constant.Tron || ele.Name == constant.Ton || ele.Name == constant.Solana {
 				proofType = constant.ProofTypeOfLogOracle
 			}
 		}
 	}
-	if src == nil || des == nil {
-		return nil, errors.New("srcChain or desChain unrecognized Chain Type")
+	if src == nil {
+		return nil, errors.New("srcChain unrecognized Chain Type")
 	}
-	srcClient, err := src.Connect(srcChain, srcEndpoint, srcMcs, srcLightNode, srcOracleNode)
-	if err != nil {
-		return nil, err
+
+	if des == nil {
+		return nil, errors.New("desChain unrecognized Chain Type")
 	}
+
 	// get log
 	logs, err := srcClient.FilterLogs(context.Background(), ethereum.FilterQuery{
 		FromBlock: big.NewInt(srcBlockNumber),
@@ -176,7 +188,7 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 		if errors.Is(err, chain.NotVerifyAble) { // maintainer
 			updateHeader, err := src.Maintainer(srcClient, srcChainId, desChainId, srcEndpoint)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrap(err, "Assemble maintainer failed")
 			}
 			return map[string]interface{}{
 				"userRouter": false,
