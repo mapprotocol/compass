@@ -195,7 +195,7 @@ func (c *Chain) Maintainer(client *ethclient.Client, selfId, toChainId uint64, s
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get synced height")
 	}
-	syncStartHeight := big.NewInt(syncedHeight.Int64() - (mapprotocol.HeaderCountOfBsc - 1) + mapprotocol.EpochOfBsc)
+	syncStartHeight := big.NewInt(syncedHeight.Int64() + (mapprotocol.HeaderCountOfBsc - 1) + mapprotocol.EpochOfBsc) // desc order
 	headers := make([]*ethclient.BscHeader, mapprotocol.HeaderCountOfBsc)
 	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
 		headerHeight := new(big.Int).Sub(syncStartHeight, new(big.Int).SetInt64(int64(i)))
