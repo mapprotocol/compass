@@ -350,57 +350,56 @@ func filterOracle(m *sync, latestBlock *big.Int) (int, error) {
 			m.Cfg.StartBlock = big.NewInt(tmp)
 		}
 	}()
-	for _, pid := range []int64{constant.ProjectOfOracle} {
-		data, err := chain.Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-			fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-				m.Cfg.StartBlock.Int64(), pid, m.Cfg.Id, topic)))
-		fmt.Println("oracle url ----- ", fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-			fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-				m.Cfg.StartBlock.Int64(), pid, m.Cfg.Id, topic)))
-		if err != nil {
-			return 0, err
-		}
-		listData, err := json.Marshal(data)
-		if err != nil {
-			return 0, errors.Wrap(err, "marshal resp.Data failed")
-		}
-		back := stream.MosListResp{}
-		err = json.Unmarshal(listData, &back)
-		if err != nil {
-			return 0, err
-		}
-		if len(back.List) == 0 {
+
+	data, err := chain.Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
+		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
+			m.Cfg.StartBlock.Int64(), constant.ProjectOfOracle, m.Cfg.Id, topic)))
+	fmt.Println("oracle url ----- ", fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
+		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
+			m.Cfg.StartBlock.Int64(), constant.ProjectOfOracle, m.Cfg.Id, topic)))
+	if err != nil {
+		return 0, err
+	}
+	listData, err := json.Marshal(data)
+	if err != nil {
+		return 0, errors.Wrap(err, "marshal resp.Data failed")
+	}
+	back := stream.MosListResp{}
+	err = json.Unmarshal(listData, &back)
+	if err != nil {
+		return 0, err
+	}
+	if len(back.List) == 0 {
+		return 0, nil
+	}
+
+	for _, ele := range back.List {
+		if m.Cfg.OracleNode.Hex() != ele.ContractAddress {
+			m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
+			tmp = ele.Id
 			continue
 		}
 
-		for _, ele := range back.List {
-			if m.Cfg.OracleNode.Hex() != ele.ContractAddress {
-				m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
-				tmp = ele.Id
-				continue
-			}
-
-			split := strings.Split(ele.Topic, ",")
-			topics := make([]common.Hash, 0, len(split))
-			for _, sp := range split {
-				topics = append(topics, common.HexToHash(sp))
-			}
-			log := types.Log{
-				Address:     common.HexToAddress(ele.ContractAddress),
-				Topics:      topics,
-				Data:        common.Hex2Bytes(ele.LogData),
-				BlockNumber: ele.BlockNumber,
-				TxHash:      common.HexToHash(ele.TxHash),
-				TxIndex:     ele.TxIndex,
-				BlockHash:   common.HexToHash(ele.BlockHash),
-				Index:       ele.LogIndex,
-			}
-			_, err = log2Oracle(m, &log)
-			if err != nil {
-				return 0, err
-			}
-			tmp = ele.Id
+		split := strings.Split(ele.Topic, ",")
+		topics := make([]common.Hash, 0, len(split))
+		for _, sp := range split {
+			topics = append(topics, common.HexToHash(sp))
 		}
+		log := types.Log{
+			Address:     common.HexToAddress(ele.ContractAddress),
+			Topics:      topics,
+			Data:        common.Hex2Bytes(ele.LogData),
+			BlockNumber: ele.BlockNumber,
+			TxHash:      common.HexToHash(ele.TxHash),
+			TxIndex:     ele.TxIndex,
+			BlockHash:   common.HexToHash(ele.BlockHash),
+			Index:       ele.LogIndex,
+		}
+		_, err = log2Oracle(m, &log)
+		if err != nil {
+			return 0, err
+		}
+		tmp = ele.Id
 	}
 
 	return 1, nil
