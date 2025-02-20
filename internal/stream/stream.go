@@ -53,4 +53,5 @@ type TxExecOfRequest struct {
 	DesChain         string `json:"des_chain"`
 	DesTxHash        string `json:"des_tx_hash"`
 	DesLogIndex      uint   `json:"des_log_index"`
+	Slippage         string `json:"slippage"`
 }
