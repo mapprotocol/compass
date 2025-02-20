@@ -37,7 +37,7 @@ func (s *ProofSrv) TxExec(req *stream.TxExecOfRequest) (map[string]interface{}, 
 		return s.RouterRetryMessageIn(s.cfg.Other.Butter, req.RelayChain, req.RelayTxHash)
 	case constant.StatusOfSwapFailed, constant.StatusOfDesFailed:
 		if req.Slippage == "" {
-			req.Slippage = "50"
+			req.Slippage = "100"
 		}
 		return s.RouterExecSwap(s.cfg.Other.Butter, req.DesChain, req.DesTxHash, req.Slippage)
 	case constant.StatusOfInit:
