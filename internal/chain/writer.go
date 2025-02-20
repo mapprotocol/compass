@@ -92,17 +92,11 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 		return nil, err
 	}
 
-	//gasLimit = 2000000
-	//gasLimit = 5000000000
 	gasTipCap := w.conn.Opts().GasTipCap
 	gasFeeCap := w.conn.Opts().GasFeeCap
 	w.log.Info("SendTx gasPrice before", "gasPrice", gasPrice, "gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap)
 	if w.cfg.LimitMultiplier > 1 {
 		gasLimit = uint64(float64(gasLimit) * w.cfg.LimitMultiplier)
-	}
-	if w.cfg.GasMultiplier > 1 && gasTipCap != nil && gasFeeCap != nil {
-		gasTipCap = big.NewInt(int64(float64(gasTipCap.Uint64()) * w.cfg.GasMultiplier)) // todo Will exceed the maximum value
-		gasFeeCap = big.NewInt(int64(float64(gasFeeCap.Uint64()) * w.cfg.GasMultiplier))
 	}
 	w.log.Info("SendTx gasPrice", "gasPrice", gasPrice, "gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap, "gasLimit", gasLimit,
 		"limitMultiplier", w.cfg.LimitMultiplier, "gasMultiplier", w.cfg.GasMultiplier, "nonce", nonce.Uint64())
