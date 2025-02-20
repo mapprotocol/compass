@@ -36,7 +36,10 @@ func (s *ProofSrv) TxExec(req *stream.TxExecOfRequest) (map[string]interface{}, 
 	case constant.StatusOfRelayFailed:
 		return s.RouterRetryMessageIn(s.cfg.Other.Butter, req.RelayChain, req.RelayTxHash)
 	case constant.StatusOfSwapFailed, constant.StatusOfDesFailed:
-		return s.RouterExecSwap(s.cfg.Other.Butter, req.DesChain, req.DesTxHash)
+		if req.Slippage == "" {
+			req.Slippage = "100"
+		}
+		return s.RouterExecSwap(s.cfg.Other.Butter, req.DesChain, req.DesTxHash, req.Slippage)
 	case constant.StatusOfInit:
 		desChain := req.RelayChain
 		if desChain == "null" {
@@ -51,8 +54,8 @@ func (s *ProofSrv) TxExec(req *stream.TxExecOfRequest) (map[string]interface{}, 
 	return nil, nil
 }
 
-func (s *ProofSrv) RouterExecSwap(butterHost, toChain, txHash string) (map[string]interface{}, error) {
-	data, err := butter.ExecSwap(butterHost, fmt.Sprintf("toChainId=%s&txHash=%s", toChain, txHash))
+func (s *ProofSrv) RouterExecSwap(butterHost, toChain, txHash, slippage string) (map[string]interface{}, error) {
+	data, err := butter.ExecSwap(butterHost, fmt.Sprintf("toChainId=%s&txHash=%s&slippage=%s", toChain, txHash, slippage))
 	if err != nil {
 		return nil, err
 	}
