@@ -167,6 +167,8 @@ func (c *Connection) EstimateGasLondon(ctx context.Context, baseFee *big.Int) (*
 		maxPriorityFeePerGas,
 		baseFee,
 	)
+	// mul
+	maxFeePerGas = multiplyGasPrice(maxFeePerGas, c.gasMultiplier)
 
 	// Check we aren't exceeding our limit
 	if maxFeePerGas.Cmp(c.maxGasPrice) == 1 {

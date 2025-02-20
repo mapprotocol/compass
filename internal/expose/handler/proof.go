@@ -21,13 +21,13 @@ func New(cfg *expose.Config, pri *ecdsa.PrivateKey) *Expose {
 func (e *Expose) TxExec(c *gin.Context) {
 	var req stream.TxExecOfRequest
 	if err := c.Bind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, Error2Response(err))
+		c.JSON(http.StatusOK, Error2Response(err))
 		return
 	}
 
 	ret, err := e.proofSrv.TxExec(&req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, Error2Response(err))
+		c.JSON(http.StatusOK, Error2Response(err))
 		return
 	}
 
