@@ -1,12 +1,12 @@
 package mapprotocol
 
 import (
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/msg"
 )
 
 const (

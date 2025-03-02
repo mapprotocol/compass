@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/contract"
+	"github.com/mapprotocol/compass/pkg/msg"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
 	"math/big"
 
@@ -18,7 +19,6 @@ import (
 	goeth "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/pkg/errors"
 )

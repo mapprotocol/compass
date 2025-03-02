@@ -6,7 +6,7 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/internal/expose"
 	"github.com/mapprotocol/compass/internal/expose/handler"
-	"github.com/mapprotocol/compass/keystore"
+	"github.com/mapprotocol/compass/pkg/keystore"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/urfave/cli/v2"
 )

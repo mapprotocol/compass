@@ -5,14 +5,12 @@ package blockstore
 
 import (
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
-
-	"github.com/mapprotocol/compass/mapprotocol"
-
-	"github.com/mapprotocol/compass/msg"
 )
 
 func TestSaveAndLoad(t *testing.T) {

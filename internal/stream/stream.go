@@ -3,6 +3,7 @@ package stream
 type CommonResp struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
+	Msg     string      `json:"msg"`
 	Data    interface{} `json:"data"`
 }
 
@@ -54,4 +55,17 @@ type TxExecOfRequest struct {
 	DesTxHash        string `json:"des_tx_hash"`
 	DesLogIndex      uint   `json:"des_log_index"`
 	Slippage         string `json:"slippage"`
+}
+
+type BtcLogListResp struct {
+	Total int64 `json:"total"`
+	Items []*struct {
+		Id          int64  `json:"id"`
+		ChainId     string `json:"chain_id"`
+		Topic       string `json:"topic"`
+		LogData     string `json:"log_data"`
+		TxHash      string `json:"tx_hash"`
+		TxTimestamp int    `json:"tx_timestamp"`
+		BlockNumber int64  `json:"block_number"`
+	} `json:"items"`
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 	"time"
@@ -12,7 +14,6 @@ import (
 
 	"github.com/lbtsm/gotron-sdk/pkg/store"
 
-	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/pkg/errors"
 
 	"github.com/lbtsm/gotron-sdk/pkg/proto/core"
@@ -22,7 +23,6 @@ import (
 	"github.com/lbtsm/gotron-sdk/pkg/client/transaction"
 	"github.com/lbtsm/gotron-sdk/pkg/keystore"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 )
 

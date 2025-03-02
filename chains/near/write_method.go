@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"strconv"
 	"strings"
 	"time"
@@ -13,11 +15,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
 
 	"github.com/mapprotocol/compass/internal/near"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/near-api-go/pkg/client"
 	"github.com/mapprotocol/near-api-go/pkg/types"
 	"github.com/mapprotocol/near-api-go/pkg/types/action"

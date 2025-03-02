@@ -3,6 +3,8 @@ package chain
 import (
 	"context"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 	"time"
@@ -10,8 +12,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 )
 
 // execToMapMsg executes sync msg, and send tx to the destination blockchain

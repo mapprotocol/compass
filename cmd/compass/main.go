@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"os"
 	"strconv"
 
@@ -13,8 +15,6 @@ import (
 	"github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/core"
 	chain2 "github.com/mapprotocol/compass/internal/chain"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/urfave/cli/v2"
 )
 
@@ -169,6 +169,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			SkipError:        ctx.Bool(config.SkipErrorFlag.Name),
 			Filter:           ctx.Bool(config.FilterFlag.Name),
 			FilterHost:       cfg.Other.Filter,
+			BtcHost:          cfg.Other.Btc,
 			ButterHost:       cfg.Other.Butter,
 		}
 		var (

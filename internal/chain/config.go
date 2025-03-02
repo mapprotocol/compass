@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strconv"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	gconfig "github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/core"
-	"github.com/mapprotocol/compass/msg"
 )
 
 const (
@@ -48,6 +48,7 @@ var (
 	Private               = "private"
 	Words                 = "words"
 	Rent                  = "rent"
+	Addr                  = "addr"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms
@@ -79,6 +80,7 @@ type Config struct {
 	OracleNode         common.Address
 	Filter             bool
 	FilterHost         string
+	BtcHost            string
 }
 
 // ParseConfig uses a core.ChainConfig to construct a corresponding Config
@@ -104,6 +106,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		SkipError:          chainCfg.SkipError,
 		Filter:             chainCfg.Filter,
 		FilterHost:         chainCfg.FilterHost,
+		BtcHost:            chainCfg.BtcHost,
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {

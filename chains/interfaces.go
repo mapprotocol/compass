@@ -4,6 +4,7 @@ import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/chains/bsc"
+	"github.com/mapprotocol/compass/chains/btc"
 	"github.com/mapprotocol/compass/chains/conflux"
 	"github.com/mapprotocol/compass/chains/eth2"
 	"github.com/mapprotocol/compass/chains/ethereum"
@@ -15,7 +16,7 @@ import (
 	"github.com/mapprotocol/compass/chains/tron"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
@@ -31,6 +32,7 @@ var (
 		constant.Solana:   sol.New(),
 		constant.Ton:      ton.New(),
 		constant.Tron:     tron.New(),
+		constant.Btc:      btc.New(),
 	}
 	proofMap = map[string]Proffer{
 		constant.Bsc:      bsc.New(),

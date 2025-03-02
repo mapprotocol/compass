@@ -4,12 +4,12 @@
 package core
 
 import (
+	"github.com/mapprotocol/compass/pkg/msg"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/log15"
-	"github.com/mapprotocol/compass/msg"
 )
 
 type mockWriter struct {

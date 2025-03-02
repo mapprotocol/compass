@@ -3,6 +3,8 @@ package chain
 import (
 	"context"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 	"time"
@@ -12,13 +14,10 @@ import (
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/pkg/util"
 
-	"github.com/mapprotocol/compass/mapprotocol"
-
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
 )
 

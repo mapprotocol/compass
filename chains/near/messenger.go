@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 	"time"
@@ -14,8 +16,6 @@ import (
 
 	rds "github.com/go-redis/redis/v8"
 	"github.com/mapprotocol/compass/internal/near"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/redis"
 	"github.com/mapprotocol/near-api-go/pkg/client"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"

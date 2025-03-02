@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 	"math/big"

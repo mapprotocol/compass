@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/mapprotocol/compass/pkg/platon"
-
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -559,31 +557,6 @@ func toCallArg(msg ethereum.CallMsg) interface{} {
 	return arg
 }
 
-// platon
-
-func (ec *Client) PlatonGetValidatorByNumber(ctx context.Context, number *big.Int) ([]Validator, error) {
-	var resp string
-	err := ec.c.CallContext(ctx, &resp, "debug_getValidatorByBlockNumber", number)
-	if err == nil && resp == "" {
-		err = ethereum.NotFound
-	}
-	var ret []Validator
-	err = json.Unmarshal([]byte(resp), &ret)
-	if err != nil {
-		return nil, err
-	}
-	return ret, err
-}
-
-func (ec *Client) PlatonGetBlockQuorumCertByHash(ctx context.Context, hash []common.Hash) ([]QuorumCert, error) {
-	var ret []QuorumCert
-	err := ec.c.CallContext(ctx, &ret, "platon_getBlockQuorumCertByHash", hash)
-	if err == nil && ret == nil {
-		err = ethereum.NotFound
-	}
-	return ret, err
-}
-
 type Validator struct {
 	Address   string
 	NodeId    string
@@ -650,15 +623,6 @@ func (ec *Client) EthLatestHeaderByNumber(endpoint string, number *big.Int) (*He
 
 	head.WithdrawalsHash = tmp.WithdrawalsHash
 	return &head, err
-}
-
-func (ec *Client) PlatonGetBlockByNumber(ctx context.Context, number *big.Int) (*platon.Header, error) {
-	var head *platon.Header
-	err := ec.c.CallContext(ctx, &head, "eth_getBlockByNumber", toBlockNumArg(number), false)
-	if err == nil && head == nil {
-		err = ethereum.NotFound
-	}
-	return head, err
 }
 
 type OpReceipt struct {

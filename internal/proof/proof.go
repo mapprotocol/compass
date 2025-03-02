@@ -2,6 +2,8 @@ package proof
 
 import (
 	"bytes"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"sync"
 
@@ -15,8 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 )

@@ -1,9 +1,9 @@
 package chain
 
 import (
+	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"math/big"
 
-	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/blockstore"
 )
 

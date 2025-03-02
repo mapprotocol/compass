@@ -165,8 +165,12 @@ func Request(urlPath string) (interface{}, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unMarshal resp failed")
 	}
-	if ret.Code != http.StatusOK {
-		return nil, fmt.Errorf("request code is not success, msg is %s", ret.Message)
+	if ret.Code != http.StatusOK && ret.Code != 2000 {
+		msg := ret.Message
+		if msg == "" {
+			msg = ret.Msg
+		}
+		return nil, fmt.Errorf("request code is not success, msg is %s", msg)
 	}
 
 	return ret.Data, nil

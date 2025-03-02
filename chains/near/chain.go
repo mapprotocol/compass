@@ -1,6 +1,9 @@
 package near
 
 import (
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/keystore"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mapprotocol/compass/pkg/redis"
 	"math/big"
 
@@ -10,9 +13,6 @@ import (
 	"github.com/mapprotocol/atlas/accounts/abi/bind"
 	connection "github.com/mapprotocol/compass/connections/near"
 	"github.com/mapprotocol/compass/core"
-	"github.com/mapprotocol/compass/keystore"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/blockstore"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"
 	"github.com/mapprotocol/near-api-go/pkg/types/key"

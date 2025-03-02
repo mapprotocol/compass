@@ -3,12 +3,12 @@ package ton
 import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	keystore2 "github.com/mapprotocol/compass/pkg/keystore"
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
-	"github.com/mapprotocol/compass/keystore"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 )
 
 var _ core.Chain = new(Chain)
@@ -31,12 +31,12 @@ func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan
 		return nil, err
 	}
 
-	kpI, err := keystore.KeypairFromEth(cfg.KeystorePath)
+	kpI, err := keystore2.KeypairFromEth(cfg.KeystorePath)
 	if err != nil {
 		return nil, err
 	}
 
-	password := keystore.GetPassword("Enter password for TON words:")
+	password := keystore2.GetPassword("Enter password for TON words:")
 	conn := NewConnection(cfg.Endpoint, cfg.Words, string(password), kpI, logger)
 	err = conn.Connect()
 	if err != nil {

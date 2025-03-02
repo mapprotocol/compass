@@ -37,6 +37,7 @@ type Construction struct {
 	MonitorUrl string `json:"monitor_url,omitempty"`
 	Env        string `json:"env,omitempty"`
 	Filter     string `json:"filter"`
+	Btc        string `json:"btc"`
 	Butter     string `json:"butter"`
 }
 

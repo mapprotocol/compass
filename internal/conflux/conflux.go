@@ -6,7 +6,9 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"io"
 	"math/big"
 
@@ -17,8 +19,6 @@ import (
 	"github.com/mapprotocol/compass/internal/conflux/mpt"
 	primitives "github.com/mapprotocol/compass/internal/conflux/primipives"
 	"github.com/mapprotocol/compass/internal/conflux/types"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
 )
 

@@ -6,7 +6,7 @@ package near
 import (
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/core"
-	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/msg"
 )
 
 var _ core.Writer = &writer{}
