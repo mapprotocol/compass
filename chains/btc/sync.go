@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/internal/blacklist"
 	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
@@ -86,9 +87,11 @@ func handler(lh LogHandler) Handler {
 			}
 		}
 
-		data, err := chain.Request(fmt.Sprintf("%s/%s?%s", m.Cfg.BtcHost, constant.FilterBtcLogUrl,
+		uri := fmt.Sprintf("%s/%s?%s", m.Cfg.BtcHost, constant.FilterBtcLogUrl,
 			fmt.Sprintf("id=%d&chain_id=%d&topic=%s&limit=1",
-				m.Cfg.StartBlock.Int64(), m.Cfg.Id, topic)))
+				m.Cfg.StartBlock.Int64(), m.Cfg.Id, topic))
+		//m.Cfg.StartBlock.Int64(), 1360095883558913, topic))
+		data, err := chain.Request(uri)
 		if err != nil {
 			return 0, err
 		}
@@ -115,6 +118,34 @@ func handler(lh LogHandler) Handler {
 		log.Topic = back.Items[0].Topic
 		log.TxHash = back.Items[0].TxHash
 		log.BlockNumber = back.Items[0].BlockNumber
+		// check sender
+		isBlack, err := blacklist.CheckAccount(log.Sender)
+		if err != nil {
+			return 0, err
+		}
+		if isBlack {
+			m.Log.Info("Ignore this log, because it is black", "id", log.Id, "sender", log.Sender)
+			return back.Items[0].Id, nil
+		}
+		// check receiver
+		isBlack, err = blacklist.CheckAccount(log.Receiver)
+		if err != nil {
+			return 0, err
+		}
+		if isBlack {
+			m.Log.Info("Ignore this log, because it is black", "id", log.Id, "receiver", log.Receiver)
+			return back.Items[0].Id, nil
+		}
+
+		// check src tx
+		isBlack, err = blacklist.CheckTxs(log.SrcChain, log.InTxHash)
+		if err != nil {
+			return 0, err
+		}
+		if isBlack {
+			m.Log.Info("Ignore this log, because it is black", "id", log.Id, "srcChain", log.SrcChain, "txHash", log.TxHash)
+			return back.Items[0].Id, nil
+		}
 		err = lh(m, &log)
 		if err != nil {
 			return 0, err

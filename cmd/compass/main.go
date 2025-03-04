@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"github.com/mapprotocol/compass/internal/blacklist"
 	"github.com/mapprotocol/compass/pkg/abi"
 	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mapprotocol/compass/pkg/util"
@@ -133,6 +134,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	if err != nil {
 		return err
 	}
+	blacklist.Init(cfg.Other.BlackListUrl)
 	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
 	sysErr := make(chan error)
 	mapcid, err := strconv.Atoi(cfg.MapChain.Id)
@@ -171,7 +173,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			SkipError:        ctx.Bool(config.SkipErrorFlag.Name),
 			Filter:           ctx.Bool(config.FilterFlag.Name),
 			FilterHost:       cfg.Other.Filter,
-			BtcHost:          cfg.Other.Btc,
+			BtcHost:          cfg.Other.BtcUrl,
 			ButterHost:       cfg.Other.Butter,
 		}
 		var (

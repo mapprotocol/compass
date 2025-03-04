@@ -34,11 +34,12 @@ type RawChainConfig struct {
 }
 
 type Construction struct {
-	MonitorUrl string `json:"monitor_url,omitempty"`
-	Env        string `json:"env,omitempty"`
-	Filter     string `json:"filter"`
-	Btc        string `json:"btc"`
-	Butter     string `json:"butter"`
+	MonitorUrl   string `json:"monitor_url,omitempty"`
+	Env          string `json:"env,omitempty"`
+	BlackListUrl string `json:"black_list_url"`
+	Filter       string `json:"filter"`
+	BtcUrl       string `json:"btc_url"`
+	Butter       string `json:"butter"`
 }
 
 func (c *Config) ToJSON(file string) *os.File {
