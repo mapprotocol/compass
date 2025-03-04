@@ -40,6 +40,7 @@ const (
 	MethodOfMptPack              = "mptPack"
 	MethodOfSolEventEncode       = "solEventEncode"
 	MethodOfSolPackReceipt       = "solPackReceipt"
+	MethodOfValidate             = "validate"
 )
 
 const (

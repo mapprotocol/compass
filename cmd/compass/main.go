@@ -2,19 +2,21 @@ package main
 
 import (
 	"errors"
-	"github.com/mapprotocol/compass/chains"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/abi"
 	"github.com/mapprotocol/compass/pkg/msg"
+	"github.com/mapprotocol/compass/pkg/util"
 	"os"
 	"strconv"
 
-	"github.com/mapprotocol/compass/pkg/util"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/core"
 	chain2 "github.com/mapprotocol/compass/internal/chain"
+	"github.com/mapprotocol/compass/internal/contract"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	contract2 "github.com/mapprotocol/compass/pkg/contract"
 	"github.com/urfave/cli/v2"
 )
 
@@ -189,6 +191,12 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 
 		if idx == 0 {
 			mapprotocol.GlobalMapConn = newChain.(*chain2.Chain).EthClient()
+			validateAbi, err := abi.New(mapprotocol.ValidateJson)
+			if err != nil {
+				return err
+			}
+			contract.InitDefaultValidator(contract2.New(newChain.(*chain2.Chain).Conn(),
+				[]common.Address{common.HexToAddress(chainConfig.Opts[chain2.Validate])}, validateAbi))
 			mapprotocol.Init2GetEth22MapNumber(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 			mapprotocol.InitOtherChain2MapHeight(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))
 			mapprotocol.InitLightManager(common.HexToAddress(chainConfig.Opts[chain2.LightNode]))

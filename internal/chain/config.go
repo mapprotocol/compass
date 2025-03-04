@@ -49,6 +49,7 @@ var (
 	Words                 = "words"
 	Rent                  = "rent"
 	Addr                  = "addr"
+	Validate              = "validate"
 )
 
 // Config encapsulates all necessary parameters in ethereum compatible forms

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/stream"
@@ -63,6 +64,7 @@ func (m *sync) Sync() error {
 				continue
 			}
 
+			m.Cfg.StartBlock = big.NewInt(id)
 			_ = m.WaitUntilMsgHandled(1)
 			err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
 			if err != nil {
@@ -108,7 +110,6 @@ func handler(lh LogHandler) Handler {
 		if err != nil {
 			return 0, err
 		}
-		fmt.Println("logData ----------------- ", string(logData))
 		log.Id = back.Items[0].Id
 		log.Addr = m.cfg.Addr
 		log.Topic = back.Items[0].Topic
@@ -119,7 +120,7 @@ func handler(lh LogHandler) Handler {
 			return 0, err
 		}
 
-		return 0, nil
+		return back.Items[0].Id, nil
 	}
 }
 
@@ -128,8 +129,9 @@ func mos(m *sync, log *MessageOut) error {
 	if err != nil {
 		return errors.Wrap(err, "gen receipt failed")
 	}
-	m.Log.Info("Sol2Evm mos generate", "receiptHash", receiptHash, "1111", "111")
-	proposalInfo, err := getSigner(log.BlockNumber, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
+	m.Log.Info("Btc2Evm mos generate", "receiptHash", receiptHash)
+	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), uint(log.Id))
+	proposalInfo, err := getSigner(bn, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
 		return err
 	}
@@ -138,8 +140,8 @@ func mos(m *sync, log *MessageOut) error {
 		fixedHash[i] = v
 	}
 	pd := proof.SignLogData{
-		ProofType:   1,
-		BlockNum:    big.NewInt(log.BlockNumber),
+		ProofType:   constant.ProofTypeOfContract,
+		BlockNum:    bn,
 		ReceiptRoot: fixedHash,
 		Signatures:  proposalInfo.Signatures,
 		Proof:       receiptPack,
@@ -190,7 +192,7 @@ func oracle(m *sync, log *MessageOut) error {
 		version = append(version, byte(v))
 	}
 
-	bn := big.NewInt(log.BlockNumber)
+	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), uint(log.Id))
 	input, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receiptHash,
 		ret.Version, bn, big.NewInt(int64(m.Cfg.Id)))
 	if err != nil {
@@ -208,31 +210,46 @@ func oracle(m *sync, log *MessageOut) error {
 }
 
 func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
-	if len(log.SwapData) > 0 {
-		// todo check swapData
-	}
 	// 解析
+	//fromChain := big.NewInt(1360095883558914)
 	fromChain, ok := big.NewInt(0).SetString(log.SrcChain, 16)
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid fromChain (%s)", log.SrcChain)
 	}
-	toChain, ok := big.NewInt(0).SetString(log.DstChain, 16)
+	toChain, ok := big.NewInt(0).SetString(log.DstChain, 10)
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid toChain (%s)", log.DstChain)
 	}
-	amount, ok := big.NewInt(0).SetString(log.InAmount, 16)
+	amount, ok := big.NewInt(0).SetString(log.InAmount, 10)
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid amount (%s)", log.InAmount)
 	}
-	gasLimit, ok := big.NewInt(0).SetString(log.GasLimit, 16)
+	gasLimit, ok := big.NewInt(0).SetString(log.GasLimit, 10)
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid gasLimit (%s)", log.GasLimit)
 	}
+	minAmount, ok := big.NewInt(0).SetString(log.MinOutAmount, 10)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid minAmount (%s)", log.MinOutAmount)
+	}
 
 	orderId := common.HexToHash(log.OrderID)
-
 	swapData := common.Hex2Bytes(strings.TrimPrefix(log.SwapData, "0x"))
-	MOS := common.Hex2Bytes(strings.TrimPrefix(log.MOS, "0x"))
+
+	to := common.Hex2Bytes(strings.TrimPrefix(log.Receiver, "0x"))
+	dstToken := common.Hex2Bytes(strings.TrimPrefix(log.DstToken, "0x"))
+	if len(swapData) > 0 {
+		//fmt.Println("swapData --------------------------- ", log.SwapData)
+		// check swapData
+		pass, err := contract.Validate(log.Relay, toChain, minAmount, dstToken, to, swapData)
+		if err != nil {
+			return nil, nil, err
+		}
+		if !pass {
+			return nil, nil, fmt.Errorf("invalid swapData (%s)", log.SwapData)
+		}
+		time.Sleep(time.Hour)
+	}
 
 	eo := mapprotocol.MessageOutEvent{
 		FromChain:   fromChain,
@@ -243,11 +260,11 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 		From:        []byte(log.From), // btc address
 		SwapData:    swapData,
 		GasLimit:    gasLimit,
-		Mos:         MOS,
+		Mos:         common.Hex2Bytes(strings.TrimPrefix(log.MOS, "0x")),
 		Initiator:   []byte(log.Sender), // btc address
 		Relay:       log.Relay,
 		MessageType: log.MessageType,
-		To:          common.Hex2Bytes(strings.TrimPrefix(log.Receiver, "0x")),
+		To:          to,
 	}
 	data, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolEventEncode].Inputs.Pack(&eo)
 	if err != nil {
@@ -258,7 +275,7 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 		common.Hex2Bytes(strings.TrimPrefix(log.Addr, "0x")),
 		common.Hex2Bytes(strings.TrimPrefix(log.Topic, "0x")), data)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "marshal sol pack failed")
+		return nil, nil, errors.Wrap(err, "marshal pack failed")
 	}
 	receipt := common.BytesToHash(crypto.Keccak256(receiptPack))
 	return &receipt, receiptPack, nil
@@ -279,13 +296,13 @@ type MessageOut struct {
 	InAmount     string `json:"in_amount"` // amount
 	InTxHash     string `json:"in_tx_hash"`
 	BridgeFee    string `json:"bridge_fee"`
-	DstChain     string `json:"dst_chain"` // toChain
-	DstToken     string `json:"dst_token"` //
-	Receiver     string `json:"receiver"`  //
-	MOS          string `json:"mos"`       // map mos address
-	Relay        bool   //   (from butter)
-	MessageType  uint8  // default 3
-	GasLimit     string // default 0
+	DstChain     string `json:"dst_chain"`      // toChain
+	DstToken     string `json:"dst_token"`      //
+	Receiver     string `json:"receiver"`       //
+	MOS          string `json:"mos"`            // map mos address
+	Relay        bool   `json:"relay"`          //   (from butter)
+	MessageType  uint8  `json:"message_type"`   // default 3
+	GasLimit     string `json:"gas_limit"`      // default 0
 	MinOutAmount string `json:"min_out_amount"` //  minOutAmount
 	SwapData     string `json:"swap_data"`      // (from butter)
 }
@@ -311,8 +328,7 @@ type T struct {
 	SwapData     string `json:"swap_data"`
 }
 
-func getSigner(blockNumber int64, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
-	bn := big.NewInt(blockNumber)
+func getSigner(bn *big.Int, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
 	ret, err := chain.MulSignInfo(0, toChainID)
 	if err != nil {
 		return nil, err

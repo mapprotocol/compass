@@ -149,7 +149,7 @@ const (
 	Btc      = "btc"
 )
 
-// 0: 源链发出，2: relay失败，3: relay完成， 4: swap 失败， 5: 目标链mos执行失败
+// 0: init，2: relay failed，3: relay finish， 4: swap failed， 5: det chain mos failed
 const (
 	StatusOfInit = iota
 	StatusOfUnKnow
@@ -157,4 +157,8 @@ const (
 	StatusOfRelayFinish
 	StatusOfSwapFailed
 	StatusOfDesFailed
+)
+
+const (
+	ProofTypeOfContract = iota + 1
 )
