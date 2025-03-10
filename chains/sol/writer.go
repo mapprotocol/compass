@@ -102,9 +102,6 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 					continue
 				}
 				txData = resp.Data[0].TxParam[0].Data
-				//fmt.Println("txData -------------- ", txData)
-				//fmt.Println("resp.Data[0].TxParam[0].Data -------------- ", resp.Data[0].TxParam[0].Data)
-				//time.Sleep(time.Minute)
 			}
 
 			w.log.Info("Send transaction", "srcHash", log.TxHash, "method", method)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/internal/abi"
 	"github.com/mapprotocol/compass/internal/blacklist"
 	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
@@ -107,6 +108,7 @@ func handler(lh LogHandler) Handler {
 		if len(back.Items) == 0 {
 			return 0, nil
 		}
+		m.Log.Info("Btc find a log", "id", back.Items[0].Id, "block", back.Items[0].BlockNumber)
 		logData := common.Hex2Bytes(back.Items[0].LogData)
 		var log = MessageOut{}
 		err = json.Unmarshal(logData, &log)
@@ -242,7 +244,6 @@ func oracle(m *sync, log *MessageOut) error {
 
 func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 	// 解析
-	//fromChain := big.NewInt(1360095883558914)
 	fromChain, ok := big.NewInt(0).SetString(log.SrcChain, 16)
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid fromChain (%s)", log.SrcChain)
@@ -265,21 +266,28 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 	}
 
 	orderId := common.HexToHash(log.OrderID)
-	swapData := common.Hex2Bytes(strings.TrimPrefix(log.SwapData, "0x"))
+	bridgeData := common.Hex2Bytes(strings.TrimPrefix(log.SwapData, "0x"))
+	bridgeParam, err := abi.DecodeBridgeParam(bridgeData)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "decode bridge param failed")
+	}
 
+	//fmt.Printf("Relay: %t\n", bridgeParam.Relay)
+	//fmt.Printf("Referrer: %s\n", bridgeParam.Referrer.Hex())
+	//fmt.Printf("TransferID: %x\n", bridgeParam.TransferId)
+	//fmt.Printf("GasLimit: %s\n", bridgeParam.GasLimit.String())
+	//fmt.Printf("SwapData: %x\n", bridgeParam.SwapData)
 	to := common.Hex2Bytes(strings.TrimPrefix(log.Receiver, "0x"))
 	dstToken := common.Hex2Bytes(strings.TrimPrefix(log.DstToken, "0x"))
-	if len(swapData) > 0 {
-		//fmt.Println("swapData --------------------------- ", log.SwapData)
+	if len(bridgeParam.SwapData) > 0 {
 		// check swapData
-		pass, err := contract.Validate(log.Relay, toChain, minAmount, dstToken, to, swapData)
+		pass, err := contract.Validate(log.Relay, toChain, minAmount, dstToken, to, bridgeParam.SwapData)
 		if err != nil {
 			return nil, nil, err
 		}
 		if !pass {
 			return nil, nil, fmt.Errorf("invalid swapData (%s)", log.SwapData)
 		}
-		time.Sleep(time.Hour)
 	}
 
 	eo := mapprotocol.MessageOutEvent{
@@ -289,7 +297,7 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 		Amount:      amount,
 		Token:       common.Hex2Bytes(strings.TrimPrefix(log.SrcToken, "0x")),
 		From:        []byte(log.From), // btc address
-		SwapData:    swapData,
+		SwapData:    bridgeParam.SwapData,
 		GasLimit:    gasLimit,
 		Mos:         common.Hex2Bytes(strings.TrimPrefix(log.MOS, "0x")),
 		Initiator:   []byte(log.Sender), // btc address

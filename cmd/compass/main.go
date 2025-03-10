@@ -2,10 +2,6 @@ package main
 
 import (
 	"errors"
-	"github.com/mapprotocol/compass/internal/blacklist"
-	"github.com/mapprotocol/compass/pkg/abi"
-	"github.com/mapprotocol/compass/pkg/msg"
-	"github.com/mapprotocol/compass/pkg/util"
 	"os"
 	"strconv"
 
@@ -14,10 +10,14 @@ import (
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/internal/blacklist"
 	chain2 "github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/abi"
 	contract2 "github.com/mapprotocol/compass/pkg/contract"
+	"github.com/mapprotocol/compass/pkg/msg"
+	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/urfave/cli/v2"
 )
 

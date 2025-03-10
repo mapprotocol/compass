@@ -7,7 +7,7 @@ import (
 )
 
 type Validator interface {
-	Validate(relay bool, dstChain, dstMinAmount *big.Int, dstToken, dstReceiver, swapData []byte) (bool, error)
+	Validate(param *SwapDataValidator) (bool, error)
 }
 
 type validator struct {
@@ -24,9 +24,18 @@ func InitDefaultValidator(c *contract.Call) {
 	defaultValidator = &validator{c: c}
 }
 
-func (v *validator) Validate(relay bool, dstChain, dstMinAmount *big.Int, dstToken, dstReceiver, swapData []byte) (bool, error) {
+type SwapDataValidator struct {
+	Relay        bool
+	DstChain     *big.Int
+	DstToken     []byte
+	DstReceiver  []byte
+	DstMinAmount *big.Int
+	SwapData     []byte
+}
+
+func (v *validator) Validate(param *SwapDataValidator) (bool, error) {
 	var ret bool
-	err := v.c.Call(mapprotocol.MethodOfValidate, &ret, 0, relay, dstChain, dstToken, dstReceiver, dstMinAmount, swapData)
+	err := v.c.Call(mapprotocol.MethodOfValidate, &ret, 0, param)
 	if err != nil {
 		return false, err
 	}
@@ -34,5 +43,12 @@ func (v *validator) Validate(relay bool, dstChain, dstMinAmount *big.Int, dstTok
 }
 
 func Validate(relay bool, dstChain, dstMinAmount *big.Int, dstToken, dstReceiver, swapData []byte) (bool, error) {
-	return defaultValidator.Validate(relay, dstChain, dstMinAmount, dstToken, dstReceiver, swapData)
+	return defaultValidator.Validate(&SwapDataValidator{
+		Relay:        relay,
+		DstChain:     dstChain,
+		DstToken:     dstToken,
+		DstReceiver:  dstReceiver,
+		DstMinAmount: dstMinAmount,
+		SwapData:     swapData,
+	})
 }
