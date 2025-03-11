@@ -130,12 +130,12 @@ func handler(lh LogHandler) Handler {
 			return back.Items[0].Id, nil
 		}
 		// check receiver
-		isBlack, err = blacklist.CheckAccount(log.Receiver)
+		isBlack, err = blacklist.CheckAccount(log.To)
 		if err != nil {
 			return 0, err
 		}
 		if isBlack {
-			m.Log.Info("Ignore this log, because it is black", "id", log.Id, "receiver", log.Receiver)
+			m.Log.Info("Ignore this log, because it is black", "id", log.Id, "to", log.To)
 			return back.Items[0].Id, nil
 		}
 
@@ -244,7 +244,7 @@ func oracle(m *sync, log *MessageOut) error {
 
 func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 	// 解析
-	fromChain, ok := big.NewInt(0).SetString(log.SrcChain, 16)
+	fromChain, ok := big.NewInt(0).SetString(log.SrcChain, 10)
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid fromChain (%s)", log.SrcChain)
 	}
@@ -277,7 +277,7 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 	//fmt.Printf("TransferID: %x\n", bridgeParam.TransferId)
 	//fmt.Printf("GasLimit: %s\n", bridgeParam.GasLimit.String())
 	//fmt.Printf("SwapData: %x\n", bridgeParam.SwapData)
-	to := common.Hex2Bytes(strings.TrimPrefix(log.Receiver, "0x"))
+	to := common.Hex2Bytes(strings.TrimPrefix(log.To, "0x"))
 	dstToken := common.Hex2Bytes(strings.TrimPrefix(log.DstToken, "0x"))
 	if len(bridgeParam.SwapData) > 0 {
 		// check swapData
