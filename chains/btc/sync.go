@@ -281,7 +281,8 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 	dstToken := common.Hex2Bytes(strings.TrimPrefix(log.DstToken, "0x"))
 	if len(bridgeParam.SwapData) > 0 {
 		// check swapData
-		pass, err := contract.Validate(log.Relay, toChain, minAmount, dstToken, to, bridgeParam.SwapData)
+		pass, err := contract.Validate(log.Relay, toChain, minAmount, dstToken,
+			common.Hex2Bytes(strings.TrimPrefix(log.Receiver, "0x")), bridgeParam.SwapData)
 		if err != nil {
 			return nil, nil, err
 		}
