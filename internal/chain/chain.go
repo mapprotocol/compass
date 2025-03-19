@@ -5,12 +5,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/mapprotocol/compass/core"
-	"github.com/mapprotocol/compass/keystore"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/abi"
 	"github.com/mapprotocol/compass/pkg/contract"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/mapprotocol/compass/pkg/keystore"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/pkg/errors"
 )
 

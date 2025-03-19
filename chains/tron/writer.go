@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 	"time"
@@ -12,7 +14,6 @@ import (
 
 	"github.com/lbtsm/gotron-sdk/pkg/store"
 
-	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/pkg/errors"
 
 	"github.com/lbtsm/gotron-sdk/pkg/proto/core"
@@ -22,7 +23,6 @@ import (
 	"github.com/lbtsm/gotron-sdk/pkg/client/transaction"
 	"github.com/lbtsm/gotron-sdk/pkg/keystore"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 )
 
@@ -333,10 +333,21 @@ func (w *Writer) checkOrderId(toAddress string, input []byte) (bool, error) {
 }
 
 var (
-	wei = big.NewFloat(1000000)
+	wei       = big.NewFloat(1000000)
+	waterLine = int64(300000)
 )
 
 func (w *Writer) rentEnergy(used int64, method string) error {
+	resource, err := w.conn.cli.GetAccountResource(w.cfg.EnergySupply)
+	if err != nil {
+		w.log.Error("CheckEnergy GetAccountResource failed", "account", w.cfg.EnergySupply, "err", err)
+		return err
+	}
+	w.log.Info("CheckEnergy, account detail", "account", w.cfg.EnergySupply, "energy", resource.EnergyLimit, "used", resource.EnergyUsed)
+	if (resource.EnergyLimit - resource.EnergyUsed) < waterLine {
+		return errors.New("account not have enough balance(330 trx)")
+	}
+
 	if !w.cfg.Rent {
 		w.log.Info("dont need rent energy, cfg is false")
 		return nil

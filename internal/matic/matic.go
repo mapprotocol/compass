@@ -8,9 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 )

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strconv"
 	"time"
@@ -12,11 +14,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/mapprotocol/compass/internal/chain"
-	"github.com/mapprotocol/compass/mapprotocol"
 )
 
 type Maintainer struct {

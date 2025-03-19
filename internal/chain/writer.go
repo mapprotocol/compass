@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/msg"
 )
 
 type Writer struct {

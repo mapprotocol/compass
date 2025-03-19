@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gagliardetto/solana-go"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/stream"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strconv"
 	"strings"
@@ -17,8 +19,6 @@ import (
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -180,7 +180,7 @@ func messagerHandler(m *sync) (int64, error) {
 	if err != nil {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
-	m.Log.Info("Sol2Evm msger generate", "receiptHash", receiptHash, "1111", "111")
+	m.Log.Info("Sol2Evm msger generate", "receiptHash", receiptHash)
 	proposalInfo, err := getSigner(log.BlockNumber, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
 		return 0, err
@@ -211,10 +211,9 @@ func messagerHandler(m *sync) (int64, error) {
 	finalInput, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfMessageIn,
 		big.NewInt(0).SetUint64(uint64(m.Cfg.Id)),
 		big.NewInt(int64(0)), orderId, input)
-	//finalInput, err := mapprotocol.PackInput(mapprotocol.Other, mapprotocol.MethodVerifyProofData, input)
-	//if err != nil {
-	//	return 0, errors.Wrap(err, "pack mcs input failed")
-	//}
+	if err != nil {
+		return 0, nil
+	}
 
 	var orderId32 [32]byte
 	for i, v := range orderId {
@@ -310,7 +309,7 @@ func genReceipt(log *Log) (*common.Hash, []byte, error) {
 		return nil, nil, errors.Wrap(err, "parse relay flag failed")
 	}
 
-	eo := MessageOutEvent{
+	eo := mapprotocol.MessageOutEvent{
 		FromChain:   fromChain,
 		ToChain:     toChain,
 		OrderId:     orderId,
@@ -341,22 +340,6 @@ func genReceipt(log *Log) (*common.Hash, []byte, error) {
 	}
 	receipt := common.BytesToHash(crypto.Keccak256(receiptPack))
 	return &receipt, receiptPack, nil
-}
-
-type MessageOutEvent struct {
-	Relay       bool
-	MessageType uint8
-	FromChain   *big.Int
-	ToChain     *big.Int
-	OrderId     [32]byte
-	Mos         []byte
-	Token       []byte
-	Initiator   []byte
-	From        []byte
-	To          []byte
-	Amount      *big.Int
-	GasLimit    *big.Int
-	SwapData    []byte
 }
 
 func getSigner(blockNumber int64, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {

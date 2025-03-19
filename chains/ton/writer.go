@@ -6,7 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 	"math/big"
 	"time"
@@ -21,7 +22,6 @@ import (
 
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/msg"
 )
 
 type Writer struct {

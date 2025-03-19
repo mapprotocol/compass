@@ -1,6 +1,8 @@
 package eth2
 
 import (
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"os"
 	"os/exec"
@@ -15,8 +17,6 @@ import (
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapo"
 	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/pkg/errors"
 )
 

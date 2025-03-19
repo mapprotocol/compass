@@ -2,6 +2,9 @@ package tron
 
 import (
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/keystore"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strconv"
 	gosync "sync"
@@ -16,9 +19,6 @@ import (
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/tx"
-	"github.com/mapprotocol/compass/keystore"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/abi"
 	"github.com/mapprotocol/compass/pkg/contract"
 	"github.com/mapprotocol/compass/pkg/ethclient"

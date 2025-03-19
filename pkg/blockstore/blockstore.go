@@ -5,12 +5,11 @@ package blockstore
 
 import (
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"os"
 	"path/filepath"
-
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 )
 
 const PathPostfix = ".compass/blockstore"

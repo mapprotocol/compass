@@ -12,10 +12,10 @@ import (
 
 type Config struct {
 	chain.Config
-	LightNode, RentNode, FeeKey, FeeType string
-	EthFrom                              common.Address
-	McsContract                          []string
-	Rent                                 bool
+	LightNode, RentNode, FeeKey, FeeType, EnergySupply string
+	EthFrom                                            common.Address
+	McsContract                                        []string
+	Rent                                               bool
 }
 
 func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
@@ -49,6 +49,9 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 	}
 	if ele, ok := chainCfg.Opts[chain.FeeType]; ok && ele != "" {
 		ret.FeeType = ele
+	}
+	if ele, ok := chainCfg.Opts[chain.EnergySupply]; ok && ele != "" {
+		ret.EnergySupply = ele
 	}
 	if ele, ok := chainCfg.Opts[chain.Rent]; ok && ele != "" {
 		rent, err := strconv.ParseBool(ele)

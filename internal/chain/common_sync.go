@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/msg"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/ChainSafe/log15"
 	eth "github.com/ethereum/go-ethereum"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/blockstore"
 )
 

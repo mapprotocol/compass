@@ -13,7 +13,8 @@ import (
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/mapprotocol/compass/internal/butter"
 	"github.com/mapprotocol/compass/internal/chain"
-	"github.com/mapprotocol/compass/mapprotocol"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
 	"io"
@@ -24,7 +25,6 @@ import (
 
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 )
 
@@ -102,9 +102,6 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 					continue
 				}
 				txData = resp.Data[0].TxParam[0].Data
-				//fmt.Println("txData -------------- ", txData)
-				//fmt.Println("resp.Data[0].TxParam[0].Data -------------- ", resp.Data[0].TxParam[0].Data)
-				//time.Sleep(time.Minute)
 			}
 
 			w.log.Info("Send transaction", "srcHash", log.TxHash, "method", method)

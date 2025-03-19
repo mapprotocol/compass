@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -10,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/klaytn"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
@@ -39,6 +39,7 @@ type ChainConfig struct {
 	SkipError        bool              // Flag of Skip Error
 	Filter           bool
 	FilterHost       string
+	BtcHost          string
 	ButterHost       string
 }
 

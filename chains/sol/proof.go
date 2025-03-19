@@ -130,48 +130,48 @@ type SwapData struct {
 
 func parseSwapData(data []byte) (*SwapData, error) {
 	offset := 0
-	if len(data) < 74 { // 最小长度验证
+	if len(data) < 74 { // min length
 		return nil, errors.New("data too short to parse")
 	}
 
-	// 解析 cross_token_len
+	// parse cross_token_len
 	crossTokenLen := int(data[offset])
 	offset++
 
-	// 解析 cross_address_len
+	// parse cross_address_len
 	crossAddressLen := int(data[offset])
 	offset++
 
-	// 验证剩余长度是否足够
+	// enough
 	expectedLength := 2 + crossTokenLen + 2*crossAddressLen + 32 + 2
 	if len(data) < expectedLength {
 		return nil, errors.New("data length mismatch")
 	}
 
-	// 解析 toToken
+	// parse toToken
 	toToken := data[offset : offset+crossTokenLen]
 	offset += crossTokenLen
 
-	// 解析 receiver
+	// parse receiver
 	receiver := data[offset : offset+crossAddressLen]
 	offset += crossAddressLen
 
-	// 解析 initiator
+	// parse initiator
 	initiator := data[offset : offset+crossAddressLen]
 	offset += crossAddressLen
 
-	// 解析 minAmountOut (128 位整数)
-	minAmountOut := binary.BigEndian.Uint64(data[offset+24 : offset+32]) // 低 8 字节
+	// parse minAmountOut (128)
+	minAmountOut := binary.BigEndian.Uint64(data[offset+24 : offset+32]) // lower 8 bit
 	offset += 32
 
-	// 解析 relay
+	// parse relay
 	relay := data[offset]
 	offset++
 
-	// 解析 messageType
+	// parse messageType
 	messageType := data[offset]
 
-	// 返回解析结果
+	// return parse result
 	relayBool, err := strconv.ParseBool(fmt.Sprintf("%x", relay))
 	if err != nil {
 		return nil, err

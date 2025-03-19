@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"io"
 	"math/big"
 	"net/http"
@@ -15,7 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
 )

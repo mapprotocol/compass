@@ -5,10 +5,10 @@ package core
 
 import (
 	"fmt"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"sync"
 
 	log "github.com/ChainSafe/log15"
-	"github.com/mapprotocol/compass/msg"
 )
 
 // Writer consumes a message and makes the requried on-chain interactions.

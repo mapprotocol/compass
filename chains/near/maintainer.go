@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"time"
 
@@ -11,8 +13,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/mapprotocol/compass/internal/near"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/near-api-go/pkg/client/block"
 )
 

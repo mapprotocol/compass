@@ -9,6 +9,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 
@@ -25,8 +27,6 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/pkg/errors"
 )

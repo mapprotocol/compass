@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 	"time"
@@ -15,8 +17,6 @@ import (
 	"github.com/mapprotocol/compass/internal/eth2"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/mapprotocol/compass/internal/tx"
-	"github.com/mapprotocol/compass/mapprotocol"
-	"github.com/mapprotocol/compass/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 )
