@@ -45,6 +45,7 @@ var (
 	EthFrom               = "ethFrom"
 	FeeKey                = "feeKey"
 	FeeType               = "feeType"
+	EnergySupply          = "energySupply"
 	Private               = "private"
 	Words                 = "words"
 	Rent                  = "rent"
