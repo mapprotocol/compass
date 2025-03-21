@@ -140,7 +140,6 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 		}
 		idx = i
 	}
-
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
 		pd := ProofData{
@@ -162,6 +161,8 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 		ret, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: common.BytesToHash(header[0].ReceiptsRoot),
 		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
+	default:
+
 	}
 
 	return ret, nil

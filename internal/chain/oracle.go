@@ -222,7 +222,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			}
 			receipt, err = GenLogReceipt(&tmp)
 			idx := log.Index
-			if m.Cfg.Id != constant.CfxChainId && m.Cfg.Id != constant.MapChainId {
+			if m.Cfg.Id != constant.CfxChainId && m.Cfg.Id != constant.MapChainId && m.Cfg.Id != constant.BscChainId {
 				idx = 0
 			}
 			targetBn = proof.GenLogBlockNumber(blockNumber, idx) // update block number

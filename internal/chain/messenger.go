@@ -268,7 +268,7 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 		}
 
 		idx := log.Index
-		if selfId != constant.CfxChainId && selfId != constant.MapChainId {
+		if selfId != constant.CfxChainId && selfId != constant.MapChainId && selfId != constant.BscChainId {
 			idx = 0
 		}
 		bn = proof.GenLogBlockNumber(bn, idx)
