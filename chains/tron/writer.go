@@ -345,7 +345,7 @@ func (w *Writer) rentEnergy(used int64, method string) error {
 	}
 	w.log.Info("CheckEnergy, account detail", "account", w.cfg.EnergySupply, "energy", resource.EnergyLimit, "used", resource.EnergyUsed)
 	if (resource.EnergyLimit - resource.EnergyUsed) < waterLine {
-		return errors.New("account not have enough balance(330 trx)")
+		return errors.New(fmt.Sprintf("Energy Less than 300000, energy=%d", resource.EnergyLimit-resource.EnergyUsed))
 	}
 
 	if !w.cfg.Rent {
