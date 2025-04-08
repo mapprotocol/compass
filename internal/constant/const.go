@@ -127,11 +127,6 @@ const (
 	FilterBtcLogUrl = "api/v1/logs"
 )
 
-var (
-	MapLogIdx  = make(map[string]int64)
-	MapOrderId = make(map[string][32]byte)
-)
-
 const (
 	FeeRentType = "fee.io"
 )

@@ -181,7 +181,7 @@ func messagerHandler(m *sync) (int64, error) {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
 	m.Log.Info("Sol2Evm msger generate", "receiptHash", receiptHash)
-	proposalInfo, err := getSigner(log.BlockNumber, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
+	proposalInfo, err := chain.GetSigner(big.NewInt(log.BlockNumber), *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
 		return 0, err
 	}
@@ -340,23 +340,4 @@ func genReceipt(log *Log) (*common.Hash, []byte, error) {
 	}
 	receipt := common.BytesToHash(crypto.Keccak256(receiptPack))
 	return &receipt, receiptPack, nil
-}
-
-func getSigner(blockNumber int64, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
-	bn := big.NewInt(blockNumber)
-	ret, err := chain.MulSignInfo(0, toChainID)
-	if err != nil {
-		return nil, err
-	}
-
-	piRet, err := chain.ProposalInfo(0, selfId, toChainID, bn, receiptHash, ret.Version)
-	if err != nil {
-		return nil, err
-	}
-
-	if !piRet.CanVerify {
-		return nil, chain.NotVerifyAble
-	}
-
-	return piRet, nil
 }

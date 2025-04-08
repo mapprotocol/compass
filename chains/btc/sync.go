@@ -164,7 +164,7 @@ func mos(m *sync, log *MessageOut) error {
 	}
 	m.Log.Info("Btc2Evm mos generate", "receiptHash", receiptHash)
 	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), uint(log.Id))
-	proposalInfo, err := getSigner(bn, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
+	proposalInfo, err := chain.GetSigner(bn, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
 		return err
 	}
@@ -366,22 +366,4 @@ type T struct {
 	GasLimit     string `json:"gas_limit"`
 	MinOutAmount string `json:"min_out_amount"`
 	SwapData     string `json:"swap_data"`
-}
-
-func getSigner(bn *big.Int, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
-	ret, err := chain.MulSignInfo(0, toChainID)
-	if err != nil {
-		return nil, err
-	}
-
-	piRet, err := chain.ProposalInfo(0, selfId, toChainID, bn, receiptHash, ret.Version)
-	if err != nil {
-		return nil, err
-	}
-
-	if !piRet.CanVerify {
-		return nil, chain.NotVerifyAble
-	}
-
-	return piRet, nil
 }

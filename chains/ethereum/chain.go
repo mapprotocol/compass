@@ -294,7 +294,7 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 			receipts = append(receipts, lr)
 		}
 
-		_, ret, err = mapo.AssembleMapProof(client, log, receipts, header, 22776, method, "", proofType, sign, orderId32)
+		_, ret, err = mapo.AssembleMapProof(client, log, receipts, header, constant.MapChainId, method, "", proofType, sign, orderId32)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}

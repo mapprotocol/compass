@@ -188,9 +188,6 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 					w.log.Warn("TxHash status is not successful, will retry", "err", err)
 				} else {
 					w.newReturn(method)
-					w.log.Info("Success idx ", "src", inputHash, "idx", constant.MapLogIdx[inputHash.(common.Hash).Hex()])
-					constant.MapLogIdx["0x"+mcsTx] = constant.MapLogIdx[inputHash.(common.Hash).Hex()]
-					w.log.Info("Success idx ", "des", "0x"+mcsTx, "idx", constant.MapLogIdx["0x"+mcsTx])
 					m.DoneCh <- struct{}{}
 					return true
 				}
@@ -333,21 +330,10 @@ func (w *Writer) checkOrderId(toAddress string, input []byte) (bool, error) {
 }
 
 var (
-	wei       = big.NewFloat(1000000)
-	waterLine = int64(300000)
+	wei = big.NewFloat(1000000)
 )
 
 func (w *Writer) rentEnergy(used int64, method string) error {
-	resource, err := w.conn.cli.GetAccountResource(w.cfg.EnergySupply)
-	if err != nil {
-		w.log.Error("CheckEnergy GetAccountResource failed", "account", w.cfg.EnergySupply, "err", err)
-		return err
-	}
-	w.log.Info("CheckEnergy, account detail", "account", w.cfg.EnergySupply, "energy", resource.EnergyLimit, "used", resource.EnergyUsed)
-	if (resource.EnergyLimit - resource.EnergyUsed) < waterLine {
-		return errors.New(fmt.Sprintf("Energy Less than 300000, energy=%d", resource.EnergyLimit-resource.EnergyUsed))
-	}
-
 	if !w.cfg.Rent {
 		w.log.Info("dont need rent energy, cfg is false")
 		return nil

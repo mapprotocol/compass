@@ -107,6 +107,7 @@ require (
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
+	github.com/xyield/xrpl-go v0.0.0-20230914223425-9abe75c05830 // indirect
 	github.com/zondax/hid v0.9.1 // indirect
 	go.mongodb.org/mongo-driver v1.12.2 // indirect
 	go.uber.org/atomic v1.7.0 // indirect

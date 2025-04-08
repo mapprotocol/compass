@@ -288,7 +288,7 @@ func (w *Writer) txStatus(txHash solana.Signature) error {
 }
 
 func (w *Writer) mosAlarm(tx interface{}, err error) {
-	util.Alarm(context.Background(), fmt.Sprintf("mos map2tron failed, srcHash=%v err is %s", tx, err.Error()))
+	util.Alarm(context.Background(), fmt.Sprintf("mos map2sol failed, srcHash=%v err is %s", tx, err.Error()))
 }
 
 func (w *Writer) solCrossIn(toToken, receiver, minAmount string, l *types.Log, relayData *MessageData) (*butter.SolCrossInResp, error) {
@@ -372,7 +372,7 @@ func DecodeRelayData(data string) (*MessageData, error) {
 
 	tokenAmount := parseBigInt(16, 16)
 	ret.TokenAmount = tokenAmount
-	fmt.Println("tokenAmount, ", ret.TokenAmount)
+	fmt.Println("tokenAmount, ", ret.TokenAmount.String())
 
 	// Calculate dynamic offsets
 	start := 32

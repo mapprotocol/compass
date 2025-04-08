@@ -41,9 +41,11 @@ func (s *ProofSrv) TxExec(req *stream.TxExecOfRequest) (map[string]interface{}, 
 		}
 		return s.RouterExecSwap(s.cfg.Other.Butter, req.DesChain, req.DesTxHash, req.Slippage)
 	case constant.StatusOfInit:
-		desChain := req.RelayChain
-		if desChain == "null" {
-			desChain = req.DesChain
+		desChain := req.DesChain
+		desChainInt, _ := strconv.ParseInt(desChain, 10, 64)
+		srcChainInt, _ := strconv.ParseInt(req.SrcChain, 10, 64)
+		if srcChainInt != constant.MapChainId && desChainInt != constant.MapChainId {
+			desChain = string(rune(constant.MapChainId))
 		}
 		return s.SuccessProof(req.SrcChain, desChain, req.SrcBlockNumber, req.SrcLogIndex)
 	case constant.StatusOfRelayFinish:
@@ -208,7 +210,7 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 	}
 	var sign [][]byte
 	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
-		ret, err := chain.Signer(srcClient, srcChainId, 22776, &targetLog, proofType)
+		ret, err := chain.Signer(srcClient, srcChainId, constant.MapChainId, &targetLog, proofType)
 		if errors.Is(err, chain.NotVerifyAble) {
 			oracle, err := chain.DefaultOracle(int64(srcChainId), proofType, &targetLog, srcClient, s.pri) // private
 			if err != nil {
