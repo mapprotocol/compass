@@ -119,6 +119,7 @@ const (
 )
 const (
 	ProjectOfMsger  = int64(1)
+	ProjectOfOther  = int64(7)
 	ProjectOfOracle = int64(8)
 )
 const (

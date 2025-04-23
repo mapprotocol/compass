@@ -1,6 +1,8 @@
 package contract
 
 import (
+	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/contract"
 	"math/big"
@@ -43,6 +45,12 @@ func (v *validator) Validate(param *SwapDataValidator) (bool, error) {
 }
 
 func Validate(relay bool, dstChain, dstMinAmount *big.Int, dstToken, dstReceiver, swapData []byte) (bool, error) {
+	fmt.Println("relay ", relay)
+	fmt.Println("dstChain ", dstChain)
+	fmt.Println("dstMinAmount ", dstMinAmount)
+	fmt.Println("dstToken ", common.Bytes2Hex(dstToken))
+	fmt.Println("dstReceiver ", common.Bytes2Hex(dstReceiver))
+	fmt.Println("swapData ", common.Bytes2Hex(swapData))
 	return defaultValidator.Validate(&SwapDataValidator{
 		Relay:        relay,
 		DstChain:     dstChain,

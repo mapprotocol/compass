@@ -272,11 +272,6 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 		return nil, nil, errors.Wrap(err, "decode bridge param failed")
 	}
 
-	//fmt.Printf("Relay: %t\n", bridgeParam.Relay)
-	//fmt.Printf("Referrer: %s\n", bridgeParam.Referrer.Hex())
-	//fmt.Printf("TransferID: %x\n", bridgeParam.TransferId)
-	//fmt.Printf("GasLimit: %s\n", bridgeParam.GasLimit.String())
-	//fmt.Printf("SwapData: %x\n", bridgeParam.SwapData)
 	to := common.Hex2Bytes(strings.TrimPrefix(log.To, "0x"))
 	dstToken := common.Hex2Bytes(strings.TrimPrefix(log.DstToken, "0x"))
 	if len(bridgeParam.SwapData) > 0 {

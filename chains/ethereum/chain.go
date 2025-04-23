@@ -184,13 +184,13 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 		return nil, fmt.Errorf("build Proof failed, err: %w", err)
 	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
-
 		msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash, method}
 		message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		switch toChainID {
 		case constant.MerlinChainId:
 			message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		case constant.SolTestChainId:
+			fallthrough
 		case constant.SolMainChainId:
 			msgPayload = []interface{}{log, sign, method}
 			message = msg.NewSolProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)

@@ -128,7 +128,7 @@ func mos(m *sync, log *stream.GetMosResp) error {
 		return errors.Wrap(err, "gen receipt failed")
 	}
 	m.Log.Info("Xrp2Evm mos generate", "receiptHash", receiptHash)
-	bn := proof.GenLogBlockNumber(big.NewInt(int64(log.BlockNumber)), uint(log.Id))
+	bn := proof.GenLogBlockNumber(big.NewInt(int64(log.BlockNumber)), log.LogIndex)
 	proposalInfo, err := chain.GetSigner(bn, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
 		return err
@@ -191,7 +191,7 @@ func oracle(m *sync, log *stream.GetMosResp) error {
 		version = append(version, v)
 	}
 
-	bn := proof.GenLogBlockNumber(big.NewInt(int64(log.BlockNumber)), uint(log.Id))
+	bn := proof.GenLogBlockNumber(big.NewInt(int64(log.BlockNumber)), log.LogIndex)
 	input, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receiptHash,
 		ret.Version, bn, big.NewInt(int64(m.Cfg.Id)))
 	if err != nil {

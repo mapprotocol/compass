@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gagliardetto/solana-go"
+	"github.com/mapprotocol/compass/internal/abi"
+	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/mapprotocol/compass/pkg/msg"
+	"github.com/mr-tron/base58"
 	"math/big"
-	"strconv"
 	"strings"
 	"time"
 
@@ -85,20 +87,26 @@ type Log struct {
 	TxHash      string `json:"txHash"`
 }
 
-type LogData struct {
-	OrderId     string `json:"orderId"`
-	Relay       int    `json:"relay"`
-	MessageType int    `json:"messageType"`
-	FromChain   string `json:"fromChain"`
-	ToChain     string `json:"toChain"`
-	Mos         string `json:"mos"`
-	Token       string `json:"token"`
-	Initiator   string `json:"initiator"`
-	From        string `json:"from"`
-	To          string `json:"to"`
-	Amount      string `json:"amount"`
-	GasLimit    string `json:"gasLimit"`
-	SwapData    string `json:"swapData"`
+type CrossOutData struct {
+	Relay                     bool   `json:"relay"`
+	OrderId                   string `json:"orderId"`
+	TokenAmount               string `json:"tokenAmount"`
+	From                      []byte `json:"from"`
+	FromToken                 []byte `json:"fromToken"`
+	ToToken                   []byte `json:"toToken"`
+	SwapTokenOut              string `json:"swapTokenOut"`
+	SwapTokenOutMinAmountOut  string `json:"swapTokenOutMinAmountOut"`
+	MinAmountOut              string `json:"minAmountOut"`
+	SwapTokenOutBeforeBalance string `json:"swapTokenOutBeforeBalance"`
+	AfterBalance              string `json:"afterBalance"`
+	Receiver                  string `json:"receiver"`
+	OriginReceiver            []byte `json:"originReceiver"`
+	ToChain                   string `json:"toChain"`
+	FromChainId               string `json:"fromChainId"`
+	AmountOut                 string `json:"amountOut"`
+	RefererId                 []int  `json:"refererId"`
+	FeeRatio                  []int  `json:"feeRatio"`
+	SwapData                  string `json:"swapData"`
 }
 
 func filter(m *sync) (*Log, error) {
@@ -112,7 +120,7 @@ func filter(m *sync) (*Log, error) {
 
 	data, err := chain.Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
 		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)))
+			m.Cfg.StartBlock.Int64(), constant.ProjectOfOther, m.Cfg.Id, topic)))
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +153,7 @@ func filter(m *sync) (*Log, error) {
 		}
 		ret = Log{
 			Id:          ele.Id,
-			BlockNumber: int64(ele.BlockNumber),
+			BlockNumber: int64(ele.BlockNumber + 1),
 			Addr:        ele.ContractAddress,
 			Topic:       ele.Topic,
 			Data:        ele.LogData,
@@ -167,7 +175,7 @@ func match(addr string, target []string) int {
 	return -1
 }
 
-func messagerHandler(m *sync) (int64, error) {
+func mosHandler(m *sync) (int64, error) {
 	// 通过 filter 过滤
 	log, err := filter(m)
 	if err != nil {
@@ -176,7 +184,7 @@ func messagerHandler(m *sync) (int64, error) {
 	if log == nil || log.Id == 0 {
 		return 0, nil
 	}
-	receiptHash, receiptPack, err := genReceipt(log)
+	receiptHash, receiptPack, err := m.genReceipt(log)
 	if err != nil {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
@@ -202,7 +210,7 @@ func messagerHandler(m *sync) (int64, error) {
 		return 0, errors.Wrap(err, "pack getBytes failed")
 	}
 
-	tmpData := LogData{}
+	tmpData := CrossOutData{}
 	err = json.Unmarshal([]byte(log.Data), &tmpData)
 	if err != nil {
 		return 0, errors.Wrap(err, "unmarshal resp.Data failed")
@@ -240,7 +248,7 @@ func oracleHandler(m *sync) (int64, error) {
 		return 0, nil
 	}
 
-	receiptHash, _, err := genReceipt(log)
+	receiptHash, _, err := m.genReceipt(log)
 	if err != nil {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
@@ -273,57 +281,89 @@ func oracleHandler(m *sync) (int64, error) {
 	return log.Id, nil
 }
 
-func genReceipt(log *Log) (*common.Hash, []byte, error) {
+const (
+	UsdcOfSol = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+)
+
+func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 	// 解析
-	tmpData := LogData{}
+	tmpData := CrossOutData{}
 	err := json.Unmarshal([]byte(log.Data), &tmpData)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "unmarshal resp.Data failed")
 	}
-	fromChain, ok := big.NewInt(0).SetString(tmpData.FromChain, 16)
+	fromChain, ok := big.NewInt(0).SetString(tmpData.FromChainId, 16)
 	if !ok {
-		return nil, nil, fmt.Errorf("invalid fromChain (%s)", tmpData.FromChain)
+		return nil, nil, fmt.Errorf("invalid fromChain (%s)", tmpData.FromChainId)
 	}
 	toChain, ok := big.NewInt(0).SetString(tmpData.ToChain, 16)
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid toChain (%s)", tmpData.ToChain)
 	}
-	amount, ok := big.NewInt(0).SetString(tmpData.Amount, 16)
+	amount, ok := big.NewInt(0).SetString(tmpData.AmountOut, 16)
 	if !ok {
-		return nil, nil, fmt.Errorf("invalid amount (%s)", tmpData.Amount)
+		return nil, nil, fmt.Errorf("invalid amount (%s)", tmpData.TokenAmount)
 	}
-	gasLimit, ok := big.NewInt(0).SetString(tmpData.GasLimit, 16)
+	minAmount, ok := big.NewInt(0).SetString(tmpData.MinAmountOut, 16)
 	if !ok {
-		return nil, nil, fmt.Errorf("invalid gasLimit (%s)", tmpData.GasLimit)
+		return nil, nil, fmt.Errorf("invalid minAmount (%s)", tmpData.MinAmountOut)
 	}
-
 	orderId := common.HexToHash(tmpData.OrderId)
-	token := common.Hex2Bytes(tmpData.Token)
-	form := common.Hex2Bytes(tmpData.From)
-	to := common.Hex2Bytes(tmpData.To)
-	initiator := common.Hex2Bytes(tmpData.Initiator)
-	swapData := common.Hex2Bytes(tmpData.SwapData)
-	mos := common.Hex2Bytes(tmpData.Mos)
-	relayBool, err := strconv.ParseBool(fmt.Sprintf("%x", tmpData.Relay))
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "parse relay flag failed")
+	token := tmpData.ToToken[:20]
+	form := tmpData.From
+	to := common.Hex2Bytes(strings.TrimPrefix(tmpData.Receiver, "0x"))
+	fmt.Println("toRToken -------------------------- ", token, " ----- ", amount, "len(tmpData.SwapData)", len(tmpData.SwapData))
+
+	bridgeParam := &abi.BridgeParam{}
+	if len(tmpData.SwapData) > 0 {
+		bridgeParam, err = abi.DecodeBridgeParam(common.Hex2Bytes(strings.TrimPrefix(tmpData.SwapData, "0x")))
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "decode bridge param failed")
+		}
+
+		if len(bridgeParam.SwapData) > 0 {
+			// check swapData
+			pass, err := contract.Validate(tmpData.Relay, toChain, minAmount, token, tmpData.OriginReceiver[:20], bridgeParam.SwapData)
+			if err != nil {
+				return nil, nil, err
+			}
+			if !pass {
+				return nil, nil, fmt.Errorf("invalid swapData (%s)", tmpData.SwapData)
+			}
+		}
 	}
 
+	bridgeToken := make([]byte, 0)
+	if tmpData.SwapTokenOut == m.cfg.UsdcAda {
+		bridgeToken, _ = base58.Decode(UsdcOfSol)
+	}
 	eo := mapprotocol.MessageOutEvent{
 		FromChain:   fromChain,
 		ToChain:     toChain,
 		OrderId:     orderId,
 		Amount:      amount,
-		Token:       token,
+		Token:       bridgeToken,
 		From:        form,
-		SwapData:    swapData,
-		GasLimit:    gasLimit,
-		Mos:         mos,
-		Initiator:   initiator,
-		Relay:       relayBool,
-		MessageType: uint8(tmpData.MessageType),
+		SwapData:    bridgeParam.SwapData,
+		GasLimit:    big.NewInt(0),
+		Mos:         common.Hex2Bytes("0000317bec33af037b5fab2028f52d14658f6a56"),
+		Initiator:   form,
+		Relay:       tmpData.Relay,
+		MessageType: uint8(3),
 		To:          to,
 	}
+
+	fmt.Println("eo.From", base58.Encode(eo.From))
+	fmt.Println("eo.Initiator", base58.Encode(eo.Initiator))
+	fmt.Println("eo.Relay", eo.Relay)
+	fmt.Println("eo.to", common.Bytes2Hex(eo.To))
+	fmt.Println("eo.FromChain", eo.FromChain)
+	fmt.Println("eo.ToChain", eo.ToChain)
+	fmt.Println("eo.OrderId", eo.OrderId)
+	fmt.Println("eo.Amount", eo.Amount)
+	fmt.Println("eo.Token", common.Bytes2Hex(eo.Token))
+	fmt.Println("eo.SwapData", common.Bytes2Hex(bridgeParam.SwapData))
+
 	data, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolEventEncode].Inputs.Pack(&eo)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal event code failed")
@@ -334,7 +374,7 @@ func genReceipt(log *Log) (*common.Hash, []byte, error) {
 		addr = append(addr, ele)
 	}
 	// abi
-	receiptPack, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolPackReceipt].Inputs.Pack(addr, []byte(log.Topic), data)
+	receiptPack, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolPackReceipt].Inputs.Pack(addr, []byte("MessageOutEvent"), data) // temp
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal sol pack failed")
 	}

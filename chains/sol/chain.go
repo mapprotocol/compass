@@ -55,7 +55,7 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 
 	switch role {
 	case mapprotocol.RoleOfMessenger:
-		listen = newSync(cs, messagerHandler, conn, config)
+		listen = newSync(cs, mosHandler, conn, config)
 	case mapprotocol.RoleOfOracle:
 		listen = newSync(cs, oracleHandler, conn, config)
 	}
