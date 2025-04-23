@@ -70,7 +70,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			}
 			w.log.Info("Relay data", "receiver", base58.Encode(relayData.Receiver), "dstToken", base58.Encode(relayData.DstToken), "outAmount", relayData.OutAmount)
 			if relayData.Swap != nil {
-				w.log.Info("Relay Swap data", "to", base58.Encode(relayData.Swap.ToToken), "receiver", base58.Encode(relayData.Swap.Receiver),
+				w.log.Info("Relay Swap data", "toToken", base58.Encode(relayData.Swap.ToToken), "receiver", base58.Encode(relayData.Swap.Receiver),
 					"amount", relayData.Swap.MinAmount)
 			}
 			resp, err := w.solCrossIn(log, relayData)
