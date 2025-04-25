@@ -112,6 +112,7 @@ const (
 	SolMainChainId    = 1360108768460801
 	NearChainId       = 1360100178526209
 	TonChainId        = 1360104473493506
+	BtcChainId        = 1360095883558913
 )
 
 const (

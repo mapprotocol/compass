@@ -323,7 +323,14 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 
 		if len(bridgeParam.SwapData) > 0 {
 			// check swapData
-			pass, err := contract.Validate(tmpData.Relay, toChain, minAmount, token, tmpData.OriginReceiver[:20], bridgeParam.SwapData)
+			rece := tmpData.OriginReceiver[13:]
+			if toChain.Int64() == constant.BtcChainId {
+				rece = tmpData.OriginReceiver[12:]
+			}
+			if common.Bytes2Hex(token) == "0000000000000000000000000000000000425443" {
+				token = common.Hex2Bytes("425443")
+			}
+			pass, err := contract.Validate(tmpData.Relay, toChain, minAmount, token, rece, bridgeParam.SwapData)
 			if err != nil {
 				return nil, nil, err
 			}
