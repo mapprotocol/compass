@@ -160,3 +160,8 @@ const (
 const (
 	ProofTypeOfContract = iota + 1
 )
+
+const (
+	TokenLongAddressOfBtc  = "0x0000000000000000000000000000000000425443"
+	TokenShortAddressOfBtc = "0x425443"
+)

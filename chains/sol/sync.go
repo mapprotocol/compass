@@ -312,7 +312,6 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 	token := tmpData.ToToken[:20]
 	form := tmpData.From
 	to := common.Hex2Bytes(strings.TrimPrefix(tmpData.Receiver, "0x"))
-	fmt.Println("toRToken -------------------------- ", token, " ----- ", amount, "len(tmpData.SwapData)", len(tmpData.SwapData))
 
 	bridgeParam := &abi.BridgeParam{}
 	if len(tmpData.SwapData) > 0 {

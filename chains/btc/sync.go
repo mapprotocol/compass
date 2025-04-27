@@ -12,6 +12,7 @@ import (
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/mapprotocol/compass/pkg/msg"
+	"github.com/mr-tron/base58"
 	"math/big"
 	"strings"
 	"time"
@@ -274,10 +275,17 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 
 	to := common.Hex2Bytes(strings.TrimPrefix(log.To, "0x"))
 	dstToken := common.Hex2Bytes(strings.TrimPrefix(log.DstToken, "0x"))
+	if toChain.Int64() == constant.SolMainChainId {
+		dstToken, _ = base58.Decode(log.DstToken)
+	}
 	if len(bridgeParam.SwapData) > 0 {
 		// check swapData
+		receiver := common.Hex2Bytes(strings.TrimPrefix(log.Receiver, "0x"))
+		if toChain.Int64() == constant.SolMainChainId {
+			receiver, _ = base58.Decode(log.Receiver)
+		}
 		pass, err := contract.Validate(log.Relay, toChain, minAmount, dstToken,
-			common.Hex2Bytes(strings.TrimPrefix(log.Receiver, "0x")), bridgeParam.SwapData)
+			receiver, bridgeParam.SwapData)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -286,6 +294,9 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 		}
 	}
 
+	if log.SrcToken == constant.TokenLongAddressOfBtc {
+		log.SrcToken = constant.TokenShortAddressOfBtc
+	}
 	eo := mapprotocol.MessageOutEvent{
 		FromChain:   fromChain,
 		ToChain:     toChain,
