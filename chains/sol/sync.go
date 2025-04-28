@@ -324,7 +324,11 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 			// check swapData
 			rece := tmpData.OriginReceiver[13:]
 			if toChain.Int64() == constant.BtcChainId {
-				rece = tmpData.OriginReceiver[12:]
+				if isFirst12Zero(tmpData.OriginReceiver) {
+					rece = tmpData.OriginReceiver[12:]
+				} else {
+					rece = tmpData.OriginReceiver[:]
+				}
 			}
 			if common.Bytes2Hex(token) == "0000000000000000000000000000000000425443" {
 				token = common.Hex2Bytes("425443")
@@ -386,4 +390,16 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 	}
 	receipt := common.BytesToHash(crypto.Keccak256(receiptPack))
 	return &receipt, receiptPack, nil
+}
+
+func isFirst12Zero(data []byte) bool {
+	if len(data) < 12 {
+		return false
+	}
+	for i := 0; i < 12; i++ {
+		if data[i] != 0 {
+			return false
+		}
+	}
+	return true
 }
