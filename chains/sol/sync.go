@@ -153,7 +153,7 @@ func filter(m *sync) (*Log, error) {
 		}
 		ret = Log{
 			Id:          ele.Id,
-			BlockNumber: int64(ele.BlockNumber + 1),
+			BlockNumber: int64(ele.BlockNumber),
 			Addr:        ele.ContractAddress,
 			Topic:       ele.Topic,
 			Data:        ele.LogData,
@@ -283,6 +283,7 @@ func oracleHandler(m *sync) (int64, error) {
 
 const (
 	UsdcOfSol = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+	WsolOfSol = "So11111111111111111111111111111111111111112"
 )
 
 func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
@@ -346,6 +347,8 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 	bridgeToken := make([]byte, 0)
 	if tmpData.SwapTokenOut == m.cfg.UsdcAda {
 		bridgeToken, _ = base58.Decode(UsdcOfSol)
+	} else if tmpData.SwapTokenOut == m.cfg.UsdcAda {
+		bridgeToken, _ = base58.Decode(WsolOfSol)
 	}
 	eo := mapprotocol.MessageOutEvent{
 		FromChain:   fromChain,
