@@ -153,7 +153,7 @@ func filter(m *sync) (*Log, error) {
 		}
 		ret = Log{
 			Id:          ele.Id,
-			BlockNumber: int64(ele.BlockNumber - 1),
+			BlockNumber: int64(ele.BlockNumber),
 			Addr:        ele.ContractAddress,
 			Topic:       ele.Topic,
 			Data:        ele.LogData,
