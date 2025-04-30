@@ -153,7 +153,7 @@ func filter(m *sync) (*Log, error) {
 		}
 		ret = Log{
 			Id:          ele.Id,
-			BlockNumber: int64(ele.BlockNumber),
+			BlockNumber: int64(ele.BlockNumber - 1),
 			Addr:        ele.ContractAddress,
 			Topic:       ele.Topic,
 			Data:        ele.LogData,
@@ -347,7 +347,7 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 	bridgeToken := make([]byte, 0)
 	if tmpData.SwapTokenOut == m.cfg.UsdcAda {
 		bridgeToken, _ = base58.Decode(UsdcOfSol)
-	} else if tmpData.SwapTokenOut == m.cfg.UsdcAda {
+	} else if tmpData.SwapTokenOut == m.cfg.WsolAda {
 		bridgeToken, _ = base58.Decode(WsolOfSol)
 	}
 	eo := mapprotocol.MessageOutEvent{
