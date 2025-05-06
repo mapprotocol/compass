@@ -112,6 +112,7 @@ const (
 	SolMainChainId    = 1360108768460801
 	NearChainId       = 1360100178526209
 	TonChainId        = 1360104473493506
+	BtcChainId        = 1360095883558913
 )
 
 const (
@@ -119,17 +120,13 @@ const (
 )
 const (
 	ProjectOfMsger  = int64(1)
+	ProjectOfOther  = int64(7)
 	ProjectOfOracle = int64(8)
 )
 const (
 	FilterUrl       = "v1/mos/list"
 	FilterBlockUrl  = "v1/block"
 	FilterBtcLogUrl = "api/v1/logs"
-)
-
-var (
-	MapLogIdx  = make(map[string]int64)
-	MapOrderId = make(map[string][32]byte)
 )
 
 const (
@@ -162,4 +159,9 @@ const (
 
 const (
 	ProofTypeOfContract = iota + 1
+)
+
+const (
+	TokenLongAddressOfBtc  = "0x0000000000000000000000000000000000425443"
+	TokenShortAddressOfBtc = "0x425443"
 )

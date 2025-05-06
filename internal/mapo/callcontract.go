@@ -229,8 +229,6 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 			idx = i
 		}
 
-		constant.MapLogIdx[log.TxHash.Hex()] = int64(idx)
-		constant.MapOrderId[log.TxHash.Hex()] = orderId
 		switch proofType {
 		case constant.ProofTypeOfZk:
 			zkProof, err := mapprotocol.GetZkProof(zkUrl, fId, header.Number.Uint64())

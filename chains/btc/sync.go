@@ -12,6 +12,7 @@ import (
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/mapprotocol/compass/pkg/msg"
+	"github.com/mr-tron/base58"
 	"math/big"
 	"strings"
 	"time"
@@ -164,7 +165,7 @@ func mos(m *sync, log *MessageOut) error {
 	}
 	m.Log.Info("Btc2Evm mos generate", "receiptHash", receiptHash)
 	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), uint(log.Id))
-	proposalInfo, err := getSigner(bn, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
+	proposalInfo, err := chain.GetSigner(bn, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
 		return err
 	}
@@ -272,17 +273,19 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 		return nil, nil, errors.Wrap(err, "decode bridge param failed")
 	}
 
-	//fmt.Printf("Relay: %t\n", bridgeParam.Relay)
-	//fmt.Printf("Referrer: %s\n", bridgeParam.Referrer.Hex())
-	//fmt.Printf("TransferID: %x\n", bridgeParam.TransferId)
-	//fmt.Printf("GasLimit: %s\n", bridgeParam.GasLimit.String())
-	//fmt.Printf("SwapData: %x\n", bridgeParam.SwapData)
 	to := common.Hex2Bytes(strings.TrimPrefix(log.To, "0x"))
 	dstToken := common.Hex2Bytes(strings.TrimPrefix(log.DstToken, "0x"))
+	if toChain.Int64() == constant.SolMainChainId {
+		dstToken, _ = base58.Decode(log.DstToken)
+	}
 	if len(bridgeParam.SwapData) > 0 {
 		// check swapData
+		receiver := common.Hex2Bytes(strings.TrimPrefix(log.Receiver, "0x"))
+		if toChain.Int64() == constant.SolMainChainId {
+			receiver, _ = base58.Decode(log.Receiver)
+		}
 		pass, err := contract.Validate(log.Relay, toChain, minAmount, dstToken,
-			common.Hex2Bytes(strings.TrimPrefix(log.Receiver, "0x")), bridgeParam.SwapData)
+			receiver, bridgeParam.SwapData)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -291,6 +294,9 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 		}
 	}
 
+	if log.SrcToken == constant.TokenLongAddressOfBtc {
+		log.SrcToken = constant.TokenShortAddressOfBtc
+	}
 	eo := mapprotocol.MessageOutEvent{
 		FromChain:   fromChain,
 		ToChain:     toChain,
@@ -366,22 +372,4 @@ type T struct {
 	GasLimit     string `json:"gas_limit"`
 	MinOutAmount string `json:"min_out_amount"`
 	SwapData     string `json:"swap_data"`
-}
-
-func getSigner(bn *big.Int, receiptHash common.Hash, selfId, toChainID uint64) (*chain.ProposalInfoResp, error) {
-	ret, err := chain.MulSignInfo(0, toChainID)
-	if err != nil {
-		return nil, err
-	}
-
-	piRet, err := chain.ProposalInfo(0, selfId, toChainID, bn, receiptHash, ret.Version)
-	if err != nil {
-		return nil, err
-	}
-
-	if !piRet.CanVerify {
-		return nil, chain.NotVerifyAble
-	}
-
-	return piRet, nil
 }

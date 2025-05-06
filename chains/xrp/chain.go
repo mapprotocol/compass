@@ -1,9 +1,8 @@
-package sol
+package xrp
 
 import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/gagliardetto/solana-go"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
@@ -32,17 +31,6 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		return nil, err
 	}
 
-	conn := NewConnection(config.Endpoint, logger)
-	err = conn.Connect()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = solana.PrivateKeyFromBase58(config.Pri)
-	if err != nil {
-		return nil, err
-	}
-
 	var (
 		stop   = make(chan int)
 		listen core.Listener
@@ -55,18 +43,16 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 
 	switch role {
 	case mapprotocol.RoleOfMessenger:
-		listen = newSync(cs, mosHandler, conn, config)
+		listen = newSync(cs, handler(mos), config)
 	case mapprotocol.RoleOfOracle:
-		listen = newSync(cs, oracleHandler, conn, config)
+		listen = newSync(cs, handler(oracle), config)
 	}
-	mapprotocol.MosMapping[config.Id] = config.McsContract[0]
 
 	return &Chain{
-		conn:   conn,
 		stop:   stop,
 		listen: listen,
 		cfg:    chainCfg,
-		writer: newWriter(conn, config, logger, stop, sysErr),
+		writer: newWriter(config, logger, stop, sysErr),
 	}, nil
 }
 

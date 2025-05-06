@@ -5,19 +5,19 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
-
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/pkg/ethclient"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 )
 
@@ -299,4 +299,22 @@ func personalSign(message string, privateKey *ecdsa.PrivateKey) ([]byte, error) 
 	}
 	signatureBytes[64] += 27
 	return signatureBytes, nil
+}
+
+func GetSigner(blockNumber *big.Int, receiptHash common.Hash, selfId, toChainID uint64) (*ProposalInfoResp, error) {
+	ret, err := MulSignInfo(0, toChainID)
+	if err != nil {
+		return nil, err
+	}
+
+	piRet, err := ProposalInfo(0, selfId, toChainID, blockNumber, receiptHash, ret.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	if !piRet.CanVerify {
+		return nil, NotVerifyAble
+	}
+
+	return piRet, nil
 }

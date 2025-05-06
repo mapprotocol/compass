@@ -30,6 +30,7 @@ func (b *Butter) RetryMessageIn(domain, query string) ([]byte, error) {
 }
 
 func (b *Butter) SolCrossIn(domain, query string) (*SolCrossInResp, error) {
+	fmt.Println("SolCrossIn uri ", fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
 	body, err := client.JsonGet(fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
 	if err != nil {
 		return nil, err
