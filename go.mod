@@ -19,7 +19,6 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.24.1
 	github.com/xssnick/tonutils-go v1.10.2
-	golang.org/x/crypto v0.23.0
 	golang.org/x/term v0.20.0
 	google.golang.org/grpc v1.41.0
 )
@@ -107,7 +106,6 @@ require (
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/xyield/xrpl-go v0.0.0-20230914223425-9abe75c05830 // indirect
 	github.com/zondax/hid v0.9.1 // indirect
 	go.mongodb.org/mongo-driver v1.12.2 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
@@ -115,6 +113,7 @@ require (
 	go.uber.org/ratelimit v0.2.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect

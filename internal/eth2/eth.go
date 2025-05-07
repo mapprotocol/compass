@@ -35,7 +35,7 @@ func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 	}
 	w.WriteByte(r.Type)
 	switch r.Type {
-	case constant.AccessListTxType, constant.DynamicFeeTxType, constant.BlobTxType:
+	case constant.AccessListTxType, constant.DynamicFeeTxType, constant.BlobTxType, constant.SetCodeTxType:
 		rlp.Encode(w, data)
 	default:
 	}

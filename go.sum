@@ -1175,8 +1175,6 @@ github.com/xssnick/tonutils-go v1.10.2 h1:1wgnQPrzbOt+5PtuNrlMSUyh1/y0pvWRi0zeRN
 github.com/xssnick/tonutils-go v1.10.2/go.mod h1:p1l1Bxdv9sz6x2jfbuGQUGJn6g5cqg7xsTp8rBHFoJY=
 github.com/xtaci/kcp-go v5.4.5+incompatible/go.mod h1:bN6vIwHQbfHaHtFpEssmWsN45a+AZwO7eyRCmEIbtvE=
 github.com/xtaci/lossyconn v0.0.0-20190602105132-8df528c0c9ae/go.mod h1:gXtu8J62kEgmN++bm9BVICuT/e8yiLI2KFobd/TRFsE=
-github.com/xyield/xrpl-go v0.0.0-20230914223425-9abe75c05830 h1:+Lp34ePWrVK3acvJgNVpc2HZp5hpRz1k7SPRdUlalz4=
-github.com/xyield/xrpl-go v0.0.0-20230914223425-9abe75c05830/go.mod h1:SLR3+fPX7VxEOyLepSzEASvdf5ZRQ+wLdIBSJZWWCro=
 github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d/go.mod h1:rHwXgn7JulP+udvsHwJoVG1YGAP6VLg4y9I5dyZdqmA=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
