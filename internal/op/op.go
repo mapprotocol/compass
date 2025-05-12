@@ -2,6 +2,7 @@ package op
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -56,7 +57,7 @@ func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 	}
 	w.WriteByte(r.Type)
 	switch r.Type {
-	case AccessListTxType, DynamicFeeTxType, BlobTxType:
+	case AccessListTxType, DynamicFeeTxType, BlobTxType, constant.SetCodeTxType:
 		rlp.Encode(w, data)
 	case DepositTxType:
 		if r.DepositReceiptVersion != nil {
@@ -67,5 +68,6 @@ func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 			rlp.Encode(w, data)
 		}
 	default:
+		fmt.Println(" r.Type ", r.Type)
 	}
 }
