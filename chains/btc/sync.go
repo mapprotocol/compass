@@ -14,6 +14,7 @@ import (
 	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mr-tron/base58"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -122,7 +123,7 @@ func handler(lh LogHandler) Handler {
 		log.TxHash = back.Items[0].TxHash
 		log.BlockNumber = back.Items[0].BlockNumber
 		// check sender
-		isBlack, err := blacklist.CheckAccount(log.Sender)
+		isBlack, err := blacklist.CheckAccount(log.Sender, strconv.FormatUint(uint64(m.Cfg.Id), 10))
 		if err != nil {
 			return 0, err
 		}
@@ -131,7 +132,7 @@ func handler(lh LogHandler) Handler {
 			return back.Items[0].Id, nil
 		}
 		// check receiver
-		isBlack, err = blacklist.CheckAccount(log.To)
+		isBlack, err = blacklist.CheckAccount(log.To, strconv.FormatUint(uint64(m.Cfg.Id), 10))
 		if err != nil {
 			return 0, err
 		}
