@@ -2,6 +2,7 @@ package proof
 
 import (
 	"bytes"
+	"github.com/golang/groupcache/lru"
 	"math/big"
 	"sync"
 
@@ -22,7 +23,7 @@ import (
 )
 
 var (
-	CacheReceipt = make(map[string][]*types.Receipt) // key -> chainId_blockHeight
+	CacheReceipt = lru.New(30)
 )
 
 type ReceiptRLP struct {
