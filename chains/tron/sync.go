@@ -283,8 +283,8 @@ func log2Msg(m *sync, l *types.Log, idx int) (int, error) {
 	for i, v := range orderId {
 		orderId32[i] = v
 	}
-	if v, ok := proof.CacheReceipt[key]; ok {
-		receipts = v
+	if v, ok := proof.CacheReceipt.Get(key); ok {
+		receipts = v.([]*types.Receipt)
 		m.Log.Info("use cache receipt", "latestBlock ", current, "txHash", l.TxHash)
 	} else {
 		txsHash, err := getTxsByBN(m.Conn.Client(), current)
@@ -295,7 +295,7 @@ func log2Msg(m *sync, l *types.Log, idx int) (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 		}
-		proof.CacheReceipt[key] = receipts
+		proof.CacheReceipt.Add(key, receipts)
 	}
 
 	method := m.GetMethod(l.Topics[0])

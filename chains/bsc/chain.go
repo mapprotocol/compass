@@ -153,14 +153,14 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	}
 	var receipts []*types.Receipt
 	key := strconv.FormatUint(selfId, 10) + "_" + bigNumber.String()
-	if v, ok := proof.CacheReceipt[key]; ok {
-		receipts = v
+	if v, ok := proof.CacheReceipt.Get(key); ok {
+		receipts = v.([]*types.Receipt)
 	} else {
 		receipts, err = tx.GetReceiptsByTxsHash(client, txsHash)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 		}
-		proof.CacheReceipt[key] = receipts
+		proof.CacheReceipt.Add(key, receipts)
 	}
 	var orderId32 [32]byte
 	for idx, v := range orderId {

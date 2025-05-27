@@ -27,8 +27,8 @@ func Init(domain string) {
 	defaultBlockList = &blockList{domain: domain}
 }
 
-func (b *blockList) CheckAccount(account string) (bool, error) {
-	uri := fmt.Sprintf("%s%s?account=%s", b.domain, UrlOfCheckAccount, account)
+func (b *blockList) CheckAccount(account, chainId string) (bool, error) {
+	uri := fmt.Sprintf("%s%s?account=%s,chainId=%s", b.domain, UrlOfCheckAccount, account, chainId)
 	body, err := client.JsonGet(uri)
 	if err != nil {
 		return false, errors.Wrap(err, "CheckAccount JsonGet")
@@ -59,6 +59,6 @@ func CheckTxs(chainId, txHash string) (bool, error) {
 	return defaultBlockList.CheckTxs(chainId, txHash)
 }
 
-func CheckAccount(account string) (bool, error) {
-	return defaultBlockList.CheckAccount(account)
+func CheckAccount(account, chainId string) (bool, error) {
+	return defaultBlockList.CheckAccount(account, chainId)
 }

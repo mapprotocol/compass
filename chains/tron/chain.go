@@ -176,8 +176,8 @@ func (c *Chain) Proof(client *ethclient.Client, l *types.Log, endpoint string, p
 	for i, v := range orderId {
 		orderId32[i] = v
 	}
-	if v, ok := proof.CacheReceipt[key]; ok {
-		receipts = v
+	if v, ok := proof.CacheReceipt.Get(key); ok {
+		receipts = v.([]*types.Receipt)
 	} else {
 		txsHash, err := getTxsByBN(client, bn)
 		if err != nil {
@@ -187,7 +187,7 @@ func (c *Chain) Proof(client *ethclient.Client, l *types.Log, endpoint string, p
 		if err != nil {
 			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 		}
-		proof.CacheReceipt[key] = receipts
+		proof.CacheReceipt.Add(key, receipts)
 	}
 
 	method := chain.GetMethod(l.Topics[0])

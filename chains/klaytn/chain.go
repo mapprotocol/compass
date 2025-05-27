@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/pkg/errors"
 	"math/big"
@@ -170,39 +171,17 @@ func (c *Chain) assembleHeader(client *ethclient.Client, latestBlock *big.Int, c
 
 func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int64, toChainID uint64, sign [][]byte) (*msg.Message, error) {
 	var (
-		message   msg.Message
-		orderId   = log.Topics[1]
-		method    = m.GetMethod(log.Topics[0])
-		bigNumber = big.NewInt(int64(log.BlockNumber))
+		message msg.Message
+		orderId = log.Topics[1]
 	)
-
-	txsHash, err := klaytn.GetTxsHashByBlockNumber(kClient, bigNumber)
+	payload, err := c.Proof(m.Conn.Client(), log, "", proofType, uint64(m.Cfg.Id), toChainID, sign)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
-	}
-	receipts, err := tx.GetReceiptsByTxsHash(m.Conn.Client(), txsHash)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
-	}
-	// get block
-	header, err := m.Conn.Client().HeaderByNumber(context.Background(), bigNumber)
-	if err != nil {
-		return nil, err
-	}
-	kHeader, err := kClient.BlockByNumber(context.Background(), bigNumber)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
 	var orderId32 [32]byte
 	for idx, v := range orderId {
 		orderId32[idx] = v
-	}
-
-	payload, err := klaytn.AssembleProof(kClient, klaytn.ConvertContractHeader(header, kHeader),
-		log, m.Cfg.Id, receipts, method, proofType, orderId32, sign)
-	if err != nil {
-		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
 	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
@@ -245,18 +224,26 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	toChainID uint64, sign [][]byte) ([]byte, error) {
 	var (
 		orderId   = log.Topics[1]
+		receipts  []*types.Receipt
 		method    = chain.GetMethod(log.Topics[0])
 		bigNumber = big.NewInt(int64(log.BlockNumber))
+		key       = strconv.FormatUint(selfId, 10) + "_" + strconv.FormatUint(log.BlockNumber, 10)
 	)
 
 	txsHash, err := klaytn.GetTxsHashByBlockNumber(kClient, bigNumber)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 	}
-	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+	if v, ok := proof.CacheReceipt.Get(key); ok {
+		receipts = v.([]*types.Receipt)
+	} else {
+		receipts, err = tx.GetReceiptsByTxsHash(client, txsHash)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+		}
+		proof.CacheReceipt.Add(key, receipts)
 	}
+
 	// get block
 	header, err := client.HeaderByNumber(context.Background(), bigNumber)
 	if err != nil {

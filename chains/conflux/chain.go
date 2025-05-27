@@ -3,26 +3,28 @@ package conflux
 import (
 	"context"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/internal/tx"
-	"github.com/mapprotocol/compass/pkg/abi"
-	"github.com/mapprotocol/compass/pkg/contract"
-	"github.com/mapprotocol/compass/pkg/ethclient"
-	"github.com/mapprotocol/compass/pkg/msg"
+	"github.com/mapprotocol/compass/internal/proof"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/mapprotocol/compass/internal/tx"
+	"github.com/mapprotocol/compass/pkg/abi"
+	"github.com/mapprotocol/compass/pkg/contract"
+	"github.com/mapprotocol/compass/pkg/ethclient"
+
 	"github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 	connection "github.com/mapprotocol/compass/connections/ethereum"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/conflux"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -308,10 +310,12 @@ func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethcl
 func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
 	toChainID uint64, sign [][]byte) ([]byte, error) {
 	var (
-		err     error
-		pivot   = big.NewInt(0)
-		orderId = log.Topics[1]
-		method  = chain.GetMethod(log.Topics[0])
+		err       error
+		pivot     = big.NewInt(0)
+		orderId   = log.Topics[1]
+		receipts  []*types.Receipt
+		bigNumber = big.NewInt(int64(log.BlockNumber))
+		method    = chain.GetMethod(log.Topics[0])
 	)
 	if proofType == constant.ProofTypeOfOrigin {
 		pivot, err = nearestPivot(selfId, new(big.Int).SetUint64(log.BlockNumber+conflux.DeferredExecutionEpochs))
@@ -328,9 +332,16 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
 	}
-	receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+
+	key := strconv.FormatUint(selfId, 10) + "_" + bigNumber.String()
+	if v, ok := proof.CacheReceipt.Get(key); ok {
+		receipts = v.([]*types.Receipt)
+	} else {
+		receipts, err := tx.GetReceiptsByTxsHash(client, txsHash)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+		}
+		proof.CacheReceipt.Add(key, receipts)
 	}
 	ret, err := conflux.AssembleProof(cli, pivot.Uint64(), uint64(proofType), method, msg.ChainId(selfId), log, receipts, orderId32, sign)
 	if err != nil {
