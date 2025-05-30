@@ -1,6 +1,7 @@
 package matic
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -84,13 +85,13 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 		return nil, err
 	}
 
-	prf, err := proof.Get(types.Receipts(receipts), txIndex)
+	prf, err := proof.Get(Receipts(receipts), txIndex)
 	if err != nil {
 		return nil, err
 	}
 
 	tr, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
-	tr = proof.DeriveTire(types.Receipts(receipts), tr)
+	tr = proof.DeriveTire(Receipts(receipts), tr)
 	ret := tr.Hash()
 	if ret != common.BytesToHash(headers[0].ReceiptsRoot) {
 		fmt.Println("Matic generate", ret, "oracle", common.BytesToHash(headers[0].ReceiptsRoot), " not same")
@@ -159,4 +160,40 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 	}
 
 	return pack, nil
+}
+
+type receiptRLP struct {
+	PostStateOrStatus []byte
+	CumulativeGasUsed uint64
+	Bloom             types.Bloom
+	Logs              []*types.Log
+}
+
+type Receipts []*types.Receipt
+
+// Len returns the number of receipts in this list.
+func (rs Receipts) Len() int { return len(rs) }
+
+// EncodeIndex encodes the i'th receipt to w.
+func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
+	r := rs[i]
+	data := &receiptRLP{statusEncoding(r), r.CumulativeGasUsed, r.Bloom, r.Logs}
+	switch r.Type {
+	case constant.LegacyTxType:
+		rlp.Encode(w, data)
+	case constant.AccessListTxType, constant.BlobTxType, constant.SetCodeTxType, constant.DynamicFeeTxType:
+		w.WriteByte(r.Type)
+		rlp.Encode(w, data)
+	default:
+	}
+}
+
+func statusEncoding(r *types.Receipt) []byte {
+	if len(r.PostState) == 0 {
+		if r.Status == constant.ReceiptStatusFailed {
+			return constant.ReceiptStatusFailedRLP
+		}
+		return constant.ReceiptStatusSuccessfulRLP
+	}
+	return r.PostState
 }
