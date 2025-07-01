@@ -354,9 +354,7 @@ func filterOracle(m *sync, latestBlock *big.Int) (int, error) {
 	data, err := chain.Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
 		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
 			m.Cfg.StartBlock.Int64(), constant.ProjectOfOracle, m.Cfg.Id, topic)))
-	fmt.Println("oracle url ----- ", fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfOracle, m.Cfg.Id, topic)))
+
 	if err != nil {
 		return 0, err
 	}

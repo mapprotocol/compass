@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
@@ -78,7 +79,7 @@ type ProofData struct {
 }
 
 func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, receipts []*types.Receipt,
-	method string, proofType int64, orderId [32]byte) ([]byte, error) {
+	method string, proofType int64, orderId [32]byte, sign [][]byte) ([]byte, error) {
 	txIndex := log.TxIndex
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
@@ -99,7 +100,6 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	//ek := mapo.Key2Hex(key, len(prf))
 
 	idx := 0
 	for i, ele := range receipts[txIndex].Logs {
@@ -153,6 +153,12 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 		}
 
 		pack, err = proof.Pack(fId, method, mapprotocol.OracleAbi, pd)
+	case constant.ProofTypeOfNewOracle:
+	case constant.ProofTypeOfLogOracle:
+		pack, err = proof.SignOracle(&maptypes.Header{
+			ReceiptHash: common.BytesToHash(headers[0].ReceiptsRoot),
+			Number:      big.NewInt(int64(log.BlockNumber)),
+		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
 	}
 
 	if err != nil {

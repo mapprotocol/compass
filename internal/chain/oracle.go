@@ -227,7 +227,8 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			}
 			targetBn = proof.GenLogBlockNumber(blockNumber, idx) // update block number
 		default:
-			panic("unhandled default case")
+			m.Log.Info("Oracle model ignore this tx, because this model type", "blockNumber", blockNumber, "nodeType", nodeType.Int64())
+			return nil
 		}
 		if err != nil {
 			return fmt.Errorf("oracle generate receipt failed, err is %w", err)
