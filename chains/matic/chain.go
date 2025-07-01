@@ -189,7 +189,7 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 		mHeaders = append(mHeaders, matic.ConvertHeader(h))
 	}
 
-	payload, err := matic.AssembleProof(mHeaders, log, msg.ChainId(selfId), receipts, method, proofType, orderId32)
+	payload, err := matic.AssembleProof(mHeaders, log, msg.ChainId(selfId), receipts, method, proofType, orderId32, sign)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}

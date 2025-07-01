@@ -12,14 +12,14 @@ import (
 )
 
 func GetTxsHashByBlockNumber(conn *ethclient.Client, number *big.Int) ([]common.Hash, error) {
-	block, err := conn.BlockByNumber(context.Background(), number)
+	block, err := conn.MAPBlockByNumber(context.Background(), number)
 	if err != nil {
 		return nil, err
 	}
 
-	txs := make([]common.Hash, 0, len(block.Transactions()))
-	for _, tx := range block.Transactions() {
-		txs = append(txs, tx.Hash())
+	txs := make([]common.Hash, 0, len(block.Transactions))
+	for _, tx := range block.Transactions {
+		txs = append(txs, common.HexToHash(tx.Hash))
 	}
 	return txs, nil
 }
