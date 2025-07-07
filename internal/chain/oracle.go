@@ -203,17 +203,24 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int, filterId int6
 		if err != nil {
 			return err
 		}
-		if !matchLog(rpcReceipt.Logs, &tmp) {
-			m.Log.Info("Oracle receipt log not match", "blockNumber", blockNumber)
-			return errors.New("Oracle model get node type is")
+		if l, match := MatchLog(rpcReceipt.Logs, &tmp); match {
+			tmp = *l // use online log
+		} else {
+			m.Log.Info("Oracle receipt log not match", "blockNumber", blockNumber, "logIndex", log.Index)
 		}
 
 		blockHash := ""
-		for i := int64(3); i > 0; i-- {
-			willBlock, err := m.Conn.Client().MAPBlockByNumber(context.Background(), big.NewInt(targetBn.Int64()+i))
+		willBlock, err := m.Conn.Client().MAPBlockByNumber(context.Background(), big.NewInt(targetBn.Int64()+3))
+		if err != nil {
+			return err
+		}
+		parentHash := willBlock.ParentHash
+		for i := int64(2); i > 0; i-- {
+			willBlock, err = m.Conn.Client().MAPBlockByHash(context.Background(), common.HexToHash(parentHash))
 			if err != nil {
 				return err
 			}
+			parentHash = willBlock.ParentHash
 			m.Log.Debug("Oracle getBlock", "willBlock.Number", willBlock.Number, "logNumber", big.NewInt(0).SetUint64(log.BlockNumber).Text(16))
 			if willBlock.Number == "0x"+big.NewInt(0).SetUint64(log.BlockNumber+1).Text(16) {
 				blockHash = willBlock.ParentHash
@@ -415,13 +422,14 @@ func ExternalOracleInput(selfId, nodeType int64, log *types.Log, client *ethclie
 	return data, nil
 }
 
-func matchLog(source []*types.Log, targetLog *types.Log) bool {
+func MatchLog(source []*types.Log, targetLog *types.Log) (*types.Log, bool) {
 	for _, l := range source {
 		if l.TxHash.Hex() == targetLog.TxHash.Hex() && l.BlockNumber == targetLog.BlockNumber &&
 			l.BlockHash.Hex() == targetLog.BlockHash.Hex() && common.Bytes2Hex(l.Data) == common.Bytes2Hex(targetLog.Data) &&
 			l.Index == targetLog.Index && l.TxIndex == targetLog.TxIndex {
-			return true
+			tmp := l
+			return tmp, true
 		}
 	}
-	return false
+	return nil, false
 }

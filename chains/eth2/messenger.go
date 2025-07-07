@@ -256,6 +256,17 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	rpcReceipt, err := m.Conn.Client().TransactionReceipt(context.Background(), log.TxHash)
+	if err != nil {
+		return 0, err
+	}
+	if l, match := chain.MatchLog(rpcReceipt.Logs, log); match {
+		log = l // use online log
+	} else {
+		m.Log.Info("Eth Msger receipt log not match", "blockNumber", log.BlockNumber, "logIndex", log.Index)
+	}
+
 	var sign [][]byte
 	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
 		ret, err := chain.Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log, proofType)
