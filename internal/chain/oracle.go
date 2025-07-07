@@ -148,7 +148,7 @@ func DefaultOracleHandler(m *Oracle, currentBlock *big.Int) error {
 		return nil
 	}
 	m.Log.Info("Querying block for events", "block", currentBlock, "logs", len(logs))
-	err = log2Oracle(m, logs, currentBlock)
+	err = log2Oracle(m, logs, currentBlock, 0)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func getToChainId(topics []common.Hash) uint64 {
 	return ret
 }
 
-func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
+func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int, filterId int64) error {
 	count := 0
 	var (
 		err     error
@@ -196,16 +196,38 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			}
 		}
 
-		m.Log.Info("Oracle model get node type is", "blockNumber", blockNumber, "nodeType", nodeType, "topic", log.Topics[0])
+		m.Log.Info("Oracle model get node type is", "blockNumber", blockNumber, "nodeType", nodeType, "topic", log.Topics[0], "filterId", filterId)
 		tmp := log
 		targetBn := blockNumber
+		rpcReceipt, err := m.Conn.Client().TransactionReceipt(context.Background(), log.TxHash)
+		if err != nil {
+			return err
+		}
+		if !matchLog(rpcReceipt.Logs, &tmp) {
+			m.Log.Info("Oracle receipt log not match", "blockNumber", blockNumber)
+			return errors.New("Oracle model get node type is")
+		}
+
+		blockHash := ""
+		for i := int64(3); i > 0; i-- {
+			willBlock, err := m.Conn.Client().MAPBlockByNumber(context.Background(), big.NewInt(targetBn.Int64()+i))
+			if err != nil {
+				return err
+			}
+			m.Log.Debug("Oracle getBlock", "willBlock.Number", willBlock.Number, "logNumber", big.NewInt(0).SetUint64(log.BlockNumber).Text(16))
+			if willBlock.Number == "0x"+big.NewInt(0).SetUint64(log.BlockNumber+1).Text(16) {
+				blockHash = willBlock.ParentHash
+			}
+		}
+		m.Log.Info("Oracle model log blockHash", "blockHash", blockHash)
 		switch nodeType.Int64() {
 		case constant.ProofTypeOfNewOracle: // mpt
 			if log.Topics[0] != mapprotocol.TopicOfClientNotify && log.Topics[0] != mapprotocol.TopicOfManagerNotifySend {
 				m.Log.Info("Oracle model ignore this topic", "blockNumber", blockNumber)
 				continue
 			}
-			header, err := m.Conn.Client().HeaderByNumber(context.Background(), blockNumber)
+
+			header, err := m.Conn.Client().HeaderByHash(context.Background(), common.HexToHash(blockHash))
 			if err != nil {
 				return fmt.Errorf("oracle get header failed, err: %w", err)
 			}
@@ -222,9 +244,6 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int) error {
 			}
 			receipt, err = GenLogReceipt(&tmp)
 			idx := log.Index
-			if m.Cfg.Id != constant.CfxChainId && m.Cfg.Id != constant.MapChainId && m.Cfg.Id != constant.BscChainId && m.Cfg.Id != constant.MaticChainId {
-				idx = 0
-			}
 			targetBn = proof.GenLogBlockNumber(blockNumber, idx) // update block number
 		default:
 			m.Log.Info("Oracle model ignore this tx, because this model type", "blockNumber", blockNumber, "nodeType", nodeType.Int64())
@@ -333,7 +352,7 @@ func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
 	return ret, nil
 }
 
-func DefaultOracle(selfId, nodeType int64, log *types.Log, client *ethclient.Client, pri *ecdsa.PrivateKey) ([]byte, error) {
+func ExternalOracleInput(selfId, nodeType int64, log *types.Log, client *ethclient.Client, pri *ecdsa.PrivateKey) ([]byte, error) {
 	var (
 		err         error
 		blockNumber = big.NewInt(int64(log.BlockNumber))
@@ -361,9 +380,6 @@ func DefaultOracle(selfId, nodeType int64, log *types.Log, client *ethclient.Cli
 		}
 		receipt, err = GenLogReceipt(log)
 		idx := log.Index
-		if selfId != constant.CfxChainId && selfId != constant.MapChainId {
-			idx = 0
-		}
 		targetBn = proof.GenLogBlockNumber(blockNumber, idx)
 	default:
 		panic("unhandled default case")
@@ -397,4 +413,15 @@ func DefaultOracle(selfId, nodeType int64, log *types.Log, client *ethclient.Cli
 	}
 
 	return data, nil
+}
+
+func matchLog(source []*types.Log, targetLog *types.Log) bool {
+	for _, l := range source {
+		if l.TxHash.Hex() == targetLog.TxHash.Hex() && l.BlockNumber == targetLog.BlockNumber &&
+			l.BlockHash.Hex() == targetLog.BlockHash.Hex() && common.Bytes2Hex(l.Data) == common.Bytes2Hex(targetLog.Data) &&
+			l.Index == targetLog.Index && l.TxIndex == targetLog.TxIndex {
+			return true
+		}
+	}
+	return false
 }

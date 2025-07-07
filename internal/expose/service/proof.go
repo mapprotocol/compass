@@ -212,7 +212,7 @@ func (s *ProofSrv) SuccessProof(srcChain, desChain string, srcBlockNumber int64,
 	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
 		ret, err := chain.Signer(srcClient, srcChainId, constant.MapChainId, &targetLog, proofType)
 		if errors.Is(err, chain.NotVerifyAble) {
-			oracle, err := chain.DefaultOracle(int64(srcChainId), proofType, &targetLog, srcClient, s.pri) // private
+			oracle, err := chain.ExternalOracleInput(int64(srcChainId), proofType, &targetLog, srcClient, s.pri) // private
 			if err != nil {
 				return nil, err
 			}

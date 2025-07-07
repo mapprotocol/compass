@@ -141,7 +141,7 @@ func (m *Oracle) filterOracle() error {
 				BlockHash:   common.HexToHash(ele.BlockHash),
 				Index:       ele.LogIndex,
 			}
-			err = log2Oracle(m, []types.Log{log}, big.NewInt(0).SetUint64(ele.BlockNumber))
+			err = log2Oracle(m, []types.Log{log}, big.NewInt(0).SetUint64(ele.BlockNumber), ele.Id)
 			if err != nil {
 				return err
 			}

@@ -254,9 +254,6 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 		pt = 1
 		newPrf = log2Proof(log)
 		logIdx := log.Index
-		if fId != constant.CfxChainId && fId != constant.MapChainId && fId != constant.BscChainId && fId != constant.MaticChainId {
-			logIdx = 0
-		}
 		blockNumber = GenLogBlockNumber(blockNumber, logIdx)
 		fixedHash = common.BytesToHash(crypto.Keccak256(newPrf))
 	default:
