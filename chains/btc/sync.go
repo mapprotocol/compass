@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/internal/abi"
 	"github.com/mapprotocol/compass/internal/blacklist"
+	"github.com/mapprotocol/compass/internal/client"
 	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
@@ -110,7 +111,8 @@ func handler(lh LogHandler) Handler {
 		if len(back.Items) == 0 {
 			return 0, nil
 		}
-		m.Log.Info("Btc find a log", "id", back.Items[0].Id, "block", back.Items[0].BlockNumber)
+		m.Log.Info("Btc find a log", "id", back.Items[0].Id, "block", back.Items[0].BlockNumber,
+			"txHash", back.Items[0].TxHash)
 		logData := common.Hex2Bytes(back.Items[0].LogData)
 		var log = MessageOut{}
 		err = json.Unmarshal(logData, &log)
@@ -150,6 +152,13 @@ func handler(lh LogHandler) Handler {
 			m.Log.Info("Ignore this log, because it is black", "id", log.Id, "srcChain", log.SrcChain, "txHash", log.TxHash)
 			return back.Items[0].Id, nil
 		}
+
+		err = m.checkBtcLog(&log)
+		if err != nil {
+			m.Log.Error("Failed to check log", "txHash", log.TxHash, "err", err)
+			return 0, err
+		}
+
 		err = lh(m, &log)
 		if err != nil {
 			return 0, err
@@ -215,7 +224,7 @@ func oracle(m *sync, log *MessageOut) error {
 	if err != nil {
 		return errors.Wrap(err, "gen receipt failed")
 	}
-	m.Log.Info("Sol2Evm oracle generate", "receiptHash", receiptHash)
+	m.Log.Info("Btc2Evm oracle generate", "receiptHash", receiptHash)
 
 	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.MapChainID))
 	if err != nil {
@@ -354,23 +363,44 @@ type MessageOut struct {
 	SwapData     string `json:"swap_data"`      // (from butter)
 }
 
-type T struct {
-	OrderId      string `json:"order_id"`
-	From         string `json:"from"`
-	To           string `json:"to"`
-	SrcChain     string `json:"src_chain"`
-	SrcToken     string `json:"src_token"`
-	Sender       string `json:"sender"`
-	InAmount     string `json:"in_amount"`
-	InTxHash     string `json:"in_tx_hash"`
-	BridgeFee    string `json:"bridge_fee"`
-	DstChain     string `json:"dst_chain"`
-	DstToken     string `json:"dst_token"`
-	Receiver     string `json:"receiver"`
-	Mos          string `json:"mos"`
-	Relay        bool   `json:"relay"`
-	MessageType  int    `json:"message_type"`
-	GasLimit     string `json:"gas_limit"`
-	MinOutAmount string `json:"min_out_amount"`
-	SwapData     string `json:"swap_data"`
+func (m *sync) checkBtcLog(target *MessageOut) error {
+	requestMap := map[string]interface{}{
+		"jsonrpc": "1.0",
+		"id":      "1.0",
+		"method":  "getrawtransaction",
+		"params": []interface{}{
+			target.TxHash,
+			true,
+		},
+	}
+	reqData, _ := json.Marshal(&requestMap)
+	data, err := client.JsonPost(m.cfg.Endpoint, reqData)
+	if err != nil {
+		return err
+	}
+
+	back := stream.BTCRawTransaction{}
+	err = json.Unmarshal(data, &back)
+	if err != nil {
+		return err
+	}
+	if back.Error != "" {
+		return errors.New(back.Error)
+	}
+	if len(back.Result.Vout) == 0 {
+		return errors.New("no vOut found")
+	}
+
+	for _, ele := range back.Result.Vout {
+		if ele.N != 0 {
+			continue
+		}
+		value := big.NewFloat(ele.Value)
+		value = value.Mul(value, big.NewFloat(100000000))
+		if value.String() != target.InAmount {
+			return fmt.Errorf("online tx amount not same , value=%s, target=%s", value.String(), target.InAmount)
+		}
+	}
+
+	return nil
 }
