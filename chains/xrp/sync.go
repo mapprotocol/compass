@@ -179,7 +179,7 @@ func oracle(m *sync, log *stream.GetMosResp) error {
 	if err != nil {
 		return errors.Wrap(err, "gen receipt failed")
 	}
-	m.Log.Info("Sol2Evm oracle generate", "receiptHash", receiptHash)
+	m.Log.Info("Xrp2Evm oracle generate", "receiptHash", receiptHash)
 
 	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.MapChainID))
 	if err != nil {
