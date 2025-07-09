@@ -461,8 +461,8 @@ func (m *sync) checkLog(target *Log) error {
 		return fmt.Errorf("invalid CrossFinishEvent, hash(%s)", target.TxHash)
 	}
 
-	ab, _ := big.NewInt(0).SetString(tmpData.AfterBalance, 16)
-	if tmpData.OrderId != common.Bytes2Hex(ev.OrderRecord.OrderId) && ab.Uint64() == ev.AfterBalance {
+	ab, _ := big.NewInt(0).SetString(tmpData.AmountOut, 16)
+	if tmpData.OrderId != common.Bytes2Hex(ev.OrderRecord.OrderId) && ab.Uint64() == ev.AmountOut {
 		return errors.New("tx log not match")
 	}
 
