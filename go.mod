@@ -1,14 +1,18 @@
 module github.com/mapprotocol/compass
 
-go 1.19
+go 1.22.2
+
+toolchain go1.24.1
 
 require (
 	github.com/ChainSafe/chainbridge-utils v1.0.6
 	github.com/ChainSafe/log15 v1.0.0
+	github.com/eteu-technologies/borsh-go v0.3.2
 	github.com/ethereum/go-ethereum v1.12.2
 	github.com/gagliardetto/solana-go v1.12.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
 	github.com/klaytn/klaytn v1.10.2
 	github.com/lbtsm/gotron-sdk v0.0.0-20240606062614-534038e71cd3
 	github.com/mapprotocol/atlas v0.5.1-0.20220530091946-06b376fbe9bd
@@ -19,6 +23,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.24.1
 	github.com/xssnick/tonutils-go v1.10.2
+	github.com/zeta-chain/protocol-contracts-solana/go-idl v0.0.0-20250616123828-52f3f4d7fd03
 	golang.org/x/term v0.20.0
 	google.golang.org/grpc v1.41.0
 )
@@ -43,7 +48,6 @@ require (
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/eteu-technologies/borsh-go v0.3.2 // indirect
 	github.com/eteu-technologies/golang-uint128 v1.1.2-eteu // indirect
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -57,7 +61,6 @@ require (
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/google/uuid v1.6.0 // indirect

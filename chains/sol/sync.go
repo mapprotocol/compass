@@ -2,10 +2,12 @@ package sol
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/mapprotocol/compass/internal/abi"
 	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
@@ -29,13 +31,14 @@ type Handler func(*sync) (int64, error)
 
 type sync struct {
 	*chain.CommonSync
-	handler Handler
-	conn    core.Connection
-	cfg     *Config
+	handler   Handler
+	conn      core.Connection
+	cfg       *Config
+	solClient *rpc.Client
 }
 
-func newSync(cs *chain.CommonSync, handler Handler, conn core.Connection, cfg *Config) *sync {
-	return &sync{CommonSync: cs, handler: handler, conn: conn, cfg: cfg}
+func newSync(cs *chain.CommonSync, handler Handler, conn core.Connection, cfg *Config, solClient *rpc.Client) *sync {
+	return &sync{CommonSync: cs, handler: handler, conn: conn, cfg: cfg, solClient: solClient}
 }
 
 func (m *sync) Sync() error {
@@ -248,6 +251,11 @@ func oracleHandler(m *sync) (int64, error) {
 		return 0, nil
 	}
 
+	err = m.checkLog(log)
+	if err != nil {
+		return 0, err
+	}
+
 	receiptHash, _, err := m.genReceipt(log)
 	if err != nil {
 		return 0, errors.Wrap(err, "gen receipt failed")
@@ -405,4 +413,58 @@ func isFirst12Zero(data []byte) bool {
 		}
 	}
 	return true
+}
+
+func (m *sync) checkLog(target *Log) error {
+	sig := solana.MustSignatureFromBase58(target.TxHash)
+	txResult, err := m.solClient.GetTransaction(context.Background(), sig, &rpc.GetTransactionOpts{
+		Commitment:                     rpc.CommitmentFinalized,
+		MaxSupportedTransactionVersion: &rpc.MaxSupportedTransactionVersion0,
+		Encoding:                       solana.EncodingBase64,
+	})
+	if err != nil {
+		return err
+	}
+	tx, err := txResult.Transaction.GetTransaction()
+	if err != nil {
+		return err
+	}
+	if len(tx.Message.Instructions) == 0 {
+		return nil
+	}
+
+	tmpData := CrossOutData{}
+	err = json.Unmarshal([]byte(target.Data), &tmpData)
+	if err != nil {
+		return errors.Wrap(err, "unmarshal resp.Data failed")
+	}
+
+	ev := &CrossFinishEvent{}
+	eventPrefix := "Program data: "
+	for _, msg := range txResult.Meta.LogMessages {
+		if !strings.HasPrefix(msg, eventPrefix) {
+			continue
+		}
+		base64Data := strings.TrimPrefix(msg, eventPrefix)
+		data, err := base64.StdEncoding.DecodeString(base64Data)
+		if err != nil {
+			fmt.Println("base64 decode failed", err)
+			continue
+		}
+
+		ev, err = parseCrossFinishEventData(data)
+		if err != nil {
+			continue
+		}
+	}
+	if ev == nil {
+		return fmt.Errorf("invalid CrossFinishEvent, hash(%s)", target.TxHash)
+	}
+
+	ab, _ := big.NewInt(0).SetString(tmpData.AfterBalance, 16)
+	if tmpData.OrderId != common.Bytes2Hex(ev.OrderRecord.OrderId) && ab.Uint64() == ev.AfterBalance {
+		return errors.New("tx log not match")
+	}
+
+	return nil
 }
