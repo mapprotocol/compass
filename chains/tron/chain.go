@@ -59,7 +59,10 @@ func (c *Chain) createChain(chainCfg *core.ChainConfig, logger log15.Logger, sys
 		return nil, err
 	}
 
-	pswd := keystore.GetPassword(fmt.Sprintf("Enter password for key %s:", chainCfg.From))
+	pswd := make([]byte, 0)
+	if role == mapprotocol.RoleOfMessenger {
+		pswd = keystore.GetPassword(fmt.Sprintf("Enter password for key %s:", chainCfg.From))
+	}
 
 	var (
 		stop   = make(chan int)

@@ -38,9 +38,11 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		return nil, err
 	}
 
-	_, err = solana.PrivateKeyFromBase58(config.Pri)
-	if err != nil {
-		return nil, err
+	if role == mapprotocol.RoleOfMessenger {
+		_, err = solana.PrivateKeyFromBase58(config.Pri)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var (
