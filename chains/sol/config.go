@@ -33,9 +33,7 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 	if ele, ok := chainCfg.Opts[chain.LightNode]; ok && ele != "" {
 		ret.LightNode = ele
 	}
-	if ele, ok := chainCfg.Opts[chain.Private]; ok && ele != "" {
-		ret.Pri = ele
-	}
+
 	if ele, ok := chainCfg.Opts["messageIn"]; ok && ele != "" {
 		ret.MessageIn = ele
 	}

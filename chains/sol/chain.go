@@ -1,13 +1,15 @@
 package sol
 
 import (
+	"fmt"
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/gagliardetto/solana-go"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/keystore"
 	"github.com/mapprotocol/compass/pkg/msg"
+	"github.com/mapprotocol/compass/pkg/util"
 )
 
 type Chain struct {
@@ -38,11 +40,15 @@ func createChain(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- 
 		return nil, err
 	}
 
+	pswd := make([]byte, 0)
 	if role == mapprotocol.RoleOfMessenger {
-		_, err = solana.PrivateKeyFromBase58(config.Pri)
+		pswd = keystore.GetPassword(fmt.Sprintf("Enter password for key %s:", chainCfg.From))
+
+		pri, err := util.DecryptKeystoreText(string(pswd), config.KeystorePath)
 		if err != nil {
 			return nil, err
 		}
+		config.Pri = pri
 	}
 
 	var (
