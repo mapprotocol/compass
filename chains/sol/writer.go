@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/gagliardetto/solana-go"
@@ -12,8 +15,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
-	"strings"
-	"time"
 
 	"github.com/ChainSafe/log15"
 	"github.com/mapprotocol/compass/internal/constant"
@@ -53,8 +54,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 	var (
 		errorCount int64
 		log        = m.Payload[0].(*types.Log)
-		//sign       = m.Payload[1].([][]byte)
-		method = m.Payload[2].(string)
+		method     = m.Payload[2].(string)
 	)
 
 	for {
@@ -216,10 +216,10 @@ func (w *Writer) solCrossIn(l *types.Log, relayData *Relay) (*butter.SolCrossInR
 	}
 	query := fmt.Sprintf("tokenInAddress=%s&tokenAmount=%s&"+
 		"tokenOutAddress=%s&"+
-		"router=%s&minAmountOut=%s&orderIdHex=%s&receiver=%s&feeRatio=%s",
+		"router=%s&minAmountOut=%s&orderIdHex=%s&receiver=%s&feeRatio=%s&mapTxHash=%s",
 		base58.Encode(relayData.DstToken), relayData.OutAmount.String(),
 		base58.Encode(dstToken),
-		router, minAmount, orderId.Hex(), base58.Encode(receiver), "110",
+		router, minAmount, orderId.Hex(), base58.Encode(receiver), "110", l.TxHash,
 	)
 	data, err := butter.SolCrossIn(w.cfg.ButterHost, query)
 	if err != nil {
