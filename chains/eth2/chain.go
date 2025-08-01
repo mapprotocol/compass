@@ -2,6 +2,10 @@ package eth2
 
 import (
 	"fmt"
+	"math/big"
+	"strconv"
+	"sync"
+
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -19,9 +23,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/keystore"
 	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/pkg/errors"
-	"math/big"
-	"strconv"
-	"sync"
 )
 
 var _ core.Chain = new(Chain)
@@ -72,7 +73,8 @@ func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan
 
 	// simplified a little bit
 	var listen core.Listener
-	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, bs, chain.OptOfOracleHandler(chain.DefaultOracleHandler))
+	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, bs,
+		chain.OptOfOracleHandler(chain.DefaultOracleHandler))
 	switch role {
 	case mapprotocol.RoleOfMaintainer:
 		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())

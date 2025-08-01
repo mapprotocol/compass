@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"net/http"
 	"sync"
 	"time"
 
@@ -62,7 +63,10 @@ func (c *Connection) Connect() error {
 	var err error
 	// Start http or ws client
 	if c.http {
-		rpcClient, err = rpc.DialHTTP(c.endpoint)
+		// rpcClient, err = rpc.DialHTTP(c.endpoint)
+		cli := http.DefaultClient
+		cli.Timeout = time.Minute
+		rpcClient, err = rpc.DialHTTPWithClient(c.endpoint, cli)
 	} else {
 		rpcClient, err = rpc.DialContext(context.Background(), c.endpoint)
 	}
