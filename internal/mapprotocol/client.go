@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"io"
 	"math/big"
 	"net/http"
 	"time"
+
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	log "github.com/ChainSafe/log15"
 	eth "github.com/ethereum/go-ethereum"
