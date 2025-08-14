@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strings"
+	"time"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/internal/abi"
 	"github.com/mapprotocol/compass/internal/contract"
@@ -11,9 +15,6 @@ import (
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/mapprotocol/compass/pkg/msg"
-	"math/big"
-	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/chain"

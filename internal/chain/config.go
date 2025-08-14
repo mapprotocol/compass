@@ -4,16 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strconv"
 	"strings"
 
-	"github.com/mapprotocol/compass/internal/constant"
-
 	"github.com/ethereum/go-ethereum/common"
 	gconfig "github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/core"
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/pkg/msg"
 )
 
 const (

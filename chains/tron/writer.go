@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/lbtsm/gotron-sdk/pkg/proto/api"
 

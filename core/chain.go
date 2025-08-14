@@ -1,8 +1,9 @@
 package core
 
 import (
-	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
+
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 
