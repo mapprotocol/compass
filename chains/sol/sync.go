@@ -193,7 +193,8 @@ func mosHandler(m *sync) (int64, error) {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
 	m.Log.Info("Sol2Evm msger generate", "receiptHash", receiptHash)
-	proposalInfo, err := chain.GetSigner(big.NewInt(log.BlockNumber), *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
+	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), uint(log.Id-4249250))
+	proposalInfo, err := chain.GetSigner(bn, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
 		return 0, err
 	}
@@ -203,7 +204,7 @@ func mosHandler(m *sync) (int64, error) {
 	}
 	pd := proof.SignLogData{
 		ProofType:   1,
-		BlockNum:    big.NewInt(log.BlockNumber),
+		BlockNum:    bn,
 		ReceiptRoot: fixedHash,
 		Signatures:  proposalInfo.Signatures,
 		Proof:       receiptPack,
@@ -232,7 +233,7 @@ func mosHandler(m *sync) (int64, error) {
 		orderId32[i] = v
 	}
 	message := msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{finalInput,
-		orderId32, log.BlockNumber, log.TxHash}, m.MsgCh)
+		orderId32, bn, log.TxHash}, m.MsgCh)
 	err = m.Router.Send(message)
 	if err != nil {
 		m.Log.Error("subscription error: failed to route message", "err", err)
@@ -262,6 +263,7 @@ func oracleHandler(m *sync) (int64, error) {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
 	m.Log.Info("Sol2Evm oracle generate", "receiptHash", receiptHash)
+	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), uint(log.Id-4249250))
 
 	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.MapChainID))
 	if err != nil {
@@ -273,7 +275,6 @@ func oracleHandler(m *sync) (int64, error) {
 		version = append(version, byte(v))
 	}
 
-	bn := big.NewInt(log.BlockNumber)
 	input, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receiptHash,
 		ret.Version, bn, big.NewInt(int64(m.Cfg.Id)))
 	if err != nil {
