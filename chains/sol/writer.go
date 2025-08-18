@@ -223,6 +223,7 @@ func (w *Writer) solCrossIn(l *types.Log, relayData *Relay) (*butter.SolCrossInR
 	)
 	data, err := butter.SolCrossIn(w.cfg.ButterHost, query)
 	if err != nil {
+		w.mosAlarm(query, err)
 		w.log.Error("Failed to butter.SolCrossIn", "err", err)
 		return nil, err
 	}

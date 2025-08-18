@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/internal/abi"
 	"github.com/mapprotocol/compass/internal/blacklist"
@@ -14,10 +19,6 @@ import (
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mr-tron/base58"
-	"math/big"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/chain"

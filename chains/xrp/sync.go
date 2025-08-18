@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strings"
+	"time"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mapprotocol/compass/internal/abi"
 	"github.com/mapprotocol/compass/internal/contract"
@@ -11,9 +15,6 @@ import (
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/mapprotocol/compass/pkg/msg"
-	"math/big"
-	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/chain"
@@ -211,29 +212,41 @@ func oracle(m *sync, log *stream.GetMosResp) error {
 func genReceipt(log *stream.GetMosResp) (*common.Hash, []byte, error) {
 	orderIdStr := strings.Split(log.Topic, ",")[1]
 	// decode log data
-	hex2Bytes := common.Hex2Bytes(strings.TrimPrefix(log.LogData, "0x"))
-	if len(hex2Bytes) <= 0 {
-		return nil, nil, errors.New("invalid log data")
-	}
-	values, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolEventEncode].Inputs.Unpack(hex2Bytes)
+	event := XrpMessageOutEvent{}
+	err := json.Unmarshal([]byte(log.LogData), &event)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "unmarshal event code failed")
-	}
-	event := mapprotocol.MessageOutEvent{}
-	err = mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolEventEncode].Inputs.Copy(&event, values)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "unmarshal event code failed")
+		return nil, nil, errors.Wrap(err, "unmarshal log data failed")
 	}
 
-	orderId := common.HexToHash(orderIdStr)
-	bridgeParam, err := abi.DecodeBridgeParam(event.SwapData)
+	bridgeData := common.Hex2Bytes(strings.TrimPrefix(event.SwapData, "0x"))
+	bridgeParam, err := abi.DecodeBridgeParam(bridgeData)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "decode bridge param failed")
 	}
-
+	gasLimit, ok := big.NewInt(0).SetString(event.GasLimit, 10)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid gasLimit (%s)", event.GasLimit)
+	}
+	amount, ok := big.NewInt(0).SetString(event.InAmount, 10)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid amount (%s)", event.InAmount)
+	}
+	fromChain, ok := big.NewInt(0).SetString(event.SrcChain, 10)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid fromChain (%s)", event.SrcChain)
+	}
+	toChain, ok := big.NewInt(0).SetString(event.DstChain, 10)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid toChain (%s)", event.DstChain)
+	}
+	minAmount, ok := big.NewInt(0).SetString(event.MinOutAmount, 10)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid minOutAmount (%s)", event.MinOutAmount)
+	}
 	if len(bridgeParam.SwapData) > 0 {
 		// check swapData
-		pass, err := contract.Validate(event.Relay, event.ToChain, event.Amount, event.Token, event.To, bridgeParam.SwapData)
+		pass, err := contract.Validate(event.Relay, toChain, minAmount,
+			common.Hex2Bytes(event.SrcToken), common.Hex2Bytes(event.To), bridgeParam.SwapData)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -243,19 +256,19 @@ func genReceipt(log *stream.GetMosResp) (*common.Hash, []byte, error) {
 	}
 
 	eo := mapprotocol.MessageOutEvent{
-		FromChain:   event.FromChain,
-		ToChain:     event.ToChain,
-		OrderId:     orderId,
-		Amount:      event.Amount,
-		Token:       event.Token,
-		From:        event.From, // Xrp address
+		FromChain:   fromChain,
+		ToChain:     toChain,
+		OrderId:     common.HexToHash(orderIdStr),
+		Amount:      amount,
+		Token:       common.Hex2Bytes(strings.TrimPrefix(event.SrcToken, "0x")),
+		From:        []byte(event.From), // Xrp address
 		SwapData:    bridgeParam.SwapData,
-		GasLimit:    event.GasLimit,
-		Mos:         event.Mos,
-		Initiator:   event.Initiator, // Xrp address
+		GasLimit:    gasLimit,
+		Mos:         common.Hex2Bytes(strings.TrimPrefix(event.MOS, "0x")),
+		Initiator:   []byte(event.Sender), // Xrp address
 		Relay:       event.Relay,
 		MessageType: event.MessageType,
-		To:          event.To,
+		To:          common.Hex2Bytes(strings.TrimPrefix(event.To, "0x")),
 	}
 	data, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolEventEncode].Inputs.Pack(&eo)
 	if err != nil {
@@ -270,4 +283,30 @@ func genReceipt(log *stream.GetMosResp) (*common.Hash, []byte, error) {
 	}
 	receipt := common.BytesToHash(crypto.Keccak256(receiptPack))
 	return &receipt, receiptPack, nil
+}
+
+type XrpMessageOutEvent struct {
+	Id           int64  `json:"id"`
+	Topic        string `json:"topic"`
+	BlockNumber  int64  `json:"block_number"`
+	TxHash       string `json:"tx_hash"`
+	Addr         string `json:"addr"`
+	OrderID      string `json:"order_id"`  // orderId
+	From         string `json:"from"`      // relay
+	To           string `json:"to"`        //
+	SrcChain     string `json:"src_chain"` // fromChain
+	SrcToken     string `json:"src_token"` // token
+	Sender       string `json:"sender"`    // initiator
+	InAmount     string `json:"in_amount"` // amount
+	InTxHash     string `json:"in_tx_hash"`
+	BridgeFee    string `json:"bridge_fee"`
+	DstChain     string `json:"dst_chain"`      // toChain
+	DstToken     string `json:"dst_token"`      //
+	Receiver     string `json:"receiver"`       //
+	MOS          string `json:"mos"`            // map mos address
+	Relay        bool   `json:"relay"`          //   (from butter)
+	MessageType  uint8  `json:"message_type"`   // default 3
+	GasLimit     string `json:"gas_limit"`      // default 0
+	MinOutAmount string `json:"min_out_amount"` //  minOutAmount
+	SwapData     string `json:"swap_data"`      // (from butter)
 }

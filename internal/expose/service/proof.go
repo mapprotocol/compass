@@ -5,10 +5,11 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/mapprotocol/compass/pkg/ethclient"
 	"math/big"
 	"strconv"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/mapprotocol/compass/pkg/ethclient"
 
 	"github.com/mapprotocol/compass/chains"
 	"github.com/mapprotocol/compass/internal/butter"
