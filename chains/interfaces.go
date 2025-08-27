@@ -14,6 +14,7 @@ import (
 	"github.com/mapprotocol/compass/chains/sol"
 	"github.com/mapprotocol/compass/chains/ton"
 	"github.com/mapprotocol/compass/chains/tron"
+	"github.com/mapprotocol/compass/chains/xrp"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
@@ -33,6 +34,7 @@ var (
 		constant.Ton:      ton.New(),
 		constant.Tron:     tron.New(),
 		constant.Btc:      btc.New(),
+		constant.Xrp:      xrp.New(),
 	}
 	proofMap = map[string]Proffer{
 		constant.Bsc:      bsc.New(),

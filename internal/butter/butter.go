@@ -3,6 +3,7 @@ package butter
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/mapprotocol/compass/internal/client"
 )
 

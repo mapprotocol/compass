@@ -3,11 +3,12 @@ package chain
 import (
 	"context"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/ethereum/go-ethereum/crypto"
 
