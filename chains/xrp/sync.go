@@ -89,7 +89,7 @@ func handler(lh LogHandler) Handler {
 		}
 
 		uri := fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-			fmt.Sprintf("id=%d&chain_id=%d&topic=%s&limit=1",
+			fmt.Sprintf("id=%d&chain_id=%d&topic=%s&limit=1&project_id=1",
 				m.Cfg.StartBlock.Int64(), m.Cfg.Id, topic))
 		data, err := chain.Request(uri)
 		if err != nil {
@@ -246,7 +246,9 @@ func genReceipt(log *stream.GetMosResp) (*common.Hash, []byte, error) {
 	if len(bridgeParam.SwapData) > 0 {
 		// check swapData
 		pass, err := contract.Validate(event.Relay, toChain, minAmount,
-			common.Hex2Bytes(event.SrcToken), common.Hex2Bytes(event.To), bridgeParam.SwapData)
+			common.Hex2Bytes(strings.TrimPrefix(event.DstToken, "0x")),
+			common.Hex2Bytes(strings.TrimPrefix(event.Receiver, "0x")),
+			bridgeParam.SwapData)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -264,7 +266,7 @@ func genReceipt(log *stream.GetMosResp) (*common.Hash, []byte, error) {
 		From:        []byte(event.From), // Xrp address
 		SwapData:    bridgeParam.SwapData,
 		GasLimit:    gasLimit,
-		Mos:         common.Hex2Bytes(strings.TrimPrefix(event.MOS, "0x")),
+		Mos:         common.Hex2Bytes(strings.TrimPrefix("0x0000317Bec33Af037b5fAb2028f52d14658F6A56", "0x")),
 		Initiator:   []byte(event.Sender), // Xrp address
 		Relay:       event.Relay,
 		MessageType: event.MessageType,
@@ -276,8 +278,9 @@ func genReceipt(log *stream.GetMosResp) (*common.Hash, []byte, error) {
 	}
 	// abi
 	receiptPack, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolPackReceipt].Inputs.Pack(
-		common.Hex2Bytes(strings.TrimPrefix(log.ContractAddress, "0x")),
-		common.Hex2Bytes(strings.TrimPrefix(log.Topic, "0x")), data)
+		common.Hex2Bytes(strings.TrimPrefix(event.MOS, "0x")),
+		common.Hex2Bytes(strings.TrimPrefix(log.Topic, "0x")),
+		data)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal pack failed")
 	}
@@ -286,27 +289,28 @@ func genReceipt(log *stream.GetMosResp) (*common.Hash, []byte, error) {
 }
 
 type XrpMessageOutEvent struct {
-	Id           int64  `json:"id"`
-	Topic        string `json:"topic"`
-	BlockNumber  int64  `json:"block_number"`
-	TxHash       string `json:"tx_hash"`
-	Addr         string `json:"addr"`
-	OrderID      string `json:"order_id"`  // orderId
-	From         string `json:"from"`      // relay
-	To           string `json:"to"`        //
-	SrcChain     string `json:"src_chain"` // fromChain
-	SrcToken     string `json:"src_token"` // token
-	Sender       string `json:"sender"`    // initiator
-	InAmount     string `json:"in_amount"` // amount
-	InTxHash     string `json:"in_tx_hash"`
-	BridgeFee    string `json:"bridge_fee"`
-	DstChain     string `json:"dst_chain"`      // toChain
-	DstToken     string `json:"dst_token"`      //
-	Receiver     string `json:"receiver"`       //
-	MOS          string `json:"mos"`            // map mos address
-	Relay        bool   `json:"relay"`          //   (from butter)
-	MessageType  uint8  `json:"message_type"`   // default 3
-	GasLimit     string `json:"gas_limit"`      // default 0
-	MinOutAmount string `json:"min_out_amount"` //  minOutAmount
-	SwapData     string `json:"swap_data"`      // (from butter)
+	Id                int64  `json:"id"`
+	Topic             string `json:"topic"`
+	BlockNumber       int64  `json:"block_number"`
+	TxHash            string `json:"tx_hash"`
+	Addr              string `json:"addr"`
+	OrderID           string `json:"order_id"`             // orderId
+	From              string `json:"from"`                 // relay
+	To                string `json:"to"`                   //
+	SrcChain          string `json:"src_chain"`            // fromChain
+	SrcToken          string `json:"src_token"`            // token
+	Sender            string `json:"sender"`               // initiator
+	InAmount          string `json:"in_amount"`            // amount
+	InAmountNoDecimal string `json:"in_amount_no_decimal"` // amount
+	InTxHash          string `json:"in_tx_hash"`
+	BridgeFee         string `json:"bridge_fee"`
+	DstChain          string `json:"dst_chain"`      // toChain
+	DstToken          string `json:"dst_token"`      //
+	Receiver          string `json:"receiver"`       //
+	MOS               string `json:"mos"`            // map mos address
+	Relay             bool   `json:"relay"`          //   (from butter)
+	MessageType       uint8  `json:"message_type"`   // default 3
+	GasLimit          string `json:"gas_limit"`      // default 0
+	MinOutAmount      string `json:"min_out_amount"` //  minOutAmount
+	SwapData          string `json:"swap_data"`      // (from butter)
 }

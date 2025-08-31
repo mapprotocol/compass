@@ -9,10 +9,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
+
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/mapprotocol/compass/internal/arb"
@@ -52,7 +53,8 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	if err != nil {
 		return nil, err
 	}
-	if receiptHash != header.ReceiptHash && fId != constant.ZkSyncChainId && fId != constant.MerlinChainId {
+	if receiptHash != header.ReceiptHash && fId != constant.ZkSyncChainId && fId != constant.MerlinChainId &&
+		proofType != constant.ProofTypeOfLogOracle {
 		fmt.Println("Matic generate", receiptHash, "oracle", header.ReceiptHash, " not same")
 		return nil, errors.New("receipt not same")
 	}

@@ -115,6 +115,7 @@ const (
 	NearChainId       = 1360100178526209
 	TonChainId        = 1360104473493506
 	BtcChainId        = 1360095883558913
+	XlayerId            = 196
 )
 
 const (
@@ -147,6 +148,7 @@ const (
 	Ton      = "ton"
 	Tron     = "tron"
 	Btc      = "btc"
+	Xrp      = "xrp"
 )
 
 // 0: init，2: relay failed，3: relay finish， 4: swap failed， 5: det chain mos failed

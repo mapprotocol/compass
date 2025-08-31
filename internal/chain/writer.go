@@ -2,9 +2,10 @@ package chain
 
 import (
 	"context"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strings"
+
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/mapprotocol/compass/core"
 
@@ -97,6 +98,9 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	w.log.Info("SendTx gasPrice before", "gasPrice", gasPrice, "gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap)
 	if w.cfg.LimitMultiplier > 1 {
 		gasLimit = uint64(float64(gasLimit) * w.cfg.LimitMultiplier)
+	}
+	if w.cfg.GasMultiplier > 1 && w.cfg.Id == constant.XlayerId {
+		gasPrice = big.NewInt(0).SetInt64(int64(float64(gasPrice.Int64()) * w.cfg.GasMultiplier))
 	}
 	w.log.Info("SendTx gasPrice", "gasPrice", gasPrice, "gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap, "gasLimit", gasLimit,
 		"limitMultiplier", w.cfg.LimitMultiplier, "gasMultiplier", w.cfg.GasMultiplier, "nonce", nonce.Uint64())
