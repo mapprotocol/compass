@@ -3,11 +3,12 @@ package conflux
 import (
 	"context"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/proof"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/mapprotocol/compass/internal/proof"
 
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/pkg/abi"
@@ -44,7 +45,7 @@ func New() *Chain {
 func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, role mapprotocol.Role) (core.Chain, error) {
 	client, err := conflux.NewClient(chainCfg.Opts[chain.Eth2Url])
 	if err != nil {
-		panic("conflux init client failed" + err.Error())
+		return nil, errors.Wrap(err, "Failed to connect to conflux")
 	}
 	cli = client
 	return chain.New(chainCfg, logger, sysErr, role, connection.NewConnection,

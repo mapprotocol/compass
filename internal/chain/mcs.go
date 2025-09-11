@@ -368,5 +368,5 @@ func (w *Writer) txStatus(txHash common.Hash) error {
 }
 
 func (w *Writer) queryInterval() time.Duration {
-	return time.Second * 3
+	return time.Second * 1
 }

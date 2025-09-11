@@ -256,6 +256,7 @@ func genReceipt(log *stream.GetMosResp) (*common.Hash, []byte, error) {
 			return nil, nil, fmt.Errorf("invalid swapData (%s)", bridgeParam.SwapData)
 		}
 	}
+	fmt.Println("--------------- ")
 
 	eo := mapprotocol.MessageOutEvent{
 		FromChain:   fromChain,

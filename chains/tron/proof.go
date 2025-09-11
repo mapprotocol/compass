@@ -1,13 +1,15 @@
 package tron
 
 import (
+	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/msg"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -73,7 +75,7 @@ func assembleProof(log *types.Log, receipts []*types.Receipt, method string, fId
 			Number:      big.NewInt(int64(log.BlockNumber)),
 		}, receipt, key, prf, fId, idx, method, signerRet.Signatures, orderId, log, proofType)
 	default:
-		panic("not support")
+		return nil, fmt.Errorf("not support proof type %d", proofType)
 	}
 
 	if err != nil {

@@ -2,9 +2,10 @@ package blacklist
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/mapprotocol/compass/internal/client"
 	"github.com/pkg/errors"
-	"strconv"
 )
 
 type Blacklist interface {
@@ -29,6 +30,7 @@ func Init(domain string) {
 
 func (b *blockList) CheckAccount(account, chainId string) (bool, error) {
 	uri := fmt.Sprintf("%s%s?account=%s&chainId=%s", b.domain, UrlOfCheckAccount, account, chainId)
+	fmt.Println("uri --------- ", uri)
 	body, err := client.JsonGet(uri)
 	if err != nil {
 		return false, errors.Wrap(err, "CheckAccount JsonGet")

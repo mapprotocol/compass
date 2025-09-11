@@ -115,7 +115,8 @@ const (
 	NearChainId       = 1360100178526209
 	TonChainId        = 1360104473493506
 	BtcChainId        = 1360095883558913
-	XlayerId            = 196
+	XlayerId          = 196
+	DoageChainId      = 1360121653362689
 )
 
 const (
@@ -151,7 +152,7 @@ const (
 	Xrp      = "xrp"
 )
 
-// 0: init，2: relay failed，3: relay finish， 4: swap failed， 5: det chain mos failed
+// 0: init，2: relay failed，3: relay finish， 4: swap failed， 5: dst chain mos failed
 const (
 	StatusOfInit = iota
 	StatusOfUnKnow

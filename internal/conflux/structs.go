@@ -309,7 +309,7 @@ func (e *Epoch) ToInt() (result *big.Int, isSuccess bool) {
 
 func (e *Epoch) Equals(target *Epoch) bool {
 	if e == nil {
-		panic("input could not be nil")
+		return false
 	}
 
 	if target == nil {

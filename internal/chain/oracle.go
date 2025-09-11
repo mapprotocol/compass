@@ -390,7 +390,7 @@ func ExternalOracleInput(selfId, nodeType int64, log *types.Log, client *ethclie
 		idx := log.Index
 		targetBn = proof.GenLogBlockNumber(blockNumber, idx)
 	default:
-		panic("unhandled default case")
+		return nil, fmt.Errorf("not support proof type %d", nodeType)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("oracle generate receipt failed, err is %w", err)

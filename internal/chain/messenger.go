@@ -82,6 +82,7 @@ func (m *Messenger) sync() error {
 				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
 				m.Cfg.StartBlock = m.Cfg.StartBlock.Add(m.Cfg.StartBlock, big.NewInt(1))
 				err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
+				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
 			if err != nil {
@@ -129,6 +130,7 @@ func (m *Messenger) filter() error {
 				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
 				m.Cfg.StartBlock = m.Cfg.StartBlock.Add(m.Cfg.StartBlock, big.NewInt(1))
 				err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
+				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
 			if err != nil {
