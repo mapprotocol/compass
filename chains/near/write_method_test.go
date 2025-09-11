@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/pkg/keystore"
 	"math/big"
 	"testing"
+
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/keystore"
 
 	"github.com/mapprotocol/near-api-go/pkg/client"
 	nearclient "github.com/mapprotocol/near-api-go/pkg/client"

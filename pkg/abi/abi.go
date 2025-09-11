@@ -1,9 +1,10 @@
 package abi
 
 import (
+	"strings"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 type Abi struct {

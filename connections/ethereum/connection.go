@@ -65,7 +65,7 @@ func (c *Connection) Connect() error {
 	if c.http {
 		// rpcClient, err = rpc.DialHTTP(c.endpoint)
 		cli := http.DefaultClient
-		cli.Timeout = time.Minute
+		cli.Timeout = time.Second * 5
 		rpcClient, err = rpc.DialHTTPWithClient(c.endpoint, cli)
 	} else {
 		rpcClient, err = rpc.DialContext(context.Background(), c.endpoint)

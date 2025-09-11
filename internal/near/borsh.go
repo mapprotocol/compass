@@ -303,6 +303,6 @@ func MustBase58Decode(str string) []byte {
 
 func MustToLittleEndian(w io.Writer, data interface{}) {
 	if err := binary.Write(w, binary.LittleEndian, data); err != nil {
-		panic(err)
+		fmt.Println("binary.Write failed:", err)
 	}
 }

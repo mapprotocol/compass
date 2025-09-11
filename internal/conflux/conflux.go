@@ -2,6 +2,9 @@ package conflux
 
 import (
 	"context"
+	"io"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/trie"
 	maptypes "github.com/mapprotocol/atlas/core/types"
@@ -9,8 +12,6 @@ import (
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/pkg/msg"
-	"io"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"

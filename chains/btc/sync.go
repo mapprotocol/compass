@@ -112,7 +112,7 @@ func handler(lh LogHandler) Handler {
 		if len(back.Items) == 0 {
 			return 0, nil
 		}
-		m.Log.Info("Btc find a log", "id", back.Items[0].Id, "block", back.Items[0].BlockNumber,
+		m.Log.Info("Find a log", "id", back.Items[0].Id, "block", back.Items[0].BlockNumber,
 			"txHash", back.Items[0].TxHash)
 		logData := common.Hex2Bytes(back.Items[0].LogData)
 		var log = MessageOut{}
@@ -154,10 +154,12 @@ func handler(lh LogHandler) Handler {
 			return back.Items[0].Id, nil
 		}
 
-		err = m.checkBtcLog(&log)
-		if err != nil {
-			m.Log.Error("Failed to check log", "txHash", log.TxHash, "err", err)
-			return 0, err
+		if m.Cfg.Id == constant.BtcChainId {
+			err = m.checkBtcLog(&log)
+			if err != nil {
+				m.Log.Error("Failed to check log", "txHash", log.TxHash, "err", err)
+				return 0, err
+			}
 		}
 
 		err = lh(m, &log)
@@ -174,7 +176,7 @@ func mos(m *sync, log *MessageOut) error {
 	if err != nil {
 		return errors.Wrap(err, "gen receipt failed")
 	}
-	m.Log.Info("Btc2Evm mos generate", "receiptHash", receiptHash)
+	m.Log.Info("2Evm mos generate", "receiptHash", receiptHash)
 	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), uint(log.Id))
 	proposalInfo, err := chain.GetSigner(bn, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
@@ -198,13 +200,15 @@ func mos(m *sync, log *MessageOut) error {
 	}
 
 	orderId := common.HexToHash(log.OrderID)
-	finalInput, err := mapprotocol.PackInput(mapprotocol.Mcs, mapprotocol.MethodOfMessageIn,
+	finalInput, err := mapprotocol.PackInput(mapprotocol.Mcs,
+		mapprotocol.MethodOfMessageIn,
 		big.NewInt(0).SetUint64(uint64(m.Cfg.Id)),
 		big.NewInt(int64(0)), orderId, input)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("hex -------- ", common.Bytes2Hex(finalInput))
 	var orderId32 [32]byte
 	for i, v := range orderId {
 		orderId32[i] = v
@@ -308,6 +312,7 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 	if log.SrcToken == constant.TokenLongAddressOfBtc {
 		log.SrcToken = constant.TokenShortAddressOfBtc
 	}
+
 	eo := mapprotocol.MessageOutEvent{
 		FromChain:   fromChain,
 		ToChain:     toChain,
@@ -323,6 +328,7 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 		MessageType: log.MessageType,
 		To:          to,
 	}
+	fmt.Println("eo, mos ", common.Bytes2Hex(eo.Mos))
 	data, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolEventEncode].Inputs.Pack(&eo)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal event code failed")
@@ -330,7 +336,8 @@ func genReceipt(log *MessageOut) (*common.Hash, []byte, error) {
 	// abi
 	receiptPack, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolPackReceipt].Inputs.Pack(
 		common.Hex2Bytes(strings.TrimPrefix(log.Addr, "0x")),
-		common.Hex2Bytes(strings.TrimPrefix(log.Topic, "0x")), data)
+		common.Hex2Bytes(strings.TrimPrefix(log.Topic, "0x")),
+		data)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal pack failed")
 	}

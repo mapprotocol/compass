@@ -3,7 +3,6 @@ package chain
 import (
 	"context"
 	"math/big"
-	"strings"
 
 	"github.com/mapprotocol/compass/pkg/msg"
 
@@ -99,7 +98,10 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	if w.cfg.LimitMultiplier > 1 {
 		gasLimit = uint64(float64(gasLimit) * w.cfg.LimitMultiplier)
 	}
-	if w.cfg.GasMultiplier > 1 && w.cfg.Id == constant.XlayerId {
+	if w.cfg.Id == constant.XlayerId {
+		gasLimit = gasLimit + 500000
+	}
+	if w.cfg.GasMultiplier > 1 && gasPrice != nil {
 		gasPrice = big.NewInt(0).SetInt64(int64(float64(gasPrice.Int64()) * w.cfg.GasMultiplier))
 	}
 	w.log.Info("SendTx gasPrice", "gasPrice", gasPrice, "gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap, "gasLimit", gasLimit,
@@ -149,9 +151,9 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 }
 
 func (w *Writer) needNonce(err error) bool {
-	if err == nil || err.Error() == constant.ErrNonceTooLow.Error() || strings.Index(err.Error(), "nonce too low") != -1 {
-		return true
-	}
+	// if err == nil || err.Error() == constant.ErrNonceTooLow.Error() || strings.Index(err.Error(), "nonce too low") != -1 {
+	// 	return true
+	// }
 
 	return false
 }

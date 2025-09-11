@@ -2,9 +2,10 @@ package client
 
 import (
 	"bytes"
-	log "github.com/ChainSafe/log15"
 	"io"
 	"net/http"
+
+	log "github.com/ChainSafe/log15"
 )
 
 func JsonPost(url string, data []byte) ([]byte, error) {

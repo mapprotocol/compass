@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"math/big"
 )
 
 // WebsocketEpochResponse represents result of epoch websocket subscription
@@ -71,7 +72,7 @@ func (e *Epoch) ToInt() (result *big.Int, isSuccess bool) {
 // Equals checks if e equals target
 func (e *Epoch) Equals(target *Epoch) bool {
 	if e == nil {
-		panic("input could not be nil")
+		return false
 	}
 
 	if target == nil {
