@@ -3,15 +3,17 @@ package chain
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"math/big"
+	"net/http"
+	"sort"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/pkg/errors"
-	"io"
-	"math/big"
-	"net/http"
-	"strings"
 )
 
 func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
@@ -89,23 +91,30 @@ func (m *Oracle) filterOracle() error {
 		}
 	}
 
-	tmp := int64(0)
+	tmp := []int{}
+	var err error
 	defer func() {
-		if tmp == 0 {
+		if len(tmp) == 0 {
 			return
 		}
-		if tmp > m.Cfg.StartBlock.Int64() {
-			m.Cfg.StartBlock = big.NewInt(tmp)
+		if err != nil {
+			return
+		}
+		sort.Ints(tmp) // less - big
+		if int64(tmp[0]) > m.Cfg.StartBlock.Int64() {
+			m.Cfg.StartBlock = big.NewInt(int64(tmp[0]))
 		}
 	}()
 	for _, pid := range []int64{constant.ProjectOfOracle, constant.ProjectOfMsger} {
-		data, err := Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
+		var data interface{}
+		data, err = Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
 			fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
 				m.Cfg.StartBlock.Int64(), pid, m.Cfg.Id, topic)))
 		if err != nil {
 			return err
 		}
-		listData, err := json.Marshal(data)
+		var listData []byte
+		listData, err = json.Marshal(data)
 		if err != nil {
 			return errors.Wrap(err, "marshal resp.Data failed")
 		}
@@ -122,7 +131,7 @@ func (m *Oracle) filterOracle() error {
 			idx := m.Match(ele.ContractAddress) // 新版 oracle
 			if idx == -1 {
 				m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
-				tmp = ele.Id
+				tmp = append(tmp, int(ele.Id))
 				continue
 			}
 
@@ -145,7 +154,7 @@ func (m *Oracle) filterOracle() error {
 			if err != nil {
 				return err
 			}
-			tmp = ele.Id
+			tmp = append(tmp, int(ele.Id))
 		}
 	}
 	return nil
