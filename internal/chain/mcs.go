@@ -320,7 +320,6 @@ func (w *Writer) checkOrderId(toAddress *common.Address, input [32]byte, useAbi 
 
 func (w *Writer) txStatus(txHash common.Hash) error {
 	var count int64
-	//time.Sleep(time.Second * 2)
 	for {
 		pending, err := w.conn.Client().IsPendingByTxHash(context.Background(), txHash) // Query whether it is on the chain
 		if pending {
