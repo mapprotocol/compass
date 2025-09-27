@@ -6,6 +6,7 @@ package ethereum
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"net"
 	"net/http"
@@ -63,25 +64,22 @@ func (c *Connection) Connect() error {
 	var rpcClient *rpc.Client
 	var err error
 	// Start http or ws client
+	tr := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   3 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout:   3 * time.Second,
+		ResponseHeaderTimeout: 5 * time.Second,
+		IdleConnTimeout:       90 * time.Second,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+	}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   10 * time.Second,
+	}
 	if c.http {
-		tr := &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout:   3 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).DialContext,
-			TLSHandshakeTimeout:   3 * time.Second,
-			ResponseHeaderTimeout: 5 * time.Second,
-			IdleConnTimeout:       90 * time.Second,
-			MaxIdleConns:          100,
-			MaxIdleConnsPerHost:   10,
-		}
-		client := &http.Client{
-			Transport: tr,
-			Timeout:   10 * time.Second,
-		}
-
-		// cli := http.DefaultClient
-		// cli.Timeout = time.Second * 5
 		rpcClient, err = rpc.DialHTTPWithClient(c.endpoint, client)
 	} else {
 		rpcClient, err = rpc.DialContext(context.Background(), c.endpoint)
@@ -89,7 +87,7 @@ func (c *Connection) Connect() error {
 	if err != nil {
 		return err
 	}
-	c.conn = ethclient.NewClient(rpcClient, c.endpoint)
+	c.conn = ethclient.NewClient(rpcClient, c.endpoint, client)
 
 	// Construct tx opts, call opts, and nonce mechanism
 	opts, _, err := c.newTransactOpts(big.NewInt(0), c.gasLimit, c.maxGasPrice)
@@ -321,4 +319,27 @@ func (c *Connection) Close() {
 		c.conn.Close()
 	}
 	close(c.stop)
+}
+
+type DebugTransport struct {
+	Base http.RoundTripper
+}
+
+func (dt *DebugTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	start := time.Now()
+	fmt.Println("=== 请求开始 ===")
+
+	// 打印目标 URL
+	fmt.Println("URL:", req.URL.String())
+
+	// 调用底层 RoundTripper
+	resp, err := dt.Base.RoundTrip(req)
+
+	cost := time.Since(start)
+	if err != nil {
+		fmt.Println("请求失败:", err, "耗时:", cost)
+		return nil, err
+	}
+	fmt.Println("收到响应头 耗时:", cost)
+	return resp, nil
 }
