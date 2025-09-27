@@ -193,7 +193,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int, filterId int6
 		} else {
 			nodeType, err = mapprotocol.GetNodeTypeByManager(mapprotocol.MethodOfNodeType, big.NewInt(int64(m.Cfg.Id)))
 			if err != nil {
-				return err
+				return errors.Wrap(err, "GetOther2MapNodeType failed")
 			}
 		}
 
@@ -202,7 +202,7 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int, filterId int6
 		targetBn := blockNumber
 		rpcReceipt, err := m.Conn.Client().TransactionReceipt(context.Background(), log.TxHash)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Unable to get receipt")
 		}
 		if l, match := MatchLog(rpcReceipt.Logs, &tmp); match {
 			tmp = *l // use online log
@@ -213,13 +213,13 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int, filterId int6
 		blockHash := ""
 		willBlock, err := m.Conn.Client().MAPBlockByNumber(context.Background(), big.NewInt(targetBn.Int64()+3))
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Unable to get block")
 		}
 		parentHash := willBlock.ParentHash
 		for i := int64(2); i > 0; i-- {
 			willBlock, err = m.Conn.Client().MAPBlockByHash(context.Background(), common.HexToHash(parentHash))
 			if err != nil {
-				return err
+				return errors.Wrap(err, "Unable to get block in retry")
 			}
 			parentHash = willBlock.ParentHash
 			m.Log.Debug("Oracle getBlock", "willBlock.Number", willBlock.Number, "logNumber", big.NewInt(0).SetUint64(log.BlockNumber).Text(16))
@@ -264,11 +264,11 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int, filterId int6
 		m.Log.Info("Find log", "block", blockNumber, "logIndex", log.Index, "receipt", receipt, "targetBn", targetBn)
 		ret, err := MulSignInfo(0, uint64(m.Cfg.MapChainID))
 		if err != nil {
-			return err
+			return errors.Wrap(err, "mul sign failed")
 		}
 		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, targetBn, id)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "pack input failed")
 		}
 
 		err = m.Router.Send(msg.NewProposal(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{pack, receipt, targetBn}, m.MsgCh))

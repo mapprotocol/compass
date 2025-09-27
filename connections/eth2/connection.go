@@ -1,8 +1,9 @@
 package eth2
 
 import (
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 
 	"github.com/mapprotocol/compass/core"
 
