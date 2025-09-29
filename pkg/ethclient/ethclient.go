@@ -20,24 +20,12 @@ import (
 type Client struct {
 	c   *rpc.Client
 	url string
-}
-
-// Dial connects a client to the given URL.
-func Dial(rawurl string) (*Client, error) {
-	return DialContext(context.Background(), rawurl)
-}
-
-func DialContext(ctx context.Context, rawurl string) (*Client, error) {
-	c, err := rpc.DialContext(ctx, rawurl)
-	if err != nil {
-		return nil, err
-	}
-	return NewClient(c, rawurl), nil
+	cli *http.Client
 }
 
 // NewClient creates a client that uses the given RPC client.
-func NewClient(c *rpc.Client, url string) *Client {
-	return &Client{c, url}
+func NewClient(c *rpc.Client, url string, cli *http.Client) *Client {
+	return &Client{c, url, cli}
 }
 
 func (ec *Client) Close() {
@@ -592,10 +580,11 @@ type jsonrpcMessage struct {
 func (ec *Client) EthLatestHeaderByNumber(endpoint string, number *big.Int) (*Header, error) {
 	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_getBlockByNumber\",\"params\": [\"%s\",true],\"id\": 1\n}", toBlockNumArg(number))
 	body := strings.NewReader(s)
-	resp, err := http.Post(endpoint, "application/json", body)
+	resp, err := ec.cli.Post(endpoint, "application/json", body)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var respmsg jsonrpcMessage
 	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
@@ -633,10 +622,11 @@ type OpReceipt struct {
 func (ec *Client) OpReceipt(ctx context.Context, txHash common.Hash) (*OpReceipt, error) {
 	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_getTransactionReceipt\",\"params\": [\"%s\"],\"id\": 1}", txHash.Hex())
 	body := strings.NewReader(s)
-	resp, err := http.Post(ec.url, "application/json", body)
+	resp, err := ec.cli.Post(ec.url, "application/json", body)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var respmsg jsonrpcMessage
 	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
@@ -666,10 +656,12 @@ func (ec *Client) SelfEstimateGas(ctx context.Context, endpoint, from, to, param
 	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_estimateGas\",\"params\": [{\"from\":\"%s\",\"to\":\"%s\",\"data\":\"%s\"}],\"id\": 1}",
 		from, to, param)
 	body := strings.NewReader(s)
-	resp, err := http.Post(endpoint, "application/json", body)
+	resp, err := ec.cli.Post(endpoint, "application/json", body)
 	if err != nil {
 		return 0, err
 	}
+	defer resp.Body.Close()
+
 	var respmsg jsonrpcMessage
 	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
 		return 0, err
@@ -705,10 +697,11 @@ type BscHeader struct {
 func (ec *Client) BscHeaderByNumber(endpoint string, number *big.Int) (*BscHeader, error) {
 	s := fmt.Sprintf("{\"jsonrpc\": \"2.0\",\"method\": \"eth_getBlockByNumber\",\"params\": [\"%s\",true],\"id\": 1\n}", toBlockNumArg(number))
 	body := strings.NewReader(s)
-	resp, err := http.Post(endpoint, "application/json", body)
+	resp, err := ec.cli.Post(endpoint, "application/json", body)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var respmsg jsonrpcMessage
 	if err := json.NewDecoder(resp.Body).Decode(&respmsg); err != nil {
