@@ -2,6 +2,10 @@ package bsc
 
 import (
 	"fmt"
+	"math/big"
+	"strconv"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
@@ -9,9 +13,6 @@ import (
 	"github.com/mapprotocol/compass/pkg/contract"
 	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/pkg/errors"
-	"math/big"
-	"strconv"
-	"sync"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -156,10 +157,13 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 	if v, ok := proof.CacheReceipt.Get(key); ok {
 		receipts = v.([]*types.Receipt)
 	} else {
-		receipts, err = tx.GetReceiptsByTxsHash(client, txsHash)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+		if proofType == constant.ProofTypeOfNewOracle {
+			receipts, err = tx.GetReceiptsByTxsHash(client, txsHash)
+			if err != nil {
+				return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
+			}
 		}
+
 		proof.CacheReceipt.Add(key, receipts)
 	}
 	var orderId32 [32]byte

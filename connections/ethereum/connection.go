@@ -66,18 +66,18 @@ func (c *Connection) Connect() error {
 	// Start http or ws client
 	tr := &http.Transport{
 		DialContext: (&net.Dialer{
-			Timeout:   3 * time.Second,
-			KeepAlive: 30 * time.Second,
+			Timeout:   10 * time.Second,
+			KeepAlive: 60 * time.Second,
 		}).DialContext,
-		TLSHandshakeTimeout:   3 * time.Second,
-		ResponseHeaderTimeout: 5 * time.Second,
+		TLSHandshakeTimeout:   5 * time.Second,
+		ResponseHeaderTimeout: 10 * time.Second,
 		IdleConnTimeout:       90 * time.Second,
 		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   10,
+		MaxIdleConnsPerHost:   50,
 	}
 	client := &http.Client{
 		Transport: tr,
-		Timeout:   10 * time.Second,
+		Timeout:   30 * time.Second,
 	}
 	if c.http {
 		rpcClient, err = rpc.DialHTTPWithClient(c.endpoint, client)
