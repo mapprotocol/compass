@@ -176,16 +176,12 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 		orderId = log.Topics[1]
 		method  = m.GetMethod(log.Topics[0])
 	)
-	var orderId32 [32]byte
-	for idx, v := range orderId {
-		orderId32[idx] = v
-	}
 	payload, err := c.Proof(m.Conn.Client(), log, "", proofType, uint64(m.Cfg.Id), toChainID, sign)
 	if err != nil {
 		return nil, fmt.Errorf("build Proof failed, err: %w", err)
 	}
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash, method}
+		msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash, method}
 		message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		switch toChainID {
 		case constant.MerlinChainId:
@@ -200,7 +196,7 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 			message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), payloads, m.MsgCh)
 		}
 	} else if m.Cfg.SyncToMap {
-		msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
+		msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
 		message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	}
 	return &message, nil
@@ -263,7 +259,6 @@ func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethcl
 func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
 	toChainID uint64, sign [][]byte) ([]byte, error) {
 	var (
-		orderId   = log.Topics[1]
 		method    = chain.GetMethod(log.Topics[0])
 		bigNumber = big.NewInt(int64(log.BlockNumber))
 	)
@@ -280,10 +275,6 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 		return nil, fmt.Errorf("unable to query header Logs: %w", err)
 	}
 
-	var orderId32 [32]byte
-	for idx, v := range orderId {
-		orderId32[idx] = v
-	}
 	var ret []byte
 	if selfId == constant.MapChainId {
 		remainder := big.NewInt(0).Mod(bigNumber, big.NewInt(mapprotocol.EpochOfMap))
@@ -295,12 +286,12 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 			receipts = append(receipts, lr)
 		}
 
-		_, ret, err = mapo.AssembleMapProof(client, log, receipts, header, constant.MapChainId, method, "", proofType, sign, orderId32)
+		_, ret, err = mapo.AssembleMapProof(client, log, receipts, header, constant.MapChainId, method, "", proofType, sign)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}
 	} else {
-		ret, err = mapo.AssembleEthProof(client, log, receipts, header, method, msg.ChainId(selfId), proofType, sign, orderId32)
+		ret, err = mapo.AssembleEthProof(client, log, receipts, header, method, msg.ChainId(selfId), proofType, sign)
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}

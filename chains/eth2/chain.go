@@ -182,7 +182,6 @@ func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethcl
 func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
 	toChainID uint64, sign [][]byte) ([]byte, error) {
 	var (
-		orderId     = log.Topics[1]
 		method      = chain.GetMethod(log.Topics[0])
 		blockNumber = big.NewInt(0).SetUint64(log.BlockNumber)
 	)
@@ -201,12 +200,7 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 		return nil, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
 
-	var orderId32 [32]byte
-	for i, v := range orderId {
-		orderId32[i] = v
-	}
-
-	ret, err := ieth.AssembleProof(*ieth.ConvertHeader(header), log, receipts, method, msg.ChainId(selfId), proofType, sign, orderId32)
+	ret, err := ieth.AssembleProof(*ieth.ConvertHeader(header), log, receipts, method, msg.ChainId(selfId), proofType, sign)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}

@@ -100,17 +100,13 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 		message msg.Message
 		orderId = log.Topics[1]
 	)
-	var orderId32 [32]byte
-	for idx, v := range orderId {
-		orderId32[idx] = v
-	}
 
 	payload, err := c.Proof(m.Conn.Client(), log, m.Cfg.Endpoint, proofType, uint64(m.Cfg.Id), toChainID, sign)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
-	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
+	msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
 	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	return &message, nil
 }
@@ -144,7 +140,6 @@ func (c *Chain) Connect(id, endpoint, mcs, lightNode, oracleNode string) (*ethcl
 func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string, proofType int64, selfId,
 	toChainID uint64, sign [][]byte) ([]byte, error) {
 	var (
-		orderId   = log.Topics[1]
 		method    = chain.GetMethod(log.Topics[0])
 		bigNumber = big.NewInt(int64(log.BlockNumber))
 	)
@@ -166,10 +161,6 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 
 		proof.CacheReceipt.Add(key, receipts)
 	}
-	var orderId32 [32]byte
-	for idx, v := range orderId {
-		orderId32[idx] = v
-	}
 
 	headers := make([]*ethclient.BscHeader, mapprotocol.HeaderCountOfBsc)
 	for i := 0; i < mapprotocol.HeaderCountOfBsc; i++ {
@@ -186,7 +177,8 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 		params = append(params, bsc.ConvertHeader(h))
 	}
 
-	ret, err := bsc.AssembleProof(params, log, receipts, method, msg.ChainId(selfId), proofType, sign, orderId32)
+	ret, err := bsc.AssembleProof(params, log, receipts, method, msg.ChainId(selfId),
+		proofType, sign)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}

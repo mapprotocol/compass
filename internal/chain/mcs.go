@@ -39,7 +39,7 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 		case <-w.stop:
 			return false
 		default:
-			orderId := m.Payload[1].([32]byte)
+			orderId := m.Payload[1].(common.Hash)
 			exits, err := w.checkOrderId(&addr, orderId, mapprotocol.Mcs, mapprotocol.MethodOfOrderList)
 			if err != nil {
 				w.log.Error("check orderId exist failed ", "err", err)
@@ -286,7 +286,7 @@ func (w *Writer) call(toAddress *common.Address, input []byte, useAbi abi.ABI, m
 	return nil
 }
 
-func (w *Writer) checkOrderId(toAddress *common.Address, input [32]byte, useAbi abi.ABI, method string) (bool, error) {
+func (w *Writer) checkOrderId(toAddress *common.Address, input common.Hash, useAbi abi.ABI, method string) (bool, error) {
 	data, err := mapprotocol.PackInput(useAbi, method, input)
 	if err != nil {
 		return false, err

@@ -1,6 +1,10 @@
 package bsc
 
 import (
+	"fmt"
+	"math/big"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -13,8 +17,6 @@ import (
 	iproof "github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/msg"
-	"math/big"
-	"strings"
 )
 
 type Header struct {
@@ -111,13 +113,9 @@ type ReceiptProof struct {
 }
 
 func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, method string,
-	fId msg.ChainId, proofType int64, sign [][]byte, orderId [32]byte) ([]byte, error) {
+	fId msg.ChainId, proofType int64, sign [][]byte) ([]byte, error) {
 	var ret []byte
 	txIndex := log.TxIndex
-	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
-	if err != nil {
-		return nil, err
-	}
 
 	pr := op.Receipts{}
 	for _, r := range receipts {
@@ -128,20 +126,15 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 	if err != nil {
 		return nil, err
 	}
-
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(txIndex))
-	ek := mapo.Key2Hex(key, len(prf))
-
-	idx := 0
-	for i, ele := range receipts[txIndex].Logs {
-		if ele.Index != log.Index {
-			continue
-		}
-		idx = i
-	}
 	switch proofType {
 	case constant.ProofTypeOfOrigin:
+		receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
+		if err != nil {
+			return nil, err
+		}
+		ek := mapo.Key2Hex(key, len(prf))
 		pd := ProofData{
 			Headers: header,
 			ReceiptProof: ReceiptProof{
@@ -150,19 +143,27 @@ func AssembleProof(header []Header, log *types.Log, receipts []*types.Receipt, m
 				Proof:     prf,
 			},
 		}
+		idx := 0
+		for i, ele := range receipts[txIndex].Logs {
+			if ele.Index != log.Index {
+				continue
+			}
+			idx = i
+		}
 
-		ret, err = iproof.V3Pack(fId, method, mapprotocol.Bsc, idx, orderId, false, pd)
+		ret, err = iproof.V3Pack(fId, method, mapprotocol.Bsc, idx, log.Topics[1], false, pd)
 		if err != nil {
 			return nil, err
 		}
-	case constant.ProofTypeOfNewOracle:
-		fallthrough
-	case constant.ProofTypeOfLogOracle:
+	case constant.ProofTypeOfNewOracle, constant.ProofTypeOfLogOracle:
 		ret, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: common.BytesToHash(header[0].ReceiptsRoot),
-		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
+		}, nil, key, prf, fId, 0, method, sign, log, proofType)
 	default:
-
+		return nil, fmt.Errorf("invalid proof type, %d", proofType)
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	return ret, nil

@@ -2,9 +2,10 @@ package proof
 
 import (
 	"bytes"
-	"github.com/golang/groupcache/lru"
 	"math/big"
 	"sync"
+
+	"github.com/golang/groupcache/lru"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -209,7 +210,7 @@ func log2Proof(log *types.Log) []byte {
 }
 
 func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []byte, prf [][]byte, fId msg.ChainId,
-	idx int, method string, sign [][]byte, orderId [32]byte, log *types.Log, proofType int64) ([]byte, error) {
+	idx int, method string, sign [][]byte, log *types.Log, proofType int64) ([]byte, error) {
 	var (
 		fixedHash   [32]byte
 		pt          = uint8(0)
@@ -274,7 +275,7 @@ func SignOracle(header *maptypes.Header, receipt *mapprotocol.TxReceipt, key []b
 	}
 
 	ret, err := mapprotocol.PackInput(mapprotocol.Mcs, method, big.NewInt(0).SetUint64(uint64(fId)),
-		big.NewInt(int64(idx)), orderId, input)
+		big.NewInt(int64(idx)), log.Topics[1], input)
 	if err != nil {
 		return nil, errors.Wrap(err, "pack mcs input failed")
 	}

@@ -33,10 +33,11 @@ import (
 )
 
 func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.Receipt, header *maptypes.Header,
-	method string, fId msg.ChainId, proofType int64, sign [][]byte, orderId [32]byte) ([]byte, error) {
+	method string, fId msg.ChainId, proofType int64, sign [][]byte) ([]byte, error) {
 	var (
-		pack []byte
-		err  error
+		pack    []byte
+		err     error
+		orderId = log.Topics[1]
 	)
 	idx := 0
 	for i, ele := range receipts[log.TxIndex].Logs {
@@ -74,7 +75,7 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: receiptHash,
 			Number:      big.NewInt(int64(log.BlockNumber)),
-		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
+		}, receipt, key, prf, fId, idx, method, sign, log, proofType)
 	}
 	if err != nil {
 		return nil, err
@@ -133,9 +134,10 @@ func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*t
 }
 
 func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.Receipt,
-	header *maptypes.Header, fId msg.ChainId, method, zkUrl string, proofType int64, sign [][]byte, orderId [32]byte) (uint64, []byte, error) {
+	header *maptypes.Header, fId msg.ChainId, method, zkUrl string, proofType int64, sign [][]byte) (uint64, []byte, error) {
 	uToChainID := big.NewInt(0).SetBytes(log.Topics[2].Bytes()[8:16]).Uint64()
 	txIndex := log.TxIndex
+	orderId := log.Topics[1]
 	aggPK, ist, aggPKBytes, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return 0, nil, err
@@ -244,7 +246,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 		case constant.ProofTypeOfNewOracle:
 			fallthrough
 		case constant.ProofTypeOfLogOracle:
-			payloads, err = proof.SignOracle(header, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
+			payloads, err = proof.SignOracle(header, receipt, key, prf, fId, idx, method, sign, log, proofType)
 		default:
 			payloads, err = proof.V3Pack(fId, method, mapprotocol.Map2Other, idx, orderId, true, rp)
 		}

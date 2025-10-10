@@ -160,12 +160,8 @@ func mos(m *sync, log *stream.GetMosResp) error {
 		return err
 	}
 
-	var orderId32 [32]byte
-	for i, v := range orderId {
-		orderId32[i] = v
-	}
 	message := msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{finalInput,
-		orderId32, log.BlockNumber, log.TxHash}, m.MsgCh)
+		orderId, log.BlockNumber, log.TxHash}, m.MsgCh)
 	err = m.Router.Send(message)
 	if err != nil {
 		m.Log.Error("subscription error: failed to route message", "err", err)

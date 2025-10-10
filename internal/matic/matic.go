@@ -3,6 +3,8 @@ package matic
 import (
 	"bytes"
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
@@ -14,7 +16,6 @@ import (
 	"github.com/mapprotocol/compass/internal/proof"
 	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mapprotocol/compass/pkg/util"
-	"math/big"
 )
 
 type BlockHeader struct {
@@ -79,8 +80,9 @@ type ProofData struct {
 }
 
 func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, receipts []*types.Receipt,
-	method string, proofType int64, orderId [32]byte, sign [][]byte) ([]byte, error) {
+	method string, proofType int64, sign [][]byte) ([]byte, error) {
 	txIndex := log.TxIndex
+	orderId := log.Topics[1]
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
 		return nil, err
@@ -158,7 +160,7 @@ func AssembleProof(headers []BlockHeader, log *types.Log, fId msg.ChainId, recei
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: common.BytesToHash(headers[0].ReceiptsRoot),
 			Number:      big.NewInt(int64(log.BlockNumber)),
-		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
+		}, receipt, key, prf, fId, idx, method, sign, log, proofType)
 	}
 
 	if err != nil {
