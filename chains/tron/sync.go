@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/ChainSafe/log15"
 	eth "github.com/ethereum/go-ethereum"
@@ -273,16 +274,13 @@ func log2Msg(m *sync, l *types.Log, idx int) (int, error) {
 	}
 
 	var (
-		orderId32 [32]byte
-		message   msg.Message
-		orderId   = l.Topics[1]
-		receipts  []*types.Receipt
-		current   = big.NewInt(0).SetUint64(l.BlockNumber)
-		key       = strconv.FormatUint(uint64(m.Cfg.Id), 10) + "_" + current.String()
+		message  msg.Message
+		orderId  = l.Topics[1]
+		receipts []*types.Receipt
+		current  = big.NewInt(0).SetUint64(l.BlockNumber)
+		key      = strconv.FormatUint(uint64(m.Cfg.Id), 10) + "_" + current.String()
 	)
-	for i, v := range orderId {
-		orderId32[i] = v
-	}
+
 	if v, ok := proof.CacheReceipt.Get(key); ok {
 		receipts = v.([]*types.Receipt)
 		m.Log.Info("use cache receipt", "latestBlock ", current, "txHash", l.TxHash)
@@ -310,11 +308,11 @@ func log2Msg(m *sync, l *types.Log, idx int) (int, error) {
 	}
 
 	tmp := l
-	input, err := assembleProof(tmp, receipts, method, m.Cfg.Id, m.Cfg.MapChainID, proofType, orderId32)
+	input, err := assembleProof(tmp, receipts, method, m.Cfg.Id, m.Cfg.MapChainID, proofType)
 	if err != nil {
 		return 0, err
 	}
-	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, orderId32, l.BlockNumber, l.TxHash}, m.MsgCh)
+	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, []interface{}{input, l.Topics[1], l.BlockNumber, l.TxHash}, m.MsgCh)
 	err = m.Router.Send(message)
 	if err != nil {
 		m.Log.Error("subscription error: failed to route message", "err", err)

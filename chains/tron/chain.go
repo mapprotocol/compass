@@ -2,12 +2,13 @@ package tron
 
 import (
 	"fmt"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/pkg/keystore"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"strconv"
 	gosync "sync"
+
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/keystore"
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
@@ -175,10 +176,7 @@ func (c *Chain) Proof(client *ethclient.Client, l *types.Log, endpoint string, p
 		receipts []*types.Receipt
 		key      = strconv.FormatUint(selfId, 10) + "_" + strconv.FormatUint(l.BlockNumber, 10)
 	)
-	var orderId32 [32]byte
-	for i, v := range orderId {
-		orderId32[i] = v
-	}
+
 	if v, ok := proof.CacheReceipt.Get(key); ok {
 		receipts = v.([]*types.Receipt)
 	} else {
@@ -200,7 +198,7 @@ func (c *Chain) Proof(client *ethclient.Client, l *types.Log, endpoint string, p
 	}
 
 	tmp := l
-	input, err := assembleProof(tmp, receipts, method, msg.ChainId(selfId), msg.ChainId(toChainID), proofType, orderId32)
+	input, err := assembleProof(tmp, receipts, method, msg.ChainId(selfId), msg.ChainId(toChainID), proofType)
 	if err != nil {
 		return nil, err
 	}

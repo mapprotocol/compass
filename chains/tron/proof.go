@@ -19,7 +19,7 @@ import (
 )
 
 func assembleProof(log *types.Log, receipts []*types.Receipt, method string, fId, toChainId msg.ChainId,
-	proofType int64, orderId [32]byte) ([]byte, error) {
+	proofType int64) ([]byte, error) {
 	receipt, err := mapprotocol.GetTxReceipt(receipts[log.TxIndex])
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func assembleProof(log *types.Log, receipts []*types.Receipt, method string, fId
 		ret, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: tr.Hash(),
 			Number:      big.NewInt(int64(log.BlockNumber)),
-		}, receipt, key, prf, fId, idx, method, signerRet.Signatures, orderId, log, proofType)
+		}, receipt, key, prf, fId, idx, method, signerRet.Signatures, log, proofType)
 	default:
 		return nil, fmt.Errorf("not support proof type %d", proofType)
 	}

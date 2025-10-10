@@ -46,7 +46,7 @@ func (s *ProofSrv) TxExec(req *stream.TxExecOfRequest) (map[string]interface{}, 
 		desChainInt, _ := strconv.ParseInt(desChain, 10, 64)
 		srcChainInt, _ := strconv.ParseInt(req.SrcChain, 10, 64)
 		if srcChainInt != constant.MapChainId && desChainInt != constant.MapChainId {
-			desChain = string(rune(constant.MapChainId))
+			desChain = strconv.FormatInt(constant.MapChainId, 10)
 		}
 		return s.SuccessProof(req.SrcChain, desChain, req.SrcBlockNumber, req.SrcLogIndex)
 	case constant.StatusOfRelayFinish:

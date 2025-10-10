@@ -3,16 +3,17 @@ package klaytn
 import (
 	"context"
 	"fmt"
-	"github.com/mapprotocol/compass/internal/constant"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/pkg/msg"
-	"github.com/pkg/errors"
 	"math/big"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mapprotocol/compass/internal/constant"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/internal/proof"
+	"github.com/mapprotocol/compass/pkg/msg"
+	"github.com/pkg/errors"
 
 	"github.com/ChainSafe/log15"
 	ecommon "github.com/ethereum/go-ethereum/common"
@@ -179,12 +180,7 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}
 
-	var orderId32 [32]byte
-	for idx, v := range orderId {
-		orderId32[idx] = v
-	}
-
-	msgPayload := []interface{}{payload, orderId32, log.BlockNumber, log.TxHash}
+	msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}
 	message = msg.NewSwapWithProof(m.Cfg.Id, m.Cfg.MapChainID, msgPayload, m.MsgCh)
 	return &message, nil
 }
@@ -254,13 +250,8 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 		return nil, err
 	}
 
-	var orderId32 [32]byte
-	for idx, v := range orderId {
-		orderId32[idx] = v
-	}
-
 	ret, err := klaytn.AssembleProof(kClient, klaytn.ConvertContractHeader(header, kHeader),
-		log, msg.ChainId(selfId), receipts, method, proofType, orderId32, sign)
+		log, msg.ChainId(selfId), receipts, method, proofType, orderId, sign)
 	if err != nil {
 		return nil, fmt.Errorf("unable to Parse Log: %w", err)
 	}

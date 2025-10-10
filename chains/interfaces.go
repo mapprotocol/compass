@@ -5,12 +5,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/chains/bsc"
 	"github.com/mapprotocol/compass/chains/btc"
-	"github.com/mapprotocol/compass/chains/conflux"
 	"github.com/mapprotocol/compass/chains/eth2"
 	"github.com/mapprotocol/compass/chains/ethereum"
 	"github.com/mapprotocol/compass/chains/klaytn"
 	"github.com/mapprotocol/compass/chains/matic"
-	"github.com/mapprotocol/compass/chains/near"
 	"github.com/mapprotocol/compass/chains/sol"
 	"github.com/mapprotocol/compass/chains/ton"
 	"github.com/mapprotocol/compass/chains/tron"
@@ -25,11 +23,9 @@ var (
 	chainMap = map[string]Chainer{
 		constant.Bsc:      bsc.New(),
 		constant.Matic:    matic.New(),
-		constant.Conflux:  conflux.New(),
 		constant.Eth2:     eth2.New(),
 		constant.Ethereum: ethereum.New(),
 		constant.Klaytn:   klaytn.New(),
-		constant.Near:     near.New(),
 		constant.Solana:   sol.New(),
 		constant.Ton:      ton.New(),
 		constant.Tron:     tron.New(),
@@ -39,7 +35,6 @@ var (
 	proofMap = map[string]Proffer{
 		constant.Bsc:      bsc.New(),
 		constant.Matic:    matic.New(),
-		constant.Conflux:  conflux.New(),
 		constant.Eth2:     eth2.New(),
 		constant.Ethereum: ethereum.New(),
 		constant.Klaytn:   klaytn.New(),

@@ -1,13 +1,14 @@
 package eth2
 
 import (
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
@@ -70,8 +71,9 @@ type ReceiptProof struct {
 }
 
 func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt, method string, fId msg.ChainId,
-	proofType int64, sign [][]byte, orderId [32]byte) ([]byte, error) {
+	proofType int64, sign [][]byte) ([]byte, error) {
 	txIndex := log.TxIndex
+	orderId := log.Topics[1]
 	receipt, err := mapprotocol.GetTxReceipt(receipts[txIndex])
 	if err != nil {
 		return nil, err
@@ -116,7 +118,7 @@ func AssembleProof(header BlockHeader, log *types.Log, receipts []*types.Receipt
 		pack, err = proof.SignOracle(&maptypes.Header{
 			ReceiptHash: header.ReceiptsRoot,
 			Number:      big.NewInt(int64(log.BlockNumber)),
-		}, receipt, key, prf, fId, idx, method, sign, orderId, log, proofType)
+		}, receipt, key, prf, fId, idx, method, sign, log, proofType)
 	}
 
 	if err != nil {
