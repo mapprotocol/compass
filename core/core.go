@@ -5,11 +5,12 @@ package core
 
 import (
 	"fmt"
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/pkg/msg"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/pkg/msg"
 
 	utilcore "github.com/ChainSafe/chainbridge-utils/core"
 	"github.com/ChainSafe/log15"

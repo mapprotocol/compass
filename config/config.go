@@ -3,9 +3,10 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
@@ -40,6 +41,7 @@ type Construction struct {
 	Filter       string `json:"filter"`
 	BtcUrl       string `json:"btc_url"`
 	Butter       string `json:"butter"`
+	ReportUrl    string `json:"report_url,omitempty"`
 }
 
 func (c *Config) ToJSON(file string) *os.File {

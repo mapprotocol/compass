@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/internal/report"
 	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/lbtsm/gotron-sdk/pkg/proto/api"
@@ -55,8 +56,6 @@ func newWriter(conn *Connection, cfg *Config, log log15.Logger, stop <-chan int,
 func (w *Writer) ResolveMessage(m msg.Message) bool {
 	w.log.Info("Attempting to resolve message", "type", m.Type, "src", m.Source, "dst", m.Destination)
 	switch m.Type {
-	case msg.SyncFromMap:
-		return w.syncMapToTron(m)
 	case msg.SwapWithMapProof:
 		return w.exeMcs(m)
 	default:
@@ -65,53 +64,10 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 	}
 }
 
-func (w *Writer) syncMapToTron(m msg.Message) bool {
-	var (
-		errorCount int64
-	)
-	for {
-		select {
-		case <-w.stop:
-			return false
-		default:
-			input := m.Payload[0].([]byte)
-			tx, err := w.sendTx(w.cfg.LightNode, mapprotocol.MethodUpdateBlockHeader, input, 0, 1, 0, false)
-			if err == nil {
-				w.log.Info("Sync Map Header to tron chain tx execution", "tx", tx, "src", m.Source, "dst", m.Destination)
-				err = w.txStatus(tx)
-				if err != nil {
-					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
-				} else {
-					m.DoneCh <- struct{}{}
-					return true
-				}
-			} else if w.cfg.SkipError {
-				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "err", err)
-				m.DoneCh <- struct{}{}
-				return true
-			} else {
-				for e := range constant.IgnoreError {
-					if strings.Index(err.Error(), e) != -1 {
-						w.log.Info("Ignore This Error, Continue to the next", "id", m.Destination, "err", err)
-						m.DoneCh <- struct{}{}
-						return true
-					}
-				}
-			}
-			errorCount++
-			if errorCount >= 10 {
-				util.Alarm(context.Background(), fmt.Sprintf("map2tron updateHeader failed, err is %s", err.Error()))
-				errorCount = 0
-			}
-			time.Sleep(constant.BalanceRetryInterval)
-		}
-	}
-}
-
 func (w *Writer) exeMcs(m msg.Message) bool {
 	var errorCount, checkIdCount int64
 	addr := w.cfg.McsContract[m.Idx]
-	orderId32 := m.Payload[1].([32]byte)
+	orderId32 := m.Payload[1].(common.Hash)
 	var orderId []byte
 	for _, v := range orderId32 {
 		orderId = append(orderId, v)
@@ -189,6 +145,11 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 					w.log.Warn("TxHash status is not successful, will retry", "err", err)
 				} else {
 					w.newReturn(method)
+					report.Add(&report.Data{
+						Hash:    mcsTx,
+						IsRelay: false,
+						OrderId: orderId32.Hex(),
+					})
 					m.DoneCh <- struct{}{}
 					return true
 				}

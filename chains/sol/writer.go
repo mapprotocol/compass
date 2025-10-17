@@ -12,6 +12,7 @@ import (
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/mapprotocol/compass/internal/butter"
+	"github.com/mapprotocol/compass/internal/report"
 	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
@@ -54,6 +55,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 	var (
 		errorCount int64
 		log        = m.Payload[0].(*types.Log)
+		orderId    = m.Payload[1].(common.Hash)
 		method     = m.Payload[2].(string)
 	)
 
@@ -88,6 +90,11 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				err = w.txStatus(*mcsTx)
 				if err == nil {
 					w.log.Info("TxHash status is successful, will next tx")
+					report.Add(&report.Data{
+						Hash:    mcsTx.String(),
+						IsRelay: false,
+						OrderId: orderId.Hex(),
+					})
 					m.DoneCh <- struct{}{}
 					return true
 				}
