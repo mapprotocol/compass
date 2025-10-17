@@ -14,6 +14,7 @@ import (
 	chain2 "github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/internal/report"
 	"github.com/mapprotocol/compass/pkg/abi"
 	contract2 "github.com/mapprotocol/compass/pkg/contract"
 	"github.com/mapprotocol/compass/pkg/msg"
@@ -136,6 +137,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	}
 	blacklist.Init(cfg.Other.BlackListUrl)
 	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
+	report.Init(cfg.Other.ReportUrl)
 	sysErr := make(chan error)
 	mapcid, err := strconv.Atoi(cfg.MapChain.Id)
 	if err != nil {

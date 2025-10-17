@@ -189,7 +189,7 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 		case constant.SolTestChainId:
 			fallthrough
 		case constant.SolMainChainId:
-			msgPayload = []interface{}{log, sign, method}
+			msgPayload = []interface{}{log, orderId, method}
 			message = msg.NewSolProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		case constant.TonChainId:
 			payloads := []interface{}{log}

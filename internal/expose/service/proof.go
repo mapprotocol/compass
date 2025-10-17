@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/pkg/ethclient"
@@ -39,6 +40,9 @@ func (s *ProofSrv) TxExec(req *stream.TxExecOfRequest) (map[string]interface{}, 
 	case constant.StatusOfSwapFailed, constant.StatusOfDesFailed:
 		if req.Slippage == "" {
 			req.Slippage = "100"
+		}
+		if !strings.HasPrefix(req.DesTxHash, "0x") {
+			req.DesTxHash = "0x" + req.DesTxHash
 		}
 		return s.RouterExecSwap(s.cfg.Other.Butter, req.DesChain, req.DesTxHash, req.Slippage)
 	case constant.StatusOfInit:

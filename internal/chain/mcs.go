@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/internal/report"
 	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -25,7 +26,6 @@ import (
 // exeSwapMsg executes swap msg, and send tx to the destination blockchain
 func (w *Writer) exeSwapMsg(m msg.Message) bool {
 	return w.callContractWithMsg(w.cfg.McsContract[m.Idx], m)
-	//return w.callContractWithMsg(w.cfg.LightNode, m)
 }
 
 // callContractWithMsg contract using address and function signature with message info
@@ -77,6 +77,11 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 					w.log.Warn("TxHash Status is not successful, will retry", "err", err)
 				} else {
 					m.DoneCh <- struct{}{}
+					report.Add(&report.Data{
+						Hash:    mcsTx.Hash().Hex(),
+						IsRelay: m.Type == msg.SwapWithProof, // msg swapWithProof type send to map
+						OrderId: orderId.Hex(),
+					})
 					return true
 				}
 			} else if w.cfg.SkipError && errorCount >= 9 {
