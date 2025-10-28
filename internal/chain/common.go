@@ -2,9 +2,10 @@ package chain
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/msg"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 
