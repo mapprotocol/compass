@@ -23,6 +23,7 @@ func Init(domain string) {
 
 func Add(data *Data) {
 	defaultReport.Add(data)
+	defaultReport.Start()
 }
 
 type Reportable interface {
