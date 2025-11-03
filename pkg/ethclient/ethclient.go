@@ -643,7 +643,7 @@ func (ec *Client) OpReceipt(ctx context.Context, txHash common.Hash) (*OpReceipt
 		return nil, err
 	}
 
-	return ret, err
+	return ret, nil
 }
 
 type Error struct {
