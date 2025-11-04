@@ -117,6 +117,7 @@ const (
 	BtcChainId        = 1360095883558913
 	XlayerId          = 196
 	DoageChainId      = 1360121653362689
+	LineaChainId      = 59144
 )
 
 const (

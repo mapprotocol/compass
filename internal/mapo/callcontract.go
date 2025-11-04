@@ -106,6 +106,9 @@ func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*t
 			if err != nil {
 				continue
 			}
+			if tmp == nil {
+				continue
+			}
 			vptr := uint64(0)
 			nptr := uint64(0)
 			if tmp.DepositReceiptVersion != "" {
