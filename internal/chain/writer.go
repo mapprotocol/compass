@@ -102,6 +102,11 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	if w.cfg.Id == constant.XlayerId {
 		gasLimit = gasLimit + 500000
 	}
+	if w.cfg.Id == constant.LineaChainId {
+		if gasLimit > 1500000 {
+			gasLimit = 1500000
+		}
+	}
 	if w.cfg.GasMultiplier > 1 && gasPrice != nil {
 		gasPrice = big.NewInt(0).SetInt64(int64(float64(gasPrice.Int64()) * w.cfg.GasMultiplier))
 	}
