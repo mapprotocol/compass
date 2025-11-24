@@ -55,6 +55,7 @@ type TxExecOfRequest struct {
 	DesTxHash        string `json:"des_tx_hash"`
 	DesLogIndex      uint   `json:"des_log_index"`
 	Slippage         string `json:"slippage"`
+	Entrance         string `json:"entrance"`
 }
 
 type BtcLogListResp struct {
