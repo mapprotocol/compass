@@ -44,7 +44,7 @@ func (s *ProofSrv) TxExec(req *stream.TxExecOfRequest) (map[string]interface{}, 
 		if !strings.HasPrefix(req.DesTxHash, "0x") {
 			req.DesTxHash = "0x" + req.DesTxHash
 		}
-		return s.RouterExecSwap(s.cfg.Other.Butter, req.DesChain, req.DesTxHash, req.Slippage)
+		return s.RouterExecSwap(s.cfg.Other.Butter, req.DesChain, req.DesTxHash, req.Slippage, req.Entrance)
 	case constant.StatusOfInit:
 		desChain := req.DesChain
 		desChainInt, _ := strconv.ParseInt(desChain, 10, 64)
@@ -61,8 +61,8 @@ func (s *ProofSrv) TxExec(req *stream.TxExecOfRequest) (map[string]interface{}, 
 	return nil, nil
 }
 
-func (s *ProofSrv) RouterExecSwap(butterHost, toChain, txHash, slippage string) (map[string]interface{}, error) {
-	data, err := butter.ExecSwap(butterHost, fmt.Sprintf("toChainId=%s&txHash=%s&slippage=%s", toChain, txHash, slippage))
+func (s *ProofSrv) RouterExecSwap(butterHost, toChain, txHash, slippage, entrance string) (map[string]interface{}, error) {
+	data, err := butter.ExecSwap(butterHost, fmt.Sprintf("toChainId=%s&txHash=%s&slippage=%s&entrance=%s", toChain, txHash, slippage, entrance))
 	if err != nil {
 		return nil, err
 	}
