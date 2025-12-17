@@ -41,6 +41,7 @@ type Construction struct {
 	Filter       string `json:"filter"`
 	BtcUrl       string `json:"btc_url"`
 	Butter       string `json:"butter"`
+	Price        string `json:"price"`
 	ReportUrl    string `json:"report_url,omitempty"`
 }
 

@@ -1,9 +1,10 @@
 package sol
 
 import (
+	"strings"
+
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
-	"strings"
 )
 
 type Config struct {
@@ -16,6 +17,7 @@ type Config struct {
 	UsdcAda     string
 	WsolAda     string
 	ButterHost  string
+	PriceHost   string
 }
 
 func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
@@ -28,6 +30,7 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 		LightNode:   "",
 		McsContract: nil,
 		ButterHost:  chainCfg.ButterHost,
+		PriceHost:   chainCfg.PriceHost,
 	}
 
 	if ele, ok := chainCfg.Opts[chain.LightNode]; ok && ele != "" {

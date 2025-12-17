@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/mapprotocol/compass/internal/butter"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/pkg/errors"
@@ -71,6 +72,45 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 			BlockHash:   common.HexToHash(ele.BlockHash),
 			Index:       ele.LogIndex,
 		}
+
+		var isBlock bool
+		if m.Cfg.Id == m.Cfg.MapChainID {
+			relay, err := DecodeMessageRelay(log.Topics, log.Data)
+			if err != nil {
+				return 0, err
+			}
+			isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, string(m.Cfg.Id),
+				relay.Sender, common.BytesToAddress(relay.Receiver).String())
+			if err != nil {
+				return 0, err
+			}
+			if isBlock {
+				m.Log.Info("Ignore this tx, beacuse addr is blocked",
+					"tx", ele.TxHash, "sender", relay.Sender,
+					"receiver", common.BytesToAddress(relay.Receiver))
+			}
+		} else {
+			initiator, from, err := DecodeMessageOut(log)
+			if err != nil {
+				return 0, err
+			}
+			isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, string(m.Cfg.Id),
+				initiator.String(), from.String())
+			if err != nil {
+				return 0, err
+			}
+			if isBlock {
+				m.Log.Info("Ignore this tx, beacuse addr is blocked",
+					"tx", ele.TxHash, "initiator", initiator, "from", from)
+			}
+		}
+		if isBlock {
+			m.Cfg.StartBlock = big.NewInt(ele.Id)
+			m.Log.Info("Ignore this tx, beacuse addr is blocked",
+				"tx", ele.TxHash)
+			continue
+		}
+
 		send, err := log2Msg(m, log, idx)
 		if err != nil {
 			return 0, err

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gin-gonic/gin"
 	"github.com/mapprotocol/compass/chains"
@@ -51,7 +53,8 @@ func api(ctx *cli.Context) error {
 	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
 	// pre init
 	for _, ele := range cfg.Chains {
-		creator, _ := chains.CreateProffer(ele.Type)
+		creator, ok := chains.CreateProffer(ele.Type)
+		fmt.Println("------ creator ", creator, " ------- ", ele.Type, ele.Name,  ok)
 		_, err = creator.Connect(ele.Id, ele.Endpoint, ele.Mcs, ele.LightNode, ele.OracleNode)
 		if err != nil {
 			return err

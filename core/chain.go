@@ -42,6 +42,7 @@ type ChainConfig struct {
 	FilterHost       string
 	BtcHost          string
 	ButterHost       string
+	PriceHost        string
 }
 
 type Connection interface {
