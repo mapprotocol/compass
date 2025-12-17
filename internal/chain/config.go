@@ -109,7 +109,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		Filter:             chainCfg.Filter,
 		FilterHost:         chainCfg.FilterHost,
 		BtcHost:            chainCfg.BtcHost,
-		PriceHost:          chainCfg.BtcHost,
+		PriceHost:          chainCfg.PriceHost,
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {

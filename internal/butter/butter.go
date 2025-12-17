@@ -103,7 +103,7 @@ func SolCrossIn(domain, query string) (*SolCrossInResp, error) {
 }
 
 func BlockedAccount(domain, sourceChain, initiator, from string) (bool, error) {
-	if initiator != "" {
+	if initiator != "" && initiator != "0x0000000000000000000000000000000000000000" {
 		query := fmt.Sprintf("account=%s&chainId=%s", initiator, sourceChain)
 		isBlock, err := defaultButter.BlockedAccount(domain, query)
 		if err != nil {
@@ -113,7 +113,7 @@ func BlockedAccount(domain, sourceChain, initiator, from string) (bool, error) {
 			return true, nil
 		}
 	}
-	if from != "" {
+	if from != "" && from != "0x0000000000000000000000000000000000000000" {
 		query := fmt.Sprintf("account=%s&chainId=%s", from, sourceChain)
 		isBlock, err := defaultButter.BlockedAccount(domain, query)
 		if err != nil {
