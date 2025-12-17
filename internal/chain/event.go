@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -77,8 +78,13 @@ func UnpackMessageRelay(log types.Log) (*MessageRelay, error) {
 	}
 	return ret, nil
 }
-func DecodeMessageRelay(log *types.Log) (string, string, error) {
+func DecodeMessageRelay(log *types.Log, targetEvm bool) (string, string, error) {
+
 	fmt.Println("MessageRelay.orderId:", log.Topics[1].Hex())
+
+	/* --------------------------------
+	   decode(["bytes"], event.data)
+	----------------------------------*/
 	bytesArg := abi.Arguments{
 		{Type: mustType("bytes")},
 	}
@@ -90,43 +96,110 @@ func DecodeMessageRelay(log *types.Log) (string, string, error) {
 
 	chainAndGasLimit := unpacked[0].([]byte)
 
-	args := abi.Arguments{
-		{Type: mustType("bytes32")},
-		{Type: mustType("address")},
-		{Type: mustType("address")},
-		{Type: mustType("uint256")},
-		{Type: mustType("address")},
-		{Type: mustType("bytes")},
-		{Type: mustType("bytes")},
+	/* ============================================================
+	   targetEvm == true → ABI 解码
+	============================================================ */
+	if targetEvm {
+
+		args := abi.Arguments{
+			{Type: mustType("bytes32")},
+			{Type: mustType("address")},
+			{Type: mustType("address")},
+			{Type: mustType("uint256")},
+			{Type: mustType("address")},
+			{Type: mustType("bytes")},
+			{Type: mustType("bytes")},
+		}
+
+		values, err := args.Unpack(chainAndGasLimit)
+		if err != nil {
+			return "", "", err
+		}
+
+		header := values[0].([32]byte)
+		mos := values[1].(common.Address)
+		token := values[2].(common.Address)
+		amount := values[3].(*big.Int)
+		to := values[4].(common.Address)
+		from := values[5].([]byte)
+		swapData := values[6].([]byte)
+
+		fmt.Printf("MessageRelay.header: 0x%x\n", header)
+		fmt.Println("MessageRelay.mos:", mos.Hex())
+		fmt.Println("MessageRelay.token:", token.Hex())
+		fmt.Println("MessageRelay.amount:", amount.String())
+		fmt.Println("MessageRelay.to:", to.Hex())
+		fmt.Printf("MessageRelay.from: 0x%x\n", from)
+
+		if len(swapData) == 0 {
+			fmt.Println("MessageRelay.swapData:", swapData)
+			return fmt.Sprintf("0x%x", from), to.Hex(), nil
+		}
+
+		fmt.Println("<-----------------------------MessageRelay swapAndCall----------------------------------------------------->")
+		return fmt.Sprintf("0x%x", from), to.Hex(), nil
 	}
 
-	values, err := args.Unpack(chainAndGasLimit)
-	if err != nil {
-		return "", "", err
+	/* ============================================================
+	   targetEvm == false → 手动解析 hex
+	============================================================ */
+
+	hexStr := hex.EncodeToString(chainAndGasLimit)
+
+	readBig := func(start, end int) *big.Int {
+		v, _ := new(big.Int).SetString(hexStr[start:end], 16)
+		return v
 	}
 
-	header := values[0].([32]byte)
-	mos := values[1].(common.Address)
-	token := values[2].(common.Address)
-	amount := values[3].(*big.Int)
-	to := values[4].(common.Address)
-	from := values[5].([]byte)
-	swapData := values[6].([]byte)
+	version := readBig(0, 4)
+	fmt.Println("MessageRelay.version:", version)
 
-	fmt.Printf("MessageRelay.header: 0x%x\n", header)
-	fmt.Println("MessageRelay.mos:", mos.Hex())
-	fmt.Println("MessageRelay.token:", token.Hex())
-	fmt.Println("MessageRelay.amount:", amount.String())
-	fmt.Println("MessageRelay.to:", to.Hex())
-	fmt.Printf("MessageRelay.from: 0x%x\n", from)
+	messageType := readBig(4, 6)
+	fmt.Println("MessageRelay.messageType:", messageType)
 
-	if len(swapData) == 0 {
-		fmt.Println("MessageRelay.swapData:", swapData)
-		return "", "", nil
-	}
+	tokenLen := readBig(6, 8)
+	fmt.Println("MessageRelay.tokenLen:", tokenLen)
 
-	fmt.Println("<-----------------------------MessageRelay swapAndCall----------------------------------------------------->")
-	return fmt.Sprintf("0x%x", from), to.Hex(), nil
+	mosLen := readBig(8, 10)
+	fmt.Println("MessageRelay.mosLen:", mosLen)
+
+	fromLen := readBig(10, 12)
+	fmt.Println("MessageRelay.fromLen:", fromLen)
+
+	toLen := readBig(12, 14)
+	fmt.Println("MessageRelay.toLen:", toLen)
+
+	payloadLen := readBig(14, 18)
+	fmt.Println("MessageRelay.payloadLen:", payloadLen)
+
+	tokenAmount := readBig(34, 66)
+	fmt.Println("MessageRelay.tokenAmount:", tokenAmount)
+
+	start := 66
+	end := start + int(tokenLen.Int64())*2
+	tokenAddress := "0x" + hexStr[start:end]
+	fmt.Println("MessageRelay.tokenAddress:", tokenAddress)
+
+	start = end
+	end = start + int(mosLen.Int64())*2
+	mos := "0x" + hexStr[start:end]
+	fmt.Println("MessageRelay.mos:", mos)
+
+	start = end
+	end = start + int(fromLen.Int64())*2
+	from := "0x" + hexStr[start:end]
+	fmt.Println("MessageRelay.from:", from)
+
+	start = end
+	end = start + int(toLen.Int64())*2
+	to := "0x" + hexStr[start:end]
+	fmt.Println("MessageRelay.to:", to)
+
+	start = end
+	payload := "0x" + hexStr[start:]
+	fmt.Println("MessageRelay.payload:", payload)
+
+	return from, to, nil
 }
 
 func DecodeMessageOut(log *types.Log) (common.Address, common.Address, error) {

@@ -75,7 +75,12 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 
 		var isBlock bool
 		if m.Cfg.Id == m.Cfg.MapChainID {
-			from, receiver, err := DecodeMessageRelay(log)
+			isEvm := true
+			toChainID := big.NewInt(0).SetBytes(log.Topics[2].Bytes()[8:16]).Uint64()
+			if toChainID == constant.TronChainId || toChainID == constant.SolMainChainId {
+				isEvm = false
+			}
+			from, receiver, err := DecodeMessageRelay(log, isEvm)
 			if err != nil {
 				return 0, err
 			}
