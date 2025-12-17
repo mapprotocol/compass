@@ -79,8 +79,9 @@ func UnpackMessageRelay(log types.Log) (*MessageRelay, error) {
 	return ret, nil
 }
 func DecodeMessageRelay(log *types.Log, targetEvm bool) (string, string, error) {
-
+	fmt.Println("MessageRelay.txHash:", log.TxHash.Hex())
 	fmt.Println("MessageRelay.orderId:", log.Topics[1].Hex())
+	fmt.Println("MessageRelay.targetEvm:", targetEvm)
 
 	/* --------------------------------
 	   decode(["bytes"], event.data)
