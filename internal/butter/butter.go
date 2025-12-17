@@ -11,6 +11,7 @@ const (
 	UrlOfExecSwap       = "/execSwap"
 	UrlOfSolCrossIn     = "/solanaCrossIn"
 	UrlOfRetryMessageIn = "/retryMessageIn"
+	UrlOfBlockedAccount = "/blocklist/blockedAccount"
 )
 
 var defaultButter = New()
@@ -70,7 +71,7 @@ type BlockedAccountResponse struct {
 }
 
 func (b *Butter) BlockedAccount(domain, query string) (bool, error) {
-	uri := fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query)
+	uri := fmt.Sprintf("%s%s?%s", domain, UrlOfBlockedAccount, query)
 	fmt.Println("BlockedAccount uri ", uri)
 	body, err := client.JsonGet(uri)
 	if err != nil {
