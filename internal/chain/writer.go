@@ -103,6 +103,7 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 		gasLimit = gasLimit + 500000
 	}
 	if w.cfg.Id == constant.LineaChainId {
+		gasLimit = gasLimit + 500000
 		if gasLimit > 1500000 {
 			gasLimit = 1500000
 		}

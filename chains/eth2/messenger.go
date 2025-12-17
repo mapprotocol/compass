@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mapprotocol/compass/internal/butter"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/msg"
 
@@ -216,6 +217,23 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 			BlockHash:   common.HexToHash(ele.BlockHash),
 			Index:       ele.LogIndex,
 		}
+
+		initiator, from, err := chain.DecodeMessageOut(log)
+		if err != nil {
+			return 0, err
+		}
+		isBlock, err := butter.BlockedAccount(m.Cfg.PriceHost, string(m.Cfg.Id),
+			initiator.String(), from.String())
+		if err != nil {
+			return 0, err
+		}
+		if isBlock {
+			m.Cfg.StartBlock = big.NewInt(ele.Id)
+			m.Log.Info("Ignore this tx, beacuse addr is blocked",
+				"tx", ele.TxHash, "initiator", initiator, "from", from)
+			continue
+		}
+		time.Sleep(time.Hour)
 		send, err := log2Msg(m, log, idx)
 		if err != nil {
 			return 0, err

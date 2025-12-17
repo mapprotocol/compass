@@ -1,14 +1,12 @@
-package sol
+package chain
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -80,14 +78,10 @@ func UnpackMessageRelay(log types.Log) (*MessageRelay, error) {
 	return ret, nil
 }
 
-func DecodeMessageRelay(topics []common.Hash, data string) (*Relay, error) {
-	bytesData, err := hex.DecodeString(data)
-	if err != nil {
-		return nil, err
-	}
+func DecodeMessageRelay(topics []common.Hash, data []byte) (*Relay, error) {
 	log := types.Log{
 		Topics: topics,
-		Data:   bytesData,
+		Data:   data,
 	}
 	messageRelay, err := UnpackMessageRelay(log)
 	if err != nil {
@@ -160,4 +154,71 @@ func DecodeMessageRelay(topics []common.Hash, data string) (*Relay, error) {
 	}
 
 	return ret, nil
+}
+
+func DecodeMessageOut(log *types.Log) (common.Address, common.Address, error) {
+	bytesArg := abi.Arguments{
+		{
+			Type: abi.Type{
+				T: abi.BytesTy,
+			},
+		},
+	}
+
+	unpacked1, err := bytesArg.Unpack(log.Data)
+	if err != nil {
+		return common.Address{}, common.Address{}, err
+	}
+
+	data := unpacked1[0].([]byte)
+	args := abi.Arguments{
+		{Type: mustType("bytes32")},
+		{Type: mustType("address")},
+		{Type: mustType("address")},
+		{Type: mustType("uint256")},
+		{Type: mustType("address")},
+		{Type: mustType("address")},
+		{Type: mustType("bytes")},
+		{Type: mustType("bytes")},
+	}
+
+	unpacked2, err := args.Unpack(data)
+	if err != nil {
+		return common.Address{}, common.Address{}, err
+	}
+
+	header := unpacked2[0].([32]byte)
+	mos := unpacked2[1].(common.Address)
+	token := unpacked2[2].(common.Address)
+	amount := unpacked2[3].(*big.Int)
+	initiator := unpacked2[4].(common.Address)
+	from := unpacked2[5].(common.Address)
+	to := unpacked2[6].([]byte)
+	swapData := unpacked2[7].([]byte)
+
+	fmt.Printf("MessageOut.header: 0x%x\n", header)
+	relay := header[24] == 0x01
+	fmt.Println("MessageOut.relay:", relay)
+
+	fmt.Println("MessageOut.mos:", mos.Hex())
+	fmt.Println("MessageOut.token:", token.Hex())
+	fmt.Println("MessageOut.amount:", amount.String())
+	fmt.Println("MessageOut.initiator:", initiator.Hex())
+	fmt.Println("MessageOut.from:", from.Hex())
+	fmt.Printf("MessageOut.to: 0x%x\n", to)
+
+	if len(swapData) <= 0 {
+		fmt.Println("MessageOut.swapData:", swapData)
+		return common.Address{}, common.Address{}, nil
+	}
+
+	return initiator, from, nil
+}
+
+func mustType(t string) abi.Type {
+	ty, err := abi.NewType(t, "", nil)
+	if err != nil {
+		panic(err)
+	}
+	return ty
 }
