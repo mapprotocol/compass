@@ -233,7 +233,6 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 				"tx", ele.TxHash, "initiator", initiator, "from", from)
 			continue
 		}
-		time.Sleep(time.Hour)
 		send, err := log2Msg(m, log, idx)
 		if err != nil {
 			return 0, err
