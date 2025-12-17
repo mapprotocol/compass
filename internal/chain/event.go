@@ -77,83 +77,56 @@ func UnpackMessageRelay(log types.Log) (*MessageRelay, error) {
 	}
 	return ret, nil
 }
-
-func DecodeMessageRelay(topics []common.Hash, data []byte) (*Relay, error) {
-	log := types.Log{
-		Topics: topics,
-		Data:   data,
+func DecodeMessageRelay(log *types.Log) (string, string, error) {
+	fmt.Println("MessageRelay.orderId:", log.Topics[1].Hex())
+	bytesArg := abi.Arguments{
+		{Type: mustType("bytes")},
 	}
-	messageRelay, err := UnpackMessageRelay(log)
+
+	unpacked, err := bytesArg.Unpack(log.Data)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
-	payload := messageRelay.Payload
-	// Helper function to parse a big.Int from a substring
-	parseBigInt := func(start, length int) *big.Int {
-		substr := payload[start : start+length]
-		return new(big.Int).SetBytes(substr)
+	chainAndGasLimit := unpacked[0].([]byte)
+
+	args := abi.Arguments{
+		{Type: mustType("bytes32")},
+		{Type: mustType("address")},
+		{Type: mustType("address")},
+		{Type: mustType("uint256")},
+		{Type: mustType("address")},
+		{Type: mustType("bytes")},
+		{Type: mustType("bytes")},
 	}
 
-	version := parseBigInt(0, 1)
-	//ret.Version = version
-	messageType := parseBigInt(1, 1)
-	//ret.MessageType = messageType
-	// Extract values based on offsets
-	tokenLen := parseBigInt(2, 1)
-	mosLen := parseBigInt(3, 1)
-	fromLen := parseBigInt(4, 1)
-	toLen := parseBigInt(5, 1)
-	payloadLen := parseBigInt(6, 2)
-	tokenAmount := parseBigInt(16, 16)
-
-	// Calculate dynamic offsets
-	// token
-	start := 32
-	end := start + int(tokenLen.Int64())
-	tokenAddress := payload[start:end]
-
-	// mos
-	start = end
-	end = start + int(mosLen.Int64())
-
-	// from
-	start = end
-	end = start + int(fromLen.Int64())
-	from := common.BytesToAddress(payload[start:end])
-
-	// to
-	start = end
-	end = start + int(toLen.Int64())
-	to := payload[start:end]
-
-	start = end
-	end = start + int(payloadLen.Int64())
-	swapData := payload[start:end]
-
-	b := common.LeftPadBytes(messageRelay.ChainAndGasLimit.Bytes(), 32)
-	ret := &Relay{
-		Version:     version,
-		MessageType: messageType,
-		OrderId:     messageRelay.OrderId,
-		SrcChain:    new(big.Int).SetBytes(b[:8]),
-		Sender:      from.Hex(),
-		DstChain:    new(big.Int).SetBytes(b[8:16]),
-		DstToken:    tokenAddress,
-		OutAmount:   tokenAmount,
-		Receiver:    to,
-		Payload:     swapData,
-	}
-	if len(swapData) != 0 {
-		s := Swap{
-			ToToken:   swapData[2:34],
-			Receiver:  swapData[34:66],
-			MinAmount: big.NewInt(0).SetBytes(swapData[66:98]),
-		}
-		ret.Swap = &s
+	values, err := args.Unpack(chainAndGasLimit)
+	if err != nil {
+		return "", "", err
 	}
 
-	return ret, nil
+	header := values[0].([32]byte)
+	mos := values[1].(common.Address)
+	token := values[2].(common.Address)
+	amount := values[3].(*big.Int)
+	to := values[4].(common.Address)
+	from := values[5].([]byte)
+	swapData := values[6].([]byte)
+
+	fmt.Printf("MessageRelay.header: 0x%x\n", header)
+	fmt.Println("MessageRelay.mos:", mos.Hex())
+	fmt.Println("MessageRelay.token:", token.Hex())
+	fmt.Println("MessageRelay.amount:", amount.String())
+	fmt.Println("MessageRelay.to:", to.Hex())
+	fmt.Printf("MessageRelay.from: 0x%x\n", from)
+
+	if len(swapData) == 0 {
+		fmt.Println("MessageRelay.swapData:", swapData)
+		return "", "", nil
+	}
+
+	fmt.Println("<-----------------------------MessageRelay swapAndCall----------------------------------------------------->")
+	return fmt.Sprintf("0x%x", from), to.Hex(), nil
 }
 
 func DecodeMessageOut(log *types.Log) (common.Address, common.Address, error) {
@@ -196,6 +169,7 @@ func DecodeMessageOut(log *types.Log) (common.Address, common.Address, error) {
 	to := unpacked2[6].([]byte)
 	swapData := unpacked2[7].([]byte)
 
+	fmt.Printf("MessageOut.tx: %s\n", log.TxHash.Hex())
 	fmt.Printf("MessageOut.header: 0x%x\n", header)
 	relay := header[24] == 0x01
 	fmt.Println("MessageOut.relay:", relay)

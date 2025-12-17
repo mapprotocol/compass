@@ -75,35 +75,41 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 
 		var isBlock bool
 		if m.Cfg.Id == m.Cfg.MapChainID {
-			relay, err := DecodeMessageRelay(log.Topics, log.Data)
+			from, receiver, err := DecodeMessageRelay(log)
 			if err != nil {
 				return 0, err
 			}
+			m.Log.Info("Found a tx", "id", m.Cfg.Id,
+				"txhash", ele.TxHash, "sender", from, "receiver", receiver)
 			isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
-				relay.Sender, common.BytesToAddress(relay.Receiver).String())
+				from, receiver)
 			if err != nil {
 				return 0, err
 			}
 			if isBlock {
 				m.Log.Info("Ignore this tx, beacuse addr is blocked",
-					"tx", ele.TxHash, "sender", relay.Sender,
-					"receiver", common.BytesToAddress(relay.Receiver))
+					"tx", ele.TxHash, "sender", from,
+					"receiver", receiver)
 			}
 		} else {
 			initiator, from, err := DecodeMessageOut(log)
 			if err != nil {
 				return 0, err
 			}
+			m.Log.Info("Found a tx", "id", m.Cfg.Id,
+				"txhash", ele.TxHash, "initiator", initiator, "from", from)
 			isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
 				initiator.String(), from.String())
 			if err != nil {
 				return 0, err
 			}
+			fmt.Println("======")
 			if isBlock {
 				m.Log.Info("Ignore this tx, beacuse addr is blocked",
 					"tx", ele.TxHash, "initiator", initiator, "from", from)
 			}
 		}
+		fmt.Println("isBlock ------ ", isBlock)
 		if isBlock {
 			m.Cfg.StartBlock = big.NewInt(ele.Id)
 			m.Log.Info("Ignore this tx, beacuse addr is blocked",
