@@ -79,7 +79,7 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, string(m.Cfg.Id),
+			isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
 				relay.Sender, common.BytesToAddress(relay.Receiver).String())
 			if err != nil {
 				return 0, err
@@ -94,7 +94,7 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, string(m.Cfg.Id),
+			isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
 				initiator.String(), from.String())
 			if err != nil {
 				return 0, err
