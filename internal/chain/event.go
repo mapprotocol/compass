@@ -17,6 +17,7 @@ const (
 
 var (
 	messageRelayABI, _ = abi.JSON(strings.NewReader(`[{"anonymous":false,"inputs":[{"indexed":true,"internalType":"bytes32","name":"orderId","type":"bytes32"},{"indexed":true,"internalType":"uint256","name":"chainAndGasLimit","type":"uint256"},{"indexed":false,"internalType":"bytes","name":"payload","type":"bytes"}],"name":"MessageRelay","type":"event"}]`))
+	relayDecodeAbi, _  = abi.JSON(strings.NewReader(`[{"inputs":[{"internalType":"bytes","name":"","type":"bytes"}],"name":"relayDecode","outputs":[{"internalType":"bytes32","name":"header","type":"bytes32"},{"internalType":"address","name":"mos","type":"address"},{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"address","name":"to","type":"address"},{"internalType":"bytes","name":"from","type":"bytes"},{"internalType":"bytes","name":"swapData","type":"bytes"}],"stateMutability":"pure","type":"function"}]`))
 )
 
 type Swap struct {
@@ -96,12 +97,10 @@ func DecodeMessageRelay(log *types.Log, targetEvm bool) (string, string, error) 
 	}
 
 	chainAndGasLimit := unpacked[0].([]byte)
-
 	/* ============================================================
 	   targetEvm == true → ABI 解码
 	============================================================ */
 	if targetEvm {
-
 		args := abi.Arguments{
 			{Type: mustType("bytes32")},
 			{Type: mustType("address")},
@@ -111,7 +110,6 @@ func DecodeMessageRelay(log *types.Log, targetEvm bool) (string, string, error) 
 			{Type: mustType("bytes")},
 			{Type: mustType("bytes")},
 		}
-
 		values, err := args.Unpack(chainAndGasLimit)
 		if err != nil {
 			return "", "", err

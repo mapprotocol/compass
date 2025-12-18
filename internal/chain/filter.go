@@ -11,7 +11,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mapprotocol/compass/internal/butter"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/pkg/errors"
@@ -71,55 +70,6 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 			TxIndex:     ele.TxIndex,
 			BlockHash:   common.HexToHash(ele.BlockHash),
 			Index:       ele.LogIndex,
-		}
-
-		var isBlock bool
-		if m.Cfg.Id == m.Cfg.MapChainID {
-			isEvm := true
-			toChainID := big.NewInt(0).SetBytes(log.Topics[2].Bytes()[8:16]).Uint64()
-			if toChainID == constant.TronChainId || toChainID == constant.SolMainChainId {
-				isEvm = false
-			}
-			from, receiver, err := DecodeMessageRelay(log, isEvm)
-			if err != nil {
-				return 0, err
-			}
-			m.Log.Info("Found a tx", "id", m.Cfg.Id,
-				"txhash", ele.TxHash, "sender", from, "receiver", receiver)
-			isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
-				from, receiver)
-			if err != nil {
-				return 0, err
-			}
-			if isBlock {
-				m.Log.Info("Ignore this tx, beacuse addr is blocked",
-					"tx", ele.TxHash, "sender", from,
-					"receiver", receiver)
-			}
-		} else {
-			initiator, from, err := DecodeMessageOut(log)
-			if err != nil {
-				return 0, err
-			}
-			m.Log.Info("Found a tx", "id", m.Cfg.Id,
-				"txhash", ele.TxHash, "initiator", initiator, "from", from)
-			isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
-				initiator.String(), from.String())
-			if err != nil {
-				return 0, err
-			}
-			fmt.Println("======")
-			if isBlock {
-				m.Log.Info("Ignore this tx, beacuse addr is blocked",
-					"tx", ele.TxHash, "initiator", initiator, "from", from)
-			}
-		}
-		fmt.Println("isBlock ------ ", isBlock)
-		if isBlock {
-			m.Cfg.StartBlock = big.NewInt(ele.Id)
-			m.Log.Info("Ignore this tx, beacuse addr is blocked",
-				"tx", ele.TxHash)
-			continue
 		}
 
 		send, err := log2Msg(m, log, idx)

@@ -222,11 +222,21 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		isBlock, err := butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
-			initiator.String(), from.String())
+		alchemypayKytCheck := "false"
+		volume, err := butter.GetVolume(m.Cfg.ReportHost, log.TxHash.Hex(), "source")
 		if err != nil {
 			return 0, err
 		}
+		if volume >= constant.AlchemypayKytThreshold {
+			alchemypayKytCheck = "true"
+		}
+		isBlock, err := butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
+			initiator.String(), from.String(), alchemypayKytCheck)
+		if err != nil {
+			return 0, err
+		}
+		m.Log.Info("Found a tx", "id", m.Cfg.Id, "txhash", log.TxHash, "initiator",
+			initiator, "from", from, "volume", volume)
 		if isBlock {
 			m.Cfg.StartBlock = big.NewInt(ele.Id)
 			m.Log.Info("Ignore this tx, beacuse addr is blocked",
