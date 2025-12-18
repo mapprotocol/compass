@@ -3,7 +3,6 @@ package butter
 import (
 	"encoding/json"
 	"fmt"
-	"math/big"
 
 	"github.com/mapprotocol/compass/internal/client"
 )
@@ -128,7 +127,7 @@ func BlockedAccount(domain, sourceChain, initiator, from, alchemypayKytCheck str
 	return false, nil
 }
 
-func GetVolume(domain, txHash, _type string) (int64, error) {
+func TranscationVerify(domain, txHash, _type string) (*TransactionVerifyResponse, error) {
 	return defaultButter.TranscationVerify(domain, fmt.Sprintf("hash=%s&type=%s", txHash, _type))
 }
 
@@ -137,34 +136,29 @@ type TransactionVerifyResponse struct {
 	Message string `json:"message"`
 	Data    struct {
 		Volume string `json:"volume"`
+		Sender string `json:"sender"`
 	} `json:"data"`
 }
 
-func (b *Butter) TranscationVerify(domain, query string) (int64, error) {
+func (b *Butter) TranscationVerify(domain, query string) (*TransactionVerifyResponse, error) {
 	uri := fmt.Sprintf("%s%s?%s", domain, UrlOfTransactionVerify, query)
 	fmt.Println("TransactionVerify uri ", uri)
 	body, err := client.JsonGet(uri)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	data := TransactionVerifyResponse{}
 	err = json.Unmarshal(body, &data)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	if data.Errno != 0 {
-		return 0, fmt.Errorf("code %d, mess:%s", data.Errno, data.Message)
+		return nil, fmt.Errorf("query %s, code %d, mess:%s", query, data.Errno, data.Message)
 	}
 	if data.Data.Volume == "" {
-		return 0, nil
+		return nil, nil
 	}
 
-	volume, ok := big.NewInt(0).SetString(data.Data.Volume, 10)
-	if !ok {
-		return 0, fmt.Errorf("failed to parse volume")
-	}
-	volume = volume.Div(volume, big.NewInt(1000000))
-
-	return volume.Int64(), nil
+	return &data, nil
 }
