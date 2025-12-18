@@ -178,6 +178,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			BtcHost:          cfg.Other.BtcUrl,
 			ButterHost:       cfg.Other.Butter,
 			PriceHost:        cfg.Other.Price,
+			ReportHost:       cfg.Other.ReportUrl,
 		}
 		var (
 			newChain core.Chain

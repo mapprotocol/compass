@@ -83,6 +83,7 @@ type Config struct {
 	FilterHost         string
 	BtcHost            string
 	PriceHost          string
+	ReportHost         string
 }
 
 // ParseConfig uses a core.ChainConfig to construct a corresponding Config
@@ -110,6 +111,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		FilterHost:         chainCfg.FilterHost,
 		BtcHost:            chainCfg.BtcHost,
 		PriceHost:          chainCfg.PriceHost,
+		ReportHost:         chainCfg.ReportHost,
 	}
 
 	if contract, ok := chainCfg.Opts[McsOpt]; ok && contract != "" {

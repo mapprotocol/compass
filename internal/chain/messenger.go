@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/mapprotocol/compass/internal/butter"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
@@ -219,6 +220,61 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
+	}
+
+	var isBlock bool
+	alchemypayKytCheck := "false"
+	if m.Cfg.Id == m.Cfg.MapChainID {
+		isEvm := true
+		if toChainID == constant.SolMainChainId || toChainID == constant.BtcChainId {
+			isEvm = false
+		}
+		from, receiver, err := DecodeMessageRelay(log, isEvm)
+		if err != nil {
+			return 0, err
+		}
+
+		volume, err := butter.GetVolume(m.Cfg.ReportHost, log.TxHash.Hex(), "relay")
+		if err != nil {
+			return 0, err
+		}
+		if volume >= constant.AlchemypayKytThreshold {
+			alchemypayKytCheck = "true"
+		}
+		m.Log.Info("Found a tx", "id", m.Cfg.Id,
+			"txhash", log.TxHash, "sender", from, "receiver", receiver, "volume", volume)
+		isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
+			from, receiver, alchemypayKytCheck)
+		if err != nil {
+			return 0, err
+		}
+		if isBlock {
+			m.Log.Info("Ignore this tx, beacuse addr is blocked", "tx", log.TxHash, "sender", from,
+				"receiver", receiver)
+		}
+	} else {
+		initiator, from, err := DecodeMessageOut(log)
+		if err != nil {
+			return 0, err
+		}
+
+		volume, err := butter.GetVolume(m.Cfg.ReportHost, log.TxHash.Hex(), "source")
+		if err != nil {
+			return 0, err
+		}
+		if volume >= constant.AlchemypayKytThreshold {
+			alchemypayKytCheck = "true"
+		}
+		m.Log.Info("Found a tx", "id", m.Cfg.Id, "txhash", log.TxHash, "initiator", initiator, "from", from, "volume", volume)
+		isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
+			initiator.String(), from.String(), alchemypayKytCheck)
+		if err != nil {
+			return 0, err
+		}
+	}
+	if isBlock {
+		m.Log.Info("Ignore this tx, beacuse addr is blocked", "tx", log.TxHash)
+		return 0, nil
 	}
 
 	rpcReceipt, err := m.Conn.Client().TransactionReceipt(context.Background(), log.TxHash)

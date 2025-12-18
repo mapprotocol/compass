@@ -171,3 +171,7 @@ const (
 	TokenLongAddressOfBtc  = "0x0000000000000000000000000000000000425443"
 	TokenShortAddressOfBtc = "0x425443"
 )
+
+const (
+	AlchemypayKytThreshold = 4900
+)
