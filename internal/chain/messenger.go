@@ -225,52 +225,50 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	var isBlock bool
 	alchemypayKytCheck := "false"
 	if m.Cfg.Id == m.Cfg.MapChainID {
-		isEvm := true
-		if toChainID == constant.SolMainChainId || toChainID == constant.BtcChainId {
-			isEvm = false
-		}
-		from, receiver, err := DecodeMessageRelay(log, isEvm)
+		verifyData, err := butter.TranscationVerify(m.Cfg.ReportHost, log.TxHash.Hex(), "relay")
 		if err != nil {
 			return 0, err
 		}
-
-		volume, err := butter.GetVolume(m.Cfg.ReportHost, log.TxHash.Hex(), "relay")
-		if err != nil {
-			return 0, err
+		volume, ok := big.NewInt(0).SetString(verifyData.Data.Volume, 10)
+		if !ok {
+			return 0, fmt.Errorf("failed to parse volume")
 		}
-		if volume >= constant.AlchemypayKytThreshold {
+		volume = volume.Div(volume, big.NewInt(1000000))
+		if volume.Int64() >= constant.AlchemypayKytThreshold {
 			alchemypayKytCheck = "true"
 		}
 		m.Log.Info("Found a tx", "id", m.Cfg.Id,
-			"txhash", log.TxHash, "sender", from, "receiver", receiver, "volume", volume)
+			"txhash", log.TxHash, "sender", verifyData.Data.Sender, "volume", volume)
 		isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
-			from, receiver, alchemypayKytCheck)
+			verifyData.Data.Sender, "", alchemypayKytCheck)
 		if err != nil {
 			return 0, err
 		}
 		if isBlock {
-			m.Log.Info("Ignore this tx, beacuse addr is blocked", "tx", log.TxHash, "sender", from,
-				"receiver", receiver)
+			m.Log.Info("Ignore this tx, beacuse addr is blocked", "tx", log.TxHash, "sender", verifyData.Data.Sender)
 		}
 	} else {
-		initiator, from, err := DecodeMessageOut(log)
+		verifyData, err := butter.TranscationVerify(m.Cfg.ReportHost, log.TxHash.Hex(), "source")
 		if err != nil {
 			return 0, err
 		}
 
-		volume, err := butter.GetVolume(m.Cfg.ReportHost, log.TxHash.Hex(), "source")
-		if err != nil {
-			return 0, err
+		volume, ok := big.NewInt(0).SetString(verifyData.Data.Volume, 10)
+		if !ok {
+			return 0, fmt.Errorf("failed to parse volume")
 		}
-		if volume >= constant.AlchemypayKytThreshold {
+		volume = volume.Div(volume, big.NewInt(1000000))
+		if volume.Int64() >= constant.AlchemypayKytThreshold {
 			alchemypayKytCheck = "true"
 		}
-		m.Log.Info("Found a tx", "id", m.Cfg.Id, "txhash", log.TxHash, "initiator", initiator, "from", from, "volume", volume)
+		m.Log.Info("Found a tx", "id", m.Cfg.Id,
+			"txhash", log.TxHash, "sender", verifyData.Data.Sender, "volume", volume)
 		isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
-			initiator.String(), from.String(), alchemypayKytCheck)
+			verifyData.Data.Sender, "", alchemypayKytCheck)
 		if err != nil {
 			return 0, err
 		}
+
 	}
 	if isBlock {
 		m.Log.Info("Ignore this tx, beacuse addr is blocked", "tx", log.TxHash)

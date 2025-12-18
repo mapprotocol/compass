@@ -223,15 +223,20 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 			return 0, err
 		}
 		alchemypayKytCheck := "false"
-		volume, err := butter.GetVolume(m.Cfg.ReportHost, log.TxHash.Hex(), "source")
+		verifyData, err := butter.TranscationVerify(m.Cfg.ReportHost, log.TxHash.Hex(), "source")
 		if err != nil {
 			return 0, err
 		}
-		if volume >= constant.AlchemypayKytThreshold {
+		volume, ok := big.NewInt(0).SetString(verifyData.Data.Volume, 10)
+		if !ok {
+			return 0, fmt.Errorf("failed to parse volume")
+		}
+		volume = volume.Div(volume, big.NewInt(1000000))
+		if volume.Int64() >= constant.AlchemypayKytThreshold {
 			alchemypayKytCheck = "true"
 		}
 		isBlock, err := butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
-			initiator.String(), from.String(), alchemypayKytCheck)
+			verifyData.Data.Sender, "", alchemypayKytCheck)
 		if err != nil {
 			return 0, err
 		}
