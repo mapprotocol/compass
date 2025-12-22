@@ -19,11 +19,11 @@ var (
 
 func Init(domain string) {
 	defaultReport = New(domain)
+	defaultReport.Start()
 }
 
 func Add(data *Data) {
 	defaultReport.Add(data)
-	defaultReport.Start()
 }
 
 type Reportable interface {
@@ -82,16 +82,17 @@ func (r *Report) convertType(isRelay bool) string {
 func (r *Report) Start() {
 	r.log.Info("Reporter started")
 	go func() {
-		select {
-		case data, ok := <-r.ch:
-			if !ok {
-				return
+		for {
+			select {
+			case data, ok := <-r.ch:
+				if !ok {
+					return
+				}
+				r.Report(data)
+			default:
+				time.Sleep(time.Millisecond * 500)
 			}
-			r.Report(data)
-		default:
-			time.Sleep(time.Millisecond * 500)
 		}
-		r.log.Info("Reporter stopped")
 	}()
 }
 

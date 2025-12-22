@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/mapprotocol/compass/internal/butter"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
@@ -220,59 +219,6 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-	}
-
-	var isBlock bool
-	alchemypayKytCheck := "false"
-	if m.Cfg.Id == m.Cfg.MapChainID {
-		verifyData, err := butter.TranscationVerify(m.Cfg.ReportHost, log.TxHash.Hex(), "relay")
-		if err != nil {
-			return 0, err
-		}
-		volume, ok := big.NewInt(0).SetString(verifyData.Data.Volume, 10)
-		if !ok {
-			return 0, fmt.Errorf("failed to parse volume")
-		}
-		volume = volume.Div(volume, big.NewInt(1000000))
-		if volume.Int64() >= constant.AlchemypayKytThreshold {
-			alchemypayKytCheck = "true"
-		}
-		m.Log.Info("Found a tx", "id", m.Cfg.Id,
-			"txhash", log.TxHash, "sender", verifyData.Data.Sender, "volume", volume)
-		isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
-			verifyData.Data.Sender, "", alchemypayKytCheck)
-		if err != nil {
-			return 0, err
-		}
-		if isBlock {
-			m.Log.Info("Ignore this tx, beacuse addr is blocked", "tx", log.TxHash, "sender", verifyData.Data.Sender)
-		}
-	} else {
-		verifyData, err := butter.TranscationVerify(m.Cfg.ReportHost, log.TxHash.Hex(), "source")
-		if err != nil {
-			return 0, err
-		}
-
-		volume, ok := big.NewInt(0).SetString(verifyData.Data.Volume, 10)
-		if !ok {
-			return 0, fmt.Errorf("failed to parse volume")
-		}
-		volume = volume.Div(volume, big.NewInt(1000000))
-		if volume.Int64() >= constant.AlchemypayKytThreshold {
-			alchemypayKytCheck = "true"
-		}
-		m.Log.Info("Found a tx", "id", m.Cfg.Id,
-			"txhash", log.TxHash, "sender", verifyData.Data.Sender, "volume", volume)
-		isBlock, err = butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
-			verifyData.Data.Sender, "", alchemypayKytCheck)
-		if err != nil {
-			return 0, err
-		}
-
-	}
-	if isBlock {
-		m.Log.Info("Ignore this tx, beacuse addr is blocked", "tx", log.TxHash)
-		return 0, nil
 	}
 
 	rpcReceipt, err := m.Conn.Client().TransactionReceipt(context.Background(), log.TxHash)

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mapprotocol/compass/internal/butter"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/msg"
 
@@ -218,36 +217,6 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 			Index:       ele.LogIndex,
 		}
 
-		initiator, from, err := chain.DecodeMessageOut(log)
-		if err != nil {
-			return 0, err
-		}
-		alchemypayKytCheck := "false"
-		verifyData, err := butter.TranscationVerify(m.Cfg.ReportHost, log.TxHash.Hex(), "source")
-		if err != nil {
-			return 0, err
-		}
-		volume, ok := big.NewInt(0).SetString(verifyData.Data.Volume, 10)
-		if !ok {
-			return 0, fmt.Errorf("failed to parse volume")
-		}
-		volume = volume.Div(volume, big.NewInt(1000000))
-		if volume.Int64() >= constant.AlchemypayKytThreshold {
-			alchemypayKytCheck = "true"
-		}
-		isBlock, err := butter.BlockedAccount(m.Cfg.PriceHost, fmt.Sprint(m.Cfg.Id),
-			verifyData.Data.Sender, "", alchemypayKytCheck)
-		if err != nil {
-			return 0, err
-		}
-		m.Log.Info("Found a tx", "id", m.Cfg.Id, "txhash", log.TxHash, "initiator",
-			initiator, "from", from, "volume", volume)
-		if isBlock {
-			m.Cfg.StartBlock = big.NewInt(ele.Id)
-			m.Log.Info("Ignore this tx, beacuse addr is blocked",
-				"tx", ele.TxHash, "initiator", initiator, "from", from)
-			continue
-		}
 		send, err := log2Msg(m, log, idx)
 		if err != nil {
 			return 0, err
