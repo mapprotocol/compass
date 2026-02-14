@@ -111,6 +111,12 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 	if w.cfg.GasMultiplier > 1 && gasPrice != nil {
 		gasPrice = big.NewInt(0).SetInt64(int64(float64(gasPrice.Int64()) * w.cfg.GasMultiplier))
 	}
+	if gasLimit < constant.MinGasLimit {
+		gasLimit = constant.MinGasLimit
+	}
+	if gasLimit > constant.MaxGasLimit {
+		gasLimit = constant.MaxGasLimit
+	}
 	w.log.Info("SendTx gasPrice", "gasPrice", gasPrice, "gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap, "gasLimit", gasLimit,
 		"limitMultiplier", w.cfg.LimitMultiplier, "gasMultiplier", w.cfg.GasMultiplier, "nonce", nonce.Uint64())
 	// td interface

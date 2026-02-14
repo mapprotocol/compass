@@ -175,3 +175,8 @@ const (
 const (
 	AlchemypayKytThreshold = 4900
 )
+
+const (
+	MaxGasLimit = 5000000
+	MinGasLimit = 1000000
+)
