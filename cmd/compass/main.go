@@ -14,6 +14,7 @@ import (
 	chain2 "github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/internal/observability"
 	"github.com/mapprotocol/compass/internal/report"
 	"github.com/mapprotocol/compass/pkg/abi"
 	contract2 "github.com/mapprotocol/compass/pkg/contract"
@@ -84,6 +85,7 @@ func init() {
 		&messengerCommand,
 		&oracleCommand,
 		&exposeCommand,
+		&swapFailedCommand,
 	}
 
 	app.Flags = append(app.Flags, cliFlags...)
@@ -138,6 +140,24 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	blacklist.Init(cfg.Other.BlackListUrl)
 	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
 	report.Init(cfg.Other.ReportUrl)
+
+	// Stand up observability (metrics + /status + pprof + alarms) before
+	// any chain goroutines start so the first tick can already publish.
+	obsAddr := ":9102"
+	if cfg.Other.ObservabilityAddr != "" {
+		obsAddr = cfg.Other.ObservabilityAddr
+	}
+	obs := observability.New("compass", observability.Config{
+		Addr:    obsAddr,
+		AlarmFn: util.Alarm,
+	})
+	observability.SetDefault(obs)
+	obs.StartHTTP()
+	obs.StartBlockLagAlarms(observability.DefaultBlockLagRule())
+	log.Info("Observability HTTP serving", "addr", obsAddr,
+		"endpoints", "/metrics /status /healthz /debug/pprof/")
+	defer obs.Stop()
+
 	sysErr := make(chan error)
 	mapcid, err := strconv.Atoi(cfg.MapChain.Id)
 	if err != nil {

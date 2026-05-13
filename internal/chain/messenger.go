@@ -65,12 +65,16 @@ func (m *Messenger) sync() error {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
+			rpcStart := time.Now()
 			latestBlock, err := m.Conn.LatestBlock()
+			m.State.ObserveRPC("LatestBlock", time.Since(rpcStart).Seconds())
 			if err != nil {
+				m.State.RecordError("rpc_latest_block", err.Error())
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
 				time.Sleep(constant.QueryRetryInterval)
 				continue
 			}
+			m.State.SetLatestBlock(latestBlock.Int64())
 
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock)
@@ -90,10 +94,14 @@ func (m *Messenger) sync() error {
 					time.Sleep(constant.BlockRetryInterval)
 					continue
 				}
+				m.State.RecordError("mos_handler", err.Error())
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				util.Alarm(context.Background(), fmt.Sprintf("mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
 				continue
+			}
+			if count > 0 {
+				m.State.IncEventsMatched(count)
 			}
 
 			_ = m.WaitUntilMsgHandled(count)
@@ -102,6 +110,8 @@ func (m *Messenger) sync() error {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
 
+			m.State.SetCurrentBlock(currentBlock.Int64())
+			m.State.IncBlocksProcessed(1)
 			currentBlock.Add(currentBlock, big.NewInt(1))
 			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
 				time.Sleep(constant.MessengerInterval)
@@ -119,12 +129,17 @@ func (m *Messenger) filter() error {
 		case <-m.Stop:
 			return errors.New("filter polling terminated")
 		default:
+			rpcStart := time.Now()
 			latestBlock, err := m.FilterLatestBlock()
+			m.State.ObserveRPC("FilterLatestBlock", time.Since(rpcStart).Seconds())
 			if err != nil {
+				m.State.RecordError("rpc_filter_latest", err.Error())
 				m.Log.Error("Unable to get latest block", "err", err)
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
+			m.State.SetLatestBlock(latestBlock.Int64())
+			m.State.SetCurrentBlock(m.Cfg.StartBlock.Int64())
 			count, err := m.filterMosHandler(latestBlock.Uint64())
 			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
 				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
@@ -154,6 +169,10 @@ func (m *Messenger) filter() error {
 			if err != nil {
 				m.Log.Error("Filter Failed to write latest block to blockStore", "err", err)
 			}
+			if count > 0 {
+				m.State.IncEventsMatched(count)
+			}
+			m.State.IncBlocksProcessed(1)
 
 			time.Sleep(constant.MessengerInterval)
 		}

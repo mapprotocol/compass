@@ -74,6 +74,7 @@ func (c *Chain) createChain(chainCfg *core.ChainConfig, logger log15.Logger, sys
 		return nil, err
 	}
 	cs := chain.NewCommonSync(ethConn, &config.Config, logger, stop, sysErr, bs)
+	cs.RegisterState(config.Name, string(role))
 
 	switch role {
 	case mapprotocol.RoleOfMessenger:

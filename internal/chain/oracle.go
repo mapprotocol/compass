@@ -65,12 +65,16 @@ func (m *Oracle) sync() error {
 		case <-m.Stop:
 			return errors.New("polling terminated")
 		default:
+			rpcStart := time.Now()
 			latestBlock, err := m.Conn.LatestBlock()
+			m.State.ObserveRPC("LatestBlock", time.Since(rpcStart).Seconds())
 			if err != nil {
+				m.State.RecordError("rpc_latest_block", err.Error())
 				m.Log.Error("Unable to get latest block", "block", currentBlock, "err", err)
 				time.Sleep(constant.QueryRetryInterval)
 				continue
 			}
+			m.State.SetLatestBlock(latestBlock.Int64())
 
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "currentBlock", currentBlock, "latest", latestBlock, "sub", big.NewInt(0).Sub(latestBlock, currentBlock))
@@ -80,6 +84,7 @@ func (m *Oracle) sync() error {
 
 			err = m.oracleHandler(m, currentBlock)
 			if err != nil {
+				m.State.RecordError("oracle_handler", err.Error())
 				m.Log.Error("Failed to get events for block", "block", currentBlock, "err", err)
 				time.Sleep(constant.BlockRetryInterval)
 				util.Alarm(context.Background(), fmt.Sprintf("oracle failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
@@ -91,6 +96,8 @@ func (m *Oracle) sync() error {
 				m.Log.Error("Failed to write latest block to blockStore", "block", currentBlock, "err", err)
 			}
 
+			m.State.SetCurrentBlock(currentBlock.Int64())
+			m.State.IncBlocksProcessed(1)
 			currentBlock.Add(currentBlock, big.NewInt(1))
 			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
 				time.Sleep(constant.MessengerInterval)
@@ -107,11 +114,13 @@ func (m *Oracle) filter() error {
 		default:
 			err := m.filterOracle()
 			if err != nil {
+				m.State.RecordError("filter_oracle", err.Error())
 				m.Log.Error("Failed to get events for block", "err", err)
 				time.Sleep(constant.BlockRetryInterval)
 				util.Alarm(context.Background(), fmt.Sprintf("oracle failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				continue
 			}
+			m.State.IncBlocksProcessed(1)
 
 			err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
 			if err != nil {

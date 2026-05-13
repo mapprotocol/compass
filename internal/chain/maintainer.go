@@ -85,16 +85,21 @@ func (m *Maintainer) sync() error {
 				latestBlock *big.Int
 				err         error
 			)
+			rpcStart := time.Now()
 			if m.Cfg.Filter {
 				latestBlock, err = m.FilterLatestBlock()
+				m.State.ObserveRPC("FilterLatestBlock", time.Since(rpcStart).Seconds())
 			} else {
 				latestBlock, err = m.Conn.LatestBlock()
+				m.State.ObserveRPC("LatestBlock", time.Since(rpcStart).Seconds())
 			}
 			if err != nil {
+				m.State.RecordError("rpc_latest_block", err.Error())
 				m.Log.Error("Unable to get latest block", "filter", m.Cfg.Filter, "err", err)
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
+			m.State.SetLatestBlock(latestBlock.Int64())
 
 			if big.NewInt(0).Sub(latestBlock, currentBlock).Cmp(m.BlockConfirmations) == -1 {
 				m.Log.Debug("Block not ready, will retry", "current", currentBlock, "latest", latestBlock)
@@ -111,6 +116,7 @@ func (m *Maintainer) sync() error {
 			if m.Cfg.Id == m.Cfg.MapChainID && len(m.Cfg.SyncChainIDList) > 0 {
 				err = m.syncHeaderToMap(m, currentBlock)
 				if err != nil {
+					m.State.RecordError("sync_header", err.Error())
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					time.Sleep(constant.QueryRetryInterval)
 					util.Alarm(context.Background(), fmt.Sprintf("map sync header to other failed, err is %s", err.Error()))
@@ -119,6 +125,7 @@ func (m *Maintainer) sync() error {
 			} else if currentBlock.Cmp(m.syncedHeight) == 1 {
 				err = m.syncHeaderToMap(m, currentBlock)
 				if err != nil {
+					m.State.RecordError("sync_header", err.Error())
 					m.Log.Error("Failed to listen header for block", "block", currentBlock, "err", err)
 					time.Sleep(constant.QueryRetryInterval)
 					if err.Error() != "not found" {
@@ -136,6 +143,8 @@ func (m *Maintainer) sync() error {
 				m.Log.Error("Failed to write latest block to blockstore", "block", currentBlock, "err", err)
 			}
 
+			m.State.SetCurrentBlock(currentBlock.Int64())
+			m.State.IncBlocksProcessed(1)
 			currentBlock.Add(currentBlock, big.NewInt(1))
 			if latestBlock.Int64()-currentBlock.Int64() <= m.Cfg.BlockConfirmations.Int64() {
 				time.Sleep(constant.MaintainerInterval)

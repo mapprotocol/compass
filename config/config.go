@@ -35,14 +35,15 @@ type RawChainConfig struct {
 }
 
 type Construction struct {
-	MonitorUrl   string `json:"monitor_url,omitempty"`
-	Env          string `json:"env,omitempty"`
-	BlackListUrl string `json:"black_list_url"`
-	Filter       string `json:"filter"`
-	BtcUrl       string `json:"btc_url"`
-	Butter       string `json:"butter"`
-	Price        string `json:"price"`
-	ReportUrl    string `json:"report_url,omitempty"`
+	MonitorUrl        string `json:"monitor_url,omitempty"`
+	Env               string `json:"env,omitempty"`
+	BlackListUrl      string `json:"black_list_url"`
+	Filter            string `json:"filter"`
+	BtcUrl            string `json:"btc_url"`
+	Butter            string `json:"butter"`
+	Price             string `json:"price"`
+	ReportUrl         string `json:"report_url,omitempty"`
+	ObservabilityAddr string `json:"observability_addr,omitempty"`
 }
 
 func (c *Config) ToJSON(file string) *os.File {
