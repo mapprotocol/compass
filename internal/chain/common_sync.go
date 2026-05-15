@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
+	"github.com/mapprotocol/compass/internal/observability"
 	"github.com/mapprotocol/compass/pkg/msg"
 	"math/big"
 	"time"
@@ -65,12 +66,20 @@ type CommonSync struct {
 	SysErr                    chan<- error // Reports fatal error to core
 	BlockConfirmations        *big.Int
 	BlockStore                blockstore.Blockstorer
+	State                     *observability.ChainState // set by chain constructor once role is known
 	height                    int64
 	syncHeaderToMap           SyncHeader2Map
 	mosHandler                Mos
 	oracleHandler             OracleHandler
 	assembleProof             AssembleProof
 	reqTime, cacheBlockNumber int64
+}
+
+// RegisterState wires this CommonSync to the package-level Observability. Safe
+// to call zero or more times; nil-safety lives on every State.* method, so
+// loops that ran before this was wired stay panic-free.
+func (c *CommonSync) RegisterState(chain, role string) {
+	c.State = observability.RegisterChain(chain, role)
 }
 
 // NewCommonSync creates and returns a listener

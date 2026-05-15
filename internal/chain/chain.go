@@ -56,6 +56,7 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 
 	var listen core.Listener
 	cs := NewCommonSync(conn, cfg, logger, stop, sysErr, bs, opts...)
+	cs.RegisterState(cfg.Name, string(role))
 	switch role {
 	case mapprotocol.RoleOfMaintainer:
 		if cfg.Id != cfg.MapChainID {

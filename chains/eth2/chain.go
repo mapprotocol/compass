@@ -75,6 +75,7 @@ func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan
 	var listen core.Listener
 	cs := chain.NewCommonSync(conn, cfg, logger, stop, sysErr, bs,
 		chain.OptOfOracleHandler(chain.DefaultOracleHandler))
+	cs.RegisterState(cfg.Name, string(role))
 	switch role {
 	case mapprotocol.RoleOfMaintainer:
 		fn := mapprotocol.Map2EthHeight(cfg.From, cfg.LightNode, conn.Client())
