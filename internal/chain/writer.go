@@ -90,7 +90,7 @@ func (w *Writer) sendTx(toAddress *common.Address, value *big.Int, input []byte)
 				return nil, serr
 			}
 		}
-		return nil, err
+		// return nil, err
 	}
 
 	gasTipCap := w.conn.Opts().GasTipCap

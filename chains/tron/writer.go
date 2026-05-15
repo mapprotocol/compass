@@ -112,7 +112,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 					continue
 				}
 				for e := range constant.IgnoreError {
-					if strings.Index(internalErr, e) != -1 {
+					if strings.Contains(internalErr, e) {
 						w.log.Info("Ignore This Error, Continue to the next", "inputHash", inputHash, "err", internalErr)
 						m.DoneCh <- struct{}{}
 						return true
@@ -159,7 +159,7 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 				return true
 			} else {
 				for e := range constant.IgnoreError {
-					if strings.Index(err.Error(), e) != -1 {
+					if strings.Contains(err.Error(), e) {
 						w.log.Info("Ignore This Error, Continue to the next", "id", m.Destination, "err", err)
 						m.DoneCh <- struct{}{}
 						return true

@@ -34,6 +34,7 @@ func NewConnection(endpoint string, log log15.Logger) *Connection {
 // Connect starts the ethereum WS connection
 func (c *Connection) Connect() error {
 	c.cli = client.NewGrpcClient(c.endpoint)
+	c.cli.SetAPIKey("ebd4248d-cd13-4f41-9622-acdf84bca55f")
 	err := c.cli.Start(grpc.WithInsecure())
 	if err != nil {
 		return err

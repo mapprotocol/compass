@@ -4,10 +4,7 @@
 package mapo
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -141,7 +138,7 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 	uToChainID := big.NewInt(0).SetBytes(log.Topics[2].Bytes()[8:16]).Uint64()
 	txIndex := log.TxIndex
 	orderId := log.Topics[1]
-	aggPK, ist, aggPKBytes, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
+	aggPK, ist, _, err := mapprotocol.GetAggPK(cli, new(big.Int).Sub(header.Number, big.NewInt(1)), header.Extra)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -159,50 +156,6 @@ func AssembleMapProof(cli *ethclient.Client, log *types.Log, receipts []*types.R
 	var payloads []byte
 	name, _ := mapprotocol.OnlineChaId[msg.ChainId(uToChainID)]
 	switch name {
-	case "near":
-		bytesBuffer := bytes.NewBuffer([]byte{})
-		err = binary.Write(bytesBuffer, binary.LittleEndian, uint64(txIndex))
-		if err != nil {
-			return 0, nil, err
-		}
-
-		nProof := make([]string, 0, len(prf))
-		for _, p := range prf {
-			nProof = append(nProof, "0x"+common.Bytes2Hex(p))
-		}
-		m := map[string]interface{}{
-			"header": mapprotocol.ConvertNearNeedHeader(header),
-			"agg_pk": map[string]interface{}{
-				"xr": "0x" + common.Bytes2Hex(aggPKBytes[32:64]),
-				"xi": "0x" + common.Bytes2Hex(aggPKBytes[:32]),
-				"yi": "0x" + common.Bytes2Hex(aggPKBytes[64:96]),
-				"yr": "0x" + common.Bytes2Hex(aggPKBytes[96:128]),
-			},
-			"key_index": "0x" + common.Bytes2Hex(key),
-			"receipt":   ConvertNearReceipt(receipt),
-			"proof":     nProof,
-		}
-
-		idx := 0
-		match := false
-		for lIdx, l := range receipt.Logs {
-			for _, topic := range l.Topics {
-				if common.BytesToHash(topic) == log.Topics[0] {
-					idx = lIdx
-					match = true
-					break
-				}
-			}
-			if match {
-				break
-			}
-		}
-		data, _ := json.Marshal(map[string]interface{}{
-			"receipt_proof": m,
-			"index":         idx,
-		})
-		return uToChainID, data, nil
-	case "ton": // todo ton  自己构建proof，找合约
 	default:
 		istanbulExtra := mapprotocol.ConvertIstanbulExtra(ist)
 		nr := mapprotocol.MapTxReceipt{
