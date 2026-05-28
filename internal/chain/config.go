@@ -81,6 +81,7 @@ type Config struct {
 	ApiUrl             string
 	OracleNode         common.Address
 	Filter             bool
+	OnlySpecialToken   bool
 	FilterHost         string
 	BtcHost            string
 	PriceHost          string
@@ -110,6 +111,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		Events:             make([]constant.EventSig, 0),
 		SkipError:          chainCfg.SkipError,
 		Filter:             chainCfg.Filter,
+		OnlySpecialToken:   chainCfg.OnlySpecialToken,
 		FilterHost:         chainCfg.FilterHost,
 		BtcHost:            chainCfg.BtcHost,
 		PriceHost:          chainCfg.PriceHost,

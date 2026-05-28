@@ -125,7 +125,7 @@ func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*t
 				}
 				results[i] = &op.Receipt{Receipt: r, DepositReceiptVersion: &vptr, DepositNonce: &nptr}
 			}(i, r)
-			if 1%30 == 0 {
+			if i%30 == 0 {
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
