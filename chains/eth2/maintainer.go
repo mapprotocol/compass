@@ -281,22 +281,6 @@ func (m *Maintainer) getFinalityLightClientUpdate(lastFinalizedSlotOnContract *b
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Beacon.Slot)
-		if err != nil {
-			return nil, err
-		}
-		branches, txRoot, wdRoot, err := eth2.Generate(resp.Data.FinalizedHeader.Beacon.Slot, m.Cfg.Eth2Endpoint)
-		if err != nil {
-			return nil, err
-		}
-		exeFinalityBranch = branches
-		block.Data.Message.Body.ExecutionPayload.TransactionsRoot = txRoot
-		block.Data.Message.Body.ExecutionPayload.WithdrawalsRoot = wdRoot
-		execution, err = eth2.ConvertExecution(&block.Data.Message.Body.ExecutionPayload)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return &eth2.LightClientUpdate{
@@ -410,22 +394,6 @@ func (m *Maintainer) getLightClientUpdateForLastPeriod(lastEth2PeriodOnContract 
 		branches = append(branches, resp.Data.FinalizedHeader.ExecutionBranch...)
 		exeFinalityBranch = eth2.GenerateByApi(branches)
 		execution, err = eth2.ConvertExecution(&resp.Data.FinalizedHeader.Execution)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		block, err := m.eth2Client.GetBlocks(context.Background(), resp.Data.FinalizedHeader.Beacon.Slot)
-		if err != nil {
-			return nil, err
-		}
-		branches, txRoot, wdRoot, err := eth2.Generate(resp.Data.FinalizedHeader.Beacon.Slot, m.Cfg.Eth2Endpoint)
-		if err != nil {
-			return nil, err
-		}
-		exeFinalityBranch = branches
-		block.Data.Message.Body.ExecutionPayload.TransactionsRoot = txRoot
-		block.Data.Message.Body.ExecutionPayload.WithdrawalsRoot = wdRoot
-		execution, err = eth2.ConvertExecution(&block.Data.Message.Body.ExecutionPayload)
 		if err != nil {
 			return nil, err
 		}

@@ -1,8 +1,6 @@
 module github.com/mapprotocol/compass
 
-go 1.22.2
-
-toolchain go1.24.1
+go 1.26.3
 
 require (
 	github.com/ChainSafe/chainbridge-utils v1.0.6

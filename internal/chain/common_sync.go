@@ -2,6 +2,7 @@ package chain
 
 import (
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
@@ -155,6 +156,65 @@ func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {
 	c.cacheBlockNumber = latestBlock.Int64()
 	c.reqTime = time.Now().Unix()
 	return latestBlock, nil
+}
+
+func (c *CommonSync) FilterMaxID() (*big.Int, error) {
+	data, err := Request(fmt.Sprintf("%s/%s", c.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterMaxIDUrl, c.Cfg.Id)))
+	if err != nil {
+		return nil, err
+	}
+	maxID, err := parseFilterNumber(data)
+	if err != nil {
+		return nil, fmt.Errorf("get filter max id failed: %w", err)
+	}
+	c.Log.Debug("Filter max id", "id", maxID)
+	return maxID, nil
+}
+
+func StartLatestBlock(cfg *Config, conn core.Connection, logger log15.Logger) error {
+	if cfg.Filter {
+		cs := &CommonSync{Cfg: *cfg, Log: logger}
+		maxID, err := cs.FilterMaxID()
+		if err != nil {
+			return err
+		}
+		cfg.StartBlock = maxID
+		logger.Info("Start from latest filter id", "id", cfg.StartBlock)
+		return nil
+	}
+
+	if conn == nil {
+		return fmt.Errorf("connection is nil")
+	}
+	curr, err := conn.LatestBlock()
+	if err != nil {
+		return err
+	}
+	cfg.StartBlock = curr
+	logger.Info("Start from latest block", "block", cfg.StartBlock)
+	return nil
+}
+
+func parseFilterNumber(data interface{}) (*big.Int, error) {
+	switch v := data.(type) {
+	case string:
+		n, ok := big.NewInt(0).SetString(v, 10)
+		if !ok {
+			return nil, fmt.Errorf("invalid number %q", v)
+		}
+		return n, nil
+	case float64:
+		return big.NewInt(int64(v)), nil
+	case map[string]interface{}:
+		for _, key := range []string{"max_id", "maxId", "id", "block", "block_number", "blockNumber"} {
+			if val, ok := v[key]; ok {
+				return parseFilterNumber(val)
+			}
+		}
+		return nil, fmt.Errorf("missing max id field")
+	default:
+		return nil, fmt.Errorf("unsupported number type %T", data)
+	}
 }
 
 func (c *CommonSync) Match(target string) int {

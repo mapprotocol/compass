@@ -268,6 +268,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	} else {
 		m.Log.Info("Eth Msger receipt log not match", "blockNumber", log.BlockNumber, "logIndex", log.Index)
 	}
+	m.Log.Info("Event found", "txHash", log.TxHash, "orderId", orderId, "method", method, "proofType", proofType)
 
 	var sign [][]byte
 	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
@@ -280,7 +281,6 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		}
 		sign = ret.Signatures
 	}
-	m.Log.Info("Event found", "txHash", log.TxHash, "orderId", orderId, "method", method, "proofType", proofType)
 
 	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, proofType, sign)
 	if err != nil {
