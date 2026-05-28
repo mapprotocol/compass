@@ -199,8 +199,10 @@ func swapFailed(ctx *cli.Context) error {
 
 	// --keystore on the command line overrides cfg.Other.SwapFailedKeystore so
 	// the keeper can use a different keystore from the relayer's chain configs.
-	if ks := ctx.String(config.KeystorePathFlag.Name); ks != "" {
-		cfg.Other.SwapFailedKeystore = ks
+	// Use IsSet (not String) because the flag has a default value of "./keys",
+	// which would otherwise silently clobber the config every time.
+	if ctx.IsSet(config.KeystorePathFlag.Name) {
+		cfg.Other.SwapFailedKeystore = ctx.String(config.KeystorePathFlag.Name)
 	}
 
 	sender, err := newSenderRegistry(cfg)

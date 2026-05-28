@@ -33,6 +33,7 @@ var cliFlags = []cli.Flag{
 	config.BlockstorePathFlag,
 	config.FreshStartFlag,
 	config.LatestBlockFlag,
+	config.StartLatestFlag,
 	config.SkipErrorFlag,
 	config.FilterFlag,
 }
@@ -191,6 +192,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			BlockstorePath:   ctx.String(config.BlockstorePathFlag.Name),
 			FreshStart:       ctx.Bool(config.FreshStartFlag.Name),
 			LatestBlock:      ctx.Bool(config.LatestBlockFlag.Name),
+			StartLatest:      ctx.Bool(config.StartLatestFlag.Name),
 			Opts:             ele.Opts,
 			SkipError:        ctx.Bool(config.SkipErrorFlag.Name),
 			Filter:           ctx.Bool(config.FilterFlag.Name),

@@ -58,6 +58,11 @@ var (
 		Usage: "Overrides blockstore and start block, starts from latest block",
 	}
 
+	StartLatestFlag = &cli.BoolFlag{
+		Name:  "startLatest",
+		Usage: "Overrides blockstore and start block at startup; filter mode starts from the filter max id",
+	}
+
 	SkipErrorFlag = &cli.BoolFlag{
 		Name:  "skipError",
 		Usage: "Skip Error",

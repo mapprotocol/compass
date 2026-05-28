@@ -61,6 +61,7 @@ type Config struct {
 	KeystorePath       string      // Location of keyfiles
 	BlockstorePath     string
 	FreshStart         bool // Disables loading from blockstore at start
+	StartLatest        bool
 	McsContract        []common.Address
 	GasLimit           *big.Int
 	MaxGasPrice        *big.Int
@@ -96,6 +97,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		KeystorePath:       chainCfg.KeystorePath,
 		BlockstorePath:     chainCfg.BlockstorePath,
 		FreshStart:         chainCfg.FreshStart,
+		StartLatest:        chainCfg.StartLatest,
 		McsContract:        []common.Address{},
 		GasLimit:           big.NewInt(DefaultGasLimit),
 		MaxGasPrice:        big.NewInt(DefaultGasPrice),
