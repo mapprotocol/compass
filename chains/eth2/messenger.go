@@ -135,7 +135,8 @@ func (m *Messenger) filter() error {
 				time.Sleep(constant.BlockRetryInterval)
 				continue
 			}
-			count, err := m.filterMosHandler(latestBlock.Uint64())
+			m.State.SetLatestBlock(latestBlock.Int64())
+			count, progressBlock, err := m.filterMosHandler(latestBlock.Uint64())
 			if err != nil {
 				if errors.Is(err, chain.NotVerifyAble) {
 					time.Sleep(constant.ThirtySecondInterval)
@@ -145,6 +146,9 @@ func (m *Messenger) filter() error {
 				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
 				continue
+			}
+			if progressBlock > 0 {
+				m.State.SetCurrentBlock(int64(progressBlock))
 			}
 
 			// hold until all messages are handled
@@ -159,8 +163,9 @@ func (m *Messenger) filter() error {
 	}
 }
 
-func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
+func (m *Messenger) filterMosHandler(latestBlock uint64) (int, uint64, error) {
 	count := 0
+	progressBlock := uint64(0)
 	topic := ""
 	for idx, ele := range m.Cfg.Events {
 		topic += ele.GetTopic().Hex()
@@ -172,23 +177,24 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
 			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)))
 	if err != nil {
-		return 0, err
+		return 0, progressBlock, err
 	}
 	listData, err := json.Marshal(data)
 	if err != nil {
-		return 0, errors.Wrap(err, "marshal resp.Data failed")
+		return 0, progressBlock, errors.Wrap(err, "marshal resp.Data failed")
 	}
 	back := stream.MosListResp{}
 	err = json.Unmarshal(listData, &back)
 	if err != nil {
-		return 0, err
+		return 0, progressBlock, err
 	}
 	if len(back.List) == 0 {
 		time.Sleep(constant.QueryRetryInterval)
-		return 0, nil
+		return 0, latestBlock, nil
 	}
 
 	for _, ele := range back.List {
+		progressBlock = ele.BlockNumber
 		idx := m.Match(ele.ContractAddress)
 		if idx == -1 {
 			m.Log.Info("Filter Log Address Not Match", "id", ele.Id, "address", ele.ContractAddress)
@@ -219,13 +225,13 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, error) {
 
 		send, err := log2Msg(m, log, idx)
 		if err != nil {
-			return 0, err
+			return 0, progressBlock, err
 		}
 		count += send
 		m.Cfg.StartBlock = big.NewInt(ele.Id)
 	}
 
-	return count, nil
+	return count, progressBlock, nil
 }
 
 func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {

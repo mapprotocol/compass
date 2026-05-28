@@ -144,8 +144,7 @@ func (m *Messenger) filter() error {
 				continue
 			}
 			m.State.SetLatestBlock(latestBlock.Int64())
-			m.State.SetCurrentBlock(m.Cfg.StartBlock.Int64())
-			count, err := m.filterMosHandler(latestBlock.Uint64())
+			count, progressBlock, err := m.filterMosHandler(latestBlock.Uint64())
 			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
 				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
 				m.Cfg.StartBlock = m.Cfg.StartBlock.Add(m.Cfg.StartBlock, big.NewInt(1))
@@ -166,6 +165,9 @@ func (m *Messenger) filter() error {
 				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
 				time.Sleep(constant.BlockRetryInterval)
 				continue
+			}
+			if progressBlock > 0 {
+				m.State.SetCurrentBlock(int64(progressBlock))
 			}
 
 			// hold until all messages are handled
