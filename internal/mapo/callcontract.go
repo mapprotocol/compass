@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/pkg/msg"
@@ -98,25 +100,41 @@ func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*t
 		dls = pr
 	case constant.OpChainId, constant.BaseChainId, constant.BlastChainId:
 		pr := op.Receipts{}
-		for _, r := range receipts {
-			tmp, err := conn.OpReceipt(context.Background(), r.TxHash)
-			if err != nil {
+		results := make([]*op.Receipt, len(receipts))
+		var wg sync.WaitGroup
+		for i, r := range receipts {
+			wg.Add(1)
+			go func(i int, r *types.Receipt) {
+				defer wg.Done()
+				tmp, err := conn.OpReceipt(context.Background(), r.TxHash)
+				if err != nil {
+					return
+				}
+				if tmp == nil {
+					return
+				}
+				vptr := uint64(0)
+				nptr := uint64(0)
+				if tmp.DepositReceiptVersion != "" {
+					version, _ := big.NewInt(0).SetString(strings.TrimPrefix(tmp.DepositReceiptVersion, "0x"), 16)
+					vptr = version.Uint64()
+				}
+				if tmp.DepositNonce != "" {
+					nonce, _ := big.NewInt(0).SetString(strings.TrimPrefix(tmp.DepositNonce, "0x"), 16)
+					nptr = nonce.Uint64()
+				}
+				results[i] = &op.Receipt{Receipt: r, DepositReceiptVersion: &vptr, DepositNonce: &nptr}
+			}(i, r)
+			if 1%30 == 0 {
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+		wg.Wait()
+		for _, result := range results {
+			if result == nil {
 				continue
 			}
-			if tmp == nil {
-				continue
-			}
-			vptr := uint64(0)
-			nptr := uint64(0)
-			if tmp.DepositReceiptVersion != "" {
-				version, _ := big.NewInt(0).SetString(strings.TrimPrefix(tmp.DepositReceiptVersion, "0x"), 16)
-				vptr = version.Uint64()
-			}
-			if tmp.DepositNonce != "" {
-				nonce, _ := big.NewInt(0).SetString(strings.TrimPrefix(tmp.DepositNonce, "0x"), 16)
-				nptr = nonce.Uint64()
-			}
-			pr = append(pr, &op.Receipt{Receipt: r, DepositReceiptVersion: &vptr, DepositNonce: &nptr})
+			pr = append(pr, result)
 		}
 		dls = pr
 	default:

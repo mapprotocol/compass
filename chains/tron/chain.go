@@ -73,6 +73,11 @@ func (c *Chain) createChain(chainCfg *core.ChainConfig, logger log15.Logger, sys
 	if err != nil {
 		return nil, err
 	}
+	if chainCfg.StartLatest {
+		if err := chain.StartLatestBlock(&config.Config, ethConn, logger); err != nil {
+			return nil, err
+		}
+	}
 	cs := chain.NewCommonSync(ethConn, &config.Config, logger, stop, sysErr, bs)
 	cs.RegisterState(config.Name, string(role))
 

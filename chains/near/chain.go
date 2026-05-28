@@ -88,7 +88,7 @@ func (c *Chain) New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan
 		return nil, err
 	}
 
-	if chainCfg.LatestBlock {
+	if chainCfg.StartLatest || chainCfg.LatestBlock {
 		curr, err := conn.LatestBlock()
 		if err != nil {
 			return nil, err

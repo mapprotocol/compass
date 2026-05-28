@@ -295,7 +295,6 @@ func (c *Chain) Proof(client *ethclient.Client, log *types.Log, endpoint string,
 		if err != nil {
 			return nil, fmt.Errorf("unable to Parse Log: %w", err)
 		}
-
 	}
 
 	return ret, nil

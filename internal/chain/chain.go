@@ -46,12 +46,10 @@ func New(chainCfg *core.ChainConfig, logger log15.Logger, sysErr chan<- error, r
 		return nil, err
 	}
 
-	if (chainCfg.LatestBlock || cfg.StartBlock == nil || cfg.StartBlock.Int64() == 0) && !chainCfg.Filter {
-		curr, err := conn.LatestBlock()
-		if err != nil {
+	if chainCfg.StartLatest || (chainCfg.LatestBlock && !cfg.Filter) || ((cfg.StartBlock == nil || cfg.StartBlock.Int64() == 0) && !cfg.Filter) {
+		if err := StartLatestBlock(cfg, conn, logger); err != nil {
 			return nil, err
 		}
-		cfg.StartBlock = curr
 	}
 
 	var listen core.Listener

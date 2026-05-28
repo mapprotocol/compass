@@ -131,6 +131,7 @@ const (
 const (
 	FilterUrl       = "v1/mos/list"
 	FilterBlockUrl  = "v1/block"
+	FilterMaxIDUrl  = "v1/mos/max/id"
 	FilterBtcLogUrl = "api/v1/logs"
 )
 

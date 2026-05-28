@@ -36,6 +36,7 @@ type ChainConfig struct {
 	BlockstorePath   string            // Location of blockstore
 	FreshStart       bool              // If true, blockstore is ignored at start.
 	LatestBlock      bool              // If true, overrides blockstore or latest block in config and starts from current block
+	StartLatest      bool              // If true, starts from the latest source height/id when the process starts
 	Opts             map[string]string // Per chain options
 	SkipError        bool              // Flag of Skip Error
 	Filter           bool
