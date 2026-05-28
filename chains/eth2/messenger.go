@@ -232,6 +232,45 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	orderId := log.Topics[1]
 	method := m.GetMethod(log.Topics[0])
 	blockNumber := big.NewInt(0).SetUint64(log.BlockNumber)
+
+	rpcReceipt, err := m.Conn.Client().TransactionReceipt(context.Background(), log.TxHash)
+	if err != nil {
+		return 0, err
+	}
+	if l, match := chain.MatchLog(rpcReceipt.Logs, log); match {
+		log = l // use online log
+	} else {
+		m.Log.Info("Eth Msger receipt log not match", "blockNumber", log.BlockNumber, "logIndex", log.Index)
+	}
+	specialToken, specialReason, err := chain.MatchSpecialSwapToken(log, false, rpcReceipt.Logs...)
+	if err != nil {
+		return 0, err
+	}
+	if specialToken != (common.Address{}) {
+		if m.Cfg.OnlySpecialToken {
+			ready, wait, err := chain.SpecialTokenDelayReady(m.Conn.Client(), log)
+			if err != nil {
+				return 0, err
+			}
+			if !ready {
+				m.Log.Info("Special token swap log not ready", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
+					"logIdx", log.Index, "orderId", orderId, "token", specialToken.Hex(), "reason", specialReason,
+					"remaining", wait.String())
+				return 0, chain.NotVerifyAble
+			}
+			m.Log.Info("Process special token swap log", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
+				"logIdx", log.Index, "orderId", orderId, "token", specialToken.Hex(), "reason", specialReason)
+		} else {
+			m.Log.Info("Ignore swap log for configured token", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
+				"logIdx", log.Index, "orderId", orderId, "token", specialToken.Hex(), "reason", specialReason)
+			return 0, nil
+		}
+	} else if m.Cfg.OnlySpecialToken {
+		m.Log.Info("Ignore non-special token swap log", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
+			"logIdx", log.Index, "orderId", orderId)
+		return 0, nil
+	}
+
 	header, err := m.Conn.Client().EthLatestHeaderByNumber(m.Cfg.Endpoint, blockNumber)
 	if err != nil {
 		return 0, err
@@ -259,15 +298,6 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, err
 	}
 
-	rpcReceipt, err := m.Conn.Client().TransactionReceipt(context.Background(), log.TxHash)
-	if err != nil {
-		return 0, err
-	}
-	if l, match := chain.MatchLog(rpcReceipt.Logs, log); match {
-		log = l // use online log
-	} else {
-		m.Log.Info("Eth Msger receipt log not match", "blockNumber", log.BlockNumber, "logIndex", log.Index)
-	}
 	m.Log.Info("Event found", "txHash", log.TxHash, "orderId", orderId, "method", method, "proofType", proofType)
 
 	var sign [][]byte

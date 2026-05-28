@@ -36,6 +36,7 @@ var cliFlags = []cli.Flag{
 	config.StartLatestFlag,
 	config.SkipErrorFlag,
 	config.FilterFlag,
+	config.OnlySpecialTokenFlag,
 }
 
 var devFlags = []cli.Flag{
@@ -196,6 +197,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			Opts:             ele.Opts,
 			SkipError:        ctx.Bool(config.SkipErrorFlag.Name),
 			Filter:           ctx.Bool(config.FilterFlag.Name),
+			OnlySpecialToken: ctx.Bool(config.OnlySpecialTokenFlag.Name),
 			FilterHost:       cfg.Other.Filter,
 			BtcHost:          cfg.Other.BtcUrl,
 			ButterHost:       cfg.Other.Butter,

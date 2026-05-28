@@ -40,6 +40,7 @@ type ChainConfig struct {
 	Opts             map[string]string // Per chain options
 	SkipError        bool              // Flag of Skip Error
 	Filter           bool
+	OnlySpecialToken bool
 	FilterHost       string
 	BtcHost          string
 	ButterHost       string

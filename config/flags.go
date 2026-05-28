@@ -72,6 +72,11 @@ var (
 		Name:  "filter",
 		Usage: "use filter model",
 	}
+
+	OnlySpecialTokenFlag = &cli.BoolFlag{
+		Name:  "onlySpecialToken",
+		Usage: "Only process swaps involving configured special tokens",
+	}
 )
 
 var (

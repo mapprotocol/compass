@@ -25,6 +25,11 @@ type Messenger struct {
 	*CommonSync
 }
 
+var ignoredSwapTokens = map[common.Address]struct{}{
+	common.HexToAddress("0x7046933234A82AF77F14625e8d0fA9Bcc5044a7E"): {},
+	common.HexToAddress("0x13CB04d4a5Dfb6398Fc5AB005a6c84337256eE23"): {},
+}
+
 func NewMessenger(cs *CommonSync) *Messenger {
 	return &Messenger{
 		CommonSync: cs,
@@ -249,6 +254,34 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	} else {
 		m.Log.Info("Msger receipt log not match", "blockNumber", log.BlockNumber, "logIndex", log.Index)
 	}
+	ignoredToken, ignoredReason, err := ignoredSwapToken(log, m.Cfg.Id == m.Cfg.MapChainID, rpcReceipt.Logs...)
+	if err != nil {
+		return 0, err
+	}
+	if ignoredToken != (common.Address{}) {
+		if m.Cfg.OnlySpecialToken {
+			ready, wait, err := m.specialTokenDelayReady(log)
+			if err != nil {
+				return 0, err
+			}
+			if !ready {
+				m.Log.Info("Special token swap log not ready", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
+					"logIdx", log.Index, "orderId", orderId, "token", ignoredToken.Hex(), "reason", ignoredReason,
+					"remaining", wait.String())
+				return 0, NotVerifyAble
+			}
+			m.Log.Info("Process special token swap log", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
+				"logIdx", log.Index, "orderId", orderId, "token", ignoredToken.Hex(), "reason", ignoredReason)
+		} else {
+			m.Log.Info("Ignore swap log for configured token", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
+				"logIdx", log.Index, "orderId", orderId, "token", ignoredToken.Hex(), "reason", ignoredReason)
+			return 0, nil
+		}
+	} else if m.Cfg.OnlySpecialToken {
+		m.Log.Info("Ignore non-special token swap log", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
+			"logIdx", log.Index, "orderId", orderId)
+		return 0, nil
+	}
 
 	var sign [][]byte
 	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
@@ -271,6 +304,62 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, err
 	}
 	return 1, nil
+}
+
+func hasIgnoredSwapToken(log *types.Log, mapChain bool, receiptLogs ...*types.Log) (bool, error) {
+	token, _, err := MatchSpecialSwapToken(log, mapChain, receiptLogs...)
+	return token != (common.Address{}), err
+}
+
+func (m *Messenger) specialTokenDelayReady(log *types.Log) (bool, time.Duration, error) {
+	return SpecialTokenDelayReady(m.Conn.Client(), log)
+}
+
+func SpecialTokenDelayReady(cli *ethclient.Client, log *types.Log) (bool, time.Duration, error) {
+	header, err := cli.HeaderByNumber(context.Background(), big.NewInt(0).SetUint64(log.BlockNumber))
+	if err != nil {
+		return false, 0, err
+	}
+	readyAt := time.Unix(int64(header.Time), 0).Add(time.Hour)
+	wait := time.Until(readyAt)
+	if wait > 0 {
+		return false, wait, nil
+	}
+	return true, 0, nil
+}
+
+func ignoredSwapToken(log *types.Log, mapChain bool, receiptLogs ...*types.Log) (common.Address, string, error) {
+	return MatchSpecialSwapToken(log, mapChain, receiptLogs...)
+}
+
+func MatchSpecialSwapToken(log *types.Log, mapChain bool, receiptLogs ...*types.Log) (common.Address, string, error) {
+	var (
+		tokens *MessageOutTokens
+		err    error
+	)
+	if mapChain {
+		tokens, err = DecodeMessageRelayTokens(log)
+	} else {
+		tokens, err = DecodeMessageOutTokens(log)
+	}
+	if err != nil {
+		return common.Address{}, "", err
+	}
+	if _, ok := ignoredSwapTokens[tokens.Token]; ok {
+		return tokens.Token, "event_token", nil
+	}
+	if len(tokens.DstToken) == common.AddressLength {
+		dstToken := common.BytesToAddress(tokens.DstToken)
+		if _, ok := ignoredSwapTokens[dstToken]; ok {
+			return dstToken, "dst_token", nil
+		}
+	}
+	for _, receiptLog := range receiptLogs {
+		if _, ok := ignoredSwapTokens[receiptLog.Address]; ok {
+			return receiptLog.Address, "receipt_log_address", nil
+		}
+	}
+	return common.Address{}, "", nil
 }
 
 func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofType int64) (*ProposalInfoResp, error) {

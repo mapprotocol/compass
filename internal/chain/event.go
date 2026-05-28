@@ -26,6 +26,11 @@ type Swap struct {
 	MinAmount *big.Int
 }
 
+type MessageOutTokens struct {
+	Token    common.Address
+	DstToken []byte
+}
+
 type Relay struct {
 	Version     *big.Int
 	MessageType *big.Int
@@ -202,35 +207,79 @@ func DecodeMessageRelay(log *types.Log, targetEvm bool) (string, string, error) 
 	return from, to, nil
 }
 
-func DecodeMessageOut(log *types.Log) (common.Address, common.Address, error) {
-	bytesArg := abi.Arguments{
-		{
-			Type: abi.Type{
-				T: abi.BytesTy,
-			},
-		},
-	}
-
-	unpacked1, err := bytesArg.Unpack(log.Data)
+func DecodeMessageRelayTokens(log *types.Log) (*MessageOutTokens, error) {
+	data, err := unpackLogBytes(log.Data)
 	if err != nil {
-		return common.Address{}, common.Address{}, err
+		return nil, err
 	}
 
-	data := unpacked1[0].([]byte)
 	args := abi.Arguments{
 		{Type: mustType("bytes32")},
 		{Type: mustType("address")},
 		{Type: mustType("address")},
 		{Type: mustType("uint256")},
 		{Type: mustType("address")},
-		{Type: mustType("address")},
 		{Type: mustType("bytes")},
 		{Type: mustType("bytes")},
 	}
-
-	unpacked2, err := args.Unpack(data)
+	unpacked, err := args.Unpack(data)
 	if err != nil {
-		return common.Address{}, common.Address{}, err
+		return nil, err
+	}
+
+	token := unpacked[2].(common.Address)
+	swapData := unpacked[6].([]byte)
+	if len(swapData) == 0 {
+		return &MessageOutTokens{Token: token}, nil
+	}
+
+	dstToken, err := decodeSwapDstToken(swapData)
+	if err != nil {
+		return &MessageOutTokens{Token: token}, nil
+	}
+	return &MessageOutTokens{Token: token, DstToken: dstToken}, nil
+}
+
+func DecodeMessageOutTokens(log *types.Log) (*MessageOutTokens, error) {
+	data, err := unpackLogBytes(log.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	unpacked2, err := messageOutArgs(false).Unpack(data)
+	if err != nil {
+		unpacked2, err = messageOutArgs(true).Unpack(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	token := unpacked2[2].(common.Address)
+	_, _, swapData := parseMessageOutTail(unpacked2)
+	if len(swapData) <= 0 {
+		return &MessageOutTokens{Token: token}, nil
+	}
+
+	dstToken, err := decodeSwapDstToken(swapData)
+	if err != nil {
+		return &MessageOutTokens{Token: token}, nil
+	}
+
+	return &MessageOutTokens{Token: token, DstToken: dstToken}, nil
+}
+
+func DecodeMessageOut(log *types.Log) (*MessageOutTokens, error) {
+	data, err := unpackLogBytes(log.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	unpacked2, err := messageOutArgs(false).Unpack(data)
+	if err != nil {
+		unpacked2, err = messageOutArgs(true).Unpack(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	header := unpacked2[0].([32]byte)
@@ -238,9 +287,7 @@ func DecodeMessageOut(log *types.Log) (common.Address, common.Address, error) {
 	token := unpacked2[2].(common.Address)
 	amount := unpacked2[3].(*big.Int)
 	initiator := unpacked2[4].(common.Address)
-	from := unpacked2[5].(common.Address)
-	to := unpacked2[6].([]byte)
-	swapData := unpacked2[7].([]byte)
+	from, to, swapData := parseMessageOutTail(unpacked2)
 
 	fmt.Printf("MessageOut.tx: %s\n", log.TxHash.Hex())
 	fmt.Printf("MessageOut.header: 0x%x\n", header)
@@ -256,10 +303,81 @@ func DecodeMessageOut(log *types.Log) (common.Address, common.Address, error) {
 
 	if len(swapData) <= 0 {
 		fmt.Println("MessageOut.swapData:", swapData)
-		return common.Address{}, common.Address{}, nil
+		return &MessageOutTokens{Token: token}, nil
 	}
 
-	return initiator, from, nil
+	dstToken, err := decodeSwapDstToken(swapData)
+	if err != nil {
+		return &MessageOutTokens{Token: token}, nil
+	}
+
+	return &MessageOutTokens{Token: token, DstToken: dstToken}, nil
+}
+
+func unpackLogBytes(data []byte) ([]byte, error) {
+	bytesArg := abi.Arguments{
+		{
+			Type: abi.Type{
+				T: abi.BytesTy,
+			},
+		},
+	}
+
+	unpacked1, err := bytesArg.Unpack(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return unpacked1[0].([]byte), nil
+}
+
+func messageOutArgs(withFromAddress bool) abi.Arguments {
+	args := abi.Arguments{
+		{Type: mustType("bytes32")},
+		{Type: mustType("address")},
+		{Type: mustType("address")},
+		{Type: mustType("uint256")},
+		{Type: mustType("address")},
+	}
+	if withFromAddress {
+		args = append(args, abi.Argument{Type: mustType("address")})
+	}
+	return append(args,
+		abi.Argument{Type: mustType("bytes")},
+		abi.Argument{Type: mustType("bytes")},
+	)
+}
+
+func parseMessageOutTail(unpacked []interface{}) (common.Address, []byte, []byte) {
+	if len(unpacked) == 8 {
+		return unpacked[5].(common.Address), unpacked[6].([]byte), unpacked[7].([]byte)
+	}
+	from := common.Address{}
+	fromBytes := unpacked[5].([]byte)
+	if len(fromBytes) == common.AddressLength {
+		from = common.BytesToAddress(fromBytes)
+	}
+	return from, unpacked[5].([]byte), unpacked[6].([]byte)
+}
+
+func decodeSwapDstToken(swapData []byte) ([]byte, error) {
+	args := abi.Arguments{
+		{Type: mustType("bool")},
+		{Type: mustType("uint256")},
+		{Type: mustType("bytes")},
+		{Type: mustType("bytes")},
+		{Type: mustType("uint256")},
+		{Type: mustType("bytes")},
+	}
+	unpacked, err := args.Unpack(swapData)
+	if err != nil {
+		return nil, err
+	}
+	dstToken, ok := unpacked[2].([]byte)
+	if !ok {
+		return nil, fmt.Errorf("swapData dstToken type mismatch")
+	}
+	return dstToken, nil
 }
 
 func mustType(t string) abi.Type {
