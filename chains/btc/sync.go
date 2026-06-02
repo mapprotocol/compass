@@ -96,7 +96,7 @@ func handler(lh LogHandler) Handler {
 			fmt.Sprintf("id=%d&chain_id=%d&topic=%s&limit=1",
 				m.Cfg.StartBlock.Int64(), m.Cfg.Id, topic))
 		//m.Cfg.StartBlock.Int64(), 1360095883558913, topic))
-		data, err := chain.Request(uri)
+		data, err := chain.RequestWithAPIKey(uri, m.Cfg.FilterAPIKey)
 		if err != nil {
 			return 0, err
 		}

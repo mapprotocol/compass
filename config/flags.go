@@ -73,6 +73,11 @@ var (
 		Usage: "use filter model",
 	}
 
+	FilterAPIKeyFlag = &cli.StringFlag{
+		Name:  "filterApiKey",
+		Usage: "API key for authenticated filter API requests",
+	}
+
 	OnlySpecialTokenFlag = &cli.BoolFlag{
 		Name:  "onlySpecialToken",
 		Usage: "Only process swaps involving configured special tokens",

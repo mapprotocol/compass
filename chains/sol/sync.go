@@ -122,9 +122,9 @@ func filter(m *sync) (*Log, error) {
 		}
 	}
 
-	data, err := chain.Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
+	data, err := chain.RequestWithAPIKey(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
 		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfOther, m.Cfg.Id, topic)))
+			m.Cfg.StartBlock.Int64(), constant.ProjectOfOther, m.Cfg.Id, topic)), m.Cfg.FilterAPIKey)
 	if err != nil {
 		return nil, err
 	}

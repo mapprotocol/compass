@@ -39,6 +39,7 @@ type Construction struct {
 	Env                    string `json:"env,omitempty"`
 	BlackListUrl           string `json:"black_list_url"`
 	Filter                 string `json:"filter"`
+	FilterAPIKey           string `json:"filter_api_key,omitempty"`
 	BtcUrl                 string `json:"btc_url"`
 	Butter                 string `json:"butter"`
 	Price                  string `json:"price"`

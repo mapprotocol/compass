@@ -36,6 +36,7 @@ var cliFlags = []cli.Flag{
 	config.StartLatestFlag,
 	config.SkipErrorFlag,
 	config.FilterFlag,
+	config.FilterAPIKeyFlag,
 	config.OnlySpecialTokenFlag,
 }
 
@@ -167,6 +168,11 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	}
 	c := core.NewCore(sysErr, msg.ChainId(mapcid), role)
 	// merge map chain
+	filterAPIKey := cfg.Other.FilterAPIKey
+	if ctx.IsSet(config.FilterAPIKeyFlag.Name) {
+		filterAPIKey = ctx.String(config.FilterAPIKeyFlag.Name)
+	}
+
 	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
 	allChains = append(allChains, cfg.MapChain)
 	allChains = append(allChains, cfg.Chains...)
@@ -199,6 +205,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 			Filter:           ctx.Bool(config.FilterFlag.Name),
 			OnlySpecialToken: ctx.Bool(config.OnlySpecialTokenFlag.Name),
 			FilterHost:       cfg.Other.Filter,
+			FilterAPIKey:     filterAPIKey,
 			BtcHost:          cfg.Other.BtcUrl,
 			ButterHost:       cfg.Other.Butter,
 			PriceHost:        cfg.Other.Price,

@@ -91,7 +91,7 @@ func handler(lh LogHandler) Handler {
 		uri := fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
 			fmt.Sprintf("id=%d&chain_id=%d&topic=%s&limit=1&project_id=1",
 				m.Cfg.StartBlock.Int64(), m.Cfg.Id, topic))
-		data, err := chain.Request(uri)
+		data, err := chain.RequestWithAPIKey(uri, m.Cfg.FilterAPIKey)
 		if err != nil {
 			return 0, err
 		}

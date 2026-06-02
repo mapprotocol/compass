@@ -83,6 +83,7 @@ type Config struct {
 	Filter             bool
 	OnlySpecialToken   bool
 	FilterHost         string
+	FilterAPIKey       string
 	BtcHost            string
 	PriceHost          string
 	ReportHost         string
@@ -113,6 +114,7 @@ func ParseConfig(chainCfg *core.ChainConfig) (*Config, error) {
 		Filter:             chainCfg.Filter,
 		OnlySpecialToken:   chainCfg.OnlySpecialToken,
 		FilterHost:         chainCfg.FilterHost,
+		FilterAPIKey:       chainCfg.FilterAPIKey,
 		BtcHost:            chainCfg.BtcHost,
 		PriceHost:          chainCfg.PriceHost,
 		ReportHost:         chainCfg.ReportHost,
