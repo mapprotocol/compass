@@ -142,7 +142,7 @@ func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {
 	if time.Now().Unix()-c.reqTime < constant.ReqInterval {
 		return big.NewInt(c.cacheBlockNumber), nil
 	}
-	data, err := Request(fmt.Sprintf("%s/%s", c.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterBlockUrl, c.Cfg.Id)))
+	data, err := RequestWithAPIKey(fmt.Sprintf("%s/%s", c.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterBlockUrl, c.Cfg.Id)), c.Cfg.FilterAPIKey)
 	if err != nil {
 		c.Log.Error("Unable to get latest block", "err", err)
 		time.Sleep(constant.BlockRetryInterval)
@@ -159,7 +159,7 @@ func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {
 }
 
 func (c *CommonSync) FilterMaxID() (*big.Int, error) {
-	data, err := Request(fmt.Sprintf("%s/%s", c.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterMaxIDUrl, c.Cfg.Id)))
+	data, err := RequestWithAPIKey(fmt.Sprintf("%s/%s", c.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterMaxIDUrl, c.Cfg.Id)), c.Cfg.FilterAPIKey)
 	if err != nil {
 		return nil, err
 	}

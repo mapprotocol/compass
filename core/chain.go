@@ -42,6 +42,7 @@ type ChainConfig struct {
 	Filter           bool
 	OnlySpecialToken bool
 	FilterHost       string
+	FilterAPIKey     string
 	BtcHost          string
 	ButterHost       string
 	PriceHost        string

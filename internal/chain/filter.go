@@ -26,9 +26,9 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, uint64, error) {
 			topic += ","
 		}
 	}
-	data, err := Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
+	data, err := RequestWithAPIKey(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
 		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)))
+			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)), m.Cfg.FilterAPIKey)
 	if err != nil {
 		return 0, progressBlock, err
 	}
@@ -110,9 +110,9 @@ func (m *Oracle) filterOracle() error {
 	}()
 	for _, pid := range []int64{constant.ProjectOfOracle, constant.ProjectOfMsger} {
 		var data interface{}
-		data, err = Request(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
+		data, err = RequestWithAPIKey(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
 			fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-				m.Cfg.StartBlock.Int64(), pid, m.Cfg.Id, topic)))
+				m.Cfg.StartBlock.Int64(), pid, m.Cfg.Id, topic)), m.Cfg.FilterAPIKey)
 		if err != nil {
 			return err
 		}
@@ -164,9 +164,24 @@ func (m *Oracle) filterOracle() error {
 }
 
 func Request(urlPath string) (interface{}, error) {
-	resp, err := http.Get(urlPath)
+	return RequestWithAPIKey(urlPath, "")
+}
+
+func RequestWithAPIKey(urlPath, apiKey string) (interface{}, error) {
+	req, err := http.NewRequest(http.MethodGet, urlPath, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "new request failed")
+	}
+	if apiKey != "" {
+		req.Header.Set("X-API-Key", apiKey)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "request get failed")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("request unauthorized")
 	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
