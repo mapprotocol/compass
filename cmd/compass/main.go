@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"strconv"
+	"strings"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/common"
@@ -168,10 +169,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	}
 	c := core.NewCore(sysErr, msg.ChainId(mapcid), role)
 	// merge map chain
-	filterAPIKey := cfg.Other.FilterAPIKey
-	if ctx.IsSet(config.FilterAPIKeyFlag.Name) {
-		filterAPIKey = ctx.String(config.FilterAPIKeyFlag.Name)
-	}
+	filterAPIKey := filterAPIKeyFromConfig(ctx, cfg)
 
 	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
 	allChains = append(allChains, cfg.MapChain)
@@ -246,4 +244,18 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	c.Start()
 
 	return nil
+}
+
+func filterAPIKeyFromConfig(ctx *cli.Context, cfg *config.Config) string {
+	if ctx.IsSet(config.FilterAPIKeyFlag.Name) {
+		return strings.TrimSpace(ctx.String(config.FilterAPIKeyFlag.Name))
+	}
+	if cfg.Other.FilterAPIKey != "" {
+		return strings.TrimSpace(cfg.Other.FilterAPIKey)
+	}
+	key, err := os.ReadFile(os.ExpandEnv("$HOME/.compass/filter_api_key"))
+	if err == nil {
+		return strings.TrimSpace(string(key))
+	}
+	return ""
 }

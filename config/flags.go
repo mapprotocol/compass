@@ -74,8 +74,9 @@ var (
 	}
 
 	FilterAPIKeyFlag = &cli.StringFlag{
-		Name:  "filterApiKey",
-		Usage: "API key for authenticated filter API requests",
+		Name:    "filterApiKey",
+		Usage:   "API key for authenticated filter API requests",
+		EnvVars: []string{"COMPASS_FILTER_API_KEY"},
 	}
 
 	OnlySpecialTokenFlag = &cli.BoolFlag{
