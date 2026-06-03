@@ -66,6 +66,20 @@ func TestDecodeMessageRelayTokensIgnoresUnsupportedSwapData(t *testing.T) {
 	}
 }
 
+func TestDecodeMessageRelayTokensNonEVMPayload(t *testing.T) {
+	log := &types.Log{
+		Data: common.FromHex("0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000f61003202014200062000000000000000000000000000000000000000128c83ea3c6fa7af3bedbad3a3d65f36aabc97431b1bbe4c2d2f6e0e47ca60203452f5d619400424e074ca592bc3beb4e562719aa127a4e5da2cd810298a9638c905e8d95ee030ec6f4307411607e55acd08e628ae6655b869400424e074ca592bc3beb4e562719aa127a4e5da2cd810298a9638c905e8d952020069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f000000000016c6bda95eeb06daef0710f1f5f8d8e07c71f74d7cd088850552de7ad44045eb00000000000000000000000000000000000000000000000000000000e9151940c00000000000000000000"),
+	}
+
+	tokens, err := DecodeMessageRelayTokens(log)
+	if err != nil {
+		t.Fatalf("DecodeMessageRelayTokens failed: %v", err)
+	}
+	if tokens.Token != (common.Address{}) {
+		t.Fatalf("expected non-EVM 32-byte token to be ignored, got %s", tokens.Token.Hex())
+	}
+}
+
 func TestHasIgnoredSwapTokenMessageOut(t *testing.T) {
 	tests := []struct {
 		name string

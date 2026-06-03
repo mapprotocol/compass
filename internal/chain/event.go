@@ -224,7 +224,7 @@ func DecodeMessageRelayTokens(log *types.Log) (*MessageOutTokens, error) {
 	}
 	unpacked, err := args.Unpack(data)
 	if err != nil {
-		return nil, err
+		return decodeNonEVMMessageRelayTokens(data)
 	}
 
 	token := unpacked[2].(common.Address)
@@ -238,6 +238,38 @@ func DecodeMessageRelayTokens(log *types.Log) (*MessageOutTokens, error) {
 		return &MessageOutTokens{Token: token}, nil
 	}
 	return &MessageOutTokens{Token: token, DstToken: dstToken}, nil
+}
+
+func decodeNonEVMMessageRelayTokens(data []byte) (*MessageOutTokens, error) {
+	const nonEVMRelayHeaderLen = 33
+	if len(data) < nonEVMRelayHeaderLen {
+		return nil, fmt.Errorf("message relay payload too short: %d", len(data))
+	}
+	tokenLen := int(data[3])
+	if tokenLen == 0 {
+		return &MessageOutTokens{}, nil
+	}
+	if len(data) < nonEVMRelayHeaderLen+tokenLen {
+		return nil, fmt.Errorf("message relay token out of bounds: payload=%d tokenLen=%d", len(data), tokenLen)
+	}
+	tokenBytes := data[nonEVMRelayHeaderLen : nonEVMRelayHeaderLen+tokenLen]
+	return &MessageOutTokens{Token: addressFromTokenBytes(tokenBytes)}, nil
+}
+
+func addressFromTokenBytes(token []byte) common.Address {
+	switch {
+	case len(token) == common.AddressLength:
+		return common.BytesToAddress(token)
+	case len(token) == common.HashLength:
+		for _, b := range token[:common.HashLength-common.AddressLength] {
+			if b != 0 {
+				return common.Address{}
+			}
+		}
+		return common.BytesToAddress(token[common.HashLength-common.AddressLength:])
+	default:
+		return common.Address{}
+	}
 }
 
 func DecodeMessageOutTokens(log *types.Log) (*MessageOutTokens, error) {
