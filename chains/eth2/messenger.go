@@ -2,22 +2,17 @@ package eth2
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
-	"github.com/mapprotocol/compass/internal/mapprotocol"
-	"github.com/mapprotocol/compass/pkg/msg"
-
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/eth2"
-	"github.com/mapprotocol/compass/internal/stream"
+	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/tx"
+	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mapprotocol/compass/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -124,67 +119,25 @@ func (m *Messenger) getEventsForBlock(latestBlock *big.Int) (int, error) {
 }
 
 func (m *Messenger) filter() error {
-	for {
-		select {
-		case <-m.Stop:
-			return errors.New("filter polling terminated")
-		default:
-			latestBlock, err := m.FilterLatestBlock()
-			if err != nil {
-				m.Log.Error("Unable to get latest block", "err", err)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-			m.State.SetLatestBlock(latestBlock.Int64())
-			count, progressBlock, err := m.filterMosHandler(latestBlock.Uint64())
-			if err != nil {
-				if errors.Is(err, chain.NotVerifyAble) {
-					time.Sleep(constant.ThirtySecondInterval)
-					continue
-				}
-				m.Log.Error("Filter Failed to get events for block", "err", err)
-				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-			if progressBlock > 0 {
-				m.State.SetCurrentBlock(int64(progressBlock))
-			}
+	opts := chain.DefaultFilterRunnerOptions()
+	opts.SkipMissingField = false
+	return (&chain.FilterRunner{
+		Sync:      m.CommonSync,
+		Client:    m.FilterClient(),
+		Processor: m,
+		Options:   opts,
+	}).Run()
+}
 
-			// hold until all messages are handled
-			_ = m.WaitUntilMsgHandled(count)
-			err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
-			if err != nil {
-				m.Log.Error("Filter Failed to write latest block to blockStore", "err", err)
-			}
-
-			time.Sleep(constant.MessengerInterval)
-		}
-	}
+func (m *Messenger) HandleFilterBlock(latestBlock uint64) (int, uint64, error) {
+	return m.filterMosHandler(latestBlock)
 }
 
 func (m *Messenger) filterMosHandler(latestBlock uint64) (int, uint64, error) {
 	count := 0
 	progressBlock := uint64(0)
-	topic := ""
-	for idx, ele := range m.Cfg.Events {
-		topic += ele.GetTopic().Hex()
-		if idx != len(m.Cfg.Events)-1 {
-			topic += ","
-		}
-	}
-	data, err := chain.RequestWithAPIKey(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)), m.Cfg.FilterAPIKey)
-	if err != nil {
-		return 0, progressBlock, err
-	}
-	listData, err := json.Marshal(data)
-	if err != nil {
-		return 0, progressBlock, errors.Wrap(err, "marshal resp.Data failed")
-	}
-	back := stream.MosListResp{}
-	err = json.Unmarshal(listData, &back)
+	topic := chain.BuildFilterTopic(m.Cfg.Events)
+	back, err := m.ListMosLogs(constant.ProjectOfMsger, topic, 1)
 	if err != nil {
 		return 0, progressBlock, err
 	}
@@ -207,21 +160,7 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, uint64, error) {
 			continue
 		}
 
-		split := strings.Split(ele.Topic, ",")
-		topics := make([]common.Hash, 0, len(split))
-		for _, sp := range split {
-			topics = append(topics, common.HexToHash(sp))
-		}
-		log := &types.Log{
-			Address:     common.HexToAddress(ele.ContractAddress),
-			Topics:      topics,
-			Data:        common.Hex2Bytes(ele.LogData),
-			BlockNumber: ele.BlockNumber,
-			TxHash:      common.HexToHash(ele.TxHash),
-			TxIndex:     ele.TxIndex,
-			BlockHash:   common.HexToHash(ele.BlockHash),
-			Index:       ele.LogIndex,
-		}
+		log := chain.MosRespToEthLog(ele)
 
 		send, err := log2Msg(m, log, idx)
 		if err != nil {
@@ -239,49 +178,27 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 	method := m.GetMethod(log.Topics[0])
 	blockNumber := big.NewInt(0).SetUint64(log.BlockNumber)
 
-	rpcReceipt, err := m.Conn.Client().TransactionReceipt(context.Background(), log.TxHash)
-	if err != nil {
-		return 0, err
-	}
-	if l, match := chain.MatchLog(rpcReceipt.Logs, log); match {
-		log = l // use online log
-	} else {
-		m.Log.Info("Eth Msger receipt log not match", "blockNumber", log.BlockNumber, "logIndex", log.Index)
-	}
-	specialToken, specialReason, err := chain.MatchSpecialSwapToken(log, false, rpcReceipt.Logs...)
-	if err != nil {
-		return 0, err
-	}
-	if specialToken != (common.Address{}) {
-		if m.Cfg.OnlySpecialToken {
-			ready, wait, err := chain.SpecialTokenDelayReady(m.Conn.Client(), log)
-			if err != nil {
-				return 0, err
-			}
-			if !ready {
-				m.Log.Info("Special token swap log not ready", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
-					"logIdx", log.Index, "orderId", orderId, "token", specialToken.Hex(), "reason", specialReason,
-					"remaining", wait.String())
-				return 0, chain.NotVerifyAble
-			}
-			m.Log.Info("Process special token swap log", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
-				"logIdx", log.Index, "orderId", orderId, "token", specialToken.Hex(), "reason", specialReason)
-		} else {
-			m.Log.Info("Ignore swap log for configured token", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
-				"logIdx", log.Index, "orderId", orderId, "token", specialToken.Hex(), "reason", specialReason)
-			return 0, nil
-		}
-	} else if m.Cfg.OnlySpecialToken {
-		m.Log.Info("Ignore non-special token swap log", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
-			"logIdx", log.Index, "orderId", orderId)
+	prepared, err := chain.NewMessageGate(m.CommonSync).Prepare(log, chain.MessageGateOptions{
+		Idx:         idx,
+		ToChainID:   uint64(m.Cfg.MapChainID),
+		OrderID:     orderId,
+		MapChainLog: false,
+		DoPreSend:   true,
+		RequireSign: true,
+		LogPrefix:   "Eth Msger",
+	})
+	if errors.Is(err, chain.OrderIgnored) || errors.Is(err, chain.OrderExist) {
 		return 0, nil
 	}
+	if err != nil {
+		return 0, err
+	}
+	log = prepared.Log
 
 	header, err := m.Conn.Client().EthLatestHeaderByNumber(m.Cfg.Endpoint, blockNumber)
 	if err != nil {
 		return 0, err
 	}
-	// when syncToMap we need to assemble a tx proof
 	txsHash, err := mapprotocol.GetTxsByBn(m.Conn.Client(), blockNumber)
 	if err != nil {
 		return 0, fmt.Errorf("unable to get tx hashes Logs: %w", err)
@@ -291,34 +208,8 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, fmt.Errorf("unable to get receipts hashes Logs: %w", err)
 	}
 
-	proofType, err := chain.PreSendTx(idx, uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), big.NewInt(0).SetUint64(log.BlockNumber), orderId.Bytes())
-	if errors.Is(err, chain.OrderExist) {
-		m.Log.Info("This txHash order exist", "txHash", log.TxHash)
-		return 0, nil
-	}
-	if errors.Is(err, chain.NotVerifyAble) {
-		m.Log.Info("CurrentBlock not verify", "txHash", log.TxHash)
-		return 0, err
-	}
-	if err != nil {
-		return 0, err
-	}
-
-	m.Log.Info("Event found", "txHash", log.TxHash, "orderId", orderId, "method", method, "proofType", proofType)
-
-	var sign [][]byte
-	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
-		ret, err := chain.Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log, proofType)
-		if err != nil {
-			return 0, err
-		}
-		if !ret.CanVerify {
-			return 0, chain.NotVerifyAble
-		}
-		sign = ret.Signatures
-	}
-
-	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, proofType, sign)
+	m.Log.Info("Event found", "txHash", log.TxHash, "orderId", orderId, "method", method, "proofType", prepared.ProofType)
+	payload, err := eth2.AssembleProof(*eth2.ConvertHeader(header), log, receipts, method, m.Cfg.Id, prepared.ProofType, prepared.Sign)
 	if err != nil {
 		return 0, fmt.Errorf("unable to Parse Log: %w", err)
 	}

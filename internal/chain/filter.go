@@ -7,9 +7,7 @@ import (
 	"math/big"
 	"net/http"
 	"sort"
-	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/stream"
@@ -19,25 +17,8 @@ import (
 func (m *Messenger) filterMosHandler(latestBlock uint64) (int, uint64, error) {
 	count := 0
 	progressBlock := uint64(0)
-	topic := ""
-	for idx, ele := range m.Cfg.Events {
-		topic += ele.GetTopic().Hex()
-		if idx != len(m.Cfg.Events)-1 {
-			topic += ","
-		}
-	}
-	data, err := RequestWithAPIKey(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)), m.Cfg.FilterAPIKey)
-	if err != nil {
-		return 0, progressBlock, err
-	}
-	listData, err := json.Marshal(data)
-	if err != nil {
-		return 0, progressBlock, errors.Wrap(err, "marshal resp.Data failed")
-	}
-	back := stream.MosListResp{}
-	err = json.Unmarshal(listData, &back)
+	topic := BuildFilterTopic(m.Cfg.Events)
+	back, err := m.ListMosLogs(constant.ProjectOfMsger, topic, 1)
 	if err != nil {
 		return 0, progressBlock, err
 	}
@@ -58,21 +39,7 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, uint64, error) {
 			continue
 		}
 
-		split := strings.Split(ele.Topic, ",")
-		topics := make([]common.Hash, 0, len(split))
-		for _, sp := range split {
-			topics = append(topics, common.HexToHash(sp))
-		}
-		log := &types.Log{
-			Address:     common.HexToAddress(ele.ContractAddress),
-			Topics:      topics,
-			Data:        common.Hex2Bytes(ele.LogData),
-			BlockNumber: ele.BlockNumber,
-			TxHash:      common.HexToHash(ele.TxHash),
-			TxIndex:     ele.TxIndex,
-			BlockHash:   common.HexToHash(ele.BlockHash),
-			Index:       ele.LogIndex,
-		}
+		log := MosRespToEthLog(ele)
 
 		send, err := log2Msg(m, log, idx)
 		if err != nil {
@@ -86,13 +53,7 @@ func (m *Messenger) filterMosHandler(latestBlock uint64) (int, uint64, error) {
 }
 
 func (m *Oracle) filterOracle() error {
-	topic := ""
-	for idx, ele := range m.Cfg.Events {
-		topic += ele.GetTopic().Hex()
-		if idx != len(m.Cfg.Events)-1 {
-			topic += ","
-		}
-	}
+	topic := BuildFilterTopic(m.Cfg.Events)
 
 	tmp := []int{}
 	var err error
@@ -109,20 +70,8 @@ func (m *Oracle) filterOracle() error {
 		}
 	}()
 	for _, pid := range []int64{constant.ProjectOfOracle, constant.ProjectOfMsger} {
-		var data interface{}
-		data, err = RequestWithAPIKey(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-			fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-				m.Cfg.StartBlock.Int64(), pid, m.Cfg.Id, topic)), m.Cfg.FilterAPIKey)
-		if err != nil {
-			return err
-		}
-		var listData []byte
-		listData, err = json.Marshal(data)
-		if err != nil {
-			return errors.Wrap(err, "marshal resp.Data failed")
-		}
-		back := stream.MosListResp{}
-		err = json.Unmarshal(listData, &back)
+		var back *stream.MosListResp
+		back, err = m.ListMosLogs(pid, topic, 1)
 		if err != nil {
 			return err
 		}
@@ -138,22 +87,8 @@ func (m *Oracle) filterOracle() error {
 				continue
 			}
 
-			split := strings.Split(ele.Topic, ",")
-			topics := make([]common.Hash, 0, len(split))
-			for _, sp := range split {
-				topics = append(topics, common.HexToHash(sp))
-			}
-			log := types.Log{
-				Address:     common.HexToAddress(ele.ContractAddress),
-				Topics:      topics,
-				Data:        common.Hex2Bytes(ele.LogData),
-				BlockNumber: ele.BlockNumber,
-				TxHash:      common.HexToHash(ele.TxHash),
-				TxIndex:     ele.TxIndex,
-				BlockHash:   common.HexToHash(ele.BlockHash),
-				Index:       ele.LogIndex,
-			}
-			err = log2Oracle(m, []types.Log{log}, big.NewInt(0).SetUint64(ele.BlockNumber), ele.Id)
+			log := MosRespToEthLog(ele)
+			err = log2Oracle(m, []types.Log{*log}, big.NewInt(0).SetUint64(ele.BlockNumber), ele.Id)
 			if err != nil {
 				return err
 			}

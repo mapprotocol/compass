@@ -2,6 +2,7 @@ package sol
 
 import (
 	"context"
+
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -16,7 +17,6 @@ import (
 	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/mapprotocol/compass/pkg/msg"
 	"github.com/mr-tron/base58"
 
@@ -114,26 +114,8 @@ type CrossOutData struct {
 }
 
 func filter(m *sync) (*Log, error) {
-	topic := ""
-	for idx, ele := range m.cfg.SolEvent {
-		topic += ele
-		if idx != len(m.cfg.SolEvent)-1 {
-			topic += ","
-		}
-	}
-
-	data, err := chain.RequestWithAPIKey(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfOther, m.Cfg.Id, topic)), m.Cfg.FilterAPIKey)
-	if err != nil {
-		return nil, err
-	}
-	listData, err := json.Marshal(data)
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal resp.Data failed")
-	}
-	back := stream.MosListResp{}
-	err = json.Unmarshal(listData, &back)
+	topic := chain.BuildRawFilterTopic(m.cfg.SolEvent)
+	back, err := m.ListMosLogs(constant.ProjectOfOther, topic, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -150,11 +132,6 @@ func filter(m *sync) (*Log, error) {
 			continue
 		}
 
-		split := strings.Split(ele.Topic, ",")
-		topics := make([]common.Hash, 0, len(split))
-		for _, sp := range split {
-			topics = append(topics, common.HexToHash(sp))
-		}
 		ret = Log{
 			Id:          ele.Id,
 			BlockNumber: int64(ele.BlockNumber),
@@ -193,7 +170,7 @@ func mosHandler(m *sync) (int64, error) {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
 	m.Log.Info("Sol2Evm msger generate", "receiptHash", receiptHash)
-	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), uint(log.Id-4249250))
+	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), 1, uint(log.Id-4249250))
 	proposalInfo, err := chain.GetSigner(bn, *receiptHash, uint64(m.cfg.Id), uint64(m.cfg.MapChainID))
 	if err != nil {
 		return 0, err
@@ -259,7 +236,7 @@ func oracleHandler(m *sync) (int64, error) {
 		return 0, errors.Wrap(err, "gen receipt failed")
 	}
 	m.Log.Info("Sol2Evm oracle generate", "receiptHash", receiptHash)
-	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), uint(log.Id-4249250))
+	bn := proof.GenLogBlockNumber(big.NewInt(log.BlockNumber), 1, uint(log.Id-4249250))
 
 	ret, err := chain.MulSignInfo(0, uint64(m.Cfg.MapChainID))
 	if err != nil {

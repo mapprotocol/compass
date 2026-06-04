@@ -129,61 +129,16 @@ func (m *Messenger) sync() error {
 }
 
 func (m *Messenger) filter() error {
-	for {
-		select {
-		case <-m.Stop:
-			return errors.New("filter polling terminated")
-		default:
-			rpcStart := time.Now()
-			latestBlock, err := m.FilterLatestBlock()
-			m.State.ObserveRPC("FilterLatestBlock", time.Since(rpcStart).Seconds())
-			if err != nil {
-				m.State.RecordError("rpc_filter_latest", err.Error())
-				m.Log.Error("Unable to get latest block", "err", err)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-			m.State.SetLatestBlock(latestBlock.Int64())
-			count, progressBlock, err := m.filterMosHandler(latestBlock.Uint64())
-			if m.Cfg.SkipError && errors.Is(err, NotVerifyAble) {
-				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
-				m.Cfg.StartBlock = m.Cfg.StartBlock.Add(m.Cfg.StartBlock, big.NewInt(1))
-				err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-			if err != nil {
-				m.Log.Error("Filter Failed to get events for block", "err", err)
-				if errors.Is(err, NotVerifyAble) {
-					time.Sleep(constant.BlockRetryInterval)
-					continue
-				}
-				if strings.Index(err.Error(), "missing required field") != -1 {
-					time.Sleep(constant.BlockRetryInterval)
-					continue
-				}
-				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-			if progressBlock > 0 {
-				m.State.SetCurrentBlock(int64(progressBlock))
-			}
+	return (&FilterRunner{
+		Sync:      m.CommonSync,
+		Client:    m.FilterClient(),
+		Processor: m,
+		Options:   DefaultFilterRunnerOptions(),
+	}).Run()
+}
 
-			// hold until all messages are handled
-			_ = m.WaitUntilMsgHandled(count)
-			err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
-			if err != nil {
-				m.Log.Error("Filter Failed to write latest block to blockStore", "err", err)
-			}
-			if count > 0 {
-				m.State.IncEventsMatched(count)
-			}
-			m.State.IncBlocksProcessed(1)
-
-			time.Sleep(constant.MessengerInterval)
-		}
-	}
+func (m *Messenger) HandleFilterBlock(latestBlock uint64) (int, uint64, error) {
+	return m.filterMosHandler(latestBlock)
 }
 
 func defaultMosHandler(m *Messenger, blockNumber *big.Int) (int, error) {
@@ -226,11 +181,7 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		return 0, nil
 	}
 	m.Log.Info("Event found", "blockNumber", log.BlockNumber, "txHash", log.TxHash, "logIdx", log.Index, "toChainID", toChainID, "orderId", orderId)
-	if strings.ToLower(chainName) == "near" {
-		proofType = 1
-	} else if strings.ToLower(chainName) == "tron" || strings.ToLower(chainName) == "sol" {
-		proofType = constant.ProofTypeOfLogOracle
-	} else if strings.ToLower(chainName) == "ton" {
+	if strings.ToLower(chainName) == "tron" || strings.ToLower(chainName) == "sol" {
 		proofType = constant.ProofTypeOfLogOracle
 	} else {
 		proofType, err = PreSendTx(idx, uint64(m.Cfg.Id), toChainID, big.NewInt(0).SetUint64(log.BlockNumber), orderId.Bytes())
@@ -247,55 +198,24 @@ func log2Msg(m *Messenger, log *types.Log, idx int) (int, error) {
 		}
 	}
 
-	rpcReceipt, err := m.Conn.Client().TransactionReceipt(context.Background(), log.TxHash)
-	if err != nil {
-		return 0, err
-	}
-	if l, match := MatchLog(rpcReceipt.Logs, log); match {
-		log = l // use online log
-	} else {
-		m.Log.Info("Msger receipt log not match", "blockNumber", log.BlockNumber, "logIndex", log.Index)
-	}
-	ignoredToken, ignoredReason, err := ignoredSwapToken(log, m.Cfg.Id == m.Cfg.MapChainID, rpcReceipt.Logs...)
-	if err != nil {
-		return 0, err
-	}
-	if ignoredToken != (common.Address{}) {
-		if m.Cfg.OnlySpecialToken {
-			ready, wait, err := m.specialTokenDelayReady(log)
-			if err != nil {
-				return 0, err
-			}
-			if !ready {
-				m.Log.Info("Special token swap log not ready", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
-					"logIdx", log.Index, "orderId", orderId, "token", ignoredToken.Hex(), "reason", ignoredReason,
-					"remaining", wait.String())
-				return 0, NotVerifyAble
-			}
-			m.Log.Info("Process special token swap log", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
-				"logIdx", log.Index, "orderId", orderId, "token", ignoredToken.Hex(), "reason", ignoredReason)
-		} else {
-			m.Log.Info("Ignore swap log for configured token", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
-				"logIdx", log.Index, "orderId", orderId, "token", ignoredToken.Hex(), "reason", ignoredReason)
-			return 0, nil
-		}
-	} else if m.Cfg.OnlySpecialToken {
-		m.Log.Info("Ignore non-special token swap log", "blockNumber", log.BlockNumber, "txHash", log.TxHash,
-			"logIdx", log.Index, "orderId", orderId)
+	prepared, err := NewMessageGate(m.CommonSync).Prepare(log, MessageGateOptions{
+		Idx:         idx,
+		ToChainID:   toChainID,
+		OrderID:     orderId,
+		ProofType:   proofType,
+		MapChainLog: m.Cfg.Id == m.Cfg.MapChainID,
+		DoPreSend:   false,
+		RequireSign: true,
+		LogPrefix:   "Msger",
+	})
+	if errors.Is(err, OrderIgnored) || errors.Is(err, OrderExist) {
 		return 0, nil
 	}
-
-	var sign [][]byte
-	if proofType == constant.ProofTypeOfNewOracle || proofType == constant.ProofTypeOfLogOracle {
-		ret, err := Signer(m.Conn.Client(), uint64(m.Cfg.Id), uint64(m.Cfg.MapChainID), log, proofType)
-		if err != nil {
-			return 0, err
-		}
-		sign = ret.Signatures
+	if err != nil {
+		return 0, err
 	}
 
-	tmpLog := log
-	message, err := m.assembleProof(m, tmpLog, proofType, toChainID, sign)
+	message, err := m.assembleProof(m, log, proofType, toChainID, prepared.Sign)
 	if err != nil {
 		return 0, err
 	}
@@ -390,7 +310,7 @@ func Signer(cli *ethclient.Client, selfId, toId uint64, log *types.Log, proofTyp
 		}
 
 		idx := log.Index
-		bn = proof.GenLogBlockNumber(bn, idx)
+		bn = proof.GenLogBlockNumber(bn, log.TxIndex, idx)
 	default:
 		return nil, fmt.Errorf("unknown proof type %d", proofType)
 	}

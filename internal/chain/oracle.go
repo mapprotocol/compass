@@ -261,7 +261,8 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int, filterId int6
 			}
 			receipt, err = GenLogReceipt(&tmp)
 			idx := log.Index
-			targetBn = proof.GenLogBlockNumber(blockNumber, idx) // update block number
+
+			targetBn = proof.GenLogBlockNumber(blockNumber, log.TxIndex, idx) // update block number
 		default:
 			m.Log.Info("Oracle model ignore this tx, because this model type", "blockNumber", blockNumber, "nodeType", nodeType.Int64())
 			return nil
@@ -320,9 +321,6 @@ func Completion(bytes []byte, number int) []byte {
 }
 
 func genMptReceipt(cli *ethclient.Client, selfId int64, latestBlock *big.Int) (*common.Hash, error) {
-	if !exist(selfId, []int64{constant.MerlinChainId, constant.CfxChainId, constant.ZkSyncChainId}) {
-		return nil, nil
-	}
 	txsHash, err := mapprotocol.GetTxsByBn(cli, latestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
@@ -348,14 +346,12 @@ func exist(target int64, dst []int64) bool {
 
 func GetMap2OtherNodeType(idx int, toChainID uint64) (*big.Int, error) {
 	switch toChainID {
-	case constant.TronChainId, constant.SolTestChainId, constant.SolMainChainId:
+	case constant.TronChainId, constant.SolMainChainId:
 		return big.NewInt(5), nil
 	default:
 
 	}
-	if toChainID == constant.TonChainId {
-		return big.NewInt(5), nil
-	}
+
 	call, ok := mapprotocol.LightNodeMapping[msg.ChainId(toChainID)]
 	if !ok {
 		return nil, ContractNotExist
@@ -397,7 +393,7 @@ func ExternalOracleInput(selfId, nodeType int64, log *types.Log, client *ethclie
 		}
 		receipt, err = GenLogReceipt(log)
 		idx := log.Index
-		targetBn = proof.GenLogBlockNumber(blockNumber, idx)
+		targetBn = proof.GenLogBlockNumber(blockNumber, log.TxIndex, idx)
 	default:
 		return nil, fmt.Errorf("not support proof type %d", nodeType)
 	}

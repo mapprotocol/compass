@@ -2,11 +2,9 @@ package tron
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mapprotocol/compass/internal/mapprotocol"
@@ -22,7 +20,6 @@ import (
 	"github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/proof"
-	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/mapprotocol/compass/internal/tx"
 	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/util"
@@ -131,68 +128,26 @@ func (m *sync) sync() error {
 }
 
 func (m *sync) filter() error {
-	for {
-		select {
-		case <-m.Stop:
-			return errors.New("polling terminated")
-		default:
-			latestBlock, err := m.FilterLatestBlock()
-			if err != nil {
-				m.Log.Error("Unable to get latest block", "err", err)
-				time.Sleep(constant.QueryRetryInterval)
-				continue
-			}
+	opts := chain.DefaultFilterRunnerOptions()
+	opts.TerminateError = errors.New("polling terminated")
+	opts.SkipMissingField = false
+	return (&chain.FilterRunner{
+		Sync:      m.CommonSync,
+		Client:    m.FilterClient(),
+		Processor: m,
+		Options:   opts,
+	}).Run()
+}
 
-			count, err := m.handler(m, latestBlock)
-			if m.Cfg.SkipError && errors.Is(err, chain.NotVerifyAble) {
-				m.Log.Info("Block not verify, will ignore", "startBlock", m.Cfg.StartBlock)
-				m.Cfg.StartBlock = m.Cfg.StartBlock.Add(m.Cfg.StartBlock, big.NewInt(1))
-				err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
-				continue
-			}
-			if err != nil {
-				m.Log.Error("Filter Failed to get events for block", "err", err)
-				if errors.Is(err, chain.NotVerifyAble) {
-					time.Sleep(constant.BlockRetryInterval)
-					continue
-				}
-				util.Alarm(context.Background(), fmt.Sprintf("filter mos failed, chain=%s, err is %s", m.Cfg.Name, err.Error()))
-				time.Sleep(constant.BlockRetryInterval)
-				continue
-			}
-
-			_ = m.WaitUntilMsgHandled(count)
-			err = m.BlockStore.StoreBlock(m.Cfg.StartBlock)
-			if err != nil {
-				m.Log.Error("Filter Failed to write latest block to blockStore", "err", err)
-			}
-
-			time.Sleep(constant.MessengerInterval)
-		}
-	}
+func (m *sync) HandleFilterBlock(latestBlock uint64) (int, uint64, error) {
+	count, err := m.handler(m, big.NewInt(0).SetUint64(latestBlock))
+	return count, 0, err
 }
 
 func filterMos(m *sync, latestBlock *big.Int) (int, error) {
 	count := 0
-	topic := ""
-	for idx, ele := range m.Cfg.Events {
-		topic += ele.GetTopic().Hex()
-		if idx != len(m.Cfg.Events)-1 {
-			topic += ","
-		}
-	}
-	data, err := chain.RequestWithAPIKey(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfMsger, m.Cfg.Id, topic)), m.Cfg.FilterAPIKey)
-	if err != nil {
-		return 0, err
-	}
-	listData, err := json.Marshal(data)
-	if err != nil {
-		return 0, errors.Wrap(err, "marshal resp.Data failed")
-	}
-	back := stream.MosListResp{}
-	err = json.Unmarshal(listData, &back)
+	topic := chain.BuildFilterTopic(m.Cfg.Events)
+	back, err := m.ListMosLogs(constant.ProjectOfMsger, topic, 1)
 	if err != nil {
 		return 0, err
 	}
@@ -212,21 +167,7 @@ func filterMos(m *sync, latestBlock *big.Int) (int, error) {
 			continue
 		}
 
-		split := strings.Split(ele.Topic, ",")
-		topics := make([]common.Hash, 0, len(split))
-		for _, sp := range split {
-			topics = append(topics, common.HexToHash(sp))
-		}
-		log := &types.Log{
-			Address:     common.HexToAddress(ele.ContractAddress),
-			Topics:      topics,
-			Data:        common.Hex2Bytes(ele.LogData),
-			BlockNumber: ele.BlockNumber,
-			TxHash:      common.HexToHash(ele.TxHash),
-			TxIndex:     ele.TxIndex,
-			BlockHash:   common.HexToHash(ele.BlockHash),
-			Index:       ele.LogIndex,
-		}
+		log := chain.MosRespToEthLog(ele)
 		send, err := log2Msg(m, log, idx)
 		if err != nil {
 			return 0, err
@@ -331,13 +272,7 @@ func existTopic(target common.Hash, dst []constant.EventSig) bool {
 }
 
 func filterOracle(m *sync, latestBlock *big.Int) (int, error) {
-	topic := ""
-	for idx, ele := range m.Cfg.Events {
-		topic += ele.GetTopic().Hex()
-		if idx != len(m.Cfg.Events)-1 {
-			topic += ","
-		}
-	}
+	topic := chain.BuildFilterTopic(m.Cfg.Events)
 
 	tmp := int64(0)
 	defer func() {
@@ -349,19 +284,7 @@ func filterOracle(m *sync, latestBlock *big.Int) (int, error) {
 		}
 	}()
 
-	data, err := chain.RequestWithAPIKey(fmt.Sprintf("%s/%s?%s", m.Cfg.FilterHost, constant.FilterUrl,
-		fmt.Sprintf("id=%d&project_id=%d&chain_id=%d&topic=%s&limit=1",
-			m.Cfg.StartBlock.Int64(), constant.ProjectOfOracle, m.Cfg.Id, topic)), m.Cfg.FilterAPIKey)
-
-	if err != nil {
-		return 0, err
-	}
-	listData, err := json.Marshal(data)
-	if err != nil {
-		return 0, errors.Wrap(err, "marshal resp.Data failed")
-	}
-	back := stream.MosListResp{}
-	err = json.Unmarshal(listData, &back)
+	back, err := m.ListMosLogs(constant.ProjectOfOracle, topic, 1)
 	if err != nil {
 		return 0, err
 	}
@@ -376,22 +299,8 @@ func filterOracle(m *sync, latestBlock *big.Int) (int, error) {
 			continue
 		}
 
-		split := strings.Split(ele.Topic, ",")
-		topics := make([]common.Hash, 0, len(split))
-		for _, sp := range split {
-			topics = append(topics, common.HexToHash(sp))
-		}
-		log := types.Log{
-			Address:     common.HexToAddress(ele.ContractAddress),
-			Topics:      topics,
-			Data:        common.Hex2Bytes(ele.LogData),
-			BlockNumber: ele.BlockNumber,
-			TxHash:      common.HexToHash(ele.TxHash),
-			TxIndex:     ele.TxIndex,
-			BlockHash:   common.HexToHash(ele.BlockHash),
-			Index:       ele.LogIndex,
-		}
-		_, err = log2Oracle(m, &log)
+		log := chain.MosRespToEthLog(ele)
+		_, err = log2Oracle(m, log)
 		if err != nil {
 			return 0, err
 		}

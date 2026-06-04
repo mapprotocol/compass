@@ -14,6 +14,7 @@ import (
 
 var (
 	OrderExist       = errors.New("order exist")
+	OrderIgnored     = errors.New("order ignored")
 	NotVerifyAble    = errors.New("not verify able")
 	ContractNotExist = errors.New("contract not exist")
 )
