@@ -142,12 +142,9 @@ func (r *senderRegistry) send(tx txParam, logger log.Logger) (string, error) {
 	// separate flows for solana/ton/btc; until those are wired up here we
 	// surface a clear error so the alarm tells the operator to act manually.
 	switch chainID {
-	case strconv.FormatInt(constant.TonChainId, 10):
-		return "", fmt.Errorf("ton chain rescue not supported (chainId=%s)", chainID)
 	case strconv.FormatInt(constant.BtcChainId, 10):
 		return "", fmt.Errorf("btc chain rescue not supported (chainId=%s)", chainID)
-	case strconv.FormatInt(constant.SolMainChainId, 10),
-		strconv.FormatInt(constant.SolTestChainId, 10):
+	case strconv.FormatInt(constant.SolMainChainId, 10):
 		return "", fmt.Errorf("solana chain rescue not supported (chainId=%s)", chainID)
 	}
 	return r.sendEvm(tx, logger)

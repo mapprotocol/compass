@@ -3,6 +3,7 @@ package core
 import (
 	"math/big"
 
+	"github.com/mapprotocol/compass/pkg/ethclient"
 	"github.com/mapprotocol/compass/pkg/msg"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -11,8 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/mapprotocol/compass/internal/eth2"
-	"github.com/mapprotocol/compass/internal/klaytn"
-	"github.com/mapprotocol/compass/pkg/ethclient"
 )
 
 type Chain interface {
@@ -61,11 +60,6 @@ type Connection interface {
 	LatestBlock() (*big.Int, error)
 	WaitForBlock(block *big.Int, delay *big.Int) error
 	Close()
-}
-
-type KConnection interface {
-	Connection
-	KClient() *klaytn.Client
 }
 
 type Eth2Connection interface {

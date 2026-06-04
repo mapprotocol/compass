@@ -3,13 +3,15 @@ package chain
 import (
 	"fmt"
 
+	"math/big"
+	"time"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
 	"github.com/mapprotocol/compass/internal/observability"
+	"github.com/mapprotocol/compass/internal/stream"
 	"github.com/mapprotocol/compass/pkg/msg"
-	"math/big"
-	"time"
 
 	"github.com/mapprotocol/compass/core"
 
@@ -57,6 +59,12 @@ func OptOfAssembleProof(fn AssembleProof) SyncOpt {
 	}
 }
 
+func OptOfFilterClient(client FilterClient) SyncOpt {
+	return func(sync *CommonSync) {
+		sync.filterClient = client
+	}
+}
+
 type CommonSync struct {
 	Cfg                       Config
 	Conn                      core.Connection
@@ -73,6 +81,7 @@ type CommonSync struct {
 	mosHandler                Mos
 	oracleHandler             OracleHandler
 	assembleProof             AssembleProof
+	filterClient              FilterClient
 	reqTime, cacheBlockNumber int64
 }
 
@@ -81,6 +90,24 @@ type CommonSync struct {
 // loops that ran before this was wired stay panic-free.
 func (c *CommonSync) RegisterState(chain, role string) {
 	c.State = observability.RegisterChain(chain, role)
+}
+
+func (c *CommonSync) FilterClient() FilterClient {
+	return c.filterClient
+}
+
+func (c *CommonSync) ListMosLogs(projectID int64, topic string, limit int) (*stream.MosListResp, error) {
+	filterClient := c.FilterClient()
+	if filterClient == nil {
+		return nil, fmt.Errorf("filter client is nil")
+	}
+	return filterClient.ListMosLogs(FilterListRequest{
+		StartID:   c.Cfg.StartBlock,
+		ProjectID: projectID,
+		ChainID:   int64(c.Cfg.Id),
+		Topic:     topic,
+		Limit:     limit,
+	})
 }
 
 // NewCommonSync creates and returns a listener
@@ -97,6 +124,9 @@ func NewCommonSync(conn core.Connection, cfg *Config, log log15.Logger, stop <-c
 		BlockStore:         bs,
 		height:             1,
 		mosHandler:         defaultMosHandler,
+	}
+	if cfg.Filter {
+		cs.filterClient = NewRadarFilterClient(cfg.FilterHost, cfg.FilterAPIKey)
 	}
 	for _, op := range opts {
 		op(cs)
@@ -142,30 +172,30 @@ func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {
 	if time.Now().Unix()-c.reqTime < constant.ReqInterval {
 		return big.NewInt(c.cacheBlockNumber), nil
 	}
-	data, err := RequestWithAPIKey(fmt.Sprintf("%s/%s", c.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterBlockUrl, c.Cfg.Id)), c.Cfg.FilterAPIKey)
+	filterClient := c.FilterClient()
+	if filterClient == nil {
+		return nil, fmt.Errorf("filter client is nil")
+	}
+	latestBlock, err := filterClient.LatestBlock(int64(c.Cfg.Id))
 	if err != nil {
 		c.Log.Error("Unable to get latest block", "err", err)
 		time.Sleep(constant.BlockRetryInterval)
 		return nil, err
 	}
-	c.Log.Debug("Filter latest block", "block", data)
-	latestBlock, ok := big.NewInt(0).SetString(data.(string), 10)
-	if !ok {
-		return nil, fmt.Errorf("get latest failed, block is %v", data)
-	}
+	c.Log.Debug("Filter latest block", "block", latestBlock)
 	c.cacheBlockNumber = latestBlock.Int64()
 	c.reqTime = time.Now().Unix()
 	return latestBlock, nil
 }
 
 func (c *CommonSync) FilterMaxID() (*big.Int, error) {
-	data, err := RequestWithAPIKey(fmt.Sprintf("%s/%s", c.Cfg.FilterHost, fmt.Sprintf("%s?chain_id=%d", constant.FilterMaxIDUrl, c.Cfg.Id)), c.Cfg.FilterAPIKey)
+	filterClient := c.FilterClient()
+	if filterClient == nil {
+		return nil, fmt.Errorf("filter client is nil")
+	}
+	maxID, err := filterClient.MaxID(int64(c.Cfg.Id))
 	if err != nil {
 		return nil, err
-	}
-	maxID, err := parseFilterNumber(data)
-	if err != nil {
-		return nil, fmt.Errorf("get filter max id failed: %w", err)
 	}
 	c.Log.Debug("Filter max id", "id", maxID)
 	return maxID, nil
@@ -173,7 +203,11 @@ func (c *CommonSync) FilterMaxID() (*big.Int, error) {
 
 func StartLatestBlock(cfg *Config, conn core.Connection, logger log15.Logger) error {
 	if cfg.Filter {
-		cs := &CommonSync{Cfg: *cfg, Log: logger}
+		cs := &CommonSync{
+			Cfg:          *cfg,
+			Log:          logger,
+			filterClient: NewRadarFilterClient(cfg.FilterHost, cfg.FilterAPIKey),
+		}
 		maxID, err := cs.FilterMaxID()
 		if err != nil {
 			return err

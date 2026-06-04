@@ -18,7 +18,6 @@ import (
 	"github.com/mapprotocol/compass/internal/arb"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/op"
-	"github.com/mapprotocol/compass/internal/scroll"
 	"github.com/mapprotocol/compass/pkg/util"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -53,8 +52,7 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	if err != nil {
 		return nil, err
 	}
-	if receiptHash != header.ReceiptHash && fId != constant.ZkSyncChainId && fId != constant.MerlinChainId &&
-		proofType != constant.ProofTypeOfLogOracle {
+	if receiptHash != header.ReceiptHash && proofType != constant.ProofTypeOfLogOracle {
 		fmt.Println("Matic generate", receiptHash, "oracle", header.ReceiptHash, " not same")
 		return nil, errors.New("receipt not same")
 	}
@@ -86,19 +84,13 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*types.Receipt) ([][]byte, common.Hash, error) {
 	var dls proof.DerivableList
 	switch fId {
-	case constant.ArbChainId, constant.ArbTestnetChainId, constant.MantleChainId, constant.DodoChainId:
+	case constant.ArbChainId:
 		pr := arb.Receipts{}
 		for _, r := range receipts {
 			pr = append(pr, &arb.Receipt{Receipt: r})
 		}
 		dls = pr
-	case constant.ScrollChainId:
-		pr := scroll.Receipts{}
-		for _, r := range receipts {
-			pr = append(pr, &scroll.Receipt{Receipt: r})
-		}
-		dls = pr
-	case constant.OpChainId, constant.BaseChainId, constant.BlastChainId:
+	case constant.BaseChainId:
 		pr := op.Receipts{}
 		results := make([]*op.Receipt, len(receipts))
 		var wg sync.WaitGroup
