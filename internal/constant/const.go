@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	TxRetryInterval      = time.Second * 5 // TxRetryInterval Time between retrying a failed tx
-	ThirtySecondInterval = time.Second * 30
+	TxRetryInterval = time.Second * 5 // TxRetryInterval Time between retrying a failed tx
 )
 
 var (
@@ -95,29 +94,16 @@ const (
 )
 
 const (
-	MerlinChainId     = 4200
 	BscChainId        = 56
 	MaticChainId      = 137
 	MapChainId        = 22776
-	CfxChainId        = 1030
-	ZkSyncChainId     = 324
-	OpChainId         = 10
 	BaseChainId       = 8453
-	BlastChainId      = 81457
 	ArbChainId        = 421614
 	ArbTestnetChainId = 42161
-	MantleChainId     = 5000
-	ScrollChainId     = 534352
-	DodoChainId       = 53457
 	TronChainId       = 728126428
-	SolTestChainId    = 1360108768460811
 	SolMainChainId    = 1360108768460801
-	NearChainId       = 1360100178526209
-	TonChainId        = 1360104473493506
 	BtcChainId        = 1360095883558913
 	XlayerId          = 196
-	DoageChainId      = 1360121653362689
-	LineaChainId      = 59144
 )
 
 const (

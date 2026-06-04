@@ -184,16 +184,9 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 		msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash, method}
 		message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		switch toChainID {
-		case constant.MerlinChainId:
-			message = msg.NewSwapWithMerlin(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
-		case constant.SolTestChainId:
-			fallthrough
 		case constant.SolMainChainId:
 			msgPayload = []interface{}{log, orderId, method}
 			message = msg.NewSolProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
-		case constant.TonChainId:
-			payloads := []interface{}{log}
-			message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), payloads, m.MsgCh)
 		}
 	} else if m.Cfg.SyncToMap {
 		msgPayload := []interface{}{payload, orderId, log.BlockNumber, log.TxHash}

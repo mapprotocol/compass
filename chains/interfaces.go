@@ -4,15 +4,11 @@ import (
 	"github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/mapprotocol/compass/chains/bsc"
-	"github.com/mapprotocol/compass/chains/btc"
 	"github.com/mapprotocol/compass/chains/eth2"
 	"github.com/mapprotocol/compass/chains/ethereum"
-	"github.com/mapprotocol/compass/chains/klaytn"
 	"github.com/mapprotocol/compass/chains/matic"
 	"github.com/mapprotocol/compass/chains/sol"
-	"github.com/mapprotocol/compass/chains/ton"
 	"github.com/mapprotocol/compass/chains/tron"
-	"github.com/mapprotocol/compass/chains/xrp"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
@@ -25,19 +21,14 @@ var (
 		constant.Matic:    matic.New(),
 		constant.Eth2:     eth2.New(),
 		constant.Ethereum: ethereum.New(),
-		constant.Klaytn:   klaytn.New(),
 		constant.Solana:   sol.New(),
-		constant.Ton:      ton.New(),
 		constant.Tron:     tron.New(),
-		constant.Btc:      btc.New(),
-		constant.Xrp:      xrp.New(),
 	}
 	proofMap = map[string]Proffer{
 		constant.Bsc:      bsc.New(),
 		constant.Matic:    matic.New(),
 		constant.Eth2:     eth2.New(),
 		constant.Ethereum: ethereum.New(),
-		constant.Klaytn:   klaytn.New(),
 		constant.Tron:     tron.New(),
 	}
 )
