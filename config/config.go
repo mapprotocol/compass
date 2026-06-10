@@ -42,6 +42,7 @@ type Construction struct {
 	FilterAPIKey           string `json:"filter_api_key,omitempty"`
 	BtcUrl                 string `json:"btc_url"`
 	Butter                 string `json:"butter"`
+	ButterAPIKey           string `json:"butter_api_key,omitempty"`
 	Price                  string `json:"price"`
 	ReportUrl              string `json:"report_url,omitempty"`
 	ObservabilityAddr      string `json:"observability_addr,omitempty"`

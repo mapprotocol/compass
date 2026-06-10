@@ -196,6 +196,7 @@ func swapFailed(ctx *cli.Context) error {
 		return fmt.Errorf("load config: %w", err)
 	}
 	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
+	butterAPIKey := butterAPIKeyFromConfig(ctx, cfg)
 
 	// --keystore on the command line overrides cfg.Other.SwapFailedKeystore so
 	// the keeper can use a different keystore from the relayer's chain configs.
@@ -213,16 +214,16 @@ func swapFailed(ctx *cli.Context) error {
 	httpc := &http.Client{Timeout: 30 * time.Second}
 
 	// run once immediately, then on ticker
-	pollOnce(httpc, sender)
+	pollOnce(httpc, sender, butterAPIKey)
 	ticker := time.NewTicker(swapFailedInterval)
 	defer ticker.Stop()
 	for range ticker.C {
-		pollOnce(httpc, sender)
+		pollOnce(httpc, sender, butterAPIKey)
 	}
 	return nil
 }
 
-func pollOnce(httpc *http.Client, sender *senderRegistry) {
+func pollOnce(httpc *http.Client, sender *senderRegistry, butterAPIKey string) {
 	now := time.Now()
 	end := now
 	start := end.Add(-swapFailedWindow)
@@ -248,7 +249,7 @@ func pollOnce(httpc *http.Client, sender *senderRegistry) {
 				continue
 			}
 			scheduledCount++
-			attempt(httpc, sender, tx)
+			attempt(httpc, sender, tx, butterAPIKey)
 			attemptedCount++
 		}
 		if page >= pages || pages == 0 {
@@ -283,7 +284,7 @@ func shouldAttempt(id string, now time.Time) bool {
 
 // attempt runs one rescue attempt: POST /api/transaction/exec → pick tx → sign+send.
 // Records outcome in seenFailed and decides whether to re-arm or alarm.
-func attempt(httpc *http.Client, sender *senderRegistry, tx pendingTx) {
+func attempt(httpc *http.Client, sender *senderRegistry, tx pendingTx, butterAPIKey string) {
 	params := buildProofParams(tx)
 	logger := log.New("orderId", tx.OrderID, "destChain", tx.DestinationChain.Name)
 
@@ -291,7 +292,7 @@ func attempt(httpc *http.Client, sender *senderRegistry, tx pendingTx) {
 		"state", tx.State, "srcChain", tx.SourceChain.Name,
 		"srcHash", tx.SourceHash, "destHash", tx.DestinationHash,
 		"sendTime", tx.SendTime)
-	data, err := fetchExecData(httpc, params)
+	data, err := fetchExecData(httpc, params, butterAPIKey)
 	if err != nil {
 		recordAttempt(tx.ID, tx.OrderID, fmt.Errorf("fetch exec data: %w", err), logger)
 		return
@@ -437,7 +438,7 @@ func fetchPending(httpc *http.Client, page, size int, startMs, endMs int64) ([]p
 }
 
 // fetchExecData POSTs proofParams and returns the parsed exec data shape.
-func fetchExecData(httpc *http.Client, params proofParams) (*execData, error) {
+func fetchExecData(httpc *http.Client, params proofParams, butterAPIKey string) (*execData, error) {
 	body, err := json.Marshal(params)
 	if err != nil {
 		return nil, fmt.Errorf("marshal: %w", err)
@@ -447,6 +448,9 @@ func fetchExecData(httpc *http.Client, params proofParams) (*execData, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if butterAPIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+butterAPIKey)
+	}
 	resp, err := httpc.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("http: %w", err)

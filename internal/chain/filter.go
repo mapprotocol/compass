@@ -109,6 +109,7 @@ func RequestWithAPIKey(urlPath, apiKey string) (interface{}, error) {
 	}
 	if apiKey != "" {
 		req.Header.Set("X-API-Key", apiKey)
+		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

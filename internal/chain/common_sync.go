@@ -97,6 +97,9 @@ func (c *CommonSync) FilterClient() FilterClient {
 }
 
 func (c *CommonSync) ListMosLogs(projectID int64, topic string, limit int) (*stream.MosListResp, error) {
+	if !c.Cfg.Filter {
+		return nil, fmt.Errorf("filter mode disabled")
+	}
 	filterClient := c.FilterClient()
 	if filterClient == nil {
 		return nil, fmt.Errorf("filter client is nil")
@@ -169,6 +172,12 @@ func (c *CommonSync) GetMethod(topic ethcommon.Hash) string {
 }
 
 func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {
+	if !c.Cfg.Filter {
+		if c.Conn == nil {
+			return nil, fmt.Errorf("connection is nil")
+		}
+		return c.Conn.LatestBlock()
+	}
 	if time.Now().Unix()-c.reqTime < constant.ReqInterval {
 		return big.NewInt(c.cacheBlockNumber), nil
 	}
@@ -189,6 +198,9 @@ func (c *CommonSync) FilterLatestBlock() (*big.Int, error) {
 }
 
 func (c *CommonSync) FilterMaxID() (*big.Int, error) {
+	if !c.Cfg.Filter {
+		return nil, fmt.Errorf("filter mode disabled")
+	}
 	filterClient := c.FilterClient()
 	if filterClient == nil {
 		return nil, fmt.Errorf("filter client is nil")

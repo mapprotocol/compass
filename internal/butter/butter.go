@@ -3,6 +3,8 @@ package butter
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"sync"
 
 	"github.com/mapprotocol/compass/internal/client"
 )
@@ -16,6 +18,10 @@ const (
 )
 
 var defaultButter = New()
+var (
+	apiKeyMu sync.RWMutex
+	apiKey   string
+)
 
 type Butter struct {
 }
@@ -24,17 +30,38 @@ func New() *Butter {
 	return &Butter{}
 }
 
+func SetAPIKey(key string) {
+	apiKeyMu.Lock()
+	defer apiKeyMu.Unlock()
+	apiKey = strings.TrimSpace(key)
+}
+
+func backendHeaders() map[string]string {
+	apiKeyMu.RLock()
+	defer apiKeyMu.RUnlock()
+	if apiKey == "" {
+		return nil
+	}
+	return map[string]string{
+		"Authorization": "Bearer " + apiKey,
+	}
+}
+
+func jsonGetBackend(url string) ([]byte, error) {
+	return client.JsonGetWithHeaders(url, backendHeaders())
+}
+
 func (b *Butter) ExecSwap(domain, query string) ([]byte, error) {
-	return client.JsonGet(fmt.Sprintf("%s%s?%s", domain, UrlOfExecSwap, query))
+	return jsonGetBackend(fmt.Sprintf("%s%s?%s", domain, UrlOfExecSwap, query))
 }
 
 func (b *Butter) RetryMessageIn(domain, query string) ([]byte, error) {
-	return client.JsonGet(fmt.Sprintf("%s%s?%s", domain, UrlOfRetryMessageIn, query))
+	return jsonGetBackend(fmt.Sprintf("%s%s?%s", domain, UrlOfRetryMessageIn, query))
 }
 
 func (b *Butter) SolCrossIn(domain, query string) (*SolCrossInResp, error) {
 	fmt.Println("SolCrossIn uri ", fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
-	body, err := client.JsonGet(fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
+	body, err := jsonGetBackend(fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
 	if err != nil {
 		return nil, err
 	}

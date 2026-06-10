@@ -35,11 +35,23 @@ func JsonPost(url string, data []byte) ([]byte, error) {
 }
 
 func JsonGet(url string) ([]byte, error) {
+	return JsonGetWithHeaders(url, nil)
+}
+
+func JsonGetWithHeaders(url string, headers map[string]string) ([]byte, error) {
 	start := time.Now()
 	defer func() {
 		log.Info("JsonGet", "url", url, "duration", time.Since(start))
 	}()
-	resp, err := cli.Get(url)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Error("JsonGet request build error", "url", url, "error", err)
+		return nil, err
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	resp, err := cli.Do(req)
 	if err != nil {
 		log.Error("JsonGet request error", "url", url, "error", err)
 		return nil, err
