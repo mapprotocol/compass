@@ -79,6 +79,12 @@ var (
 		EnvVars: []string{"COMPASS_FILTER_API_KEY"},
 	}
 
+	ButterAPIKeyFlag = &cli.StringFlag{
+		Name:    "butterApiKey",
+		Usage:   "API key for authenticated butter backend/admin requests",
+		EnvVars: []string{"COMPASS_BUTTER_API_KEY", "BACKEND_API_KEY"},
+	}
+
 	OnlySpecialTokenFlag = &cli.BoolFlag{
 		Name:  "onlySpecialToken",
 		Usage: "Only process swaps involving configured special tokens",

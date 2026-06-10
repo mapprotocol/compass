@@ -34,6 +34,7 @@ type Construction struct {
 	Env        string `json:"env,omitempty"`
 	Port       string `json:"port,omitempty"`
 	Butter     string `json:"butter,omitempty"`
+	ButterKey  string `json:"butter_api_key,omitempty"`
 	Key        string `json:"key,omitempty"`
 }
 

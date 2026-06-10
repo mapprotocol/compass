@@ -64,6 +64,9 @@ func (r *FilterRunner) Run() error {
 	if opts.NotVerifyableSleep == 0 {
 		opts.NotVerifyableSleep = constant.BlockRetryInterval
 	}
+	if !cs.Cfg.Filter {
+		return fmt.Errorf("filter runner requires filter mode")
+	}
 	if r.Client == nil {
 		return fmt.Errorf("filter client is nil")
 	}

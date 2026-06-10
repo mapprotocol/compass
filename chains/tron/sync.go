@@ -141,7 +141,10 @@ func (m *sync) filter() error {
 
 func (m *sync) HandleFilterBlock(latestBlock uint64) (int, uint64, error) {
 	count, err := m.handler(m, big.NewInt(0).SetUint64(latestBlock))
-	return count, 0, err
+	if err != nil {
+		return count, 0, err
+	}
+	return count, latestBlock, nil
 }
 
 func filterMos(m *sync, latestBlock *big.Int) (int, error) {

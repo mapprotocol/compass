@@ -12,6 +12,7 @@ import (
 	"github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/blacklist"
+	"github.com/mapprotocol/compass/internal/butter"
 	chain2 "github.com/mapprotocol/compass/internal/chain"
 	"github.com/mapprotocol/compass/internal/contract"
 	"github.com/mapprotocol/compass/internal/mapprotocol"
@@ -38,6 +39,7 @@ var cliFlags = []cli.Flag{
 	config.SkipErrorFlag,
 	config.FilterFlag,
 	config.FilterAPIKeyFlag,
+	config.ButterAPIKeyFlag,
 	config.OnlySpecialTokenFlag,
 }
 
@@ -170,6 +172,8 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	c := core.NewCore(sysErr, msg.ChainId(mapcid), role)
 	// merge map chain
 	filterAPIKey := filterAPIKeyFromConfig(ctx, cfg)
+	log.Info("Filter API auth configured", "enabled", filterAPIKey != "")
+	butter.SetAPIKey(butterAPIKeyFromConfig(ctx, cfg))
 
 	allChains := make([]config.RawChainConfig, 0, len(cfg.Chains)+1)
 	allChains = append(allChains, cfg.MapChain)
@@ -248,12 +252,28 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 
 func filterAPIKeyFromConfig(ctx *cli.Context, cfg *config.Config) string {
 	if ctx.IsSet(config.FilterAPIKeyFlag.Name) {
-		return strings.TrimSpace(ctx.String(config.FilterAPIKeyFlag.Name))
+		if key := strings.TrimSpace(ctx.String(config.FilterAPIKeyFlag.Name)); key != "" {
+			return key
+		}
 	}
 	if cfg.Other.FilterAPIKey != "" {
 		return strings.TrimSpace(cfg.Other.FilterAPIKey)
 	}
 	key, err := os.ReadFile(os.ExpandEnv("$HOME/.compass/filter_api_key"))
+	if err == nil {
+		return strings.TrimSpace(string(key))
+	}
+	return ""
+}
+
+func butterAPIKeyFromConfig(ctx *cli.Context, cfg *config.Config) string {
+	if ctx.IsSet(config.ButterAPIKeyFlag.Name) {
+		return strings.TrimSpace(ctx.String(config.ButterAPIKeyFlag.Name))
+	}
+	if cfg.Other.ButterAPIKey != "" {
+		return strings.TrimSpace(cfg.Other.ButterAPIKey)
+	}
+	key, err := os.ReadFile(os.ExpandEnv("$HOME/.compass/butter_api_key"))
 	if err == nil {
 		return strings.TrimSpace(string(key))
 	}

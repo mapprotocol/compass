@@ -2,10 +2,14 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gin-gonic/gin"
 	"github.com/mapprotocol/compass/chains"
+	"github.com/mapprotocol/compass/config"
+	"github.com/mapprotocol/compass/internal/butter"
 	"github.com/mapprotocol/compass/internal/expose"
 	"github.com/mapprotocol/compass/internal/expose/handler"
 	"github.com/mapprotocol/compass/pkg/keystore"
@@ -50,11 +54,12 @@ func api(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	butter.SetAPIKey(butterAPIKeyFromExposeConfig(ctx, cfg))
 	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
 	// pre init
 	for _, ele := range cfg.Chains {
 		creator, ok := chains.CreateProffer(ele.Type)
-		fmt.Println("------ creator ", creator, " ------- ", ele.Type, ele.Name,  ok)
+		fmt.Println("------ creator ", creator, " ------- ", ele.Type, ele.Name, ok)
 		_, err = creator.Connect(ele.Id, ele.Endpoint, ele.Mcs, ele.LightNode, ele.OracleNode)
 		if err != nil {
 			return err
@@ -76,4 +81,18 @@ func api(ctx *cli.Context) error {
 	}
 
 	return nil
+}
+
+func butterAPIKeyFromExposeConfig(ctx *cli.Context, cfg *expose.Config) string {
+	if ctx.IsSet(config.ButterAPIKeyFlag.Name) {
+		return strings.TrimSpace(ctx.String(config.ButterAPIKeyFlag.Name))
+	}
+	if cfg.Other.ButterKey != "" {
+		return strings.TrimSpace(cfg.Other.ButterKey)
+	}
+	key, err := os.ReadFile(os.ExpandEnv("$HOME/.compass/butter_api_key"))
+	if err == nil {
+		return strings.TrimSpace(string(key))
+	}
+	return ""
 }

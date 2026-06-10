@@ -301,12 +301,8 @@ func V3Pack(fId msg.ChainId, method string, abi abi.ABI, idx int, orderId [32]by
 }
 
 func GenLogBlockNumber(bn *big.Int, txIndex uint, idx uint) *big.Int {
-	ret := make([]byte, 0, 32)
-	for i := 0; i < 16; i++ {
-		ret = append(ret, 0)
-	}
+	ret := make([]byte, 0, 28)
 	ret = append(ret, Completion(big.NewInt(int64(idx)).Bytes(), 4)...)
-	ret = append(ret, Completion(big.NewInt(int64(txIndex)).Bytes(), 4)...)
 	ret = append(ret, Completion(bn.Bytes(), 8)...)
 	return big.NewInt(0).SetBytes(ret)
 }
