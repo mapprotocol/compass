@@ -85,7 +85,7 @@ func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*t
 			pr = append(pr, &arb.Receipt{Receipt: r})
 		}
 		dls = pr
-	case constant.BaseChainId:
+	case constant.BaseChainId, constant.OptimismChainId:
 		pr := op.Receipts{}
 		results := make([]*op.Receipt, len(receipts))
 		var wg sync.WaitGroup
