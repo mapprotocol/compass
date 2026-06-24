@@ -5,7 +5,6 @@ package mapo
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -52,10 +51,6 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	if err != nil {
 		return nil, err
 	}
-	if receiptHash != header.ReceiptHash && proofType != constant.ProofTypeOfLogOracle {
-		fmt.Println("Matic generate", receiptHash, "oracle", header.ReceiptHash, " not same")
-		return nil, errors.New("receipt not same")
-	}
 
 	var key []byte
 	key = rlp.AppendUint64(key[:0], uint64(log.TxIndex))
@@ -90,7 +85,7 @@ func ethProof(conn *ethclient.Client, fId msg.ChainId, txIdx uint, receipts []*t
 			pr = append(pr, &arb.Receipt{Receipt: r})
 		}
 		dls = pr
-	case constant.BaseChainId:
+	case constant.BaseChainId, constant.OptimismChainId:
 		pr := op.Receipts{}
 		results := make([]*op.Receipt, len(receipts))
 		var wg sync.WaitGroup
