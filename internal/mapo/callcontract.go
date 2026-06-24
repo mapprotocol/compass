@@ -5,7 +5,6 @@ package mapo
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -51,10 +50,6 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 	prf, receiptHash, err := ethProof(conn, fId, log.TxIndex, receipts)
 	if err != nil {
 		return nil, err
-	}
-	if receiptHash != header.ReceiptHash && proofType != constant.ProofTypeOfLogOracle {
-		fmt.Println("Matic generate", receiptHash, "oracle", header.ReceiptHash, " not same")
-		return nil, errors.New("receipt not same")
 	}
 
 	var key []byte

@@ -321,6 +321,9 @@ func Completion(bytes []byte, number int) []byte {
 }
 
 func genMptReceipt(cli *ethclient.Client, selfId int64, latestBlock *big.Int) (*common.Hash, error) {
+	if !exist(selfId, []int64{constant.CfxChainId}) {
+		return nil, nil
+	}
 	txsHash, err := mapprotocol.GetTxsByBn(cli, latestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tx hashes Logs: %w", err)
