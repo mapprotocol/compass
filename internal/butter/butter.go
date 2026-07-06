@@ -30,6 +30,10 @@ func New() *Butter {
 	return &Butter{}
 }
 
+func Init(key string) {
+	SetAPIKey(key)
+}
+
 func SetAPIKey(key string) {
 	apiKeyMu.Lock()
 	defer apiKeyMu.Unlock()
@@ -51,6 +55,10 @@ func jsonGetBackend(url string) ([]byte, error) {
 	return client.JsonGetWithHeaders(url, backendHeaders())
 }
 
+func jsonPostBackend(url string, data []byte) ([]byte, error) {
+	return client.JsonPostWithHeaders(url, data, backendHeaders())
+}
+
 func (b *Butter) ExecSwap(domain, query string) ([]byte, error) {
 	return jsonGetBackend(fmt.Sprintf("%s%s?%s", domain, UrlOfExecSwap, query))
 }
@@ -59,12 +67,19 @@ func (b *Butter) RetryMessageIn(domain, query string) ([]byte, error) {
 	return jsonGetBackend(fmt.Sprintf("%s%s?%s", domain, UrlOfRetryMessageIn, query))
 }
 
-func (b *Butter) SolCrossIn(domain, query string) (*SolCrossInResp, error) {
-	fmt.Println("SolCrossIn uri ", fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
-	body, err := jsonGetBackend(fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query))
+func (b *Butter) SolCrossIn(domain, query string, reqbody map[string]interface{}) (*SolCrossInResp, error) {
+	uri := fmt.Sprintf("%s%s?%s", domain, UrlOfSolCrossIn, query)
+	jsonBody, err := json.Marshal(reqbody)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("reqbody ------------- ", string(jsonBody))
+	body, err := jsonPostBackend(uri, jsonBody)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("body ------------- ", string(body))
 	data := SolCrossInResp{}
 	err = json.Unmarshal(body, &data)
 	if err != nil {
@@ -81,15 +96,22 @@ func (b *Butter) SolCrossIn(domain, query string) (*SolCrossInResp, error) {
 		return nil, fmt.Errorf("data is zero")
 	}
 
-	if data.Data[0].Error.Response.Errno != 0 {
-		return nil, fmt.Errorf("code %d, mess:%s", data.Data[0].Error.Response.Errno, data.Data[0].Error.Response.Message)
+	for _, item := range data.Data {
+		if len(item.TxParam) > 0 {
+			return &data, nil
+		}
 	}
 
-	if len(data.Data[0].TxParam) <= 0 {
-		return nil, fmt.Errorf("data txParam is zero")
+	for _, item := range data.Data {
+		if item.Error.Response.Errno != 0 {
+			return nil, fmt.Errorf("code %d, mess:%s", item.Error.Response.Errno, item.Error.Response.Message)
+		}
+		if item.Error.Message != "" {
+			return nil, fmt.Errorf("mess:%s", item.Error.Message)
+		}
 	}
 
-	return &data, nil
+	return nil, fmt.Errorf("data txParam is zero")
 }
 
 type BlockedAccountResponse struct {
@@ -126,8 +148,8 @@ func RetryMessageIn(domain, query string) ([]byte, error) {
 	return defaultButter.RetryMessageIn(domain, query)
 }
 
-func SolCrossIn(domain, query string) (*SolCrossInResp, error) {
-	return defaultButter.SolCrossIn(domain, query)
+func SolCrossIn(domain, query string, body map[string]interface{}) (*SolCrossInResp, error) {
+	return defaultButter.SolCrossIn(domain, query, body)
 }
 
 func BlockedAccount(domain, sourceChain, initiator, from, alchemypayKytCheck string) (bool, error) {

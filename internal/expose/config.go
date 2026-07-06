@@ -3,11 +3,12 @@ package expose
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/mapprotocol/compass/config"
 	"github.com/mapprotocol/compass/internal/constant"
 	"github.com/urfave/cli/v2"
-	"os"
-	"path/filepath"
 )
 
 const (
@@ -30,12 +31,12 @@ type RawChainConfig struct {
 }
 
 type Construction struct {
-	MonitorUrl string `json:"monitor_url,omitempty"`
-	Env        string `json:"env,omitempty"`
-	Port       string `json:"port,omitempty"`
-	Butter     string `json:"butter,omitempty"`
-	ButterKey  string `json:"butter_api_key,omitempty"`
-	Key        string `json:"key,omitempty"`
+	MonitorUrl   string `json:"monitor_url,omitempty"`
+	Env          string `json:"env,omitempty"`
+	Port         string `json:"port,omitempty"`
+	Butter       string `json:"butter,omitempty"`
+	ButterAPIKey string `json:"butter_api_key,omitempty"`
+	Key          string `json:"key,omitempty"`
 }
 
 func (c *Config) validate() error {

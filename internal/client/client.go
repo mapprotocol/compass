@@ -16,11 +16,24 @@ var (
 )
 
 func JsonPost(url string, data []byte) ([]byte, error) {
+	return JsonPostWithHeaders(url, data, nil)
+}
+
+func JsonPostWithHeaders(url string, data []byte, headers map[string]string) ([]byte, error) {
 	start := time.Now()
 	defer func() {
 		log.Info("JsonPost", "url", url, "duration", time.Since(start))
 	}()
-	resp, err := cli.Post(url, "application/json", bytes.NewBuffer(data))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
+	if err != nil {
+		log.Error("JsonPost request build error", "url", url, "error", err)
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	resp, err := cli.Do(req)
 	if err != nil {
 		log.Error("JsonPost request error", "url", url, "error", err)
 		return nil, err

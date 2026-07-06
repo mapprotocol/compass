@@ -40,12 +40,7 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 	if ele, ok := chainCfg.Opts["messageIn"]; ok && ele != "" {
 		ret.MessageIn = ele
 	}
-	if ele, ok := chainCfg.Opts["usdcAda"]; ok && ele != "" {
-		ret.UsdcAda = ele
-	}
-	if ele, ok := chainCfg.Opts["wsolAda"]; ok && ele != "" {
-		ret.WsolAda = ele
-	}
+
 	if ele, ok := chainCfg.Opts[chain.McsOpt]; ok && ele != "" {
 		for _, addr := range strings.Split(ele, ",") {
 			ret.McsContract = append(ret.McsContract, addr)

@@ -111,6 +111,7 @@ type CrossOutData struct {
 	RefererId                 []int  `json:"refererId"`
 	FeeRatio                  []int  `json:"feeRatio"`
 	SwapData                  string `json:"swapData"`
+	BridgeMint                string `json:"bridgeMint"`
 }
 
 func filter(m *sync) (*Log, error) {
@@ -226,10 +227,10 @@ func oracleHandler(m *sync) (int64, error) {
 		return 0, nil
 	}
 
-	err = m.checkLog(log)
-	if err != nil {
-		return 0, err
-	}
+	// err = m.checkLog(log)
+	// if err != nil {
+	// 	return 0, err
+	// }
 
 	receiptHash, _, err := m.genReceipt(log)
 	if err != nil {
@@ -264,11 +265,6 @@ func oracleHandler(m *sync) (int64, error) {
 	return log.Id, nil
 }
 
-const (
-	UsdcOfSol = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
-	WsolOfSol = "So11111111111111111111111111111111111111112"
-)
-
 func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 	// 解析
 	tmpData := CrossOutData{}
@@ -293,7 +289,7 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 		return nil, nil, fmt.Errorf("invalid minAmount (%s)", tmpData.MinAmountOut)
 	}
 	orderId := common.HexToHash(tmpData.OrderId)
-	token := tmpData.ToToken[:20]
+	token := tmpData.ToToken[12:]
 	form := tmpData.From
 	to := common.Hex2Bytes(strings.TrimPrefix(tmpData.Receiver, "0x"))
 
@@ -327,12 +323,7 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 		}
 	}
 
-	bridgeToken := make([]byte, 0)
-	if tmpData.SwapTokenOut == m.cfg.UsdcAda {
-		bridgeToken, _ = base58.Decode(UsdcOfSol)
-	} else if tmpData.SwapTokenOut == m.cfg.WsolAda {
-		bridgeToken, _ = base58.Decode(WsolOfSol)
-	}
+	bridgeToken, _ := base58.Decode(tmpData.BridgeMint)
 	eo := mapprotocol.MessageOutEvent{
 		FromChain:   fromChain,
 		ToChain:     toChain,
@@ -358,7 +349,6 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 	fmt.Println("eo.OrderId", eo.OrderId)
 	fmt.Println("eo.Amount", eo.Amount)
 	fmt.Println("eo.Token", common.Bytes2Hex(eo.Token))
-	fmt.Println("eo.SwapData", common.Bytes2Hex(bridgeParam.SwapData))
 
 	data, err := mapprotocol.SolAbi.Methods[mapprotocol.MethodOfSolEventEncode].Inputs.Pack(&eo)
 	if err != nil {
