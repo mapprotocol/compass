@@ -144,6 +144,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 		return err
 	}
 	blacklist.Init(cfg.Other.BlackListUrl)
+	butter.Init(cfg.Other.ButterAPIKey)
 	util.Init(cfg.Other.Env, cfg.Other.MonitorUrl)
 	report.Init(cfg.Other.ReportUrl)
 

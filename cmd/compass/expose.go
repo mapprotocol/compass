@@ -87,8 +87,8 @@ func butterAPIKeyFromExposeConfig(ctx *cli.Context, cfg *expose.Config) string {
 	if ctx.IsSet(config.ButterAPIKeyFlag.Name) {
 		return strings.TrimSpace(ctx.String(config.ButterAPIKeyFlag.Name))
 	}
-	if cfg.Other.ButterKey != "" {
-		return strings.TrimSpace(cfg.Other.ButterKey)
+	if cfg.Other.ButterAPIKey != "" {
+		return strings.TrimSpace(cfg.Other.ButterAPIKey)
 	}
 	key, err := os.ReadFile(os.ExpandEnv("$HOME/.compass/butter_api_key"))
 	if err == nil {

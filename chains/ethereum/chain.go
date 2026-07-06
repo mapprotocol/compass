@@ -185,7 +185,7 @@ func (c *Chain) assembleProof(m *chain.Messenger, log *types.Log, proofType int6
 		message = msg.NewSwapWithMapProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		switch toChainID {
 		case constant.SolMainChainId:
-			msgPayload = []interface{}{log, orderId, method}
+			msgPayload = []interface{}{log, orderId, method, sign}
 			message = msg.NewSolProof(m.Cfg.MapChainID, msg.ChainId(toChainID), msgPayload, m.MsgCh)
 		}
 	} else if m.Cfg.SyncToMap {

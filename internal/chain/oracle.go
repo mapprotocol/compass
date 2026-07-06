@@ -271,11 +271,12 @@ func log2Oracle(m *Oracle, logs []types.Log, blockNumber *big.Int, filterId int6
 			return fmt.Errorf("oracle generate receipt failed, err is %w", err)
 		}
 
-		m.Log.Info("Find log", "block", blockNumber, "logIndex", log.Index, "receipt", receipt, "targetBn", targetBn)
 		ret, err := MulSignInfo(0, uint64(m.Cfg.MapChainID))
 		if err != nil {
 			return errors.Wrap(err, "mul sign failed")
 		}
+		m.Log.Info("Find log", "block", blockNumber, "logIndex", log.Index, "receipt", receipt,
+			"targetBn", targetBn, "ret.Version", ret.Version)
 		pack, err := mapprotocol.PackAbi.Methods[mapprotocol.MethodOfSolidityPack].Inputs.Pack(receipt, ret.Version, targetBn, id)
 		if err != nil {
 			return errors.Wrap(err, "pack input failed")

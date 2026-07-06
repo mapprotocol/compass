@@ -1,5 +1,15 @@
 package butter
 
+type SolCrossInTxParam struct {
+	To       string `json:"to"`
+	ChainID  string `json:"chainId"`
+	Data     string `json:"data"`
+	Value    string `json:"value"`
+	Method   string `json:"method"`
+	IsRefund bool   `json:"isRefund"`
+	Step     string `json:"step"`
+}
+
 type SolCrossInResp struct {
 	Errno      int    `json:"errno"`
 	StatusCode int    `json:"statusCode"`
@@ -61,14 +71,8 @@ type SolCrossInResp struct {
 				Symbol string `json:"symbol"`
 			} `json:"minAmountOut"`
 		} `json:"route"`
-		TxParam []struct {
-			To      string `json:"to"`
-			ChainID string `json:"chainId"`
-			Data    string `json:"data"`
-			Value   string `json:"value"`
-			Method  string `json:"method"`
-		} `json:"txParam"`
-		Error struct {
+		TxParam []SolCrossInTxParam `json:"txParam"`
+		Error   struct {
 			Response struct {
 				Errno   int    `json:"errno"`
 				Message string `json:"message"`

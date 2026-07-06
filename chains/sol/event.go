@@ -80,10 +80,10 @@ func UnpackMessageRelay(log types.Log) (*MessageRelay, error) {
 	return ret, nil
 }
 
-func DecodeMessageRelay(topics []common.Hash, data string) (*Relay, error) {
+func DecodeMessageRelay(topics []common.Hash, data string) (*Relay, *MessageRelay, error) {
 	bytesData, err := hex.DecodeString(data)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	log := types.Log{
 		Topics: topics,
@@ -91,7 +91,7 @@ func DecodeMessageRelay(topics []common.Hash, data string) (*Relay, error) {
 	}
 	messageRelay, err := UnpackMessageRelay(log)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	payload := messageRelay.Payload
@@ -102,10 +102,7 @@ func DecodeMessageRelay(topics []common.Hash, data string) (*Relay, error) {
 	}
 
 	version := parseBigInt(0, 1)
-	//ret.Version = version
 	messageType := parseBigInt(1, 1)
-	//ret.MessageType = messageType
-	// Extract values based on offsets
 	tokenLen := parseBigInt(2, 1)
 	mosLen := parseBigInt(3, 1)
 	fromLen := parseBigInt(4, 1)
@@ -159,5 +156,5 @@ func DecodeMessageRelay(topics []common.Hash, data string) (*Relay, error) {
 		ret.Swap = &s
 	}
 
-	return ret, nil
+	return ret, messageRelay, nil
 }
