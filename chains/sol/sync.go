@@ -3,6 +3,8 @@ package sol
 import (
 	"context"
 
+	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -112,6 +114,24 @@ type CrossOutData struct {
 	FeeRatio                  []int  `json:"feeRatio"`
 	SwapData                  string `json:"swapData"`
 	BridgeMint                string `json:"bridgeMint"`
+}
+
+var (
+	anchorEventCpiDiscriminator = []byte{0xe4, 0x45, 0xa5, 0x2e, 0x51, 0xcb, 0x9a, 0x1d}
+	solAnchorEventNames         = map[string]string{
+		string(anchorDiscriminator("event:CrossOutEvent")):       "CrossOutEvent",
+		string(anchorDiscriminator("event:CrossInEvent")):        "CrossInEvent",
+		string(anchorDiscriminator("event:ReleaseEvent")):        "ReleaseEvent",
+		string(anchorDiscriminator("event:RefundEvent")):         "RefundEvent",
+		string(anchorDiscriminator("event:MinOutOverrideEvent")): "MinOutOverrideEvent",
+		string(anchorDiscriminator("event:CrossFinishEvent")):    "CrossFinishEvent",
+	}
+)
+
+type solAnchorEvent struct {
+	Name      string
+	OrderId   []byte
+	AmountOut *uint64
 }
 
 func filter(m *sync) (*Log, error) {
@@ -227,10 +247,10 @@ func oracleHandler(m *sync) (int64, error) {
 		return 0, nil
 	}
 
-	// err = m.checkLog(log)
-	// if err != nil {
-	// 	return 0, err
-	// }
+	err = m.checkLog(log)
+	if err != nil {
+		return 0, err
+	}
 
 	receiptHash, _, err := m.genReceipt(log)
 	if err != nil {
@@ -390,11 +410,14 @@ func (m *sync) checkLog(target *Log) error {
 	if err != nil {
 		return err
 	}
+	if txResult.Meta == nil {
+		return fmt.Errorf("missing transaction meta, hash(%s)", target.TxHash)
+	}
 	tx, err := txResult.Transaction.GetTransaction()
 	if err != nil {
 		return err
 	}
-	if len(tx.Message.Instructions) == 0 {
+	if len(tx.Message.Instructions) == 0 && len(txResult.Meta.InnerInstructions) == 0 {
 		return nil
 	}
 
@@ -404,9 +427,36 @@ func (m *sync) checkLog(target *Log) error {
 		return errors.Wrap(err, "unmarshal resp.Data failed")
 	}
 
-	ev := &CrossFinishEvent{}
-	eventPrefix := "Program data: "
-	for _, msg := range txResult.Meta.LogMessages {
+	targetOrderId := common.HexToHash(tmpData.OrderId).Bytes()
+	ev := m.findSolAnchorEvent(txResult, tx, target.Addr, targetOrderId)
+	if ev == nil {
+		return fmt.Errorf("invalid sol anchor event, hash(%s), orderId(%s)", target.TxHash, tmpData.OrderId)
+	}
+
+	ab, _ := big.NewInt(0).SetString(tmpData.AmountOut, 16)
+	if !bytes.Equal(targetOrderId, ev.OrderId) {
+		return errors.New("tx log not match")
+	}
+	if ev.AmountOut != nil && ab.Uint64() != *ev.AmountOut {
+		return errors.New("tx log amount not match")
+	}
+
+	return nil
+}
+
+func (m *sync) findSolAnchorEvent(txResult *rpc.GetTransactionResult, tx *solana.Transaction, logAddr string, targetOrderId []byte) *solAnchorEvent {
+	if txResult == nil || txResult.Meta == nil {
+		return nil
+	}
+	if ev := findSolAnchorEventFromLogs(txResult.Meta.LogMessages, targetOrderId); ev != nil {
+		return ev
+	}
+	return m.findSolAnchorEventFromInnerInstructions(txResult.Meta.InnerInstructions, tx, txResult.Meta.LoadedAddresses, logAddr, targetOrderId)
+}
+
+func findSolAnchorEventFromLogs(logMessages []string, targetOrderId []byte) *solAnchorEvent {
+	const eventPrefix = "Program data: "
+	for _, msg := range logMessages {
 		if !strings.HasPrefix(msg, eventPrefix) {
 			continue
 		}
@@ -416,20 +466,99 @@ func (m *sync) checkLog(target *Log) error {
 			fmt.Println("base64 decode failed", err)
 			continue
 		}
-
-		ev, err = parseCrossFinishEventData(data)
-		if err != nil {
-			continue
+		ev, err := parseCrossFinishEventData(data)
+		if err == nil && bytes.Equal(targetOrderId, ev.OrderRecord.OrderId) {
+			return &solAnchorEvent{
+				Name:      "CrossFinishEvent",
+				OrderId:   ev.OrderRecord.OrderId,
+				AmountOut: &ev.AmountOut,
+			}
 		}
 	}
-	if ev == nil {
-		return fmt.Errorf("invalid CrossFinishEvent, hash(%s)", target.TxHash)
-	}
-
-	ab, _ := big.NewInt(0).SetString(tmpData.AmountOut, 16)
-	if tmpData.OrderId != common.Bytes2Hex(ev.OrderRecord.OrderId) && ab.Uint64() == ev.AmountOut {
-		return errors.New("tx log not match")
-	}
-
 	return nil
+}
+
+func (m *sync) findSolAnchorEventFromInnerInstructions(innerInstructions []rpc.InnerInstruction, tx *solana.Transaction, loadedAddresses rpc.LoadedAddresses, logAddr string, targetOrderId []byte) *solAnchorEvent {
+	accountKeys := solanaLoadedAccountKeys(tx, loadedAddresses)
+	programFilter := m.solEventProgramFilter(logAddr)
+	for _, inner := range innerInstructions {
+		for _, inst := range inner.Instructions {
+			if int(inst.ProgramIDIndex) >= len(accountKeys) {
+				continue
+			}
+			programID := accountKeys[inst.ProgramIDIndex].String()
+			if len(programFilter) != 0 && !programFilter[programID] {
+				continue
+			}
+			data := []byte(inst.Data)
+			if len(data) <= len(anchorEventCpiDiscriminator) {
+				continue
+			}
+			if !bytes.Equal(data[:len(anchorEventCpiDiscriminator)], anchorEventCpiDiscriminator) {
+				continue
+			}
+			ev := parseSolAnchorEventCpi(data[len(anchorEventCpiDiscriminator):], targetOrderId)
+			if ev != nil {
+				return ev
+			}
+		}
+	}
+	return nil
+}
+
+func parseSolAnchorEventCpi(data []byte, targetOrderId []byte) *solAnchorEvent {
+	const eventDiscriminatorLen = 8
+	if len(data) < eventDiscriminatorLen+len(targetOrderId) {
+		return nil
+	}
+	name, ok := solAnchorEventNames[string(data[:eventDiscriminatorLen])]
+	if !ok {
+		return nil
+	}
+	body := data[eventDiscriminatorLen:]
+	idx := bytes.Index(body, targetOrderId)
+	if idx == -1 {
+		return nil
+	}
+	orderId := make([]byte, len(targetOrderId))
+	copy(orderId, targetOrderId)
+	return &solAnchorEvent{
+		Name:    name,
+		OrderId: orderId,
+	}
+}
+
+func solanaLoadedAccountKeys(tx *solana.Transaction, loadedAddresses rpc.LoadedAddresses) solana.PublicKeySlice {
+	if tx == nil {
+		return nil
+	}
+	accountKeys := make(solana.PublicKeySlice, 0, len(tx.Message.AccountKeys)+len(loadedAddresses.Writable)+len(loadedAddresses.ReadOnly))
+	accountKeys = append(accountKeys, tx.Message.AccountKeys...)
+	accountKeys = append(accountKeys, loadedAddresses.Writable...)
+	accountKeys = append(accountKeys, loadedAddresses.ReadOnly...)
+	return accountKeys
+}
+
+func (m *sync) solEventProgramFilter(logAddr string) map[string]bool {
+	programs := make(map[string]bool)
+	for _, program := range m.cfg.McsContract {
+		if program != "" {
+			programs[program] = true
+		}
+	}
+	if m.cfg.MessageIn != "" {
+		programs[m.cfg.MessageIn] = true
+	}
+	if m.cfg.LightNode != "" {
+		programs[m.cfg.LightNode] = true
+	}
+	if logAddr != "" {
+		programs[logAddr] = true
+	}
+	return programs
+}
+
+func anchorDiscriminator(name string) []byte {
+	hash := sha256.Sum256([]byte(name))
+	return hash[:8]
 }
