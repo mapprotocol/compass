@@ -114,6 +114,7 @@ type CrossOutData struct {
 	FeeRatio                  []int  `json:"feeRatio"`
 	SwapData                  string `json:"swapData"`
 	BridgeMint                string `json:"bridgeMint"`
+	BridgeAmount              string `json:"bridgeAmount"`
 }
 
 var (
@@ -300,9 +301,9 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid toChain (%s)", tmpData.ToChain)
 	}
-	amount, ok := big.NewInt(0).SetString(tmpData.AmountOut, 16)
+	amount, ok := big.NewInt(0).SetString(tmpData.BridgeAmount, 16)
 	if !ok {
-		return nil, nil, fmt.Errorf("invalid amount (%s)", tmpData.TokenAmount)
+		return nil, nil, fmt.Errorf("invalid amount (%s)", tmpData.BridgeAmount)
 	}
 	minAmount, ok := big.NewInt(0).SetString(tmpData.MinAmountOut, 16)
 	if !ok {
