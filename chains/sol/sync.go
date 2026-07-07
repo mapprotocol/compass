@@ -301,7 +301,7 @@ func (m *sync) genReceipt(log *Log) (*common.Hash, []byte, error) {
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid toChain (%s)", tmpData.ToChain)
 	}
-	amount, ok := big.NewInt(0).SetString(tmpData.BridgeAmount, 16)
+	amount, ok := big.NewInt(0).SetString(tmpData.BridgeAmount, 10)
 	if !ok {
 		return nil, nil, fmt.Errorf("invalid amount (%s)", tmpData.BridgeAmount)
 	}
