@@ -99,13 +99,14 @@ const (
 	MapChainId        = 22776
 	BaseChainId       = 8453
 	OptimismChainId   = 10
-	ArbChainId        = 421614
-	ArbTestnetChainId = 42161
+	ArbChainId        = 42161
+	ArbTestnetChainId = 421614
 	TronChainId       = 728126428
 	SolMainChainId    = 1360108768460801
 	BtcChainId        = 1360095883558913
 	XlayerId          = 196
 	CfxChainId        = 1030
+	Robinhood         = 4663
 )
 
 const (
