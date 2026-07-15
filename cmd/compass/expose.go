@@ -48,6 +48,7 @@ func api(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	logBuildInfo()
 	log.Info("Starting Proof expose ...")
 	// parse config
 	cfg, err := expose.Local(ctx)

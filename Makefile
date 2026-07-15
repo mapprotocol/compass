@@ -1,5 +1,8 @@
 PROJECTNAME=$(shell basename "$(PWD)")
-VERSION=-ldflags="-X main.Version=$(shell git describe --tags)"
+VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+COMMIT_ID?=$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+BUILD_TIME?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+LDFLAGS=-X main.Version=$(VERSION) -X main.CommitID=$(COMMIT_ID) -X main.BuildTime=$(BUILD_TIME)
 SOL_DIR=./solidity
 
 CENT_EMITTER_ADDR?=0x1
@@ -24,12 +27,12 @@ get:
 
 build:
 	@echo "  >  \033[32mBuilding compass...\033[0m "
-	cd cmd/compass && go build -o ../../build/compass
+	cd cmd/compass && go build -ldflags "$(LDFLAGS)" -o ../../build/compass
 
 dev:
 	@echo "  >  \033[32mBuilding compass-dev...\033[0m "
-	cd cmd/compass && env GOARCH=amd64 CGO_ENABLED=0 go build -o ../../build/compass-dev
+	cd cmd/compass && env GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o ../../build/compass-dev
 
 install:
 	@echo "  >  \033[32mInstalling compass...\033[0m "
-	cd cmd/compass && go install $(VERSION)
+	cd cmd/compass && go install -ldflags "$(LDFLAGS)"

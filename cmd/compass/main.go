@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -74,8 +75,16 @@ var oracleCommand = cli.Command{
 }
 
 var (
-	Version = "1.3.0"
+	Version   = "1.3.0"
+	CommitID  = "unknown"
+	BuildTime = "unknown"
 )
+
+var versionCommand = cli.Command{
+	Name:   "version",
+	Usage:  "print compass build information",
+	Action: printVersionAction,
+}
 
 // init initializes CLI
 func init() {
@@ -85,6 +94,7 @@ func init() {
 	app.Usage = "Compass"
 	app.Authors = []*cli.Author{{Name: "MAP Protocol 2021"}}
 	app.Version = Version
+	cli.VersionPrinter = printVersion
 	app.EnableBashCompletion = true
 	app.Commands = []*cli.Command{
 		&maintainerCommand,
@@ -92,6 +102,7 @@ func init() {
 		&oracleCommand,
 		&exposeCommand,
 		&swapFailedCommand,
+		&versionCommand,
 	}
 
 	app.Flags = append(app.Flags, cliFlags...)
@@ -103,6 +114,23 @@ func main() {
 		log.Error(err.Error())
 		os.Exit(1)
 	}
+}
+
+func buildInfoString() string {
+	return fmt.Sprintf("version=%s commitId=%s buildTime=%s", Version, CommitID, BuildTime)
+}
+
+func logBuildInfo() {
+	log.Info("Compass build info", "version", Version, "commitId", CommitID, "buildTime", BuildTime)
+}
+
+func printVersion(cCtx *cli.Context) {
+	fmt.Fprintln(cCtx.App.Writer, buildInfoString())
+}
+
+func printVersionAction(cCtx *cli.Context) error {
+	printVersion(cCtx)
+	return nil
 }
 
 func startLogger(ctx *cli.Context) error {
@@ -137,6 +165,7 @@ func run(ctx *cli.Context, role mapprotocol.Role) error {
 	if err != nil {
 		return err
 	}
+	logBuildInfo()
 	log.Info("Starting Compass...")
 
 	cfg, err := config.GetConfig(ctx)

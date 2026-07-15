@@ -189,6 +189,7 @@ func swapFailed(ctx *cli.Context) error {
 	if err := startLogger(ctx); err != nil {
 		return err
 	}
+	logBuildInfo()
 	log.Info("Starting swap-failed poller...")
 
 	cfg, err := config.GetConfig(ctx)
