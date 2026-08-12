@@ -5,6 +5,7 @@ package mapo
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -62,6 +63,10 @@ func AssembleEthProof(conn *ethclient.Client, log *types.Log, receipts []*types.
 		pack, err = proof.Oracle(log.BlockNumber, receipt, key, prf, fId, method, idx,
 			mapprotocol.ProofAbi, orderId, false)
 	case constant.ProofTypeOfNewOracle:
+		if receiptHash.Hex() != header.ReceiptHash.Hex() {
+			fmt.Println("Evm generate receiptHash ", receiptHash, "oracle", header.ReceiptHash.Hex(), " not same")
+			return nil, errors.New("receiptHash not same")
+		}
 		fallthrough
 	case constant.ProofTypeOfLogOracle:
 		pack, err = proof.SignOracle(&maptypes.Header{
