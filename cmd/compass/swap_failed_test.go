@@ -4,7 +4,14 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestSwapFailedMinTxAgeIsSixMinutes(t *testing.T) {
+	if minTxAge != 6*time.Minute {
+		t.Fatalf("minTxAge = %s, want 6m", minTxAge)
+	}
+}
 
 func TestIsTokenProjectTransactionCaseInsensitive(t *testing.T) {
 	for _, name := range []string{"tokenProject", "TokenProject", "TOKENPROJECT", "tp", "TP"} {

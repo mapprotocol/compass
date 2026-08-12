@@ -46,7 +46,7 @@ const (
 	// minTxAge is how old a pending tx must be before we touch it. Fresh
 	// failures often resolve themselves once the relay or dest swap retries
 	// on butter-api's side; jumping in early just races them.
-	minTxAge        = 10 * time.Minute
+	minTxAge        = 6 * time.Minute
 	pendingURL      = "https://opapi.chainservice.io/api/transaction/pendings"
 	execURL         = "https://opapi.chainservice.io/api/transaction/exec"
 	defaultSlippage = "100" // 1%, matches fex-web Slippages[0]

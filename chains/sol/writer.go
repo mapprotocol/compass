@@ -118,6 +118,14 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 }
 
 func (w *Writer) sendSolCrossInTxs(resp *butter.SolCrossInResp, receiveOpenDone bool) ([]string, bool, error) {
+	return sendSolCrossInTxs(resp, receiveOpenDone, w.sendSolCrossInTx)
+}
+
+func sendSolCrossInTxs(
+	resp *butter.SolCrossInResp,
+	receiveOpenDone bool,
+	send func(butter.SolCrossInTxParam, int) (string, error),
+) ([]string, bool, error) {
 	if resp == nil || len(resp.Data) == 0 {
 		return nil, receiveOpenDone, errors.New("solCrossIn response data is empty")
 	}
@@ -131,7 +139,7 @@ func (w *Writer) sendSolCrossInTxs(resp *butter.SolCrossInResp, receiveOpenDone 
 		if !ok {
 			return nil, receiveOpenDone, errors.New("receiveOpen was already done, but receiveExecute txParam is missing")
 		}
-		txHash, err := w.sendSolCrossInTx(execute, 0)
+		txHash, err := send(execute, 0)
 		if err != nil {
 			return nil, receiveOpenDone, err
 		}
@@ -140,7 +148,7 @@ func (w *Writer) sendSolCrossInTxs(resp *butter.SolCrossInResp, receiveOpenDone 
 
 	switch len(txParams) {
 	case 1:
-		txHash, err := w.sendSolCrossInTx(txParams[0], 0)
+		txHash, err := send(txParams[0], 0)
 		if err != nil {
 			return nil, receiveOpenDone, err
 		}
@@ -156,14 +164,16 @@ func (w *Writer) sendSolCrossInTxs(resp *butter.SolCrossInResp, receiveOpenDone 
 		}
 
 		txHashes := make([]string, 0, 2)
-		txHash, err := w.sendSolCrossInTx(open, 0)
-		if err != nil {
+		txHash, err := send(open, 0)
+		if err != nil && !receiveOpenAlreadyDone(err) {
 			return nil, receiveOpenDone, err
 		}
 		receiveOpenDone = true
-		txHashes = append(txHashes, txHash)
+		if err == nil {
+			txHashes = append(txHashes, txHash)
+		}
 
-		txHash, err = w.sendSolCrossInTx(execute, 1)
+		txHash, err = send(execute, 1)
 		if err != nil {
 			return txHashes, receiveOpenDone, err
 		}
@@ -174,7 +184,7 @@ func (w *Writer) sendSolCrossInTxs(resp *butter.SolCrossInResp, receiveOpenDone 
 		if !ok {
 			return nil, receiveOpenDone, errors.New("receiveOpenExecute txParam is missing")
 		}
-		txHash, err := w.sendSolCrossInTx(openExecute, 0)
+		txHash, err := send(openExecute, 0)
 		if err != nil {
 			return nil, receiveOpenDone, err
 		}
@@ -182,6 +192,10 @@ func (w *Writer) sendSolCrossInTxs(resp *butter.SolCrossInResp, receiveOpenDone 
 	default:
 		return nil, receiveOpenDone, fmt.Errorf("unsupported solCrossIn txParam count: %d", len(txParams))
 	}
+}
+
+func receiveOpenAlreadyDone(err error) bool {
+	return err != nil && strings.Contains(strings.ToLower(err.Error()), "already in use")
 }
 
 func solCrossInTxParams(resp *butter.SolCrossInResp) []butter.SolCrossInTxParam {
