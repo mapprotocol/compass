@@ -1,15 +1,88 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
 	"time"
+
+	log "github.com/ChainSafe/log15"
 )
 
 func TestSwapFailedMinTxAgeIsSixMinutes(t *testing.T) {
 	if minTxAge != 6*time.Minute {
 		t.Fatalf("minTxAge = %s, want 6m", minTxAge)
+	}
+}
+
+func TestFormatAffiliatesForLog(t *testing.T) {
+	tests := []struct {
+		name       string
+		affiliates []affiliate
+		want       string
+	}{
+		{
+			name: "multiple affiliates",
+			affiliates: []affiliate{
+				{ID: 6, Name: "tokenpocket"},
+				{ID: 28, Name: "TokenPocket"},
+			},
+			want: `[{"id":6,"name":"tokenpocket"},{"id":28,"name":"TokenPocket"}]`,
+		},
+		{name: "empty affiliates", want: `[]`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := formatAffiliatesForLog(tt.affiliates); got != tt.want {
+				t.Fatalf("formatAffiliatesForLog() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRecordAttemptIncludesAllAffiliatesInRetryLogs(t *testing.T) {
+	id := t.Name()
+	seenFailedMu.Lock()
+	delete(seenFailed, id)
+	seenFailedMu.Unlock()
+	t.Cleanup(func() {
+		seenFailedMu.Lock()
+		delete(seenFailed, id)
+		seenFailedMu.Unlock()
+	})
+
+	var records []log.Record
+	logger := log.New()
+	logger.SetHandler(log.FuncHandler(func(record *log.Record) error {
+		copied := *record
+		copied.Ctx = append([]interface{}(nil), record.Ctx...)
+		records = append(records, copied)
+		return nil
+	}))
+
+	affiliates := []affiliate{
+		{ID: 6, Name: "tokenpocket"},
+		{ID: 28, Name: "TokenPocket"},
+	}
+	recordAttempt(id, "order-1", affiliates, errors.New("send failed"), logger)
+
+	if len(records) != 2 {
+		t.Fatalf("recordAttempt emitted %d records, want 2", len(records))
+	}
+	want := `[{"id":6,"name":"tokenpocket"},{"id":28,"name":"TokenPocket"}]`
+	for _, record := range records {
+		var got interface{}
+		for i := 0; i+1 < len(record.Ctx); i += 2 {
+			if record.Ctx[i] == "affiliates" {
+				got = record.Ctx[i+1]
+				break
+			}
+		}
+		if got != want {
+			t.Fatalf("%q affiliates = %#v, want %q", record.Msg, got, want)
+		}
 	}
 }
 
@@ -78,6 +151,40 @@ func TestPickTxParamsForTransactionRoutesTokenProjectAwayFromRefund(t *testing.T
 	}
 }
 
+func TestPickTxParamsForTransactionRoutesTokenPocketAffiliateIDsAwayFromRefund(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		payload string
+	}{
+		{name: "6", payload: `{"affiliates":[{"id":6}]}`},
+		{name: "28", payload: `{"affiliates":[{"id":28}]}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var tx pendingTx
+			if err := json.Unmarshal([]byte(tc.payload), &tx); err != nil {
+				t.Fatalf("unmarshal pending transaction: %v", err)
+			}
+			data := &execData{
+				UserRouter: true,
+				ExecRoute: &execRoute{
+					RescueFundsTxParam: &txParam{Method: "refund"},
+					RouteWithTxParams: []routeWithTx{
+						{TxParam: []txParam{{Method: "bridge"}}},
+					},
+				},
+			}
+
+			got, err := pickTxParamsForTransaction(tx, data)
+			if err != nil {
+				t.Fatalf("pickTxParamsForTransaction returned error: %v", err)
+			}
+			if len(got) != 1 || got[0].Method != "bridge" {
+				t.Fatalf("pickTxParamsForTransaction returned %+v, want normal bridge param", got)
+			}
+		})
+	}
+}
+
 func TestPickTxParamsForTokenProjectRejectsMissingNormalRoute(t *testing.T) {
 	data := &execData{
 		UserRouter: true,
@@ -114,6 +221,7 @@ func TestPickTxParamsForTokenProjectRejectsEmptyFirstRoute(t *testing.T) {
 }
 
 func TestPickTxParamsForRegularTransactionKeepsRefund(t *testing.T) {
+	tx := pendingTx{Affiliates: []affiliate{{ID: 7, Name: "butter"}}}
 	data := &execData{
 		UserRouter: true,
 		ExecRoute: &execRoute{
@@ -124,7 +232,7 @@ func TestPickTxParamsForRegularTransactionKeepsRefund(t *testing.T) {
 		},
 	}
 
-	got, err := pickTxParams(data, false)
+	got, err := pickTxParamsForTransaction(tx, data)
 	if err != nil {
 		t.Fatalf("pickTxParams returned error: %v", err)
 	}
