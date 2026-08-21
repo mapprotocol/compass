@@ -110,6 +110,7 @@ type txLog struct {
 }
 
 type affiliate struct {
+	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -295,7 +296,7 @@ func attempt(httpc *http.Client, sender *senderRegistry, tx pendingTx, butterAPI
 		"sendTime", tx.SendTime)
 	data, err := fetchExecData(httpc, params, butterAPIKey)
 	if err != nil {
-		recordAttempt(tx.ID, tx.OrderID, fmt.Errorf("fetch exec data: %w", err), logger)
+		recordAttempt(tx.ID, tx.OrderID, tx.Affiliates, fmt.Errorf("fetch exec data: %w", err), logger)
 		return
 	}
 	logger.Info("rescue exec data received",
@@ -310,7 +311,7 @@ func attempt(httpc *http.Client, sender *senderRegistry, tx pendingTx, butterAPI
 	useNormalRoute := isTokenProjectTransaction(tx)
 	chosen, err := pickTxParamsForTransaction(tx, data)
 	if err != nil {
-		recordAttempt(tx.ID, tx.OrderID, fmt.Errorf("pick tx: %w", err), logger)
+		recordAttempt(tx.ID, tx.OrderID, tx.Affiliates, fmt.Errorf("pick tx: %w", err), logger)
 		return
 	}
 	step := 0
@@ -334,7 +335,7 @@ func attempt(httpc *http.Client, sender *senderRegistry, tx pendingTx, butterAPI
 				"step", step, "reason", err)
 			return
 		}
-		recordAttempt(tx.ID, tx.OrderID, err, logger)
+		recordAttempt(tx.ID, tx.OrderID, tx.Affiliates, err, logger)
 		return
 	}
 	markDone(tx.ID)
@@ -364,7 +365,15 @@ func txSelector(hexData string) string {
 	return "0x" + s[:8]
 }
 
-func recordAttempt(id, orderID string, err error, logger log.Logger) {
+func formatAffiliatesForLog(affiliates []affiliate) string {
+	if len(affiliates) == 0 {
+		return "[]"
+	}
+	encoded, _ := json.Marshal(affiliates)
+	return string(encoded)
+}
+
+func recordAttempt(id, orderID string, affiliates []affiliate, err error, logger log.Logger) {
 	seenFailedMu.Lock()
 	e := seenFailed[id]
 	if e == nil {
@@ -373,7 +382,8 @@ func recordAttempt(id, orderID string, err error, logger log.Logger) {
 	}
 	e.attempts++
 	e.lastErr = err.Error()
-	logger.Warn("rescue attempt failed", "attempt", e.attempts, "max", maxAttempts, "err", err)
+	retryLogger := logger.New("affiliates", formatAffiliatesForLog(affiliates))
+	retryLogger.Warn("rescue attempt failed", "attempt", e.attempts, "max", maxAttempts, "err", err)
 	if e.attempts >= maxAttempts {
 		e.done = true
 		seenFailedMu.Unlock()
@@ -385,7 +395,7 @@ func recordAttempt(id, orderID string, err error, logger log.Logger) {
 	delay := retryDelays[e.attempts-1]
 	e.nextAt = time.Now().Add(delay)
 	seenFailedMu.Unlock()
-	logger.Info("rescue scheduled for retry", "wait", delay)
+	retryLogger.Info("rescue scheduled for retry", "wait", delay)
 }
 
 func markDone(id string) {
@@ -504,11 +514,16 @@ func pickTx(d *execData) (*txParam, error) {
 }
 
 func isTokenProjectTransaction(tx pendingTx) bool {
-	if len(tx.Affiliates) == 0 {
-		return false
+	for _, affiliate := range tx.Affiliates {
+		// Both affiliate records belong to TokenPocket.
+		if affiliate.ID == 6 || affiliate.ID == 28 {
+			return true
+		}
+		if strings.EqualFold(affiliate.Name, "tokenpocket") || strings.EqualFold(affiliate.Name, "tokenProject") || strings.EqualFold(affiliate.Name, "tp") {
+			return true
+		}
 	}
-	name := tx.Affiliates[0].Name
-	return strings.EqualFold(name, "tokenProject") || strings.EqualFold(name, "tp")
+	return false
 }
 
 func pickTxParams(d *execData, useNormalRoute bool) ([]txParam, error) {
