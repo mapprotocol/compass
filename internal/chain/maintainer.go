@@ -75,6 +75,7 @@ func (m *Maintainer) sync() error {
 			m.Log.Info("Map2other chain", "initial height", currentBlock)
 		}
 	}
+	m.State.SetCurrentBlock(currentBlock.Int64())
 
 	for {
 		select {
