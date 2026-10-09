@@ -109,61 +109,6 @@ func (w *Writer) callContractWithMsg(addr common.Address, m msg.Message) bool {
 	}
 }
 
-func (w *Writer) merlinWithMsg(m msg.Message) bool {
-	var (
-		errorCount int64
-		needNonce  = true
-		addr       = w.cfg.McsContract[m.Idx]
-	)
-	for {
-		select {
-		case <-w.stop:
-			return false
-		default:
-			err := w.conn.LockAndUpdateOpts(needNonce)
-			if err != nil {
-				w.log.Error("Failed to update nonce", "err", err)
-				time.Sleep(constant.TxRetryInterval)
-				continue
-			}
-			var inputHash = m.Payload[3]
-			w.log.Info("Send transaction", "method", m.Payload[4], "srcHash", inputHash, "needNonce", needNonce, "nonce", w.conn.Opts().Nonce)
-			mcsTx, err := w.sendTx(&addr, nil, m.Payload[0].([]byte))
-			if err == nil {
-				w.log.Info("Submitted cross tx execution", "src", m.Source, "dst", m.Destination, "srcHash", inputHash, "mcsTx", mcsTx.Hash())
-				err = w.txStatus(mcsTx.Hash())
-				if err != nil {
-					w.log.Warn("Store TxHash Status is not successful, will retry", "err", err)
-				} else {
-					m.DoneCh <- struct{}{}
-					return true
-				}
-			} else if w.cfg.SkipError && errorCount >= 9 {
-				w.log.Warn("Execution failed, ignore this error, Continue to the next ", "srcHash", inputHash, "err", err)
-				m.DoneCh <- struct{}{}
-				return true
-			} else {
-				for e := range constant.IgnoreError {
-					if strings.Index(err.Error(), e) != -1 {
-						w.log.Info("Ignore This Error, Continue to the next", "id", m.Destination, "err", err)
-						m.DoneCh <- struct{}{}
-						return true
-					}
-				}
-				w.log.Warn("Execution SwapInVerify failed, will retry", "srcHash", inputHash, "err", err)
-			}
-
-			needNonce = w.needNonce(err)
-			errorCount++
-			if errorCount >= 10 {
-				w.mosAlarm(m, inputHash, err)
-				errorCount = 0
-			}
-			time.Sleep(constant.TxRetryInterval)
-		}
-	}
-}
-
 func (w *Writer) proposal(m msg.Message) bool {
 	var (
 		errorCount int64

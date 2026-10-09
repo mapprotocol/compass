@@ -288,11 +288,11 @@ func shouldAttempt(id string, now time.Time) bool {
 // Records outcome in seenFailed and decides whether to re-arm or alarm.
 func attempt(httpc *http.Client, sender *senderRegistry, tx pendingTx, butterAPIKey string) {
 	params := buildProofParams(tx)
-	logger := log.New("orderId", tx.OrderID, "destChain", tx.DestinationChain.Name)
+	logger := log.New("hash", rescueSourceHash(tx), "destChain", tx.DestinationChain.Name)
 
 	logger.Info("rescue attempt start",
 		"state", tx.State, "srcChain", tx.SourceChain.Name,
-		"srcHash", tx.SourceHash, "destHash", tx.DestinationHash,
+		"sourceHash", tx.SourceHash, "destHash", tx.DestinationHash,
 		"sendTime", tx.SendTime)
 	data, err := fetchExecData(httpc, params, butterAPIKey)
 	if err != nil {
@@ -322,7 +322,7 @@ func attempt(httpc *http.Client, sender *senderRegistry, tx pendingTx, butterAPI
 			"chainId", param.ChainID, "to", param.To, "method", param.Method)
 		hash, sendErr := sender.send(param, logger)
 		if sendErr == nil {
-			logger.Info("rescue tx step sent", "step", step, "total", len(chosen), "hash", hash)
+			logger.Info("rescue tx step sent", "step", step, "total", len(chosen), "txHash", hash)
 		}
 		return hash, sendErr
 	})
@@ -341,6 +341,29 @@ func attempt(httpc *http.Client, sender *senderRegistry, tx pendingTx, butterAPI
 	markDone(tx.ID)
 	logger.Info("rescue tx sequence sent",
 		"count", len(chosen), "hashes", strings.Join(hashes, ","), "desc", data.ExecDesc)
+}
+
+// rescueSourceHash identifies the input transaction of the stalled bridge leg.
+// Destination-side execution consumes the MAP transaction; relay-side execution
+// still consumes the original source transaction, even if a relay attempt exists.
+func rescueSourceHash(tx pendingTx) string {
+	destinationLeg := false
+	switch tx.State {
+	case stateRelayConfirmed, stateDestPending, stateDestSwapPending,
+		stateDestSwapRescue, stateDestConfirmed, stateDestFailed, stateDestSwapFailed:
+		destinationLeg = true
+	default:
+		destinationLeg = getStatus(tx) == 3
+	}
+	if destinationLeg {
+		if tx.RelayHash != "" {
+			return tx.RelayHash
+		}
+		if tx.RelayInHash != "" {
+			return tx.RelayInHash
+		}
+	}
+	return tx.SourceHash
 }
 
 func routeWithTxParamsLen(d *execData) int {

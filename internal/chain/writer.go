@@ -55,8 +55,6 @@ func (w *Writer) ResolveMessage(m msg.Message) bool {
 		fallthrough
 	case msg.SwapWithMapProof:
 		return w.exeSwapMsg(m)
-	case msg.SwapWithMerlin:
-		return w.merlinWithMsg(m)
 	case msg.Proposal:
 		return w.proposal(m)
 	default:
