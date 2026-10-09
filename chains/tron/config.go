@@ -2,9 +2,10 @@ package tron
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"strconv"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/mapprotocol/compass/core"
 	"github.com/mapprotocol/compass/internal/chain"
@@ -16,7 +17,11 @@ type Config struct {
 	EthFrom                                            common.Address
 	McsContract                                        []string
 	Rent                                               bool
+	MinTrx                                             float64
 }
+
+// defaultMinTrx is the trx balance the sending account must keep, in trx.
+const defaultMinTrx = 20
 
 func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 	cfg, err := chain.ParseConfig(chainCfg)
@@ -27,6 +32,7 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 		Config:      *cfg,
 		LightNode:   "",
 		McsContract: nil,
+		MinTrx:      defaultMinTrx,
 	}
 
 	if ele, ok := chainCfg.Opts[chain.LightNode]; ok && ele != "" {
@@ -52,6 +58,13 @@ func parseCfg(chainCfg *core.ChainConfig) (*Config, error) {
 	}
 	if ele, ok := chainCfg.Opts[chain.EnergySupply]; ok && ele != "" {
 		ret.EnergySupply = ele
+	}
+	if ele, ok := chainCfg.Opts[chain.MinTrx]; ok && ele != "" {
+		minTrx, err := strconv.ParseFloat(ele, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid MinTrx option")
+		}
+		ret.MinTrx = minTrx
 	}
 	if ele, ok := chainCfg.Opts[chain.Rent]; ok && ele != "" {
 		rent, err := strconv.ParseBool(ele)
