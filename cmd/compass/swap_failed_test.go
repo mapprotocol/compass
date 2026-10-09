@@ -16,6 +16,28 @@ func TestSwapFailedMinTxAgeIsSixMinutes(t *testing.T) {
 	}
 }
 
+func TestRescueSourceHash(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		tx   pendingTx
+		want string
+	}{
+		{"eth to map failed", pendingTx{State: stateRelayFailed, SourceHash: "eth", RelayHash: "failed-map", RelayInHash: "map-in"}, "eth"},
+		{"eth to map retry", pendingTx{State: stateRelayRetry, SourceHash: "eth", RelayInHash: "map-in"}, "eth"},
+		{"map to bsc pending", pendingTx{State: stateRelayConfirmed, SourceHash: "eth", RelayHash: "map"}, "map"},
+		{"map to bsc failed", pendingTx{State: stateDestFailed, SourceHash: "eth", RelayHash: "map", RelayInHash: "map-in"}, "map"},
+		{"destination swap failed", pendingTx{State: stateDestSwapFailed, SourceHash: "eth", RelayHash: "map"}, "map"},
+		{"relay hash fallback", pendingTx{State: stateDestFailed, SourceHash: "eth", RelayInHash: "map-in"}, "map-in"},
+		{"direct source fallback", pendingTx{State: stateDestFailed, SourceHash: "source"}, "source"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := rescueSourceHash(tc.tx); got != tc.want {
+				t.Fatalf("rescueSourceHash() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestFormatAffiliatesForLog(t *testing.T) {
 	tests := []struct {
 		name       string

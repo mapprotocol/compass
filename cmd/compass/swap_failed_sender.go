@@ -225,13 +225,13 @@ func (r *senderRegistry) sendEvm(tx txParam, logger log.Logger) (string, error) 
 		return "", fmt.Errorf("sign: %w", err)
 	}
 	logger.Info("evm send: signed",
-		"hash", signedTx.Hash().Hex(), "nonce", nonce,
+		"txHash", signedTx.Hash().Hex(), "nonce", nonce,
 		"gasLimit", gasLimit, "gasPrice", gasPrice.String())
 
 	if err := client.SendTransaction(ctx, signedTx); err != nil {
 		return "", fmt.Errorf("send: %w", err)
 	}
-	logger.Info("evm send: broadcast ok", "hash", signedTx.Hash().Hex())
+	logger.Info("evm send: broadcast ok", "txHash", signedTx.Hash().Hex())
 	return signedTx.Hash().Hex(), nil
 }
 
