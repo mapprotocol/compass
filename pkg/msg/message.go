@@ -11,7 +11,6 @@ var (
 	SyncFromMap      TransferType = "SyncFromMap"
 	SwapWithProof    TransferType = "SwapWithProof"
 	SwapWithMapProof TransferType = "SwapWithMapProof"
-	SwapWithMerlin   TransferType = "SwapWithMerlin"
 	Proposal         TransferType = "Proposal"
 	SwapSolProof     TransferType = "SwapSolProof"
 )
@@ -71,16 +70,6 @@ func NewSolProof(fromChainID, toChainID ChainId, payloads []interface{}, ch chan
 		Source:      fromChainID,
 		Destination: toChainID,
 		Type:        SwapSolProof,
-		Payload:     payloads,
-		DoneCh:      ch,
-	}
-}
-
-func NewSwapWithMerlin(fromChainID, toChainID ChainId, payloads []interface{}, ch chan<- struct{}) Message {
-	return Message{
-		Source:      fromChainID,
-		Destination: toChainID,
-		Type:        SwapWithMerlin,
 		Payload:     payloads,
 		DoneCh:      ch,
 	}
