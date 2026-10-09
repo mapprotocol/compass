@@ -45,6 +45,7 @@ var (
 	FeeKey                = "feeKey"
 	FeeType               = "feeType"
 	EnergySupply          = "energySupply"
+	MinTrx                = "minTrx"
 	Private               = "private"
 	Words                 = "words"
 	Rent                  = "rent"

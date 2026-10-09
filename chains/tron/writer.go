@@ -127,10 +127,26 @@ func (w *Writer) exeMcs(m msg.Message) bool {
 			}
 			w.log.Info("Trigger Contract result detail", "used", contract.EnergyUsed, "method", method)
 
+			// the supply account is where the energy comes from, check it before renting
+			if w.cfg.EnergySupply != "" {
+				if err = checkEnergySupply(w.conn.cli, w.log, w.cfg.EnergySupply, contract.EnergyUsed); err != nil {
+					w.resourceAlarm(inputHash, err)
+					time.Sleep(time.Second * 10)
+					continue
+				}
+			}
+
 			err = w.rentEnergy(contract.EnergyUsed, method)
 			if err != nil {
 				w.log.Info("Check energy failed", "srcHash", inputHash, "err", err)
 				w.mosAlarm(inputHash, errors.Wrap(err, "please admin handler"))
+				time.Sleep(time.Second * 10)
+				continue
+			}
+
+			// rented energy lands on the sending account, so check it after renting
+			if err = checkSelfResource(w.conn.cli, w.log, w.cfg.From, contract.EnergyUsed, w.cfg.MinTrx); err != nil {
+				w.resourceAlarm(inputHash, err)
 				time.Sleep(time.Second * 10)
 				continue
 			}
@@ -261,6 +277,14 @@ func (w *Writer) txStatus(txHash string) error {
 		}
 		return fmt.Errorf("txHash(%s), status not success, current status is (%s)", txHash, id.Receipt.Result.String())
 	}
+}
+
+// resourceAlarm reports a resource shortage. The alarm text is err alone, with
+// no srcHash and no live numbers, so util.Alarm can dedupe it while the message
+// keeps retrying every 10 seconds. The detail goes to the log.
+func (w *Writer) resourceAlarm(tx interface{}, err error) {
+	w.log.Error("Resource pre-check failed, skip sending", "srcHash", tx, "err", err)
+	util.Alarm(context.Background(), err.Error())
 }
 
 func (w *Writer) mosAlarm(tx interface{}, err error) {
